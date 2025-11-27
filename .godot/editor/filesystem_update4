@@ -1,8 +1,3 @@
-res://scripts/popups/PayoutPopup.gd
 res://scenes/Game.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/GameConstants.gd
-res://scenes/PayoutPopup.tscn
-res://scripts/GameController.gd
-res://scripts/popups/PayoutPopupNew.gd

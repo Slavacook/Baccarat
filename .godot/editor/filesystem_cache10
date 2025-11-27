@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1764023167
+::res://::1764070355
 ARCHITECTURE.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 BUGFIXES.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 CHANGELOG_SURVIVAL.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
@@ -26,7 +26,7 @@ UPDATES_SUMMARY.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 ИТОГИ_РАЗРАБОТКИ.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 ТЕХНИЧЕСКОЕ_РЕЗЮМЕ.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 ::res://addons/::1763895550
-::res://addons/gut/::1764023169
+::res://addons/gut/::1764023171
 autofree.gd::GDScript::4019677876572174179::1763895550::0::1::::<>RefCounted<><>0<>0<><>::
 awaiter.gd::GDScript::4956307890136372434::1763895550::0::1::::<>Node<><>0<>0<><>::
 collected_script.gd::GDScript::3036845259248397267::1763895550::0::1::::<>RefCounted<><>0<>0<><>::
@@ -96,7 +96,7 @@ optparse.gd::GDScript::7115616212494707654::1763895550::0::1::::<>RefCounted<><>
 function_template.txt::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 init_template.txt::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 script_template.txt::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
-::res://addons/gut/fonts/::1764023169
+::res://addons/gut/fonts/::1764023171
 AnonymousPro-Bold.ttf::FontFile::7090493737101227053::1763895550::1764023171::1::::<><><>0<>0<>4e7aaa5617823f318a012f2bf38fb679<>res://.godot/imported/AnonymousPro-Bold.ttf-9d8fef4d357af5b52cd60afbe608aa49.fontdata::
 AnonymousPro-BoldItalic.ttf::FontFile::761724172175864::1763895550::1764023171::1::::<><><>0<>0<>248f16385f880903c002a284d638b4de<>res://.godot/imported/AnonymousPro-BoldItalic.ttf-4274bf704d3d6b9cd32c4f0754d8c83d.fontdata::
 AnonymousPro-Italic.ttf::FontFile::503495830806397342::1763895550::1764023171::1::::<><><>0<>0<>6cf67e8fc8fe7ecd915cd07d15a1b383<>res://.godot/imported/AnonymousPro-Italic.ttf-9989590b02137b799e13d570de2a42c1.fontdata::
@@ -110,12 +110,12 @@ LobsterTwo-BoldItalic.ttf::FontFile::3182965850633207044::1763895550::1764023171
 LobsterTwo-Italic.ttf::FontFile::7759867820021968437::1763895550::1764023171::1::::<><><>0<>0<>996d6c75f556b60eb6da0fffa0a54d4e<>res://.godot/imported/LobsterTwo-Italic.ttf-f93abf6c25390c85ad5fb6c4ee75159e.fontdata::
 LobsterTwo-Regular.ttf::FontFile::2115948870915788183::1763895550::1764023171::1::::<><><>0<>0<>8d1ca8c94ef93d21f94ba83f40f0d62a<>res://.godot/imported/LobsterTwo-Regular.ttf-f3fcfa01cd671c8da433dd875d0fe04b.fontdata::
 OFL.txt::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
-::res://addons/gut/gui/::1764023169
+::res://addons/gut/gui/::1764070241
 about.gd::GDScript::488202083672295193::1763895550::0::1::::<>AcceptDialog<><>0<>1<><>::
 about.tscn::PackedScene::8284998557770768332::1763895550::0::1::::<><><>0<>0<><>::uid://g7qu8ihdt3pd::::res://addons/gut/gui/about.gd<>uid://bjkn8mhx2fmt1::::res://addons/gut/gui/GutLogo.tscn
 arrow.png::CompressedTexture2D::2222304255268796957::1763895550::1764023169::1::::<><><>0<>0<>c6670127146b5956636ca7e2cf440791<>res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex::
-EditorRadioButton.tres::Theme::8460222933348692164::1763986041::0::1::::<><><>0<>0<><>::
-editor_globals.gd::GDScript::4861108855360548659::1763986041::0::1::::<>RefCounted<><>0<>1<><>::
+EditorRadioButton.tres::Theme::8460222933348692164::1764070241::0::1::::<><><>0<>0<><>::
+editor_globals.gd::GDScript::4861108855360548659::1764070241::0::1::::<>RefCounted<><>0<>1<><>::
 GutBottomPanel.gd::GDScript::8536994468377110612::1763895550::0::1::::<>Control<><>0<>1<><>::
 GutBottomPanel.tscn::PackedScene::4354655867367614688::1763895550::0::1::::<><><>0<>0<><>::uid://dtvnb0xatk0my::::res://addons/gut/gui/GutBottomPanel.gd<>uid://0yunjxtaa8iw::::res://addons/gut/gui/RunAtCursor.tscn<>uid://cr6tvdv0ve6cv::::res://addons/gut/gui/play.png<>uid://bvo0uao7deu0q::::res://addons/gut/icon.png<>uid://4gyyn12um08h::::res://addons/gut/gui/RunResults.tscn<>uid://bqmo4dj64c7yl::::res://addons/gut/gui/OutputText.tscn<>uid://dj5ve0bq7xa5j::::res://addons/gut/gui/ShortcutDialog.tscn<>uid://ckv5eh8xyrwbk::::res://addons/gut/gui/ShellOutOptions.tscn
 GutControl.gd::GDScript::5919874032655369281::1763895550::0::1::::<>Control<><>0<>1<><>::
@@ -156,7 +156,7 @@ ShortcutButton.gd::GDScript::766347793735688544::1763895550::0::1::::<>Control<>
 ShortcutButton.tscn::PackedScene::1273828520004261174::1763895550::0::1::::<><><>0<>0<><>::uid://k6hvvpekp0xw::::res://addons/gut/gui/ShortcutButton.gd
 ShortcutDialog.gd::GDScript::7362128468376051141::1763895550::0::1::::<>ConfirmationDialog<><>0<>1<><>::
 ShortcutDialog.tscn::PackedScene::7854176491866295805::1763895550::0::1::::<><><>0<>0<><>::uid://dc5jgemxslgvl::::res://addons/gut/gui/ShortcutDialog.gd<>uid://sfb1fw8j6ufu::::res://addons/gut/gui/ShortcutButton.tscn
-::res://addons/gut/images/::1764023170
+::res://addons/gut/images/::1764023172
 eyey.png::CompressedTexture2D::8826714409196966634::1763895550::1764023170::1::::<><><>0<>0<>e7eeaa68987b035cbe7b23b0ad391dc7<>res://.godot/imported/eyey.png-e0a721ab6b749f5d493d61e9f27f0654.ctex::
 Folder.svg::CompressedTexture2D::7694651741458501535::1763895550::1764023172::1::::<><><>0<>0<>ac3d6b3cde496c9708b59e4c65b8ac10<>res://.godot/imported/Folder.svg-caa50e6a0be9d456fd81991dfb537916.ctex::
 green.png::CompressedTexture2D::3896279560051998512::1763895550::1764023170::1::::<><><>0<>0<>bf65c76ed3830a12568472f2e83caa53<>res://.godot/imported/green.png-e3a17091688e10a7013279b38edc7f8a.ctex::
@@ -170,7 +170,7 @@ yellow.png::CompressedTexture2D::1043265824178416429::1763895550::1764023170::1:
 ::res://assets/::1763897128
 ::res://assets/animation/::1763895551
 ::res://assets/animation/animation_dust_card/::1763895551
-::res://assets/animation/animation_dust_card/1_card/::1763895551
+::res://assets/animation/animation_dust_card/1_card/::1764023173
 card_1.PNG::CompressedTexture2D::6266205732654962306::1763895551::1764023172::1::::<><><>0<>0<>2b3762a0d482e2eae42c1a88fec3eab8<>res://.godot/imported/card_1.PNG-32db2c7fb2270040d4bc30a28bbf9809.ctex::
 card_2.PNG::CompressedTexture2D::5518091340547407754::1763895551::1764023172::1::::<><><>0<>0<>dbeb16e63962046df85424060884b232<>res://.godot/imported/card_2.PNG-f202893749d27b4da3336e2aa15df86a.ctex::
 card_3.PNG::CompressedTexture2D::3286236973287673514::1763895551::1764023172::1::::<><><>0<>0<>db9ef4cf36bd8aa283346c50eabff114<>res://.godot/imported/card_3.PNG-221e911853bf1b09b8e7373f18012c29.ctex::
@@ -179,7 +179,7 @@ card_5.PNG::CompressedTexture2D::6954143455489762791::1763895551::1764023172::1:
 card_6.PNG::CompressedTexture2D::8218720265902401231::1763895551::1764023172::1::::<><><>0<>0<>0a7d6e985e46288d88d1407559ace82b<>res://.godot/imported/card_6.PNG-c63849e8158b41f8a08554c142d5c59c.ctex::
 card_7.PNG::CompressedTexture2D::4441181715819101073::1763895551::1764023173::1::::<><><>0<>0<>da10bdd11ce6204ad92c27951a012217<>res://.godot/imported/card_7.PNG-f8c0b7a3d61dcdd3245128a773323c3a.ctex::
 card_8.PNG::CompressedTexture2D::3444786128752878002::1763895551::1764023173::1::::<><><>0<>0<>63d37dcf2efc97bb738c54fd8e1e050f<>res://.godot/imported/card_8.PNG-31dfceb5229163aa89dd1b4249fabb92.ctex::
-::res://assets/animation/animation_dust_card/2_card/::1763895551
+::res://assets/animation/animation_dust_card/2_card/::1764023173
 card_1.PNG::CompressedTexture2D::73943572210862810::1763895551::1764023173::1::::<><><>0<>0<>e74879f59919e240f0afd084ad6bdb9d<>res://.godot/imported/card_1.PNG-24d11827b7524c0dbc04d80980d9b227.ctex::
 card_2.PNG::CompressedTexture2D::2925223370146567241::1763895551::1764023173::1::::<><><>0<>0<>955b7525115bfafd92a6653c4b8c14f8<>res://.godot/imported/card_2.PNG-a7877e4804c369527d496e16665f6909.ctex::
 card_3.PNG::CompressedTexture2D::8426949145055597297::1763895551::1764023173::1::::<><><>0<>0<>fc6038787554e63e0ad1fed67a7ae8da<>res://.godot/imported/card_3.PNG-3b612d1efabaaafaca8665cb0f669bb5.ctex::
@@ -188,7 +188,7 @@ card_5.PNG::CompressedTexture2D::7167982889971004640::1763895551::1764023173::1:
 card_6.PNG::CompressedTexture2D::6369490960757397037::1763895551::1764023173::1::::<><><>0<>0<>2edcd0163a201d194d81da137aa2fd1c<>res://.godot/imported/card_6.PNG-e0a34402187cb171f06f6d64c4beb323.ctex::
 card_7.PNG::CompressedTexture2D::1207387279236112309::1763895551::1764023172::1::::<><><>0<>0<>f5b5907755018a5641ddde71d8192b0b<>res://.godot/imported/card_7.PNG-5b416ec93519a2627c38d12c0f57d763.ctex::
 card_8.PNG::CompressedTexture2D::741400332851689969::1763895551::1764023172::1::::<><><>0<>0<>ef57c1850b9ebb18b3c92e8e4a403cb9<>res://.godot/imported/card_8.PNG-15ee0706a90e5eba7ba8547031fde72b.ctex::
-::res://assets/animation/animation_open_card/::1763895551
+::res://assets/animation/animation_open_card/::1764023172
 open_card_1.png::CompressedTexture2D::4014400116473013342::1763895551::1764023172::1::::<><><>0<>0<>3026779f3246dc4043a1e5d6474c0118<>res://.godot/imported/open_card_1.png-0d3f16fb7adfa2783e084104c8fef112.ctex::
 open_card_2.png::CompressedTexture2D::3738330321356363679::1763895551::1764023172::1::::<><><>0<>0<>b5bafcce794f7af60643a4b085b2b594<>res://.godot/imported/open_card_2.png-6dcaf0634a0ae692db3d7c9f3b02a4ae.ctex::
 open_card_3.png::CompressedTexture2D::3822495003308522949::1763895551::1764023172::1::::<><><>0<>0<>5f39f0b397c8d89f1a0678b2c0dc7c72<>res://.godot/imported/open_card_3.png-eb36a8ad571cb3a2bdaa1505c89170e5.ctex::
@@ -200,7 +200,7 @@ open_card_8.png::CompressedTexture2D::5262920855370979220::1763895551::176402317
 open_card_9.png::CompressedTexture2D::583070440526074050::1763895551::1764023172::1::::<><><>0<>0<>cae0278808e7aead8b16609e8e5cb8ca<>res://.godot/imported/open_card_9.png-df793bc9441e66a9009d7e54489b3a0d.ctex::
 open_card_10.png::CompressedTexture2D::5752572060818296218::1763895551::1764023172::1::::<><><>0<>0<>0d8886cc82012d272300a8e6c184d7c4<>res://.godot/imported/open_card_10.png-3a31909d7394a5a62d74b1d2acac3e33.ctex::
 open_card_11.png::CompressedTexture2D::8691139578006941183::1763895551::1764023172::1::::<><><>0<>0<>c64afa415d228c3df15acb8574896919<>res://.godot/imported/open_card_11.png-aae10ef359caa20439e85e7c4387801d.ctex::
-::res://assets/cards/::1763895551
+::res://assets/cards/::1764023173
 2_clubs.png::CompressedTexture2D::414143491194988988::1763895551::1764023173::1::::<><><>0<>0<>f0901e6578e26cc1aea8e61b045786ae<>res://.godot/imported/2_clubs.png-7fcbb2c739c0dcd0047b9296a5f71576.ctex::
 2_diamonds.png::CompressedTexture2D::3311556164579799164::1763895551::1764023173::1::::<><><>0<>0<>e20832cfe2801c818389f137821c6daf<>res://.godot/imported/2_diamonds.png-5cab5f92b4c4708a0d27c7ac82fffc37.ctex::
 2_hearts.png::CompressedTexture2D::1702370996664091519::1763895551::1764023173::1::::<><><>0<>0<>d32dc6852fc3afb8384bcfa0e25e8e44<>res://.godot/imported/2_hearts.png-eb0ce3273d08380b091d1d4ffdade1ae.ctex::
@@ -254,11 +254,11 @@ queen_clubs.png::CompressedTexture2D::4218274318473025214::1763895551::176402317
 queen_diamonds.png::CompressedTexture2D::7888626874373942008::1763895551::1764023171::1::::<><><>0<>0<>059c44e53dba3e49caeb4765d336f121<>res://.godot/imported/queen_diamonds.png-4980dee24c87f0caf1b90151e6423e28.ctex::
 queen_hearts.png::CompressedTexture2D::6203510185452377960::1763895551::1764023171::1::::<><><>0<>0<>5752eb4892c67bcc608400ad68e96ebb<>res://.godot/imported/queen_hearts.png-97960c1a62d3a4a10c0c1869ff2ea540.ctex::
 queen_spades.png::CompressedTexture2D::1993635338324061949::1763895551::1764023171::1::::<><><>0<>0<>6e55b54df83b4f622af47c92af98ba5d<>res://.godot/imported/queen_spades.png-1a68b4c2d59e2076506c81682aea985e.ctex::
-::res://assets/cards/back/::1763895551
+::res://assets/cards/back/::1764023172
 card_back.png::CompressedTexture2D::4650533289651115611::1763895551::1764023172::1::::<><><>0<>0<>ead9dad7176c726942b59bd1f3319790<>res://.godot/imported/card_back.png-c8ef76db9d0afa334c4e15eb36035a83.ctex::
 card_back_!.png::CompressedTexture2D::3832397768898216865::1763895551::1764023172::1::::<><><>0<>0<>bb12c83ef1164032c957ce29ea3f77b2<>res://.godot/imported/card_back_!.png-e8dde0c30a8136c76f28d4e1f8b89d24.ctex::
 card_back_?.png::CompressedTexture2D::8580589072272855655::1763895551::1764023172::1::::<><><>0<>0<>6d63080eadc293509716da0d709f91cf<>res://.godot/imported/card_back_?.png-259846bb469786a0b91ed68b787addff.ctex::
-::res://assets/chips/::1763895551
+::res://assets/chips/::1764023171
 chip_0.5.png::CompressedTexture2D::3983523704905096103::1763895551::1764023171::1::::<><><>0<>0<>36a3ffb49f7b852336207eecb2ade7fd<>res://.godot/imported/chip_0.5.png-4e8cf9ec183f2276eef912f4c5ddf383.ctex::
 chip_1.png::CompressedTexture2D::7522633749732104304::1763895551::1764023171::1::::<><><>0<>0<>6e58e3bb6ef27671ebb0d4f479a5c327<>res://.godot/imported/chip_1.png-96cdc6b9e809e110ea34de98c87740da.ctex::
 chip_5.png::CompressedTexture2D::245581153741642776::1763895551::1764023171::1::::<><><>0<>0<>147387f26f9df8b446af97aeaca3d9a5<>res://.godot/imported/chip_5.png-2979984033c3fe49fda7bc8a00122c61.ctex::
@@ -284,7 +284,7 @@ stack_10000.png::CompressedTexture2D::2848107083201090943::1763895551::176402317
 stack_25000.png::CompressedTexture2D::4047102297215677457::1763895551::1764023171::1::::<><><>0<>0<>6c9afe0563fb4944d5fee9a8448b6cee<>res://.godot/imported/stack_25000.png-c32aab0f03456ad9c9ec6c1310d850b6.ctex::
 stack_50000.png::CompressedTexture2D::6541779468366560426::1763895551::1764023171::1::::<><><>0<>0<>3c18fabde1800b3b846343e9901eeeb0<>res://.godot/imported/stack_50000.png-264d9875b12ce73d0d493429dd3fdd0d.ctex::
 stack_100000.png::CompressedTexture2D::7250427625531525664::1763895551::1764023171::1::::<><><>0<>0<>1dd6fd52e6e7891963ea4d4b1066be63<>res://.godot/imported/stack_100000.png-47bec0661fdae48785803a72eb22f55a.ctex::
-::res://assets/sound/::1763938662
+::res://assets/sound/::1764023177
 flip_card1.wav::AudioStreamWAV::5101018070435243305::1763897136::1764023177::1::::<><><>0<>0<>65df10758fb9da2c76948333a5734437<>res://.godot/imported/flip_card1.wav-38af5b9fdc907bcdcaeb3a1f051c8fdb.sample::
 flip_card2.wav::AudioStreamWAV::1731021290816160814::1763897136::1764023177::1::::<><><>0<>0<>ae521d6f38671960ded04b985a340ad0<>res://.godot/imported/flip_card2.wav-019f57722148f963ed7272a0abd18637.sample::
 flip_card3.wav::AudioStreamWAV::3041433303118640833::1763897136::1764023177::1::::<><><>0<>0<>679612fccb4090963914484abf2c3131<>res://.godot/imported/flip_card3.wav-66fe1a496de915afa418978e2bfd58eb.sample::
@@ -293,7 +293,7 @@ flip_card5.wav::AudioStreamWAV::4813973969002589096::1763897136::1764023177::1::
 flip_card6.wav::AudioStreamWAV::8673786790609071728::1763897136::1764023177::1::::<><><>0<>0<>2d4ad33290c384426ef11b4e22205e35<>res://.godot/imported/flip_card6.wav-a6aef8749ac20d3896ddbf0c6d271beb.sample::
 flip_card7.wav::AudioStreamWAV::9052482246650028986::1763897136::1764023177::1::::<><><>0<>0<>e94a90b87f1eb6a121697d347eba9af9<>res://.godot/imported/flip_card7.wav-ce1dd900c2af6eed7abb7d76639636f0.sample::
 flip_card8.wav::AudioStreamWAV::7107499154908435813::1763897136::1764023177::1::::<><><>0<>0<>3722e0a8ed167aa54b94d082667e9d26<>res://.godot/imported/flip_card8.wav-6ec8f9934007c070c44670a00cf097a8.sample::
-::res://assets/ui/::1763938662
+::res://assets/ui/::1764023172
 banker_marker.png::CompressedTexture2D::1689125725466296418::1763895551::1764023172::1::::<><><>0<>0<>874a60342c96dbf726f2367260c5b950<>res://.godot/imported/banker_marker.png-a88c0c565b27dea210399d89b5409e88.ctex::
 banker_marker_wins.png::CompressedTexture2D::1376032299205725253::1763895551::1764023172::1::::<><><>0<>0<>60103ca6a41d8d868ca8f82bbb55204b<>res://.godot/imported/banker_marker_wins.png-5b4f63f11537a77f5c1a0420ce29bcf7.ctex::
 chip_bet.png::CompressedTexture2D::6395210504772056399::1763895551::1764023172::1::::<><><>0<>0<>8b3ad6909d3af9cb57949af6d89eb346<>res://.godot/imported/chip_bet.png-04751d588706c1af2d36566c414cf1cb.ctex::
@@ -310,7 +310,7 @@ Tie_win.png::CompressedTexture2D::3458192711058810204::1763895551::1764023171::1
 ::res://assets/скриншоты/::1763895551
 ::res://claude/::1763895550
 ::res://claude/addons/::1763895550
-::res://claude/addons/claude_3.5_sonnet_chat_api/::1763895550
+::res://claude/addons/claude_3.5_sonnet_chat_api/::1764023171
 Claude symbol - Ivory.png::CompressedTexture2D::8359861479026415144::1763895550::1764023171::1::::<><><>0<>0<>d8bb2c2c2e802c6a0569995167e645c4<>res://.godot/imported/Claude symbol - Ivory.png-0b4c83fe79872e89b8df1b7fd4163d8c.ctex::
 CLAUDE.md::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 dock_window.gd::GDScript::2170940798570437152::1763895550::0::1::::<>Control<><>0<>1<><>::
@@ -318,31 +318,31 @@ dock_window.tscn::PackedScene::2805335286659892580::1763895550::0::1::::<><><>0<
 plugin.cfg::TextFile::-1::1763895550::0::1::::<><><>0<>0<><>::
 plugin.gd::GDScript::1788502746869280734::1763895550::0::1::::<>EditorPlugin<><>0<>1<><>::
 ::res://fonts/::1763895551
-::res://icons/::1763938662
+::res://icons/::1764023172
 generated-image (16).png::CompressedTexture2D::5576953314385637040::1763895550::1764023172::1::::<><><>0<>0<>53b6593b82ad2bc143f959ae0ac73935<>res://.godot/imported/generated-image (16).png-caff0687031801c2d013707b3a246e98.ctex::
 icon_144x144.png::CompressedTexture2D::1022725554607707159::1763895550::1764023171::1::::<><><>0<>0<>f2587c14ef5105a47b706fd89a626b05<>res://.godot/imported/icon_144x144.png-0e8ae6d341fb0a6c830b5bb2170c689c.ctex::
 icon_180x180.png::CompressedTexture2D::7332088712235169614::1763895550::1764023171::1::::<><><>0<>0<>5ba82ac73a3b736babd8135c05823e70<>res://.godot/imported/icon_180x180.png-62abce29199a8e78085eb9ea15f5b780.ctex::
 icon_512x512.png::CompressedTexture2D::4039745087116323674::1763895550::1764023172::1::::<><><>0<>0<>0808c00f97bda04db13d8c32e7892ca4<>res://.godot/imported/icon_512x512.png-61f8ab437d7a3633340d43c7400188a8.ctex::
-::res://icons/виньетка/::1763938662
+::res://icons/виньетка/::1764023172
 generated-image (20).png::CompressedTexture2D::798129410885690562::1763895550::1764023172::1::::<><><>0<>0<>a2d93453036c4c19e96d6a7fb4d2f7e7<>res://.godot/imported/generated-image (20).png-cfbb404d7fffdac1d6ae3b80961caf0d.ctex::
 icon_144x144.png::CompressedTexture2D::4243617459030674452::1763895550::1764023171::1::::<><><>0<>0<>dfe4f1f5a0af2cff22eef82efb3d95f6<>res://.godot/imported/icon_144x144.png-003ee0d5edbacd7193b858a155b19b47.ctex::
 icon_180x180.png::CompressedTexture2D::8829146504763687343::1763895550::1764023171::1::::<><><>0<>0<>fbf644e9baebe7bc73a25da7815d1194<>res://.godot/imported/icon_180x180.png-045250569bc9949a5772f3c34b593a7f.ctex::
 icon_512x512.png::CompressedTexture2D::2774166128768893739::1763895550::1764023171::1::::<><><>0<>0<>15eba9eb905c26fc5924d28c6cd0d31d<>res://.godot/imported/icon_512x512.png-c621fedcf114cdbf0e85b5d9ad40b835.ctex::
 ::res://resources/::1763895550
 GameConfig.gd::GDScript::9082664074550891935::1763895550::0::1::::GameConfig<>Resource<><>0<>0<><>::
-::res://scenes/::1764021298
+::res://scenes/::1764070241
 BetPopup.tscn::PackedScene::4738235037960788730::1763895550::0::1::::<><><>0<>0<><>::uid://c60k5ekwpxfw7::::res://scripts/BetPopup.gd
 dust.tscn::PackedScene::2569557927807458103::1763895550::0::1::::<><><>0<>0<><>::uid://d212mi5krthoy::::res://scripts/Dust.gd<>uid://cvjnq02pacoxm::::res://assets/animation/animation_dust_card/1_card/card_1.PNG<>uid://ckvafm36yuru5::::res://assets/animation/animation_dust_card/1_card/card_2.PNG<>uid://bm243wkne64gs::::res://assets/animation/animation_dust_card/1_card/card_3.PNG<>uid://b2k8feb004khm::::res://assets/animation/animation_dust_card/1_card/card_4.PNG<>uid://c6cvyycf3ao3x::::res://assets/animation/animation_dust_card/1_card/card_5.PNG<>uid://dpdhefbpqy68r::::res://assets/animation/animation_dust_card/1_card/card_6.PNG<>uid://b4jlu41pk1he4::::res://assets/animation/animation_dust_card/1_card/card_7.PNG<>uid://bpcxehvtdhtoc::::res://assets/animation/animation_dust_card/1_card/card_8.PNG<>uid://bb23s3yotgf7::::res://assets/animation/animation_dust_card/2_card/card_1.PNG<>uid://bhxaab08a1lor::::res://assets/animation/animation_dust_card/2_card/card_2.PNG<>uid://dsccveexgkkjh::::res://assets/animation/animation_dust_card/2_card/card_3.PNG<>uid://clicspmbxiq2m::::res://assets/animation/animation_dust_card/2_card/card_4.PNG<>uid://daehvpmtcggts::::res://assets/animation/animation_dust_card/2_card/card_5.PNG<>uid://cw0ot54waqu0l::::res://assets/animation/animation_dust_card/2_card/card_6.PNG<>uid://rg4qy4ajs2dd::::res://assets/animation/animation_dust_card/2_card/card_7.PNG<>uid://kte0w75lir82::::res://assets/animation/animation_dust_card/2_card/card_8.PNG
 flip_card.tscn::PackedScene::2203904829151038995::1763898154::0::1::::<><><>0<>0<><>::uid://3g33us4ym5r1::::res://scripts/FlipCard.gd<>uid://bxgut3oh6s8sw::::res://assets/animation/animation_open_card/open_card_1.png<>uid://bti40v4x1wmd0::::res://assets/animation/animation_open_card/open_card_2.png<>uid://bupv608aq1x0h::::res://assets/animation/animation_open_card/open_card_3.png<>uid://dfq1uvneroypd::::res://assets/animation/animation_open_card/open_card_4.png<>uid://bnr1ecy1lb78t::::res://assets/animation/animation_open_card/open_card_5.png<>uid://co6t8ijeehbjd::::res://assets/animation/animation_open_card/open_card_6.png<>uid://dr13684kelh8t::::res://assets/animation/animation_open_card/open_card_7.png<>uid://cg8nsjoqi70ya::::res://assets/animation/animation_open_card/open_card_8.png<>uid://ikpc5htslnwk::::res://assets/animation/animation_open_card/open_card_9.png<>uid://cn7uayylmw18a::::res://assets/animation/animation_open_card/open_card_10.png<>uid://c8i6qcnshcre0::::res://assets/sound/flip_card8.wav
-Game.tscn::PackedScene::2756901942204591627::1763985241::0::1::::<><><>0<>0<><>::uid://cmdsv8cgwx0jw::::res://scripts/GameController.gd<>uid://csqohix558l5u::::res://assets/ui/table_background.png<>uid://b8ribk4n0q8w1::::res://scenes/BetPopup.tscn<>uid://cq8vx7m5hdj2p::::res://scenes/PayoutPopup.tscn<>uid://s1qstasvpebr::::res://scenes/HelpPopup.tscn<>res://scenes/GameOverPopup.tscn<>uid://c0oivkmtr8gao::::res://scenes/LimitsPopup.tscn<>uid://cxd5ghflln36j::::res://assets/ui/chip_bet.png<>uid://rdncw6ifk1c2::::res://scenes/SurvivalModeUI.tscn<>uid://pjrcoee4fq31::::res://assets/ui/Tie.png<>uid://c8pdumrqjxude::::res://assets/ui/chip_bet_1.png<>uid://c85dmnv0xhlrt::::res://assets/ui/player_marker.png<>uid://bpjf6tt0ch2bw::::res://assets/ui/Tie_win.png<>uid://b5w6jvx0owvhw::::res://assets/ui/player_marker_wins.png<>uid://ychwh6o6frhy::::res://assets/ui/banker_marker.png<>uid://6nt8xcinibd0::::res://scenes/flip_card.tscn<>uid://tutby4vxvi2x::::res://assets/ui/banker_marker_wins.png<>uid://dcyp1p7e010hj::::res://assets/ui/Shuffle .png<>uid://4ietsvpelka7::::res://assets/ui/set.png<>res://scenes/SettingsPopup.tscn
+Game.tscn::PackedScene::2756901942204591627::1764070241::0::1::::<><><>0<>0<><>::uid://cmdsv8cgwx0jw::::res://scripts/GameController.gd<>uid://csqohix558l5u::::res://assets/ui/table_background.png<>uid://b8ribk4n0q8w1::::res://scenes/BetPopup.tscn<>uid://cq8vx7m5hdj2p::::res://scenes/PayoutPopup.tscn<>uid://s1qstasvpebr::::res://scenes/HelpPopup.tscn<>res://scenes/GameOverPopup.tscn<>uid://c0oivkmtr8gao::::res://scenes/LimitsPopup.tscn<>uid://cxd5ghflln36j::::res://assets/ui/chip_bet.png<>uid://rdncw6ifk1c2::::res://scenes/SurvivalModeUI.tscn<>uid://pjrcoee4fq31::::res://assets/ui/Tie.png<>uid://c8pdumrqjxude::::res://assets/ui/chip_bet_1.png<>uid://c85dmnv0xhlrt::::res://assets/ui/player_marker.png<>uid://bpjf6tt0ch2bw::::res://assets/ui/Tie_win.png<>uid://b5w6jvx0owvhw::::res://assets/ui/player_marker_wins.png<>uid://ychwh6o6frhy::::res://assets/ui/banker_marker.png<>uid://6nt8xcinibd0::::res://scenes/flip_card.tscn<>uid://tutby4vxvi2x::::res://assets/ui/banker_marker_wins.png<>uid://dcyp1p7e010hj::::res://assets/ui/Shuffle .png<>uid://4ietsvpelka7::::res://assets/ui/set.png<>uid://dvya1mdh2e75l::::res://scenes/SettingsPopup.tscn
 GameOverPopup.tscn::PackedScene::-1::1763895550::0::1::::<><><>0<>0<><>::res://scripts/GameOverPopup.gd
 HelpPopup.tscn::PackedScene::1318077622054836299::1763895550::0::1::::<><><>0<>0<><>::uid://3yyj0s6pxqkk::::res://scripts/HelpPopup.gd
 LimitsPopup.tscn::PackedScene::6556987529166432286::1763895550::0::1::::<><><>0<>0<><>::uid://hxo8nl6k4neq::::res://scripts/TableLimitsPopup.gd
-PayoutPopup.tscn::PackedScene::5965305162244005137::1763985255::0::1::::<><><>0<>0<><>::res://scripts/popups/PayoutPopup.gd
+PayoutPopup.tscn::PackedScene::5965305162244005137::1764069735::0::1::::<><><>0<>0<><>::res://scripts/popups/PayoutPopup.gd
 SettingsPopup.tscn::PackedScene::8682819899485884407::1764021298::0::1::::<><><>0<>0<><>::uid://fl5the672xbt::::res://scripts/SettingsPopup.gd
 SurvivalModeUI.tscn::PackedScene::1200197571375732007::1763895550::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd
 Toast.tscn::PackedScene::1936476259211108317::1763895550::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
-::res://scripts/::1763985559
+::res://scripts/::1764069036
 BaccaratRules.gd::GDScript::5836862682016780837::1763936756::0::1::::BaccaratRules<>RefCounted<><>0<>0<><>::
 BetPopup.gd::GDScript::7000965934323491592::1763895550::0::1::::<>PopupPanel<><>0<>0<><>::
 Card.gd::GDScript::3661103580919269901::1763895550::0::1::::Card<>RefCounted<><>0<>0<><>::
@@ -350,8 +350,8 @@ CardTextureManager.gd::GDScript::7744892902498355683::1763895550::0::1::::CardTe
 Deck.gd::GDScript::6145890468197991316::1763895550::0::1::::Deck<>RefCounted<><>0<>0<><>::
 Dust.gd::GDScript::9109695906252045944::1763895550::0::1::::<>Node2D<><>0<>0<><>::
 FlipCard.gd::GDScript::1979425046039752148::1763936723::0::1::::FlipCard<>Node2D<><>0<>0<><>::
-GameConstants.gd::GDScript::5908386211620384816::1763985559::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
-GameController.gd::GDScript::5622432768509677956::1763985015::0::1::::<>Node2D<><>0<>0<><>::
+GameConstants.gd::GDScript::5908386211620384816::1764069036::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
+GameController.gd::GDScript::5622432768509677956::1764068868::0::1::::<>Node2D<><>0<>0<><>::
 GameModeManager.gd::GDScript::5355736345804787176::1763895550::0::1::::<>Node<><>0<>0<><>::
 GameOverPopup.gd::GDScript::5627445595560981844::1763895550::0::1::::<>PopupPanel<><>0<>0<><>::
 GamePhaseManager.gd::GDScript::1038087620930647068::1763961876::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
@@ -376,8 +376,8 @@ PayoutSettingsManager.gd::GDScript::2318296590108159483::1763961654::0::1::::<>N
 ChipStack.gd::GDScript::1674756323753705090::1763936521::0::1::::ChipStack<>RefCounted<><>0<>0<><>::
 ChipStackManager.gd::GDScript::1060822543130080410::1763936608::0::1::::ChipStackManager<>RefCounted<><>0<>0<><>::
 PayoutValidator.gd::GDScript::2597968456011595629::1763895550::0::1::::PayoutValidator<>RefCounted<><>0<>0<><>::
-::res://scripts/popups/::1763985573
-PayoutPopup.gd::GDScript::5933074839153755530::1763985573::0::1::::<>PopupPanel<><>0<>0<><>::
+::res://scripts/popups/::1764068993
+PayoutPopup.gd::GDScript::5933074839153755530::1764068919::0::1::::<>PopupPanel<><>0<>0<><>::
 ::res://scripts/states/::1763895550
 ::res://shaders/::1763895550
 ::res://tests/::1763932670

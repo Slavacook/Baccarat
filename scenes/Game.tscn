@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
 [ext_resource type="PackedScene" uid="uid://b8ribk4n0q8w1" path="res://scenes/BetPopup.tscn" id="3_aug50"]
-[ext_resource type="PackedScene" uid="uid://dw8vx7m5hdj3q" path="res://scenes/PayoutPopup.tscn" id="3_payout"]
+[ext_resource type="PackedScene" uid="uid://cq8vx7m5hdj2p" path="res://scenes/PayoutPopup.tscn" id="3_payout"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
 [ext_resource type="PackedScene" path="res://scenes/GameOverPopup.tscn" id="4_gameover"]
 [ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="4_kiw3p"]
@@ -19,7 +19,7 @@
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="8_mcffj"]
 [ext_resource type="Texture2D" uid="uid://dcyp1p7e010hj" path="res://assets/ui/Shuffle .png" id="14_7ua8r"]
 [ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="18_45i86"]
-[ext_resource type="PackedScene" path="res://scenes/SettingsPopup.tscn" id="18_kyk2p"]
+[ext_resource type="PackedScene" uid="uid://dvya1mdh2e75l" path="res://scenes/SettingsPopup.tscn" id="18_kyk2p"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -55,6 +55,8 @@ texture = ExtResource("1_qbsmt")
 [node name="BetPopup" parent="." instance=ExtResource("3_aug50")]
 
 [node name="PayoutPopup" parent="." instance=ExtResource("3_payout")]
+oversampling_override = 1.0
+size = Vector2i(526, 238)
 
 [node name="LimitsButton" type="Button" parent="."]
 visible = false
