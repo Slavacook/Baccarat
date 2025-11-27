@@ -1,3 +1,8 @@
 res://scenes/Game.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
+res://scenes/Toast.tscn
+res://scripts/autoload/EventBus.gd
+res://scripts/popups/PayoutPopup.gd
+res://scripts/OverlayNotification.gd
+res://scripts/OverlayNotificationManager.gd

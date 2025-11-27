@@ -25,6 +25,8 @@
 script = ExtResource("1_aug50")
 
 [node name="UI" type="CanvasLayer" parent="."]
+offset = Vector2(0, 50)
+transform = Transform2D(1, 0, 0, 1, 0, 50)
 
 [node name="ToastContainer" type="VBoxContainer" parent="UI"]
 anchors_preset = 5

@@ -389,6 +389,7 @@ func _format_amount(amount: float) -> String:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _show_success_animation():
+	# Показываем локальный overlay внутри попапа
 	feedback_container.visible = true
 	feedback_label.text = "Верно!"
 	feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
@@ -405,6 +406,7 @@ func _show_error_animation(collected: float):
 	is_button_blocked = true
 	payout_button.disabled = true
 
+	# Показываем локальный overlay внутри попапа
 	feedback_container.visible = true
 	var error_msg = validator.get_error_message(collected, expected_payout)
 	feedback_label.text = "Ошибка!\n%s" % error_msg
