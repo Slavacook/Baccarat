@@ -96,6 +96,9 @@ func _ready():
 	# Настройка клавиатурной навигации
 	_setup_keyboard_navigation()
 
+	# Проверяем, вернулись ли из PayoutScene
+	_check_payout_return()
+
 func set_flip_cards(cards):
 	flip_cards = cards
 
@@ -169,7 +172,7 @@ func _on_winner_selected(chosen: String):
 
 		# Проверяем, активна ли выплата для этой позиции
 		if PayoutSettingsManager.is_payout_enabled(actual):
-			# Есть ставка → показываем PayoutPopup
+			# Есть ставка → переходим в PayoutScene
 			var stake: float = 0.0
 			var payout: float = 0.0
 			if actual == "Banker":
@@ -186,7 +189,10 @@ func _on_winner_selected(chosen: String):
 			else:  # Player
 				stake = limits_manager.generate_bet()
 				payout = stake * 1.0
-			payout_popup.show_payout(actual, stake, payout)
+
+			# Сохраняем данные и переходим в PayoutScene
+			GameDataManager.set_payout_data(actual, stake, payout)
+			get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
 		else:
 			# Нет ставки → сразу новый раунд
 			phase_manager.reset()
@@ -252,6 +258,10 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 func _on_survival_game_over(_rounds: int):
 	print("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
 	game_over_popup.show_game_over(survival_rounds_completed)
+
+	# Автоматический рестарт через 3 секунды
+	await get_tree().create_timer(3.0).timeout
+	_on_restart_game()
 
 func _on_restart_game():
 	survival_rounds_completed = 0
@@ -372,3 +382,17 @@ func _setup_keyboard_navigation():
 	FocusManager.register_level(1, level1_elements)
 	FocusManager.register_level(2, level2_elements)
 	FocusManager.register_level(3, level3_elements)
+
+func _check_payout_return():
+	# Проверяем, есть ли данные возврата из PayoutScene
+	if GameDataManager.payout_winner != "":
+		# Обрабатываем результат выплаты
+		var is_correct = GameDataManager.payout_is_correct
+		var collected = GameDataManager.payout_collected
+		var expected = GameDataManager.payout_expected
+
+		# Вызываем обработчик как раньше
+		_on_payout_confirmed(is_correct, collected, expected)
+
+		# Очищаем данные
+		GameDataManager.clear()
