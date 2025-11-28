@@ -23,12 +23,14 @@ var tie_step: int
 
 func _init(conf: GameConfig):
 	config = conf
+	# ← Инициализация без эмита сигнала
 	set_limits(
 		conf.table_min_bet, conf.table_max_bet, conf.table_step,
-		conf.tie_min_bet, conf.tie_max_bet, conf.tie_step
+		conf.tie_min_bet, conf.tie_max_bet, conf.tie_step,
+		false  # silent = true, не эмитим сигнал при инициализации
 	)
 
-func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new_tie_max: int, new_tie_step: int):
+func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new_tie_max: int, new_tie_step: int, emit_signal: bool = true):
 	min_bet = new_min
 	max_bet = new_max
 	step = new_step
@@ -43,7 +45,9 @@ func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new
 	config.tie_max_bet = new_tie_max
 	config.tie_step = new_tie_step
 
-	limits_changed.emit(new_min, new_max, new_step, new_tie_min, new_tie_max, new_tie_step)
+	# ← Эмитим сигнал только если emit_signal = true (реальная смена лимитов)
+	if emit_signal:
+		limits_changed.emit(new_min, new_max, new_step, new_tie_min, new_tie_max, new_tie_step)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ГЕНЕРАЦИЯ СТАВОК С ФИКСИРОВАННЫМИ ДИАПАЗОНАМИ

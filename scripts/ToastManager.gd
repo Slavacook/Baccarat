@@ -52,7 +52,12 @@ func _on_show_toast_error(message: String):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_message(text: String, type: String = "info", duration: float = 2.5):
-	if not container or not toast_pool: return
+	# ← Проверяем валидность контейнера, переинициализируем если нужно
+	if not is_instance_valid(container) or not container.is_inside_tree():
+		_reinitialize_container()
+
+	if not container or not toast_pool:
+		return
 
 	# ← Берём Toast из пула (переиспользование)
 	var toast = toast_pool.get_toast()
@@ -80,3 +85,17 @@ func _get_color(type: String) -> Color:
 		"success": return Color(0.3, 1, 0.3)
 		"info": return Color(0.8, 0.8, 1)
 		_: return Color.WHITE
+
+# ← Переинициализация контейнера после смены сцены
+func _reinitialize_container():
+	var canvas_layer = get_tree().current_scene.get_node_or_null("UI")
+	if canvas_layer:
+		container = canvas_layer.get_node_or_null("ToastContainer")
+
+	if not container:
+		push_error("ToastContainer not found in current scene!")
+		return
+
+	# Пересоздаём пул с новым контейнером
+	toast_pool = ToastPool.new(container)
+	print("🍞 ToastManager: контейнер переинициализирован для новой сцены")

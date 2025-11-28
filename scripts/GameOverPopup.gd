@@ -13,6 +13,10 @@ func show_game_over(rounds_survived: int):
 	rounds_label.text = "Вы прошли %d раундов!" % rounds_survived
 	popup_centered()
 
+func show_game_over_score(final_score: int):
+	rounds_label.text = "GAME OVER!\nИтоговый счёт: %d" % final_score
+	popup_centered()
+
 func _on_restart_pressed():
 	hide()
 	restart_game.emit()

@@ -14,6 +14,7 @@ extends Control
 @onready var collected_amount_label = $MarginContainer/VBoxContainer/HeaderHBox/AmountPanel/CollectedAmountLabel
 @onready var payout_button = $MarginContainer/VBoxContainer/HeaderHBox/PayoutButton
 @onready var hint_button = $MarginContainer/VBoxContainer/HeaderHBox/HintButton
+@onready var score_label = %ScoreLabel
 @onready var main_panel = %MainPanel
 @onready var chip_stacks_container = %ChipStacksContainer
 @onready var fleet_panel = %FleetPanel
@@ -82,6 +83,12 @@ func _ready():
 		GameDataManager.payout_amount
 	)
 
+	# Настройка клавиатурной навигации
+	_setup_keyboard_navigation()
+
+	# Обновляем отображение очков
+	_update_score_display()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -143,8 +150,32 @@ func _on_payout_pressed():
 	GameDataManager.set_payout_result(is_correct, collected_total, expected_payout)
 
 	if is_correct:
+		# ← Правильная выплата: +1 очко (только в обычном режиме)
+		if not GameDataManager.is_survival_active:
+			SaveManager.instance.add_score(1)
+			_update_score_display()
 		_show_success_animation()
 	else:
+		# ← Неправильная выплата
+		if GameDataManager.is_survival_active:
+			# Режим выживания: отнимаем жизнь
+			GameDataManager.survival_lives -= 1
+			_update_score_display()
+			# Проверка Game Over (0 жизней)
+			if GameDataManager.survival_lives <= 0:
+				print("🎮 GAME OVER! Закончились жизни после неправильной выплаты")
+				# Сразу возвращаемся в игру для обработки Game Over
+				_return_to_game()
+				return
+		else:
+			# Обычный режим: отнимаем очки
+			var game_over = SaveManager.instance.subtract_score(1)
+			_update_score_display()
+			if game_over:
+				print("🎮 GAME OVER! Очки упали ниже 0 после неправильной выплаты")
+				# Сразу возвращаемся в игру для обработки Game Over
+				_return_to_game()
+				return
 		_show_error_animation(collected_total)
 
 	# Больше не нужен emit, данные уже в GameDataManager
@@ -152,6 +183,43 @@ func _on_payout_pressed():
 
 # ← Обработка кнопки подсказки
 func _on_hint_pressed():
+	var is_survival = GameDataManager.is_survival_active
+	var lives = GameDataManager.survival_lives
+
+	# ← Проверка в режиме выживания
+	if is_survival:
+		if lives <= 1:
+			# Последняя жизнь - подсказка недоступна
+			EventBus.show_toast_error.emit("Подсказка недоступна! (осталась последняя жизнь)")
+			return
+		else:
+			# Отнимаем жизнь
+			GameDataManager.survival_lives -= 1
+			_update_score_display()  # ← Обновляем отображение жизней
+			EventBus.show_toast_info.emit("Подсказка использована (-1 жизнь)")
+	else:
+		# Обычный режим: -5 очков
+		var current_score = SaveManager.instance.score
+		if current_score < 5:
+			# Недостаточно очков
+			EventBus.show_toast_error.emit("Подсказка недоступна! (нужно минимум 5 очков, есть %d)" % current_score)
+			return
+
+		var game_over = SaveManager.instance.subtract_score(5)
+		StatsManager.instance.update_stats()
+		_update_score_display()  # ← Обновляем отображение очков
+
+		if game_over:
+			print("🎮 GAME OVER! Очки упали ниже 0 после подсказки")
+			EventBus.show_toast_error.emit("GAME OVER! Очки упали ниже 0")
+			# Сохраняем текущий результат и возвращаемся в игру
+			GameDataManager.set_payout_result(false, 0.0, expected_payout)
+			await get_tree().create_timer(2.0).timeout
+			_return_to_game()
+			return
+
+		EventBus.show_toast_info.emit("Подсказка использована (-5 очков)")
+
 	# Очищаем текущие стопки
 	stack_manager.clear_all()
 
@@ -356,6 +424,20 @@ func _update_chip_denominations():
 	print("PayoutPopupNew: Номиналы фишек обновлены: ", chip_denominations)
 
 # ← Форматирование числа
+func _update_score_display():
+	# Обновляем отображение очков или сердечек
+	var is_survival = GameDataManager.is_survival_active
+	score_label.visible = true
+
+	if is_survival:
+		# Режим выживания: показываем количество жизней
+		var lives = GameDataManager.survival_lives
+		score_label.text = "♥ %d" % lives
+	else:
+		# Обычный режим: показываем очки
+		var current_score = SaveManager.instance.score
+		score_label.text = "Очки: %d" % current_score
+
 func _format_amount(amount: float) -> String:
 	if amount == floor(amount):
 		return str(int(amount))
@@ -414,9 +496,54 @@ func _show_error_animation(collected: float):
 	# Автоматически очищаем все фишки
 	stack_manager.clear_all()
 
+	# НЕ возвращаемся к игре - даём игроку попробовать снова
+
 # ═══════════════════════════════════════════════════════════════════════════
 # НАВИГАЦИЯ МЕЖДУ СЦЕНАМИ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _return_to_game():
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# КЛАВИАТУРНАЯ НАВИГАЦИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _setup_keyboard_navigation():
+	# Добавляем рамку в сцену
+	FocusManager.attach_highlight_to_scene(self)
+
+	# Уровень 1 (нижний): Флот фишек
+	var level1_elements = []
+	for child in chip_fleet_container.get_children():
+		if child is TextureButton:
+			level1_elements.append(child)
+
+	# Уровень 2: Стопки фишек (будут добавляться динамически)
+	var level2_elements = []
+	for child in chip_stacks_container.get_children():
+		if child is Control:
+			level2_elements.append(child)
+
+	# Уровень 3 (верхний): Выплатить, Подсказка
+	var level3_elements = [
+		payout_button,
+		hint_button
+	]
+
+	# Регистрируем уровни (is_payout=true для PayoutScene)
+	FocusManager.register_level(1, level1_elements, true)
+	FocusManager.register_level(2, level2_elements, true)
+	FocusManager.register_level(3, level3_elements, true)
+
+	# Подписываемся на добавление новых стопок
+	stack_manager.stack_added.connect(_on_stack_added_for_navigation)
+
+
+func _on_stack_added_for_navigation(stack: ChipStack, _index: int):
+	# Обновляем уровень 2 при добавлении стопки
+	var level2_elements = []
+	for child in chip_stacks_container.get_children():
+		if child is Control:
+			level2_elements.append(child)
+	FocusManager.register_level(2, level2_elements, true)

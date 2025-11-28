@@ -3,12 +3,15 @@ extends Node
 
 static var instance: SaveManager
 
+signal score_game_over()  # ← Сигнал когда очки упали ниже 0
+
 const SAVE_PATH = "user://baccarat_stats.save"
 const SETTINGS_PATH = "user://baccarat_settings.save"
 
 var total: int = 0
 var correct: int = 0
 var errors: Dictionary = {}
+var score: int = 10  # ← Очки (начальное значение 10)
 
 func _init():
 	if instance == null:
@@ -22,7 +25,7 @@ func _ready():
 func save_data():
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
-		file.store_var({"total": total, "correct": correct, "errors": errors})
+		file.store_var({"total": total, "correct": correct, "errors": errors, "score": score})
 		file.close()
 
 func load_data():
@@ -35,9 +38,10 @@ func load_data():
 				total = data.get("total", 0)
 				correct = data.get("correct", 0)
 				errors = data.get("errors", {})
+				score = data.get("score", 10)  # ← По умолчанию 10 очков
 
 func get_data() -> Dictionary:
-	return {"total": total, "correct": correct, "errors": errors}
+	return {"total": total, "correct": correct, "errors": errors, "score": score}
 
 func increment_total():
 	total += 1
@@ -55,7 +59,23 @@ func reset_stats():
 	total = 0
 	correct = 0
 	errors = {}
+	score = 10  # ← Начальный счёт при сбросе
 	save_data()
+
+# ← Управление очками
+func add_score(points: int):
+	score += points
+	save_data()
+
+func subtract_score(points: int) -> bool:
+	score -= points
+	save_data()
+
+	# ← Проверка Game Over (очки < 0)
+	if score < 0:
+		score_game_over.emit()
+		return true  # Game Over
+	return false  # Продолжаем игру
 
 # ← Управление настройками игры
 func save_settings(settings: Dictionary):

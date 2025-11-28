@@ -49,12 +49,16 @@ func _ready():
 	limits_popup.limits_changed.connect(limits_manager.set_limits)
 	limits_manager.limits_changed.connect(_on_limits_changed)
 	payout_popup = get_node("PayoutPopup")
-	payout_popup.payout_confirmed.connect(_on_payout_confirmed)
-	payout_popup.hint_used.connect(_on_hint_used)
+	# payout_popup больше не используется (заменён на PayoutScene)
+	# payout_popup.payout_confirmed.connect(_on_payout_confirmed)
+	# payout_popup.hint_used.connect(_on_hint_used)
 	survival_ui = get_node("TopUI/SurvivalModeUI")  # ← Обновили путь
 	survival_ui.game_over.connect(_on_survival_game_over)
 	game_over_popup = get_node("GameOverPopup")
 	game_over_popup.restart_game.connect(_on_restart_game)
+
+	# ← Подписываемся на Game Over по очкам
+	SaveManager.instance.score_game_over.connect(_on_score_game_over)
 
 	if has_node("SettingsPopup"):
 		settings_popup = get_node("SettingsPopup")
@@ -86,9 +90,11 @@ func _ready():
 	print("🎮 GameStateManager инициализирован")
 
 	var cfg = GameModeManager.get_config()
+	# ← Инициализация без toast
 	limits_manager.set_limits(
 		cfg["main_min"], cfg["main_max"], cfg["main_step"],
-		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"]
+		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
+		false  # не показываем toast при инициализации
 	)
 
 	StatsManager.instance.update_stats()
@@ -190,8 +196,18 @@ func _on_winner_selected(chosen: String):
 				stake = limits_manager.generate_bet()
 				payout = stake * 1.0
 
-			# Сохраняем данные и переходим в PayoutScene
-			GameDataManager.set_payout_data(actual, stake, payout)
+			# Сохраняем данные (включая счёт) и переходим в PayoutScene
+			var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
+			var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
+			GameDataManager.set_payout_data(actual, stake, payout, player_score, banker_score)
+
+			# ← Сохраняем состояние игры (сердечки, раунды)
+			GameDataManager.set_game_state(
+				survival_rounds_completed,
+				survival_ui.current_lives,
+				survival_ui.is_active
+			)
+
 			get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
 		else:
 			# Нет ставки → сразу новый раунд
@@ -250,8 +266,7 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 	else:
 		EventBus.payout_wrong.emit(collected, expected)
 		print("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
-		if is_survival_mode:
-			survival_ui.lose_life()
+		# ← Жизни отнимаются в PayoutScene, здесь ничего не делаем
 	if is_correct:
 		phase_manager.reset()
 
@@ -263,11 +278,21 @@ func _on_survival_game_over(_rounds: int):
 	await get_tree().create_timer(3.0).timeout
 	_on_restart_game()
 
+func _on_score_game_over():
+	print("🎮 GAME OVER! Очки упали ниже 0")
+	var final_score = SaveManager.instance.score
+	game_over_popup.show_game_over_score(final_score)
+
+	# Автоматический рестарт через 3 секунды
+	await get_tree().create_timer(3.0).timeout
+	_on_restart_game()
+
 func _on_restart_game():
 	survival_rounds_completed = 0
 	StatsManager.instance.reset()
-	survival_ui.reset()
-	survival_ui.activate()
+	if is_survival_mode:
+		survival_ui.reset()
+		survival_ui.activate()
 	phase_manager.reset()
 
 func _on_settings_button_pressed():
@@ -286,11 +311,12 @@ func _on_mode_changed(mode: String):
 	print("Режим игры изменён на: ", mode)
 	GameModeManager.set_mode(mode)
 	var cfg = GameModeManager.get_config()
+	# ← set_limits() сам вызовет limits_changed.emit() → _on_limits_changed()
 	limits_manager.set_limits(
 		cfg["main_min"], cfg["main_max"], cfg["main_step"],
 		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"]
 	)
-	_on_limits_changed(cfg["main_min"], cfg["main_max"], cfg["main_step"], cfg["tie_min"], cfg["tie_max"], cfg["tie_step"])
+	# Убрали дублирующий вызов _on_limits_changed() - он уже вызовется через сигнал
 
 func _on_language_changed(_lang: String):
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
@@ -311,6 +337,9 @@ func _on_survival_mode_changed(enabled: bool):
 		ui_manager.stats_label.visible = true
 		print("Режим выживания выключен")
 
+	# ← Обновляем отображение статистики (переключаемся между очками и правильно/ошибки)
+	StatsManager.instance.update_stats()
+
 func _load_survival_mode_setting():
 	var enabled = SaveManager.load_survival_mode()
 	is_survival_mode = enabled
@@ -323,20 +352,7 @@ func _load_survival_mode_setting():
 		survival_ui.deactivate()
 		ui_manager.stats_label.visible = true
 
-func _on_hint_used():
-	if is_survival_mode:
-		survival_ui.lose_life()
-		EventBus.show_toast_info.emit("💡 Подсказка использована (-1 жизнь)")
-		print("💡 Подсказка: -1 жизнь")
-	else:
-		var data = SaveManager.instance.get_data()
-		for i in range(10):
-			if data.correct > 0:
-				data.correct -= 1
-		SaveManager.instance.save_data()
-		StatsManager.instance.update_stats()
-		EventBus.show_toast_info.emit("💡 Подсказка использована (-10 очков)")
-		print("💡 Подсказка: -10 очков")
+# ← Метод _on_hint_used() удалён - логика подсказки теперь в PayoutScene
 
 func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
@@ -351,41 +367,69 @@ func _setup_keyboard_navigation():
 	# Добавляем рамку в сцену
 	FocusManager.attach_highlight_to_scene(self)
 
-	# Уровень 1: Карты, ? банкиру, ? игроку
+	# Уровень 1 (нижний): Кнопка "Карты"
 	var level1_elements = [
-		ui_manager.action_button,
+		ui_manager.action_button
+	]
+
+	# Уровень 2: ? банкиру, ? игроку
+	var level2_elements = [
 		ui_manager.banker_third_toggle,
 		ui_manager.player_third_toggle
 	]
 
-	# Уровень 2: Banker, Tie, Player
-	var level2_elements = [
+	# Уровень 3: Banker, Tie, Player
+	var level3_elements = [
 		get_node("BankerMarker"),
 		get_node("TieMarker"),
 		get_node("PlayerMarker")
 	]
 
-	# Уровень 3: Подсказка, Настройки, переключатели выплат
-	var level3_elements = [
+	# Уровень 4 (верхний): Подсказка, Настройки, переключатели выплат
+	var level4_elements = [
 		ui_manager.help_button
 	]
 	if has_node("SettingsButton"):
-		level3_elements.append(get_node("SettingsButton"))
+		level4_elements.append(get_node("SettingsButton"))
 	if has_node("PayoutTogglePlayer"):
-		level3_elements.append(get_node("PayoutTogglePlayer"))
+		level4_elements.append(get_node("PayoutTogglePlayer"))
 	if has_node("PayoutToggleBanker"):
-		level3_elements.append(get_node("PayoutToggleBanker"))
+		level4_elements.append(get_node("PayoutToggleBanker"))
 	if has_node("PayoutToggleTie"):
-		level3_elements.append(get_node("PayoutToggleTie"))
+		level4_elements.append(get_node("PayoutToggleTie"))
 
-	# Регистрируем уровни
-	FocusManager.register_level(1, level1_elements)
-	FocusManager.register_level(2, level2_elements)
-	FocusManager.register_level(3, level3_elements)
+	# Регистрируем уровни (is_payout=false для Game)
+	FocusManager.register_level(1, level1_elements, false)
+	FocusManager.register_level(2, level2_elements, false)
+	FocusManager.register_level(3, level3_elements, false)
+	FocusManager.register_level(4, level4_elements, false)
 
 func _check_payout_return():
 	# Проверяем, есть ли данные возврата из PayoutScene
 	if GameDataManager.payout_winner != "":
+		# ← Восстанавливаем состояние игры
+		survival_rounds_completed = GameDataManager.survival_rounds
+		survival_ui.current_lives = GameDataManager.survival_lives
+		survival_ui.is_active = GameDataManager.is_survival_active
+
+		# Обновляем визуальное отображение сердечек
+		if survival_ui.is_active:
+			survival_ui._update_hearts()
+			survival_ui.show()
+		else:
+			survival_ui.hide()
+
+		print("♻️  Состояние игры восстановлено: rounds=%d, lives=%d, active=%s" % [
+			survival_rounds_completed, survival_ui.current_lives, survival_ui.is_active
+		])
+
+		# ← Проверка Game Over в режиме выживания
+		if survival_ui.is_active and survival_ui.current_lives <= 0:
+			print("🎮 GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
+			_on_survival_game_over(survival_rounds_completed)
+			GameDataManager.clear()
+			return
+
 		# Обрабатываем результат выплаты
 		var is_correct = GameDataManager.payout_is_correct
 		var collected = GameDataManager.payout_collected

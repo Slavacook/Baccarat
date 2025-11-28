@@ -21,10 +21,20 @@ var current_index: int = 0          # Текущая позиция на уро�
 
 # Структура навигации для главного экрана
 var game_navigation = {
-	1: [],  # Уровень 1: Карты, ? банкиру, ? игроку
-	2: [],  # Уровень 2: Banker, Tie, Player
-	3: []   # Уровень 3: Подсказка, Настройки, Ставка игрока, Ставка банкира, Ставка ничьей
+	1: [],  # Уровень 1 (нижний): Кнопка "Карты"
+	2: [],  # Уровень 2: ? банкиру, ? игроку
+	3: [],  # Уровень 3: Banker, Tie, Player
+	4: []   # Уровень 4 (верхний): Подсказка, Настройки, Ставка игрока, Ставка банкира, Ставка ничьей
 }
+
+# Структура навигации для PayoutScene
+var payout_navigation = {
+	1: [],  # Уровень 1 (нижний): Флот фишек
+	2: [],  # Уровень 2: Стопки фишек
+	3: []   # Уровень 3 (верхний): Выплатить, Подсказка
+}
+
+var max_level: int = 4  # Максимальный уровень (зависит от текущей сцены)
 
 var _tween: Tween = null
 
@@ -143,7 +153,7 @@ func _update_highlight_position():
 	if not is_keyboard_mode or not focus_highlight:
 		return
 
-	var current_elements = game_navigation.get(current_level, [])
+	var current_elements = _get_current_navigation().get(current_level, [])
 	if current_elements.is_empty():
 		return
 
@@ -189,7 +199,7 @@ func _navigate_vertical(direction: int):
 	# Переключение между уровнями: вверх = выше уровень, вниз = ниже уровень
 	# direction: -1 = вверх (уровень увеличивается), +1 = вниз (уровень уменьшается)
 	current_level -= direction  # Инвертируем: вверх = +1 уровень, вниз = -1 уровень
-	current_level = clampi(current_level, 1, 3)  # Ограничение 1-3
+	current_level = clampi(current_level, 1, max_level)  # Ограничение 1-max_level
 	current_index = 0  # Сбрасываем позицию на уровне
 	_update_highlight_position()
 	print("📍 Уровень: %d, Позиция: %d" % [current_level, current_index])
@@ -197,14 +207,15 @@ func _navigate_vertical(direction: int):
 
 func _navigate_horizontal(direction: int):
 	# Переключение внутри уровня
-	var current_elements = game_navigation.get(current_level, [])
+	var current_elements = _get_current_navigation().get(current_level, [])
 	if current_elements.is_empty():
 		return
 
 	current_index += direction
 
-	# Уровень 2 (маркеры) - без цикла, только Banker ↔ Tie ↔ Player
-	if current_level == 2:
+	# Уровень 3 (маркеры в Game) - без цикла, только Banker ↔ Tie ↔ Player
+	# Уровень 2 (стопки в PayoutScene) - без цикла
+	if current_level == 3 or (current_level == 2 and max_level == 3):
 		current_index = clampi(current_index, 0, current_elements.size() - 1)
 	else:
 		# Остальные уровни - циклическое переключение
@@ -217,8 +228,16 @@ func _navigate_horizontal(direction: int):
 	print("📍 Уровень: %d, Позиция: %d" % [current_level, current_index])
 
 
+func _get_current_navigation() -> Dictionary:
+	# Возвращает активную структуру навигации в зависимости от max_level
+	if max_level == 3:
+		return payout_navigation
+	else:
+		return game_navigation
+
+
 func _activate_current_element():
-	var current_elements = game_navigation.get(current_level, [])
+	var current_elements = _get_current_navigation().get(current_level, [])
 	if current_elements.is_empty():
 		return
 
@@ -259,21 +278,45 @@ func _is_navigation_key(event: InputEventKey) -> bool:
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Зарегистрировать элементы навигации для уровня
-func register_level(level: int, elements: Array):
-	game_navigation[level] = elements
-	print("🎮 Уровень %d: зарегистрировано %d элементов" % [level, elements.size()])
+## is_payout: true если это PayoutScene, false если Game
+func register_level(level: int, elements: Array, is_payout: bool = false):
+	if is_payout:
+		payout_navigation[level] = elements
+		max_level = 3
+	else:
+		game_navigation[level] = elements
+		max_level = 4
+	print("🎮 Уровень %d: зарегистрировано %d элементов (payout=%s)" % [level, elements.size(), is_payout])
 
 
 ## Очистить навигацию (при смене сцены)
 func clear_navigation():
-	game_navigation[1].clear()
-	game_navigation[2].clear()
-	game_navigation[3].clear()
+	for i in range(1, 5):
+		if game_navigation.has(i):
+			game_navigation[i].clear()
+		if payout_navigation.has(i):
+			payout_navigation[i].clear()
 	_deactivate_keyboard_mode()
 
 
-## Добавить рамку в сцену (вызывается из GameController)
+## Добавить рамку в сцену (вызывается из GameController и PayoutScene)
 func attach_highlight_to_scene(parent: Node):
-	if focus_highlight and not focus_highlight.get_parent():
-		parent.add_child(focus_highlight)
-		print("🎮 Рамка фокуса добавлена в сцену")
+	# Если рамка уже существует в другой сцене, удаляем её
+	if focus_highlight and focus_highlight.get_parent():
+		focus_highlight.get_parent().remove_child(focus_highlight)
+
+	# Если рамки нет вообще, создаём новую
+	if not focus_highlight:
+		_create_focus_highlight()
+
+	# Добавляем рамку в текущую сцену
+	parent.add_child(focus_highlight)
+
+	# Сбрасываем состояние (рамка скрыта до первого нажатия стрелок)
+	is_keyboard_mode = false
+	current_level = 1
+	current_index = 0
+	focus_highlight.visible = false
+	focus_highlight.modulate.a = 0.0
+
+	print("🎮 Рамка фокуса добавлена в сцену")
