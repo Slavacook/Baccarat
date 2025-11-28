@@ -93,6 +93,9 @@ func _ready():
 
 	StatsManager.instance.update_stats()
 
+	# Настройка клавиатурной навигации
+	_setup_keyboard_navigation()
+
 func set_flip_cards(cards):
 	flip_cards = cards
 
@@ -329,3 +332,43 @@ func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
 	var new_name = GameStateManager.get_state_name(new_state)
 	print("📊 [НОВАЯ СИСТЕМА] Состояние: %s → %s" % [old_name, new_name])
+
+# ═══════════════════════════════════════════════════════════════════════════
+# КЛАВИАТУРНАЯ НАВИГАЦИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _setup_keyboard_navigation():
+	# Добавляем рамку в сцену
+	FocusManager.attach_highlight_to_scene(self)
+
+	# Уровень 1: Карты, ? банкиру, ? игроку
+	var level1_elements = [
+		ui_manager.action_button,
+		ui_manager.banker_third_toggle,
+		ui_manager.player_third_toggle
+	]
+
+	# Уровень 2: Banker, Tie, Player
+	var level2_elements = [
+		get_node("BankerMarker"),
+		get_node("TieMarker"),
+		get_node("PlayerMarker")
+	]
+
+	# Уровень 3: Подсказка, Настройки, переключатели выплат
+	var level3_elements = [
+		ui_manager.help_button
+	]
+	if has_node("SettingsButton"):
+		level3_elements.append(get_node("SettingsButton"))
+	if has_node("PayoutTogglePlayer"):
+		level3_elements.append(get_node("PayoutTogglePlayer"))
+	if has_node("PayoutToggleBanker"):
+		level3_elements.append(get_node("PayoutToggleBanker"))
+	if has_node("PayoutToggleTie"):
+		level3_elements.append(get_node("PayoutToggleTie"))
+
+	# Регистрируем уровни
+	FocusManager.register_level(1, level1_elements)
+	FocusManager.register_level(2, level2_elements)
+	FocusManager.register_level(3, level3_elements)

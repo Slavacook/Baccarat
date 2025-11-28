@@ -25,6 +25,7 @@ EventBus="*res://scripts/autoload/EventBus.gd"
 StatsManager="*res://scripts/StatsManager.gd"
 ToastManager="*res://scripts/ToastManager.gd"
 OverlayNotificationManager="*res://scripts/OverlayNotificationManager.gd"
+FocusManager="*res://scripts/FocusManager.gd"
 PayoutSettingsManager="*res://scripts/autoload/PayoutSettingsManager.gd"
 BetProfileManager="*res://scripts/autoload/BetProfileManager.gd"
 
