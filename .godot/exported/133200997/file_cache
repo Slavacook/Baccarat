@@ -1,5 +1,5 @@
 res://addons/gut/gui/about.tscn::ab1376faef1e76aea0aa3ce8703c56f9::1763895550::res://.godot/exported/133200997/export-3eec6d175281e5853cb1df567bd07d3b-about.scn
-res://addons/gut/gui/EditorRadioButton.tres::65528f4ac12fe72e047cfdf83a0c13a8::1764070366::res://.godot/exported/133200997/export-977063b975ed2d07c571eeef00528018-EditorRadioButton.res
+res://addons/gut/gui/EditorRadioButton.tres::65528f4ac12fe72e047cfdf83a0c13a8::1764284473::res://.godot/exported/133200997/export-977063b975ed2d07c571eeef00528018-EditorRadioButton.res
 res://addons/gut/gui/GutBottomPanel.tscn::b001881989bc02fa3a7496e58a01a2d5::1763895550::res://.godot/exported/133200997/export-8386f4bb580e16d6c15d474a2f0091ee-GutBottomPanel.scn
 res://addons/gut/gui/GutControl.tscn::3fb531da56f6a4e477d63133eb4ad6cd::1763895550::res://.godot/exported/133200997/export-26e9e30cc7f4a2376e8aa94aba7b910a-GutControl.scn
 res://addons/gut/gui/GutEditorWindow.tscn::23786b12593bff810737e5dbbc431303::1763895550::res://.godot/exported/133200997/export-663c39ac1e5541814591cf29b69f2ecf-GutEditorWindow.scn
@@ -26,12 +26,14 @@ res://claude/addons/claude_3.5_sonnet_chat_api/dock_window.tscn::82789819b79b086
 res://scenes/BetPopup.tscn::81dcdc9c8ea009b807aac1df3cdea871::1763895550::res://.godot/exported/133200997/export-34220b0db38a5323f1b23723248a36d8-BetPopup.scn
 res://scenes/dust.tscn::56e831bdf14974b2f097b97355a183ae::1763895550::res://.godot/exported/133200997/export-7dba342c0e72975dc50d4b75b4da9182-dust.scn
 res://scenes/flip_card.tscn::b02968e8c1dce58336a7b53fc4a7701b::1763898154::res://.godot/exported/133200997/export-53451cf5d78dad049dbd382e0692b7e2-flip_card.scn
-res://scenes/Game.tscn::1c8cdee8f4f4e93c824302a4c0862f95::1764070366::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
+res://scenes/Game.tscn::5e36b5dba3a26e3a5167f93faa21bd48::1764313001::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
 res://scenes/GameOverPopup.tscn::fc2e355fbf4a341911fa59e39df76e18::1763895550::res://.godot/exported/133200997/export-0627d08ae36e30c1c9a9bb2d999dc3a5-GameOverPopup.scn
 res://scenes/HelpPopup.tscn::585bb39b407bcc240edbb0a1601c2710::1763895550::res://.godot/exported/133200997/export-1b2dd5d4a853313dc9fc779615d524ff-HelpPopup.scn
 res://scenes/LimitsPopup.tscn::1c49858cf3e036e82c87bdef7c5f520d::1763895550::res://.godot/exported/133200997/export-5ed561e44b2df647b0ee234df79e77d3-LimitsPopup.scn
 res://scenes/PayoutPopup.tscn::209f0e902b2ffc695c9ca1897077f066::1764069735::res://.godot/exported/133200997/export-d874be1b37204e7a58b054ee4366b25a-PayoutPopup.scn
 res://scenes/SettingsPopup.tscn::29d0f5589de4c2a72094baf219ff9eaf::1764021298::res://.godot/exported/133200997/export-8c8d7254faa9d94ae14c06a1fd41f356-SettingsPopup.scn
 res://scenes/SurvivalModeUI.tscn::20d5ae6f286c56cd5466a598254e41dc::1763895550::res://.godot/exported/133200997/export-45615fe3afa59d26b4203c7fbb0186a4-SurvivalModeUI.scn
-res://scenes/Toast.tscn::490724b7c61f13f99705c06bc13df726::1763895550::res://.godot/exported/133200997/export-d67afd36343bf3ac929fd469be32f31a-Toast.scn
+res://scenes/Toast.tscn::d8ff7c3eef56871c7845ddf2ce3f1649::1764209843::res://.godot/exported/133200997/export-d67afd36343bf3ac929fd469be32f31a-Toast.scn
 res://main.tscn::084797cee79325adbc253dc3aa9b5f41::1763895550::res://.godot/exported/133200997/export-3070c538c03ee49b7677ff960a3f5195-main.scn
+res://scenes/OverlayNotification.tscn::a4e7e2d2b8bc1711fbda24b228d2fc42::1764210750::res://.godot/exported/133200997/export-675c578198c2449a017848c049fd5c2f-OverlayNotification.scn
+res://scenes/PayoutScene.tscn::1d0046d6557160bea4e9beda78275144::1764312574::res://.godot/exported/133200997/export-e2477eb6b22f910000322590cd82aa75-PayoutScene.scn
