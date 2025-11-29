@@ -55,15 +55,26 @@ func _input(event: InputEvent):
 		if not event.pressed:
 			return
 
-		# Активируем клавиатурный режим при нажатии стрелок/WASD
+		# Активируем режим навигации при нажатии стрелок/WASD
 		if not is_keyboard_mode:
 			if _is_navigation_key(event):
 				_activate_keyboard_mode()
 				return
 
-		# Обработка навигации в клавиатурном режиме
+		# Обработка навигации в режиме навигации
 		if is_keyboard_mode:
-			_handle_keyboard_input(event)
+			_handle_navigation_input()
+
+	elif event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		# Активируем режим навигации при использовании геймпада
+		if not is_keyboard_mode:
+			if _is_navigation_action():
+				_activate_keyboard_mode()
+				return
+
+		# Обработка навигации в режиме навигации
+		if is_keyboard_mode:
+			_handle_navigation_input()
 
 	elif event is InputEventMouseButton:
 		# Деактивируем при клике мыши
@@ -104,13 +115,13 @@ func _create_focus_highlight():
 
 func _activate_keyboard_mode():
 	is_keyboard_mode = true
-	print("⌨️  Клавиатурный режим активирован")
+	print("🎮 Режим навигации активирован (клавиатура/геймпад)")
 	_show_highlight()
 
 
 func _deactivate_keyboard_mode():
 	is_keyboard_mode = false
-	print("🖱️  Мышиный режим активирован")
+	print("🖱️  Режим мыши активирован")
 	_hide_highlight()
 
 
@@ -175,23 +186,23 @@ func _update_highlight_position():
 # ОБРАБОТКА ВВОДА
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _handle_keyboard_input(event: InputEventKey):
-	var key = event.keycode
+func _handle_navigation_input():
+	# Используем InputMap actions для поддержки клавиатуры и геймпада
 
-	# Вертикальная навигация (вверх/вниз или W/S)
-	if key == KEY_UP or key == KEY_W:
+	# Вертикальная навигация (вверх/вниз или W/S или геймпад)
+	if Input.is_action_just_pressed("ui_focus_up"):
 		_navigate_vertical(-1)  # На уровень выше
-	elif key == KEY_DOWN or key == KEY_S:
+	elif Input.is_action_just_pressed("ui_focus_down"):
 		_navigate_vertical(1)   # На уровень ниже
 
-	# Горизонтальная навигация (влево/вправо или A/D)
-	elif key == KEY_LEFT or key == KEY_A:
+	# Горизонтальная навигация (влево/вправо или A/D или геймпад)
+	elif Input.is_action_just_pressed("ui_focus_left"):
 		_navigate_horizontal(-1)  # Влево
-	elif key == KEY_RIGHT or key == KEY_D:
+	elif Input.is_action_just_pressed("ui_focus_right"):
 		_navigate_horizontal(1)   # Вправо
 
-	# Подтверждение (пробел)
-	elif key == KEY_SPACE:
+	# Подтверждение (пробел или кнопка A геймпада)
+	elif Input.is_action_just_pressed("ui_focus_accept"):
 		_activate_current_element()
 
 
@@ -250,15 +261,16 @@ func _activate_current_element():
 
 	# Эмулируем клик на элемент
 	if element is BaseButton:
+		# Для кнопок - просто нажимаем
 		element.emit_signal("pressed")
 		print("✅ Активирован элемент: %s" % element.name)
-	elif element is TextureRect:
-		# Для toggles третьих карт - эмулируем gui_input
+	elif element is Control:
+		# Для всех остальных Control (TextureRect, PanelContainer, и т.д.) - эмулируем gui_input
 		var fake_event = InputEventMouseButton.new()
 		fake_event.button_index = MOUSE_BUTTON_LEFT
 		fake_event.pressed = true
 		element.emit_signal("gui_input", fake_event)
-		print("✅ Активирован toggle: %s" % element.name)
+		print("✅ Активирован элемент: %s" % element.name)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -271,6 +283,15 @@ func _is_navigation_key(event: InputEventKey) -> bool:
 		KEY_W, KEY_S, KEY_A, KEY_D,
 		KEY_SPACE
 	]
+
+
+func _is_navigation_action() -> bool:
+	# Проверяем, была ли нажата любая навигационная кнопка (для геймпада)
+	return (Input.is_action_just_pressed("ui_focus_up") or
+			Input.is_action_just_pressed("ui_focus_down") or
+			Input.is_action_just_pressed("ui_focus_left") or
+			Input.is_action_just_pressed("ui_focus_right") or
+			Input.is_action_just_pressed("ui_focus_accept"))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -287,6 +308,12 @@ func register_level(level: int, elements: Array, is_payout: bool = false):
 		game_navigation[level] = elements
 		max_level = 4
 	print("🎮 Уровень %d: зарегистрировано %d элементов (payout=%s)" % [level, elements.size(), is_payout])
+
+
+## Деактивировать режим навигации (вызывается извне при прямых действиях)
+func deactivate():
+	if is_keyboard_mode:
+		_deactivate_keyboard_mode()
 
 
 ## Очистить навигацию (при смене сцены)

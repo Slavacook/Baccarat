@@ -105,6 +105,40 @@ func _ready():
 	# Проверяем, вернулись ли из PayoutScene
 	_check_payout_return()
 
+func _unhandled_input(event: InputEvent):
+	# Обработка прямых кнопок геймпада (работают параллельно с FocusManager)
+	# При использовании прямых кнопок скрываем рамку навигации
+	if event.is_action_pressed("CardsButton"):
+		FocusManager.deactivate()
+		ui_manager.action_button.emit_signal("pressed")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("BankerThirdCardToggle"):
+		FocusManager.deactivate()
+		var fake_event = InputEventMouseButton.new()
+		fake_event.button_index = MOUSE_BUTTON_LEFT
+		fake_event.pressed = true
+		ui_manager.banker_third_toggle.emit_signal("gui_input", fake_event)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("PlayerThirdCardToggle"):
+		FocusManager.deactivate()
+		var fake_event = InputEventMouseButton.new()
+		fake_event.button_index = MOUSE_BUTTON_LEFT
+		fake_event.pressed = true
+		ui_manager.player_third_toggle.emit_signal("gui_input", fake_event)
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("BankerMarker"):
+		FocusManager.deactivate()
+		get_node("BankerMarker").emit_signal("pressed")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("TieMarker"):
+		FocusManager.deactivate()
+		get_node("TieMarker").emit_signal("pressed")
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("PlayerMarker"):
+		FocusManager.deactivate()
+		get_node("PlayerMarker").emit_signal("pressed")
+		get_viewport().set_input_as_handled()
+
 func set_flip_cards(cards):
 	flip_cards = cards
 
