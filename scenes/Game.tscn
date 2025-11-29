@@ -242,6 +242,7 @@ scale = Vector2(1.5, 1.5)
 text = "Правильно: 0 | Ошибок: 0"
 
 [node name="BetChip" type="TextureButton" parent="."]
+visible = false
 offset_left = 267.99997
 offset_top = -102.0
 offset_right = 768.0

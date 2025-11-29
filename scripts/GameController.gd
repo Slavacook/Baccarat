@@ -18,6 +18,18 @@ var game_over_popup: PopupPanel
 var survival_rounds_completed: int = 0
 var is_survival_mode: bool = false
 
+# ═══════════════════════════════════════════════════════════════════════════
+# КАМЕРА
+# ═══════════════════════════════════════════════════════════════════════════
+
+var camera: Camera2D
+const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)      # Общий план
+const CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)        # Зум на карты
+const CAMERA_POS_GENERAL = Vector2(577, 325)       # Позиция общего плана
+const CAMERA_POS_CARDS = Vector2(595, 400)         # Центр области карт
+const CAMERA_TRANSITION_DURATION = 0.5             # Длительность анимации (секунды)
+var is_first_deal: bool = true                     # Флаг первой раздачи (для зума)
+
 # Добавляем FlipCard ссылки
 # Массивы для ссылок на flip-анимации и карты:
 @onready var flip_cards := [
@@ -98,6 +110,12 @@ func _ready():
 	)
 
 	StatsManager.instance.update_stats()
+
+	# Настройка камеры
+	_setup_camera()
+
+	# Перемещаем UI кнопки в TopUI для защиты от зума камеры
+	_setup_fixed_ui()
 
 	# Настройка клавиатурной навигации
 	_setup_keyboard_navigation()
@@ -423,14 +441,15 @@ func _setup_keyboard_navigation():
 	var level4_elements = [
 		ui_manager.help_button
 	]
-	if has_node("SettingsButton"):
-		level4_elements.append(get_node("SettingsButton"))
-	if has_node("PayoutTogglePlayer"):
-		level4_elements.append(get_node("PayoutTogglePlayer"))
-	if has_node("PayoutToggleBanker"):
-		level4_elements.append(get_node("PayoutToggleBanker"))
-	if has_node("PayoutToggleTie"):
-		level4_elements.append(get_node("PayoutToggleTie"))
+	# Кнопки теперь в TopUI после _setup_fixed_ui()
+	if has_node("TopUI/SettingsButton"):
+		level4_elements.append(get_node("TopUI/SettingsButton"))
+	if has_node("TopUI/PayoutTogglePlayer"):
+		level4_elements.append(get_node("TopUI/PayoutTogglePlayer"))
+	if has_node("TopUI/PayoutToggleBanker"):
+		level4_elements.append(get_node("TopUI/PayoutToggleBanker"))
+	if has_node("TopUI/PayoutToggleTie"):
+		level4_elements.append(get_node("TopUI/PayoutToggleTie"))
 
 	# Регистрируем уровни (is_payout=false для Game)
 	FocusManager.register_level(1, level1_elements, false)
@@ -474,3 +493,86 @@ func _check_payout_return():
 
 		# Очищаем данные
 		GameDataManager.clear()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# КАМЕРА - УПРАВЛЕНИЕ ЗУМОМ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _setup_camera():
+	# Создаём камеру
+	camera = Camera2D.new()
+	camera.enabled = true
+	add_child(camera)
+
+	# Начинаем с общего плана
+	camera.position = CAMERA_POS_GENERAL
+	camera.zoom = CAMERA_ZOOM_GENERAL
+
+	print("📷 Камера создана: общий план (zoom %.1f)" % CAMERA_ZOOM_GENERAL.x)
+
+
+func _setup_fixed_ui():
+	"""Перемещает UI кнопки в TopUI CanvasLayer чтобы они не зумились"""
+	var top_ui = get_node("TopUI")
+	if not top_ui:
+		print("⚠️ TopUI CanvasLayer не найден!")
+		return
+
+	# Список кнопок для перемещения
+	var buttons_to_move = [
+		"HelpButton",
+		"StatsLabel",
+		"SettingsButton",
+		"PayoutTogglePlayer",
+		"PayoutToggleBanker",
+		"PayoutToggleTie",
+		"LimitsButton"
+	]
+
+	for button_name in buttons_to_move:
+		if has_node(button_name):
+			var button = get_node(button_name)
+			# Сохраняем глобальную позицию
+			var global_pos = button.global_position
+			# Перемещаем в TopUI
+			remove_child(button)
+			top_ui.add_child(button)
+			# Восстанавливаем позицию
+			button.global_position = global_pos
+			print("✅ %s перемещён в TopUI" % button_name)
+		else:
+			print("⚠️ %s не найден" % button_name)
+
+	print("📌 UI элементы закреплены (не зумятся с камерой)")
+
+
+func camera_zoom_in():
+	"""Плавный зум на область карт"""
+	if not camera:
+		return
+
+	var tween = create_tween()
+	tween.set_parallel(true)  # Позиция и зум меняются одновременно
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN_OUT)
+
+	tween.tween_property(camera, "position", CAMERA_POS_CARDS, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CARDS, CAMERA_TRANSITION_DURATION)
+
+	print("📷 Зум на карты (zoom %.1f)" % CAMERA_ZOOM_CARDS.x)
+
+
+func camera_zoom_out():
+	"""Возврат к общему плану"""
+	if not camera:
+		return
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN_OUT)
+
+	tween.tween_property(camera, "position", CAMERA_POS_GENERAL, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "zoom", CAMERA_ZOOM_GENERAL, CAMERA_TRANSITION_DURATION)
+
+	print("📷 Общий план (zoom %.1f)" % CAMERA_ZOOM_GENERAL.x)
