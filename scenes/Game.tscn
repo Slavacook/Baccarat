@@ -283,25 +283,74 @@ icon = ExtResource("18_45i86")
 [node name="SettingsPopup" parent="." instance=ExtResource("18_kyk2p")]
 
 [node name="PayoutTogglePlayer" type="Button" parent="."]
-offset_left = 1089.0
-offset_top = 81.0
-offset_right = 1146.0
-offset_bottom = 112.0
+offset_left = 1091.0
+offset_top = 73.0
+offset_right = 1148.0
+offset_bottom = 104.0
 text = "Игрок"
 
 [node name="PayoutToggleBanker" type="Button" parent="."]
-offset_left = 1082.0
-offset_top = 143.0
-offset_right = 1150.0
-offset_bottom = 174.0
+offset_left = 1081.0
+offset_top = 134.0
+offset_right = 1149.0
+offset_bottom = 165.0
 text = "Банкир"
 
 [node name="PayoutToggleTie" type="Button" parent="."]
-offset_left = 1075.0
-offset_top = 204.0
-offset_right = 1151.0
-offset_bottom = 235.0
+offset_left = 1076.0
+offset_top = 196.0
+offset_right = 1152.0
+offset_bottom = 227.0
 text = "Игалите"
+
+[node name="ChipPlayer" type="TextureButton" parent="."]
+visible = false
+offset_left = 872.0
+offset_top = 70.0
+offset_right = 912.0
+offset_bottom = 110.0
+
+[node name="ChipBanker" type="TextureButton" parent="."]
+visible = false
+offset_left = 864.0
+offset_top = 129.0
+offset_right = 904.0
+offset_bottom = 169.0
+
+[node name="ChipTie" type="TextureButton" parent="."]
+visible = false
+offset_left = 855.0
+offset_top = 193.0
+offset_right = 895.0
+offset_bottom = 233.0
+
+[node name="ChipPairPlayer" type="TextureButton" parent="."]
+visible = false
+offset_left = 799.0
+offset_top = 261.0
+offset_right = 839.0
+offset_bottom = 301.0
+
+[node name="ChipPairBanker" type="TextureButton" parent="."]
+visible = false
+offset_left = 643.0
+offset_top = 261.0
+offset_right = 683.0
+offset_bottom = 301.0
+
+[node name="PayoutTogglePairPlayer" type="Button" parent="."]
+offset_left = 1040.0
+offset_top = 248.0
+offset_right = 1151.0
+offset_bottom = 279.0
+text = "Пара Игрока"
+
+[node name="PayoutTogglePairBanker" type="Button" parent="."]
+offset_left = 1030.0
+offset_top = 283.0
+offset_right = 1152.0
+offset_bottom = 314.0
+text = "Пара Банкира"
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]

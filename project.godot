@@ -29,6 +29,7 @@ FocusManager="*res://scripts/FocusManager.gd"
 GameDataManager="*res://scripts/GameDataManager.gd"
 PayoutSettingsManager="*res://scripts/autoload/PayoutSettingsManager.gd"
 BetProfileManager="*res://scripts/autoload/BetProfileManager.gd"
+PayoutContextManager="*res://scripts/PayoutContextManager.gd"
 
 [display]
 
