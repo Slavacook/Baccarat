@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=23 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -17,6 +17,11 @@
 [ext_resource type="Texture2D" uid="uid://dcyp1p7e010hj" path="res://assets/ui/Shuffle .png" id="14_7ua8r"]
 [ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="18_45i86"]
 [ext_resource type="PackedScene" uid="uid://dvya1mdh2e75l" path="res://scenes/SettingsPopup.tscn" id="18_kyk2p"]
+[ext_resource type="Texture2D" uid="uid://cdbuf71wim4ry" path="res://assets/ui/PayoutTogglePlayer.png" id="18_sv1m6"]
+[ext_resource type="Texture2D" uid="uid://bd1knyuny50aj" path="res://assets/ui/PayoutToggleBanker.png" id="19_attvq"]
+[ext_resource type="Texture2D" uid="uid://c2jr663pa4dyw" path="res://assets/ui/PayoutToggleTie.png" id="20_bneo8"]
+[ext_resource type="Texture2D" uid="uid://hrloml2y6h2y" path="res://assets/ui/PairPlayer.png" id="21_ocgqw"]
+[ext_resource type="Texture2D" uid="uid://cyhds5arfkd5y" path="res://assets/ui/PairBanker.png" id="22_jbgew"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -253,25 +258,31 @@ icon = ExtResource("18_45i86")
 [node name="SettingsPopup" parent="." instance=ExtResource("18_kyk2p")]
 
 [node name="PayoutTogglePlayer" type="Button" parent="."]
-offset_left = 1091.0
-offset_top = 73.0
-offset_right = 1148.0
-offset_bottom = 104.0
-text = "Игрок"
+offset_left = 1092.0
+offset_top = 61.0
+offset_right = 1739.0
+offset_bottom = 655.0
+scale = Vector2(0.09, 0.09)
+icon = ExtResource("18_sv1m6")
+flat = true
 
 [node name="PayoutToggleBanker" type="Button" parent="."]
-offset_left = 1081.0
-offset_top = 134.0
-offset_right = 1149.0
-offset_bottom = 165.0
-text = "Банкир"
+offset_left = 1092.0
+offset_top = 123.0
+offset_right = 1687.0
+offset_bottom = 717.0
+scale = Vector2(0.089, 0.089)
+icon = ExtResource("19_attvq")
+flat = true
 
 [node name="PayoutToggleTie" type="Button" parent="."]
-offset_left = 1076.0
-offset_top = 196.0
-offset_right = 1152.0
-offset_bottom = 227.0
-text = "Игалите"
+offset_left = 1092.0
+offset_top = 185.99998
+offset_right = 1686.0
+offset_bottom = 780.0
+scale = Vector2(0.09, 0.09)
+icon = ExtResource("20_bneo8")
+flat = true
 
 [node name="ChipPlayer" type="TextureButton" parent="."]
 visible = false
@@ -309,18 +320,22 @@ offset_right = 683.0
 offset_bottom = 301.0
 
 [node name="PayoutTogglePairPlayer" type="Button" parent="."]
-offset_left = 1040.0
+offset_left = 1092.0
 offset_top = 248.0
-offset_right = 1151.0
-offset_bottom = 279.0
-text = "Пара Игрока"
+offset_right = 1686.0
+offset_bottom = 842.0
+scale = Vector2(0.09, 0.09)
+icon = ExtResource("21_ocgqw")
+flat = true
 
 [node name="PayoutTogglePairBanker" type="Button" parent="."]
-offset_left = 1030.0
-offset_top = 283.0
-offset_right = 1152.0
-offset_bottom = 314.0
-text = "Пара Банкира"
+offset_left = 1092.0
+offset_top = 312.0
+offset_right = 1687.0
+offset_bottom = 907.0
+scale = Vector2(0.09, 0.09)
+icon = ExtResource("22_jbgew")
+flat = true
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]
