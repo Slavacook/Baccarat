@@ -57,6 +57,18 @@ func deal_first_four():
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
 	ui.show_first_four_cards(player_hand, banker_hand)
+
+	# ← Проверяем пары МОЛЧА (без оповещений)
+	if game_controller and game_controller.pair_betting_manager:
+		game_controller.pair_betting_manager.check_pairs(
+			player_hand[0], player_hand[1],
+			banker_hand[0], banker_hand[1]
+		)
+		print("🃏 Проверка пар: Player=%s, Banker=%s" % [
+			game_controller.pair_betting_manager.player_pair_detected,
+			game_controller.pair_betting_manager.banker_pair_detected
+		])
+
 	_update_game_state_manager()
 
 func draw_player_third():

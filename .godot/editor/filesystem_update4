@@ -3,3 +3,8 @@ res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/UIManager.gd
 res://scripts/GameController.gd
+res://scripts/GameDataManager.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/Localization.gd
+res://scripts/PairBettingManager.gd
+res://scripts/scenes/PayoutScene.gd

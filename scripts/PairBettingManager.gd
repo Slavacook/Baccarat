@@ -14,6 +14,7 @@ const PAIR_PAYOUT_MULTIPLIER = 11.0  # Пары обычно платят 11:1
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+@warning_ignore("unused_signal")
 signal pair_detected(pair_type: String)  # "PairPlayer" или "PairBanker"
 signal pair_bet_placed(pair_type: String)
 
@@ -88,8 +89,8 @@ func randomize_pair_bets() -> void:
 # ПРОВЕРКА ПАР
 # ═══════════════════════════════════════════════════════════════════════════
 
-func check_pairs(player_card1: Dictionary, player_card2: Dictionary,
-				 banker_card1: Dictionary, banker_card2: Dictionary) -> Dictionary:
+func check_pairs(player_card1: Card, player_card2: Card,
+				 banker_card1: Card, banker_card2: Card) -> Dictionary:
 	"""Проверить наличие пар в первых 4 картах
 
 	Пара = две карты одного ранга (не важно масть)
@@ -100,13 +101,8 @@ func check_pairs(player_card1: Dictionary, player_card2: Dictionary,
 	player_pair_detected = _is_pair(player_card1, player_card2)
 	banker_pair_detected = _is_pair(banker_card1, banker_card2)
 
-	if player_pair_detected:
-		pair_detected.emit("PairPlayer")
-		print("🃏 PairBetting: обнаружена ПАРА ИГРОКА")
-
-	if banker_pair_detected:
-		pair_detected.emit("PairBanker")
-		print("🃏 PairBetting: обнаружена ПАРА БАНКИРА")
+	# ← Молча проверяем пары (без toast оповещений)
+	# Это проверка внимательности дилера - он должен заметить пару сам!
 
 	return {
 		"player_pair": player_pair_detected,
@@ -114,16 +110,13 @@ func check_pairs(player_card1: Dictionary, player_card2: Dictionary,
 	}
 
 
-func _is_pair(card1, card2) -> bool:
+func _is_pair(card1: Card, card2: Card) -> bool:
 	"""Проверить, является ли пара картами одного ранга"""
 	if card1 == null or card2 == null:
 		return false
 
-	# Карты в проекте - объекты класса Card с полем rank
-	if "rank" in card1 and "rank" in card2:
-		return card1.rank == card2.rank
-
-	return false
+	# Сравниваем значения карт (Card.value: 1=A, 2-10, 11=J, 12=Q, 13=K)
+	return card1.value == card2.value
 
 
 # ═══════════════════════════════════════════════════════════════════════════

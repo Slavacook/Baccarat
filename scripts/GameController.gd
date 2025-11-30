@@ -240,11 +240,21 @@ func _on_winner_selected(chosen: String):
 		# Пауза 1 секунда (карты остаются открытыми, маркер активен)
 		await get_tree().create_timer(GameConstants.VICTORY_TOAST_DELAY).timeout
 
-		# Проверяем, активна ли выплата для этой позиции
+		# ═══════════════════════════════════════════════════════════════════
+		# СОЗДАНИЕ ОЧЕРЕДИ ВЫПЛАТ
+		# ═══════════════════════════════════════════════════════════════════
+
+		var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
+		var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
+
+		# Очищаем очередь перед созданием новой
+		GameDataManager.clear_payout_queue()
+
+		# 1. Добавляем основную ставку (Player/Banker/Tie) - если была активна
 		if PayoutSettingsManager.is_payout_enabled(actual):
-			# Есть ставка → переходим в PayoutScene
 			var stake: float = 0.0
 			var payout: float = 0.0
+
 			if actual == "Banker":
 				stake = limits_manager.generate_bet()
 				var commission = GameModeManager.get_banker_commission()
@@ -260,12 +270,41 @@ func _on_winner_selected(chosen: String):
 				stake = limits_manager.generate_bet()
 				payout = stake * 1.0
 
-			# Сохраняем данные (включая счёт) и переходим в PayoutScene
-			var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
-			var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
-			GameDataManager.set_payout_data(actual, stake, payout, player_score, banker_score)
+			GameDataManager.add_to_payout_queue(actual, stake, payout, player_score, banker_score)
 
-			# ← Сохраняем состояние игры (сердечки, раунды)
+		# 2. Добавляем пару игрока - если обнаружена И ставка была
+		if pair_betting_manager.player_pair_detected and pair_betting_manager.pair_player_bet_enabled:
+			var stake = limits_manager.generate_bet()
+			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer")
+			GameDataManager.add_to_payout_queue("PairPlayer", stake, payout, player_score, banker_score)
+
+		# 3. Добавляем пару банкира - если обнаружена И ставка была
+		if pair_betting_manager.banker_pair_detected and pair_betting_manager.pair_banker_bet_enabled:
+			var stake = limits_manager.generate_bet()
+			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker")
+			GameDataManager.add_to_payout_queue("PairBanker", stake, payout, player_score, banker_score)
+
+		# Выводим статус очереди
+		GameDataManager.print_queue_status()
+
+		# ═══════════════════════════════════════════════════════════════════
+		# ОБРАБОТКА ОЧЕРЕДИ ВЫПЛАТ
+		# ═══════════════════════════════════════════════════════════════════
+
+		if GameDataManager.has_more_payouts():
+			# Есть выплаты → берём первую и переходим в PayoutScene
+			var next_payout = GameDataManager.get_next_payout()
+
+			# Сохраняем данные для PayoutScene
+			GameDataManager.set_payout_data(
+				next_payout.bet_type,
+				next_payout.stake,
+				next_payout.payout,
+				next_payout.player_score,
+				next_payout.banker_score
+			)
+
+			# Сохраняем состояние игры (сердечки, раунды)
 			GameDataManager.set_game_state(
 				survival_rounds_completed,
 				survival_ui.current_lives,
@@ -274,7 +313,7 @@ func _on_winner_selected(chosen: String):
 
 			get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
 		else:
-			# Нет ставки → сразу новый раунд
+			# Нет выплат → сразу новый раунд
 			phase_manager.reset()
 	else:
 		# ❌ Неправильный выбор
@@ -522,11 +561,45 @@ func _check_payout_return():
 		var collected = GameDataManager.payout_collected
 		var expected = GameDataManager.payout_expected
 
-		# Вызываем обработчик как раньше
-		_on_payout_confirmed(is_correct, collected, expected)
+		# Обновляем статистику
+		if is_correct:
+			EventBus.payout_correct.emit(collected, expected)
+			print("✅ Правильно! Выплата: %s" % expected)
+			if is_survival_mode:
+				survival_rounds_completed += 1
+		else:
+			EventBus.payout_wrong.emit(collected, expected)
+			print("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
 
-		# Очищаем данные
-		GameDataManager.clear()
+		# ═══════════════════════════════════════════════════════════════════
+		# ПРОВЕРКА ОЧЕРЕДИ ВЫПЛАТ
+		# ═══════════════════════════════════════════════════════════════════
+
+		if GameDataManager.has_more_payouts():
+			# Есть ещё выплаты в очереди → берём следующую
+			var next_payout = GameDataManager.get_next_payout()
+
+			print("🔄 Следующая выплата: %s (осталось %d)" % [next_payout.bet_type, GameDataManager.get_queue_size()])
+
+			# Сохраняем данные для PayoutScene
+			GameDataManager.set_payout_data(
+				next_payout.bet_type,
+				next_payout.stake,
+				next_payout.payout,
+				next_payout.player_score,
+				next_payout.banker_score
+			)
+
+			# Переходим в PayoutScene для следующей выплаты
+			get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
+		else:
+			# Очередь пуста → сбрасываем раунд
+			print("✅ Все выплаты обработаны, сброс раунда")
+			GameDataManager.clear()
+
+			# Сброс раунда только если последняя выплата была правильной
+			if is_correct:
+				phase_manager.reset()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КАМЕРА - УПРАВЛЕНИЕ ЗУМОМ
@@ -644,7 +717,7 @@ func _setup_new_managers():
 	payout_queue_manager = PayoutQueueManager.new()
 	print("✅ PayoutQueueManager инициализирован")
 	pair_betting_manager = PairBettingManager.new()
-	pair_betting_manager.pair_detected.connect(_on_pair_detected)
+	# ← Сигнал pair_detected больше не используется (молчаливая проверка)
 	print("✅ PairBettingManager инициализирован")
 
 func _setup_payout_toggles():
@@ -753,8 +826,7 @@ func _on_chip_clicked(bet_type: String):
 		return
 	_open_payout_scene(bet_type, bet.stake, bet.payout)
 
-func _on_pair_detected(pair_type: String):
-	ToastManager.instance.show_info("🃏 Обнаружена %s!" % pair_type)
+# ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
 
 func _open_payout_scene(bet_type: String, stake: float, expected_payout: float):
 	PayoutContextManager.set_context({
