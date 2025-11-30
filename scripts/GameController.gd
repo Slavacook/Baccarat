@@ -10,7 +10,6 @@ var phase_manager: GamePhaseManager
 var limits_manager: LimitsManager
 var limits_popup: PopupPanel
 var limits_button: Button
-var payout_popup: PopupPanel
 var settings_popup: PopupPanel
 var settings_button: Button
 var survival_ui: Control
@@ -30,11 +29,16 @@ var pair_betting_manager: PairBettingManager
 # ═══════════════════════════════════════════════════════════════════════════
 
 var camera: Camera2D
-const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)      # Общий план
-const CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)        # Зум на карты
-const CAMERA_POS_GENERAL = Vector2(577, 325)       # Позиция общего плана
-const CAMERA_POS_CARDS = Vector2(595, 400)         # Центр области карт
-const CAMERA_TRANSITION_DURATION = 0.5             # Длительность анимации (секунды)
+# Общий план (1:1, показывает весь стол)
+const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)
+# Зум на карты (1.3:1, фокус на зоне раздачи)
+const CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)
+# Позиция камеры для общего плана (центр окна 1154x650)
+const CAMERA_POS_GENERAL = Vector2(577, 325)
+# Позиция камеры для зума на карты (центр зоны Player/Banker)
+const CAMERA_POS_CARDS = Vector2(595, 400)
+# Длительность плавного перехода камеры (секунды)
+const CAMERA_TRANSITION_DURATION = 0.5
 var is_first_deal: bool = true                     # Флаг первой раздачи (для зума)
 
 # Добавляем FlipCard ссылки
@@ -67,10 +71,6 @@ func _ready():
 	limits_button.pressed.connect(_on_limits_button_pressed)
 	limits_popup.limits_changed.connect(limits_manager.set_limits)
 	limits_manager.limits_changed.connect(_on_limits_changed)
-	payout_popup = get_node("PayoutPopup")
-	# payout_popup больше не используется (заменён на PayoutScene)
-	# payout_popup.payout_confirmed.connect(_on_payout_confirmed)
-	# payout_popup.hint_used.connect(_on_hint_used)
 	survival_ui = get_node("TopUI/SurvivalModeUI")  # ← Обновили путь
 	survival_ui.game_over.connect(_on_survival_game_over)
 	game_over_popup = get_node("GameOverPopup")

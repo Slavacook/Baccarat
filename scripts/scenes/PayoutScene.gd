@@ -191,9 +191,6 @@ func _on_payout_pressed():
 				return
 		_show_error_animation(collected_total)
 
-	# Больше не нужен emit, данные уже в GameDataManager
-	# payout_confirmed.emit(is_correct, collected_total, expected_payout)
-
 # ← Обработка кнопки подсказки
 func _on_hint_pressed():
 	var is_survival = GameDataManager.is_survival_active

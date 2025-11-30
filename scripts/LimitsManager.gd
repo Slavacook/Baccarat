@@ -58,12 +58,12 @@ func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new
 # step: шаг ставок (1 для Classic, 500 для Junket)
 func _generate_from_ranges(ranges: Array, step: int) -> int:
 	# Выбираем категорию по шансам
-	var total_chance = 0.0
+	var total_chance: float = 0.0
 	for range_data in ranges:
 		total_chance += range_data[2]  # chance%
 
-	var r = randf() * total_chance
-	var accumulated = 0.0
+	var r: float = randf() * total_chance
+	var accumulated: float = 0.0
 
 	for range_data in ranges:
 		var min_val = range_data[0]

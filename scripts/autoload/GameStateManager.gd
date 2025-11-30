@@ -86,12 +86,12 @@ func get_action_name(action: Action) -> String:
 # Генерировать хэш из параметров для кэширования
 func _hash_params(
 	cards_hidden: bool,
-	player_hand: Array,
-	banker_hand: Array,
-	player_third,
-	banker_third
+	player_hand: Array[Card],
+	banker_hand: Array[Card],
+	player_third: Card,
+	banker_third: Card
 ) -> int:
-	var h = 0
+	var h: int = 0
 
 	# ← Хэш из булевого флага
 	h = h * 2 + (1 if cards_hidden else 0)
@@ -147,10 +147,10 @@ func _card_hash(card) -> int:
 #   banker_third: Card или null - третья карта банкира
 func determine_state(
 	cards_hidden: bool,
-	player_hand: Array,  # Array[Card]
-	banker_hand: Array,  # Array[Card]
-	player_third = null,  # Card или null
-	banker_third = null   # Card или null
+	player_hand: Array[Card],
+	banker_hand: Array[Card],
+	player_third: Card = null,
+	banker_third: Card = null
 ) -> GameState:
 
 	# ← Кэширование: вычисляем хэш параметров
@@ -276,11 +276,11 @@ func reset():
 # Удобный метод для вызова из GameController
 func determine_and_update_state(
 	cards_hidden: bool,
-	player_hand: Array,
-	banker_hand: Array,
-	player_third = null,
-	banker_third = null
-):
+	player_hand: Array[Card],
+	banker_hand: Array[Card],
+	player_third: Card = null,
+	banker_third: Card = null
+) -> void:
 	var new_state = determine_state(cards_hidden, player_hand, banker_hand, player_third, banker_third)
 	update_state(new_state)
 

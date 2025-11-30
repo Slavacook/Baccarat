@@ -2,6 +2,13 @@
 # Тесты производительности: 100 раундов
 extends GutTest
 
+# Создает типизированный массив карт (для строгой типизации Godot 4)
+func _make_hand(cards: Array) -> Array[Card]:
+	var hand: Array[Card] = []
+	for c in cards:
+		hand.append(c)
+	return hand
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ ПРОИЗВОДИТЕЛЬНОСТИ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -63,8 +70,8 @@ func test_100_rounds_performance():
 
 func test_gamestate_manager_caching_performance():
 	# Тест производительности кэширования GameStateManager
-	var player_hand = [Card.new(0, 2), Card.new(1, 3)]  # 2♠, 3♥ = 5
-	var banker_hand = [Card.new(2, 2), Card.new(3, 1)]  # 2♦, A♣ = 3
+	var player_hand = _make_hand([Card.new(0, 2), Card.new(1, 3)])  # 2♠, 3♥ = 5
+	var banker_hand = _make_hand([Card.new(2, 2), Card.new(3, 1)])  # 2♦, A♣ = 3
 
 	var start_time = Time.get_ticks_msec()
 

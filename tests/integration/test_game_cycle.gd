@@ -10,14 +10,21 @@ func before_each():
 func after_each():
 	deck = null
 
+# Создает типизированный массив карт (для строгой типизации Godot 4)
+func _make_hand(cards: Array) -> Array[Card]:
+	var hand: Array[Card] = []
+	for c in cards:
+		hand.append(c)
+	return hand
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ ПОЛНОГО ИГРОВОГО ЦИКЛА
 # ═══════════════════════════════════════════════════════════════════════════
 
 func test_full_round_with_natural():
 	# Раздача: Игрок A+8 (9), Банкир 10+K (0)
-	var player_hand = [Card.new(0, 1), Card.new(1, 8)]  # A♠, 8♥ = 9
-	var banker_hand = [Card.new(2, 10), Card.new(3, 13)]  # 10♦, K♣ = 0
+	var player_hand = _make_hand([Card.new(0, 1), Card.new(1, 8)])  # A♠, 8♥ = 9
+	var banker_hand = _make_hand([Card.new(2, 10), Card.new(3, 13)])  # 10♦, K♣ = 0
 
 	# Проверяем, что это натуральная 9
 	assert_true(BaccaratRules.is_natural(player_hand), "Должна быть натуральная 9")
@@ -32,8 +39,8 @@ func test_full_round_with_natural():
 
 func test_full_round_both_draw_third():
 	# Раздача: Игрок 2+3 (5), Банкир A+A (2)
-	var player_hand = [Card.new(0, 2), Card.new(1, 3)]  # 2♠, 3♥ = 5
-	var banker_hand = [Card.new(2, 1), Card.new(3, 1)]  # A♦, A♣ = 2
+	var player_hand = _make_hand([Card.new(0, 2), Card.new(1, 3)])  # 2♠, 3♥ = 5
+	var banker_hand = _make_hand([Card.new(2, 1), Card.new(3, 1)])  # A♦, A♣ = 2
 
 	# Состояние: оба должны брать карту
 	var state = GameStateManager.determine_state(false, player_hand, banker_hand, null, null)
@@ -56,8 +63,8 @@ func test_full_round_both_draw_third():
 
 func test_full_round_player_only():
 	# Раздача: Игрок 2+2 (4), Банкир 6+A (7)
-	var player_hand = [Card.new(0, 2), Card.new(1, 2)]  # 2♠, 2♥ = 4
-	var banker_hand = [Card.new(2, 6), Card.new(3, 1)]  # 6♦, A♣ = 7
+	var player_hand = _make_hand([Card.new(0, 2), Card.new(1, 2)])  # 2♠, 2♥ = 4
+	var banker_hand = _make_hand([Card.new(2, 6), Card.new(3, 1)])  # 6♦, A♣ = 7
 
 	# Состояние: только игроку карта
 	var state = GameStateManager.determine_state(false, player_hand, banker_hand, null, null)
@@ -77,8 +84,8 @@ func test_full_round_player_only():
 
 func test_full_round_banker_after_player():
 	# Раздача: Игрок 2+2 (4), Банкир 2+2 (4)
-	var player_hand = [Card.new(0, 2), Card.new(1, 2)]  # 2♠, 2♥ = 4
-	var banker_hand = [Card.new(2, 2), Card.new(3, 2)]  # 2♦, 2♣ = 4
+	var player_hand = _make_hand([Card.new(0, 2), Card.new(1, 2)])  # 2♠, 2♥ = 4
+	var banker_hand = _make_hand([Card.new(2, 2), Card.new(3, 2)])  # 2♦, 2♣ = 4
 
 	# Состояние: игрок берёт карту, банкир ждёт
 	var state = GameStateManager.determine_state(false, player_hand, banker_hand, null, null)
@@ -152,8 +159,8 @@ func test_10_rounds_consistency():
 
 func test_edge_case_both_naturals():
 	# Оба получают натуральную (8 vs 9)
-	var player_hand = [Card.new(0, 8), Card.new(1, 1)]  # 8♠, A♥ = 9 (натуральная)
-	var banker_hand = [Card.new(2, 5), Card.new(3, 3)]  # 5♦, 3♣ = 8 (натуральная)
+	var player_hand = _make_hand([Card.new(0, 8), Card.new(1, 1)])  # 8♠, A♥ = 9 (натуральная)
+	var banker_hand = _make_hand([Card.new(2, 5), Card.new(3, 3)])  # 5♦, 3♣ = 8 (натуральная)
 
 	assert_true(BaccaratRules.is_natural(player_hand), "Player должна быть натуральная 9")
 	assert_true(BaccaratRules.is_natural(banker_hand), "Banker должна быть натуральная 8")
@@ -163,24 +170,24 @@ func test_edge_case_both_naturals():
 
 func test_edge_case_tie():
 	# Ничья 5-5
-	var player_hand = [Card.new(0, 2), Card.new(1, 3)]  # 2♠, 3♥ = 5
-	var banker_hand = [Card.new(2, 4), Card.new(3, 1)]  # 4♦, A♣ = 5
+	var player_hand = _make_hand([Card.new(0, 2), Card.new(1, 3)])  # 2♠, 3♥ = 5
+	var banker_hand = _make_hand([Card.new(2, 4), Card.new(3, 1)])  # 4♦, A♣ = 5
 
 	var winner = BaccaratRules.get_winner(player_hand, banker_hand)
 	assert_eq(winner, "Tie", "Должна быть ничья (5 vs 5)")
 
 func test_edge_case_special_66():
 	# Особая комбинация 6-6
-	var player_hand = [Card.new(0, 6), Card.new(1, 10)]  # 6♠, 10♥ = 6
-	var banker_hand = [Card.new(2, 3), Card.new(3, 3)]   # 3♦, 3♣ = 6
+	var player_hand = _make_hand([Card.new(0, 6), Card.new(1, 10)])  # 6♠, 10♥ = 6
+	var banker_hand = _make_hand([Card.new(2, 3), Card.new(3, 3)]   # 3♦, 3♣ = 6
 
 	var state = GameStateManager.determine_state(false, player_hand, banker_hand, null, null)
 	assert_eq(state, GameStateManager.GameState.CHOOSE_WINNER, "6-6: особая комбинация, выбор победителя")
 
 func test_edge_case_banker_rule_3_with_8():
 	# Банкир с 3 НЕ берёт при третьей игрока = 8
-	var player_hand = [Card.new(0, 2), Card.new(1, 2)]  # 2♠, 2♥ = 4
-	var banker_hand = [Card.new(2, 2), Card.new(3, 1)]  # 2♦, A♣ = 3
+	var player_hand = _make_hand([Card.new(0, 2), Card.new(1, 2)])  # 2♠, 2♥ = 4
+	var banker_hand = _make_hand([Card.new(2, 2), Card.new(3, 1)])  # 2♦, A♣ = 3
 
 	var player_third = Card.new(0, 8)  # 8♠
 	player_hand.append(player_third)
@@ -190,7 +197,7 @@ func test_edge_case_banker_rule_3_with_8():
 
 func test_edge_case_banker_rule_6_with_6_or_7():
 	# Банкир с 6 берёт только при третьей игрока = 6 или 7
-	var banker_hand = [Card.new(0, 3), Card.new(1, 3)]  # 3♠, 3♥ = 6
+	var banker_hand = _make_hand([Card.new(0, 3), Card.new(1, 3)])  # 3♠, 3♥ = 6
 
 	# Третья игрока = 6 → банкир берёт
 	var player_third_6 = Card.new(2, 6)  # 6♦
