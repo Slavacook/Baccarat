@@ -120,14 +120,14 @@ func on_action_pressed():
 	_validate_and_execute_third_cards()
 
 
-func on_player_third_toggled(selected: bool):
+func on_player_third_toggled(_selected: bool):
 	player_third_selected = !player_third_selected
 	if player_third_selected:
 		ui.update_player_third_card_ui("!")
 	else:
 		ui.update_player_third_card_ui("?")
 
-func on_banker_third_toggled(selected: bool):
+func on_banker_third_toggled(_selected: bool):
 	banker_third_selected = !banker_third_selected
 	if banker_third_selected:
 		ui.update_banker_third_card_ui("!")

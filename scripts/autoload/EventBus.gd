@@ -8,18 +8,23 @@ extends Node
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Первые 4 карты розданы
+@warning_ignore("unused_signal")
 signal cards_dealt(player_hand: Array[Card], banker_hand: Array[Card])
 
 ## Игрок получил третью карту
+@warning_ignore("unused_signal")
 signal player_third_drawn(card: Card)
 
 ## Банкир получил третью карту
+@warning_ignore("unused_signal")
 signal banker_third_drawn(card: Card)
 
 ## Все карты открыты, нужно выбрать победителя
+@warning_ignore("unused_signal")
 signal game_completed()
 
 ## Раунд сброшен, начинается новый
+@warning_ignore("unused_signal")
 signal round_reset()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -28,9 +33,11 @@ signal round_reset()
 
 ## Игрок сделал правильное действие
 ## type: "player_third", "banker_third", "both_third", "winner", "payout"
+@warning_ignore("unused_signal")
 signal action_correct(type: String)
 
 ## Победитель определён правильно
+@warning_ignore("unused_signal")
 signal winner_correct(winner: String, player_hand: Array[Card], banker_hand: Array[Card])
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -39,6 +46,7 @@ signal winner_correct(winner: String, player_hand: Array[Card], banker_hand: Arr
 
 ## Игрок сделал ошибку
 ## type: "player_wrong", "banker_wrong", "natural_draw", "both_wrong", "winner_early", "winner_wrong", "payout_wrong"
+@warning_ignore("unused_signal")
 signal action_error(type: String, message: String)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -46,15 +54,19 @@ signal action_error(type: String, message: String)
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Победитель определён, нужно показать попап выплаты
+@warning_ignore("unused_signal")
 signal show_payout_popup(winner: String, stake: float, payout: float)
 
 ## Игрок правильно рассчитал выплату
+@warning_ignore("unused_signal")
 signal payout_correct(collected: float, expected: float)
 
 ## Игрок неправильно рассчитал выплату
+@warning_ignore("unused_signal")
 signal payout_wrong(collected: float, expected: float)
 
 ## Использована подсказка (hint)
+@warning_ignore("unused_signal")
 signal hint_used()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -62,12 +74,15 @@ signal hint_used()
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Показать информационное сообщение (серый toast)
+@warning_ignore("unused_signal")
 signal show_toast_info(message: String)
 
 ## Показать успех (зелёный toast)
+@warning_ignore("unused_signal")
 signal show_toast_success(message: String)
 
 ## Показать ошибку (красный toast)
+@warning_ignore("unused_signal")
 signal show_toast_error(message: String)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -75,12 +90,15 @@ signal show_toast_error(message: String)
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Показать успешное overlay-уведомление (зелёный, "Верно!")
+@warning_ignore("unused_signal")
 signal show_overlay_success(message: String, duration: float)
 
 ## Показать overlay-ошибку (красный, "Ошибка!")
+@warning_ignore("unused_signal")
 signal show_overlay_error(message: String, duration: float)
 
 ## Показать overlay-информацию (синий, game over, потеря жизни)
+@warning_ignore("unused_signal")
 signal show_overlay_info(message: String, duration: float)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -88,15 +106,19 @@ signal show_overlay_info(message: String, duration: float)
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Режим игры изменён ("junket" или "classic")
+@warning_ignore("unused_signal")
 signal game_mode_changed(mode: String)
 
 ## Язык изменён ("ru" или "en")
+@warning_ignore("unused_signal")
 signal language_changed(lang: String)
 
 ## Режим выживания вкл/выкл
+@warning_ignore("unused_signal")
 signal survival_mode_changed(enabled: bool)
 
 ## Лимиты стола изменены
+@warning_ignore("unused_signal")
 signal table_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int, tie_max: int, tie_step: int)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -104,12 +126,15 @@ signal table_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int,
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Игрок потерял жизнь
+@warning_ignore("unused_signal")
 signal life_lost()
 
 ## Игра окончена (game over)
+@warning_ignore("unused_signal")
 signal game_over(rounds_survived: int)
 
 ## Игра перезапущена (restart)
+@warning_ignore("unused_signal")
 signal game_restarted()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -117,6 +142,7 @@ signal game_restarted()
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Состояние игры изменилось
+@warning_ignore("unused_signal")
 signal game_state_changed(old_state: int, new_state: int)
 
 # ═══════════════════════════════════════════════════════════════════════════

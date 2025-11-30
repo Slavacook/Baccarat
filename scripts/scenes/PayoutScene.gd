@@ -26,6 +26,7 @@ extends Control
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+@warning_ignore("unused_signal")
 signal payout_confirmed(is_correct: bool, collected: float, expected: float)
 signal hint_used()
 
@@ -474,7 +475,7 @@ func _show_success_animation():
 	# Возвращаемся к игре
 	_return_to_game()
 
-func _show_error_animation(collected: float):
+func _show_error_animation(_collected: float):
 	is_button_blocked = true
 	payout_button.disabled = true
 
@@ -554,12 +555,12 @@ func _setup_keyboard_navigation():
 	stack_manager.stack_removed.connect(_on_stack_removed_for_navigation)
 
 
-func _on_stack_added_for_navigation(stack: ChipStack, _index: int):
+func _on_stack_added_for_navigation(_stack: ChipStack, _index: int):
 	# Обновляем уровень 2 при добавлении стопки
 	_update_navigation_level2()
 
 
-func _on_stack_removed_for_navigation(stack: ChipStack, _index: int):
+func _on_stack_removed_for_navigation(_stack: ChipStack, _index: int):
 	# Обновляем уровень 2 при удалении стопки
 	_update_navigation_level2()
 

@@ -1,7 +1,0 @@
-res://addons/gut/gut_loader_the_scene.tscn
-res://addons/gut/gui/editor_globals.gd
-res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/ToastManager.gd
-res://tests/test_game_phase_manager.gd
-res://tests/test_game_phase_manager_simple.gd
-res://tests/test_baccarat_rules.gd

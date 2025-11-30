@@ -118,22 +118,10 @@ func _is_pair(card1, card2) -> bool:
 	"""Проверить, является ли пара картами одного ранга"""
 	if card1 == null or card2 == null:
 		return false
-	
+
 	# Карты в проекте - объекты класса Card с полем rank
 	if "rank" in card1 and "rank" in card2:
 		return card1.rank == card2.rank
-	
-	return false
-
-	# Если карты - строки (например "A♠")
-	if card1 is String and card2 is String:
-		var rank1 = card1.substr(0, card1.length() - 1)  # Убираем масть
-		var rank2 = card2.substr(0, card2.length() - 1)
-		return rank1 == rank2
-
-	# Если карты - словари
-	if card1 is Dictionary and card2 is Dictionary:
-		return card1.get("rank", "") == card2.get("rank", "")
 
 	return false
 

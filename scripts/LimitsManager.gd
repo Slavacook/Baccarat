@@ -30,7 +30,7 @@ func _init(conf: GameConfig):
 		false  # silent = true, не эмитим сигнал при инициализации
 	)
 
-func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new_tie_max: int, new_tie_step: int, emit_signal: bool = true):
+func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new_tie_max: int, new_tie_step: int, should_emit_signal: bool = true):
 	min_bet = new_min
 	max_bet = new_max
 	step = new_step
@@ -45,8 +45,8 @@ func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new
 	config.tie_max_bet = new_tie_max
 	config.tie_step = new_tie_step
 
-	# ← Эмитим сигнал только если emit_signal = true (реальная смена лимитов)
-	if emit_signal:
+	# ← Эмитим сигнал только если should_emit_signal = true (реальная смена лимитов)
+	if should_emit_signal:
 		limits_changed.emit(new_min, new_max, new_step, new_tie_min, new_tie_max, new_tie_step)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -55,8 +55,8 @@ func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new
 
 # --- Генерация случайной ставки из фиксированных диапазонов ---
 # ranges: [[min, max, chance%], [min, max, chance%], ...]
-# step: шаг ставок (1 для Classic, 500 для Junket)
-func _generate_from_ranges(ranges: Array, step: int) -> int:
+# step_value: шаг ставок (1 для Classic, 500 для Junket)
+func _generate_from_ranges(ranges: Array, step_value: int) -> int:
 	# Выбираем категорию по шансам
 	var total_chance: float = 0.0
 	for range_data in ranges:
@@ -72,23 +72,23 @@ func _generate_from_ranges(ranges: Array, step: int) -> int:
 
 		accumulated += chance
 		if r <= accumulated:
-			# Нормализуем min и max к ближайшим значениям, кратным step
-			var min_normalized = int(ceil(float(min_val) / step)) * step
-			var max_normalized = int(floor(float(max_val) / step)) * step
+			# Нормализуем min и max к ближайшим значениям, кратным step_value
+			var min_normalized = int(ceil(float(min_val) / step_value)) * step_value
+			var max_normalized = int(floor(float(max_val) / step_value)) * step_value
 
 			# Проверка: если диапазон слишком узкий
 			if max_normalized < min_normalized:
 				return min_normalized
 
 			# Количество возможных ставок в диапазоне
-			var steps_count = int((max_normalized - min_normalized) / step) + 1
+			var steps_count = int((max_normalized - min_normalized) / float(step_value)) + 1
 			var random_step = randi() % steps_count
-			var bet = min_normalized + (random_step * step)
+			var bet = min_normalized + (random_step * step_value)
 
 			return bet
 
 	# Fallback (не должно сюда попасть)
-	return int(ceil(float(ranges[0][0]) / step)) * step
+	return int(ceil(float(ranges[0][0]) / step_value)) * step_value
 
 # --- Основные ставки (Player/Banker) ---
 func generate_bet() -> int:
