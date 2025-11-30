@@ -473,6 +473,10 @@ func _setup_keyboard_navigation():
 		level4_elements.append(get_node("TopUI/PayoutToggleBanker"))
 	if has_node("TopUI/PayoutToggleTie"):
 		level4_elements.append(get_node("TopUI/PayoutToggleTie"))
+	if has_node("TopUI/PayoutTogglePairPlayer"):
+		level4_elements.append(get_node("TopUI/PayoutTogglePairPlayer"))
+	if has_node("TopUI/PayoutTogglePairBanker"):
+		level4_elements.append(get_node("TopUI/PayoutTogglePairBanker"))
 
 	# Регистрируем уровни (is_payout=false для Game)
 	FocusManager.register_level(1, level1_elements, false)
@@ -556,6 +560,8 @@ func _setup_fixed_ui():
 		"PayoutTogglePlayer",
 		"PayoutToggleBanker",
 		"PayoutToggleTie",
+		"PayoutTogglePairPlayer",
+		"PayoutTogglePairBanker",
 		"LimitsButton"
 	]
 

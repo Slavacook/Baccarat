@@ -61,8 +61,7 @@ func _init(scene: Node, cm: CardTextureManager):
 		lang_button = scene.get_node("LangButton")
 		lang_button.pressed.connect(func(): lang_button_pressed.emit())
 
-	bet_chip = scene.get_node("BetChip")
-	bet_popup = scene.get_node("BetPopup")
+
 
 	action_button.pressed.connect(func(): action_button_pressed.emit())
 	player_third_toggle.gui_input.connect(_on_player_toggle_input)
@@ -73,7 +72,7 @@ func _init(scene: Node, cm: CardTextureManager):
 	connect_winner_button(banker_marker, "Banker")
 	connect_winner_button(tie_marker, "Tie")
 
-	tie_chip = scene.get_node("TieChip")
+
 
 	# Инициализация переключателей выплат (если они есть в сцене)
 	if scene.has_node("PayoutTogglePlayer"):

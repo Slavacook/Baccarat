@@ -1,4 +1,4 @@
-[gd_scene load_steps=20 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=18 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -6,10 +6,8 @@
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
 [ext_resource type="PackedScene" path="res://scenes/GameOverPopup.tscn" id="4_gameover"]
 [ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="4_kiw3p"]
-[ext_resource type="Texture2D" uid="uid://cxd5ghflln36j" path="res://assets/ui/chip_bet.png" id="4_s0nni"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="4_survival"]
 [ext_resource type="Texture2D" uid="uid://pjrcoee4fq31" path="res://assets/ui/Tie.png" id="5_2rd6h"]
-[ext_resource type="Texture2D" uid="uid://c8pdumrqjxude" path="res://assets/ui/chip_bet_1.png" id="5_aug50"]
 [ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="5_g4kob"]
 [ext_resource type="Texture2D" uid="uid://bpjf6tt0ch2bw" path="res://assets/ui/Tie_win.png" id="6_7ua8r"]
 [ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="6_qy1jj"]
@@ -236,33 +234,10 @@ offset_bottom = 21.0
 scale = Vector2(1.5, 1.5)
 text = "Правильно: 0 | Ошибок: 0"
 
-[node name="BetChip" type="TextureButton" parent="."]
-visible = false
-offset_left = 267.99997
-offset_top = -102.0
-offset_right = 768.0
-offset_bottom = 398.0
-rotation = 0.17802358
-scale = Vector2(0.15, 0.15)
-pivot_offset = Vector2(250, 250)
-texture_normal = ExtResource("4_s0nni")
-texture_pressed = ExtResource("5_aug50")
-
 [node name="Sprite2D" type="Sprite2D" parent="."]
 position = Vector2(21, 465)
 scale = Vector2(1.24, 1.24)
 texture = ExtResource("14_7ua8r")
-
-[node name="TieChip" type="TextureButton" parent="."]
-visible = false
-offset_left = 399.00006
-offset_top = -31.999985
-offset_right = 899.00006
-offset_bottom = 468.0
-rotation = -0.059341196
-scale = Vector2(0.15, 0.15)
-pivot_offset = Vector2(250, 250)
-texture_normal = ExtResource("5_aug50")
 
 [node name="SettingsButton" type="Button" parent="."]
 offset_left = 1093.0
