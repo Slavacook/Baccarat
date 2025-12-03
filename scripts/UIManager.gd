@@ -68,9 +68,10 @@ func _init(scene: Node, cm: CardTextureManager):
 	banker_third_toggle.gui_input.connect(_on_banker_toggle_input)
 	help_button.pressed.connect(func(): help_button_pressed.emit())
 
-	connect_winner_button(player_marker, "Player")
-	connect_winner_button(banker_marker, "Banker")
-	connect_winner_button(tie_marker, "Tie")
+	# ← ОТКЛЮЧЕНО: маркеры теперь управляются через WinnerSelectionManager
+	# connect_winner_button(player_marker, "Player")
+	# connect_winner_button(banker_marker, "Banker")
+	# connect_winner_button(tie_marker, "Tie")
 
 
 

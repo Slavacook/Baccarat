@@ -40,9 +40,24 @@ func reset():
 	ui.enable_action_button()
 	_update_game_state_manager()
 
+	# ← Очищаем PayoutQueueManager и фишки для нового раунда
+	if game_controller:
+		game_controller.payout_queue_manager = null
+		if game_controller.chip_visual_manager:
+			game_controller.chip_visual_manager.hide_all_chips()
+		if game_controller.winner_selection_manager:
+			game_controller.winner_selection_manager.reset()
+		print("🔄 Сброс раунда: очищены выплаты, фишки и маркеры")
+
 func deal_first_four():
-	# Проверяем, есть ли активные ставки
-	if not PayoutSettingsManager.has_any_active_bet():
+	# Проверяем, есть ли активные ставки (включая пары)
+	var has_main_bets = PayoutSettingsManager.has_any_active_bet()
+	var has_pair_bets = false
+	if game_controller and game_controller.pair_betting_manager:
+		has_pair_bets = game_controller.pair_betting_manager.pair_player_bet_enabled or \
+						 game_controller.pair_betting_manager.pair_banker_bet_enabled
+
+	if not has_main_bets and not has_pair_bets:
 		EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
 
 	# Зум на карты только при первой раздаче
@@ -68,6 +83,10 @@ func deal_first_four():
 			game_controller.pair_betting_manager.player_pair_detected,
 			game_controller.pair_betting_manager.banker_pair_detected
 		])
+
+	# ← Показываем фишки всех активных ставок
+	if game_controller and game_controller.chip_visual_manager:
+		_show_active_bet_chips()
 
 	_update_game_state_manager()
 
@@ -125,10 +144,26 @@ func on_action_pressed():
 			ui.update_player_third_card_ui("?")
 			ui.update_banker_third_card_ui("?")
 			return
-		# Если галочки не стоят — просто напоминаем выбрать победителя
-		EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
+
+		# Проверяем, есть ли неоплаченные выплаты (ручной режим)
+		if game_controller and game_controller.payout_queue_manager:
+			var queue_mgr = game_controller.payout_queue_manager
+			if queue_mgr.has_unpaid_winnings():
+				var unpaid_count = queue_mgr.get_unpaid_count()
+				EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS", [unpaid_count]))
+				EventBus.action_error.emit("unpaid_bets", "")
+				on_error_occurred()
+				return
+
+			# Все выплаты оплачены → можно начинать новую игру
+			print("✅ Все выплаты оплачены, сброс раунда")
+			reset()
+			return
+
+		# Если нет PayoutQueueManager → проверяем выбор победителя (первый выбор)
+		_validate_winner_selection()
 		return
-	
+
 	_validate_and_execute_third_cards()
 
 
@@ -327,6 +362,39 @@ func _validate_banker_after_player():
 			return
 		complete_game()
 
+func _show_active_bet_chips() -> void:
+	"""Показать фишки всех активных ставок при раздаче"""
+	if not game_controller or not game_controller.chip_visual_manager:
+		return
+
+	var chip_mgr = game_controller.chip_visual_manager
+
+	# Основные ставки
+	if PayoutSettingsManager.player_payout_enabled:
+		chip_mgr.show_chip("Player")
+		chip_mgr.make_chip_clickable("Player", false)  # Пока некликабельны
+
+	if PayoutSettingsManager.banker_payout_enabled:
+		chip_mgr.show_chip("Banker")
+		chip_mgr.make_chip_clickable("Banker", false)
+
+	if PayoutSettingsManager.tie_payout_enabled:
+		chip_mgr.show_chip("Tie")
+		chip_mgr.make_chip_clickable("Tie", false)
+
+	# Ставки на пары
+	if game_controller.pair_betting_manager:
+		if game_controller.pair_betting_manager.pair_player_bet_enabled:
+			chip_mgr.show_chip("PairPlayer")
+			chip_mgr.make_chip_clickable("PairPlayer", false)
+
+		if game_controller.pair_betting_manager.pair_banker_bet_enabled:
+			chip_mgr.show_chip("PairBanker")
+			chip_mgr.make_chip_clickable("PairBanker", false)
+
+	print("💰 Показаны фишки всех активных ставок")
+
+
 func _update_game_state_manager():
 	var cards_hidden = player_hand.size() == 0 or banker_hand.size() == 0
 	var player_third_card = player_hand[2] if player_hand.size() > 2 else null
@@ -338,3 +406,64 @@ func _update_game_state_manager():
 		player_third_card,
 		banker_third_card
 	)
+
+# ========================================
+# ВАЛИДАЦИЯ ВЫБОРА ПОБЕДИТЕЛЯ (новая логика)
+# ========================================
+
+func _validate_winner_selection() -> void:
+	"""Проверка выбранного победителя через маркеры"""
+	if not game_controller or not game_controller.winner_selection_manager:
+		EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
+		return
+
+	var winner_mgr = game_controller.winner_selection_manager
+	var selected_winner = winner_mgr.get_selected_winner()
+
+	# Не выбран ни один маркер?
+	if selected_winner == "":
+		EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
+		return
+
+	# Проверяем правильность
+	var actual_winner = BaccaratRules.get_winner(player_hand, banker_hand)
+
+	if selected_winner != actual_winner:
+		# ❌ Неправильный выбор
+		EventBus.show_toast_error.emit(Localization.t("ERR_WRONG_WINNER", [actual_winner]))
+		EventBus.action_error.emit("winner_wrong", "")
+		on_error_occurred()
+		# Сбрасываем выбор маркера
+		winner_mgr.reset()
+		return
+
+	# ✅ Правильный выбор!
+	EventBus.action_correct.emit("winner")
+
+	# Показываем toast с результатом (кто выиграл и с какими картами)
+	var victory_msg = _format_victory_toast(actual_winner)
+	EventBus.show_toast_success.emit(victory_msg)
+
+	# Зум камеры на фишки для оплаты
+	if game_controller:
+		game_controller.camera_zoom_chips()
+
+	# Вызываем метод формирования очереди выплат в GameController
+	if game_controller:
+		game_controller._prepare_payouts_manual(actual_winner)
+
+func _format_victory_toast(winner: String) -> String:
+	"""Форматирование сообщения победы"""
+	var player_score = BaccaratRules.hand_value(player_hand)
+	var banker_score = BaccaratRules.hand_value(banker_hand)
+
+	var winner_text = ""
+	match winner:
+		"Player":
+			winner_text = Localization.t("PLAYER")
+		"Banker":
+			winner_text = Localization.t("BANKER")
+		"Tie":
+			winner_text = Localization.t("TIE")
+
+	return Localization.t("VICTORY_TOAST", [winner_text, player_score, banker_score])

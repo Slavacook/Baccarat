@@ -19,24 +19,34 @@ var tie_min: int
 var tie_max: int
 var tie_step: int
 
+# Пары лимиты
+var pairs_min: int
+var pairs_max: int
+var pairs_step: int
+
 # Шансы берутся из BetProfileManager (удалено хардкод)
 
 func _init(conf: GameConfig):
 	config = conf
-	# ← Инициализация без эмита сигнала
+	# ← Загружаем лимиты из GameModeManager
+	var cfg = GameModeManager.get_config()
 	set_limits(
-		conf.table_min_bet, conf.table_max_bet, conf.table_step,
-		conf.tie_min_bet, conf.tie_max_bet, conf.tie_step,
+		cfg["main_min"], cfg["main_max"], cfg["main_step"],
+		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
+		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"],
 		false  # silent = true, не эмитим сигнал при инициализации
 	)
 
-func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new_tie_max: int, new_tie_step: int, should_emit_signal: bool = true):
+func set_limits(new_min: int, new_max: int, new_step: int, new_tie_min: int, new_tie_max: int, new_tie_step: int, new_pairs_min: int, new_pairs_max: int, new_pairs_step: int, should_emit_signal: bool = true):
 	min_bet = new_min
 	max_bet = new_max
 	step = new_step
 	tie_min = new_tie_min
 	tie_max = new_tie_max
 	tie_step = new_tie_step
+	pairs_min = new_pairs_min
+	pairs_max = new_pairs_max
+	pairs_step = new_pairs_step
 
 	config.table_min_bet = new_min
 	config.table_max_bet = new_max
@@ -101,3 +111,9 @@ func generate_tie_bet() -> int:
 	var mode = GameModeManager.get_mode_string()  # "classic" или "junket"
 	var ranges = BetProfileManager.get_ranges(mode, "tie")
 	return _generate_from_ranges(ranges, tie_step)
+
+# --- Ставки на пары (PairPlayer/PairBanker) ---
+func generate_pair_bet() -> int:
+	var mode = GameModeManager.get_mode_string()  # "classic" или "junket"
+	var ranges = BetProfileManager.get_ranges(mode, "pair")
+	return _generate_from_ranges(ranges, pairs_step)

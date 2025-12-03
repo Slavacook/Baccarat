@@ -63,7 +63,11 @@ const DATA = {
 		"BET_PROFILE_LARGE": "Крупные",
 		"BET_PROFILE_DESC_SMALL": "Мелкие ставки для тренировки",
 		"BET_PROFILE_DESC_MEDIUM": "Реалистичная игра",
-		"BET_PROFILE_DESC_LARGE": "Имитация богатого клиента"
+		"BET_PROFILE_DESC_LARGE": "Имитация богатого клиента",
+		"ERR_UNPAID_BETS": "Ошибка! Осталось %d неоплаченных выплат. Оплатите их, нажав на фишки.",
+		"ALL_PAYOUTS_COMPLETED": "Все выплаты оплачены! Можно начинать новую игру.",
+		"ERR_WRONG_WINNER": "Ошибка! Неправильный выбор. Выиграл %s",
+		"VICTORY_TOAST": "Выигрывает %s: %d vs %d"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Error! Natural — no third cards allowed.",
@@ -125,7 +129,11 @@ const DATA = {
 		"BET_PROFILE_LARGE": "Large",
 		"BET_PROFILE_DESC_SMALL": "Small bets for practice",
 		"BET_PROFILE_DESC_MEDIUM": "Realistic gameplay",
-		"BET_PROFILE_DESC_LARGE": "High roller simulation"
+		"BET_PROFILE_DESC_LARGE": "High roller simulation",
+		"ERR_UNPAID_BETS": "Error! %d unpaid payouts remaining. Click on chips to pay them.",
+		"ALL_PAYOUTS_COMPLETED": "All payouts completed! You can start a new game.",
+		"ERR_WRONG_WINNER": "Error! Wrong choice. Winner is %s",
+		"VICTORY_TOAST": "%s Wins: %d vs %d"
 	}
 }
 

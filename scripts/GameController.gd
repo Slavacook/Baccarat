@@ -33,10 +33,14 @@ var camera: Camera2D
 const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)
 # Зум на карты (1.3:1, фокус на зоне раздачи)
 const CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)
+# Зум на фишки (1.0:1, фокус на зоне ставок - выше на 200px)
+const CAMERA_ZOOM_CHIPS = Vector2(1.3, 1.3)
 # Позиция камеры для общего плана (центр окна 1154x650)
 const CAMERA_POS_GENERAL = Vector2(577, 325)
 # Позиция камеры для зума на карты (центр зоны Player/Banker)
 const CAMERA_POS_CARDS = Vector2(595, 400)
+# Позиция камеры для зума на фишки (на 200px выше общего плана)
+const CAMERA_POS_CHIPS = Vector2(595, 295)
 # Длительность плавного перехода камеры (секунды)
 const CAMERA_TRANSITION_DURATION = 0.5
 var is_first_deal: bool = true                     # Флаг первой раздачи (для зума)
@@ -97,7 +101,7 @@ func _ready():
 	ui_manager.action_button_pressed.connect(phase_manager.on_action_pressed)
 	ui_manager.player_third_toggled.connect(phase_manager.on_player_third_toggled)
 	ui_manager.banker_third_toggled.connect(phase_manager.on_banker_third_toggled)
-	ui_manager.winner_selected.connect(_on_winner_selected)
+	# ui_manager.winner_selected.connect(_on_winner_selected)  # ← ОТКЛЮЧЕНО: теперь через WinnerSelectionManager + кнопка "Карты"
 	ui_manager.help_button_pressed.connect(_on_help_button_pressed)
 	ui_manager.lang_button_pressed.connect(_on_lang_button_pressed)
 	phase_manager.reset()
@@ -118,6 +122,7 @@ func _ready():
 	limits_manager.set_limits(
 		cfg["main_min"], cfg["main_max"], cfg["main_step"],
 		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
+		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"],
 		false  # не показываем toast при инициализации
 	)
 
@@ -274,13 +279,13 @@ func _on_winner_selected(chosen: String):
 
 		# 2. Добавляем пару игрока - если обнаружена И ставка была
 		if pair_betting_manager.player_pair_detected and pair_betting_manager.pair_player_bet_enabled:
-			var stake = limits_manager.generate_bet()
+			var stake = limits_manager.generate_pair_bet()  # ← Используем generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer")
 			GameDataManager.add_to_payout_queue("PairPlayer", stake, payout, player_score, banker_score)
 
 		# 3. Добавляем пару банкира - если обнаружена И ставка была
 		if pair_betting_manager.banker_pair_detected and pair_betting_manager.pair_banker_bet_enabled:
-			var stake = limits_manager.generate_bet()
+			var stake = limits_manager.generate_pair_bet()  # ← Используем generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker")
 			GameDataManager.add_to_payout_queue("PairBanker", stake, payout, player_score, banker_score)
 
@@ -346,6 +351,110 @@ func _format_victory_toast(winner: String) -> String:
 			return Localization.t("VICTORY_TIE")  # Без параметров
 		_:
 			return "???"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РУЧНОЙ РЕЖИМ ВЫПЛАТ (новая логика)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _prepare_payouts_manual(actual_winner: String) -> void:
+	"""Подготовка выплат в ручном режиме (без автоматического перехода к сцене)
+
+	Создает payout_queue_manager с информацией о всех ставках:
+	- Выигравшие ставки (won=true, is_paid=false)
+	- Проигравшие ставки (won=false)
+
+	Делает фишки выигравших ставок кликабельными.
+	"""
+	var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
+	var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
+
+	# Создаем новый payout_queue_manager
+	payout_queue_manager = PayoutQueueManager.new()
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ДОБАВЛЯЕМ ВСЕ СТАВКИ (выигравшие и проигравшие)
+	# ═══════════════════════════════════════════════════════════════════
+
+	# 1. Основные ставки (Player/Banker/Tie)
+	# Player
+	if PayoutSettingsManager.player_payout_enabled:
+		var won = (actual_winner == "Player")
+		var stake = limits_manager.generate_bet()
+		var payout = stake * 1.0 if won else 0.0
+		payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score)
+
+	# Banker
+	if PayoutSettingsManager.banker_payout_enabled:
+		var won = (actual_winner == "Banker")
+		var stake = limits_manager.generate_bet()
+		var payout = 0.0
+		if won:
+			var commission = GameModeManager.get_banker_commission()
+			if GameModeManager.get_mode_string() == "classic":
+				var banker_value = BaccaratRules.hand_value(phase_manager.banker_hand)
+				if banker_value == 6:
+					commission = 0.5
+			payout = stake * commission
+			print("🏦 Banker выиграл: stake=%.1f, commission=%.2f, payout=%.1f" % [stake, commission, payout])
+		else:
+			print("🏦 Banker проиграл: stake=%.1f, payout=0" % stake)
+		payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score)
+
+	# Tie
+	if PayoutSettingsManager.tie_payout_enabled:
+		var won = (actual_winner == "Tie")
+		var stake = limits_manager.generate_tie_bet()
+		var payout = stake * 8.0 if won else 0.0
+		payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score)
+
+	# 2. Ставки на пары
+	# Pair Player
+	if pair_betting_manager.pair_player_bet_enabled:
+		var won = pair_betting_manager.player_pair_detected
+		var stake = limits_manager.generate_pair_bet()
+		var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer") if won else 0.0
+		payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score)
+
+	# Pair Banker
+	if pair_betting_manager.pair_banker_bet_enabled:
+		var won = pair_betting_manager.banker_pair_detected
+		var stake = limits_manager.generate_pair_bet()
+		var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker") if won else 0.0
+		payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score)
+
+	# Выводим статус очереди
+	payout_queue_manager.print_status()
+
+	# ═══════════════════════════════════════════════════════════════════
+	# УПРАВЛЕНИЕ ФИШКАМИ (показать выигравшие, скрыть проигравшие)
+	# ═══════════════════════════════════════════════════════════════════
+	_update_chip_visibility()
+
+
+func _update_chip_visibility() -> void:
+	"""Обновить видимость и кликабельность фишек через ChipVisualManager
+
+	Логика:
+	- Проигравшие ставки → скрыть
+	- Оплаченные ставки → скрыть
+	- Выигравшие неоплаченные → оставить видимыми и кликабельными
+	"""
+	if not payout_queue_manager or not chip_visual_manager:
+		return
+
+	var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
+
+	for bet_type in bet_types:
+		var bet = payout_queue_manager.get_bet_by_type(bet_type)
+
+		if bet:
+			if not bet.won or bet.is_paid:
+				# Проигравшая или оплаченная → скрываем
+				chip_visual_manager.hide_chip(bet_type)
+			else:
+				# Выигравшая и неоплаченная → фишка уже видна, делаем кликабельной
+				chip_visual_manager.make_chip_clickable(bet_type, true)
+				print("💰 Фишка %s доступна для оплаты" % bet_type)
 
 func _on_help_button_pressed():
 	ui_manager.help_popup.popup_centered()
@@ -428,7 +537,8 @@ func _on_mode_changed(mode: String):
 	# ← set_limits() сам вызовет limits_changed.emit() → _on_limits_changed()
 	limits_manager.set_limits(
 		cfg["main_min"], cfg["main_max"], cfg["main_step"],
-		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"]
+		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
+		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"]
 	)
 	# Убрали дублирующий вызов _on_limits_changed() - он уже вызовется через сигнал
 
@@ -524,7 +634,76 @@ func _setup_keyboard_navigation():
 	FocusManager.register_level(4, level4_elements, false)
 
 func _check_payout_return():
-	# Проверяем, есть ли данные возврата из PayoutScene
+	"""Проверка возврата из PayoutScene (ручной или автоматический режим)"""
+
+	# ═══════════════════════════════════════════════════════════════════
+	# РУЧНОЙ РЕЖИМ (через PayoutContextManager)
+	# ═══════════════════════════════════════════════════════════════════
+	if PayoutContextManager.has_context():
+		var context = PayoutContextManager.get_context()
+		var is_manual = context.get("manual_mode", false)
+
+		if is_manual:
+			print("♻️  Возврат из PayoutScene (ручной режим)")
+
+			# Восстанавливаем состояние игры
+			if PayoutContextManager.has_saved_state():
+				var state = PayoutContextManager.get_saved_game_state()
+				survival_rounds_completed = state.get("survival_rounds", 0)
+
+				# Восстанавливаем выбранного победителя (маркер)
+				var saved_winner = state.get("selected_winner", "")
+				if saved_winner != "" and winner_selection_manager:
+					winner_selection_manager.select_winner(saved_winner)
+					print("🎯 Восстановлен выбранный маркер: %s" % saved_winner)
+					if survival_ui:
+						survival_ui.current_lives = state.get("survival_lives", 7)
+						survival_ui.is_active = state.get("survival_active", false)
+
+			# Восстанавливаем камеру
+			if camera:
+				camera.position = CAMERA_POS_CHIPS
+				camera.zoom = CAMERA_ZOOM_CHIPS
+				is_first_deal = false
+				print("📷 Камера восстановлена: зум на фишки")
+
+			# Получаем результат выплаты из GameDataManager
+			var bet_type = context.get("bet_type", "")
+			var is_correct = GameDataManager.payout_is_correct
+			var collected = GameDataManager.payout_collected
+			var expected = GameDataManager.payout_expected
+
+			# Обновляем статистику
+			if is_correct:
+				EventBus.payout_correct.emit(collected, expected)
+				print("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
+
+				# Отмечаем ставку как оплаченную
+				if payout_queue_manager:
+					payout_queue_manager.mark_as_paid(bet_type)
+
+				# Обновляем видимость фишек
+				_update_chip_visibility()
+
+				# Проверяем, остались ли неоплаченные выплаты
+				if payout_queue_manager and not payout_queue_manager.has_unpaid_winnings():
+					print("✅ Все выплаты оплачены! Можно начинать новый раунд")
+					# Toast о том, что можно начинать новую игру
+					EventBus.show_toast_success.emit(Localization.t("ALL_PAYOUTS_COMPLETED"))
+			else:
+				EventBus.payout_wrong.emit(collected, expected)
+				print("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
+				# Ставка остается неоплаченной, фишка остается видимой
+
+			# Очищаем контекст
+			PayoutContextManager.clear_context()
+			PayoutContextManager.clear_saved_state()
+			GameDataManager.clear()
+			return
+
+	# ═══════════════════════════════════════════════════════════════════
+	# АВТОМАТИЧЕСКИЙ РЕЖИМ (через GameDataManager) - СТАРАЯ ЛОГИКА
+	# ═══════════════════════════════════════════════════════════════════
 	if GameDataManager.payout_winner != "":
 		# ← Восстанавливаем состояние игры
 		survival_rounds_completed = GameDataManager.survival_rounds
@@ -686,6 +865,22 @@ func camera_zoom_out():
 
 	print("📷 Общий план (zoom %.1f)" % CAMERA_ZOOM_GENERAL.x)
 
+
+func camera_zoom_chips():
+	"""Плавный зум на область фишек (выше на 200px от общего плана)"""
+	if not camera:
+		return
+
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.set_trans(Tween.TRANS_CUBIC)
+	tween.set_ease(Tween.EASE_IN_OUT)
+
+	tween.tween_property(camera, "position", CAMERA_POS_CHIPS, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CHIPS, CAMERA_TRANSITION_DURATION)
+
+	print("📷 Зум на фишки (zoom %.1f)" % CAMERA_ZOOM_CHIPS.x)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # НОВЫЕ МЕНЕДЖЕРЫ - ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -714,8 +909,7 @@ func _setup_new_managers():
 		print("✅ WinnerSelectionManager инициализирован")
 	else:
 		push_warning("⚠️  Маркеры не найдены в сцене")
-	payout_queue_manager = PayoutQueueManager.new()
-	print("✅ PayoutQueueManager инициализирован")
+	# PayoutQueueManager создается динамически в _prepare_payouts_manual()
 	pair_betting_manager = PairBettingManager.new()
 	# ← Сигнал pair_detected больше не используется (молчаливая проверка)
 	print("✅ PairBettingManager инициализирован")
@@ -829,10 +1023,27 @@ func _on_chip_clicked(bet_type: String):
 # ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
 
 func _open_payout_scene(bet_type: String, stake: float, expected_payout: float):
+	"""Открыть PayoutScene для конкретной ставки"""
+	# Устанавливаем контекст для PayoutScene
 	PayoutContextManager.set_context({
 		"bet_type": bet_type,
 		"stake": stake,
 		"expected_payout": expected_payout,
-		"return_to_game": true
+		"return_to_game": true,
+		"manual_mode": true  # ← Флаг ручного режима
 	})
+
+	# Сохраняем состояние игры (включая выбранного победителя)
+	var selected_winner = ""
+	if winner_selection_manager:
+		selected_winner = winner_selection_manager.get_selected_winner()
+
+	PayoutContextManager.save_game_state({
+		"survival_rounds": survival_rounds_completed,
+		"survival_lives": survival_ui.current_lives if survival_ui else 7,
+		"survival_active": is_survival_mode,
+		"selected_winner": selected_winner  # ← Сохраняем выбранного победителя
+	})
+
+	# Переходим к PayoutScene
 	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")

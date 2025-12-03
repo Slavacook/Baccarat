@@ -17,8 +17,8 @@ const JUNKET_CONFIG = {
 	"tie_max": 900,
 	"tie_step": 25,
 	"pairs_min": 100,
-	"pairs_max": 900,
-	"pairs_step": 25,
+	"pairs_max": 15000,
+	"pairs_step": 100,
 	"banker_commission": 0.95,  # 5% комиссия = 95% выплата
 	"chip_denominations": [100000, 50000, 25000, 10000, 5000, 1000, 500, 100, 25]
 }
@@ -32,7 +32,7 @@ const CLASSIC_CONFIG = {
 	"tie_max": 300,
 	"tie_step": 1,
 	"pairs_min": 25,
-	"pairs_max": 200,
+	"pairs_max": 900,
 	"pairs_step": 1,
 	"banker_commission": 1.0,  # ← 100% выплата (1:1), но 50% если банкир выигрывает с 6
 	"chip_denominations": [5000, 1000, 500, 100, 25, 5, 1, 0.5]
