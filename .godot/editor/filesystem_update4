@@ -1,7 +1,6 @@
 res://scripts/GameController.gd
-res://scripts/UIManager.gd
+res://scripts/GamePhaseManager.gd
 res://scenes/Game.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/GamePhaseManager.gd
-res://scripts/WinnerSelectionManager.gd
+res://scripts/PayoutQueueManager.gd

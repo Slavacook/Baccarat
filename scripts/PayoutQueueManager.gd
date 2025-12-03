@@ -83,6 +83,11 @@ func get_winning_bets() -> Array[BetData]:
 	return winning
 
 
+func get_all_bets() -> Array[BetData]:
+	"""Получить все ставки (выигравшие и проигравшие)"""
+	return bets
+
+
 func clear() -> void:
 	"""Очистить все ставки"""
 	bets.clear()

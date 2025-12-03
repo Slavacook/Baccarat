@@ -16,6 +16,7 @@ var survival_ui: Control
 var game_over_popup: PopupPanel
 var survival_rounds_completed: int = 0
 var is_survival_mode: bool = false
+var is_table_prepared_for_new_game: bool = false  # Флаг подготовки к новой игре (после оплаты всех фишек)
 
 # Новые менеджеры для фишек и выплат
 var chip_visual_manager: ChipVisualManager
@@ -33,7 +34,7 @@ var camera: Camera2D
 const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)
 # Зум на карты (1.3:1, фокус на зоне раздачи)
 const CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)
-# Зум на фишки (1.0:1, фокус на зоне ставок - выше на 200px)
+# Зум на фишки (1.3:1, фокус на зоне ставок - выше на 200px)
 const CAMERA_ZOOM_CHIPS = Vector2(1.3, 1.3)
 # Позиция камеры для общего плана (центр окна 1154x650)
 const CAMERA_POS_GENERAL = Vector2(577, 325)
@@ -104,11 +105,20 @@ func _ready():
 	# ui_manager.winner_selected.connect(_on_winner_selected)  # ← ОТКЛЮЧЕНО: теперь через WinnerSelectionManager + кнопка "Карты"
 	ui_manager.help_button_pressed.connect(_on_help_button_pressed)
 	ui_manager.lang_button_pressed.connect(_on_lang_button_pressed)
-	phase_manager.reset()
+
+	# ← Проверяем возврат из PayoutScene ДО reset (чтобы не сбрасывать восстановленное состояние)
+	var is_payout_return = PayoutContextManager.has_context() and PayoutContextManager.get_context().get("manual_mode", false)
+
+	if not is_payout_return:
+		# Только если НЕ возвращаемся из PayoutScene - делаем reset
+		phase_manager.reset()
+		# Также сбрасываем GameStateManager только при обычной загрузке
+		GameStateManager.reset()
+	else:
+		print("♻️  Пропускаем GameStateManager.reset() при возврате из PayoutScene")
+
 	ui_manager.help_popup.hide()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-
-	GameStateManager.reset()
 	# Инициализация новых менеджеров
 	_setup_new_managers()
 	_setup_payout_toggles()
@@ -430,6 +440,27 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	# ═══════════════════════════════════════════════════════════════════
 	_update_chip_visibility()
 
+	# ═══════════════════════════════════════════════════════════════════
+	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
+	# ═══════════════════════════════════════════════════════════════════
+	var selected_winner = winner_selection_manager.get_selected_winner() if winner_selection_manager else ""
+	var surv_lives = survival_ui.current_lives if survival_ui else 7
+	var surv_active = survival_ui.is_active if survival_ui else false
+
+	TableStateManager.save_table_state(
+		phase_manager.player_hand,
+		phase_manager.banker_hand,
+		actual_winner,
+		selected_winner,
+		payout_queue_manager.get_all_bets(),
+		camera.position if camera else Vector2.ZERO,
+		camera.zoom if camera else Vector2.ONE,
+		GameModeManager.get_mode_string(),
+		survival_rounds_completed,
+		surv_lives,
+		surv_active
+	)
+
 
 func _update_chip_visibility() -> void:
 	"""Обновить видимость и кликабельность фишек через ChipVisualManager
@@ -646,56 +677,101 @@ func _check_payout_return():
 		if is_manual:
 			print("♻️  Возврат из PayoutScene (ручной режим)")
 
-			# Восстанавливаем состояние игры
-			if PayoutContextManager.has_saved_state():
-				var state = PayoutContextManager.get_saved_game_state()
-				survival_rounds_completed = state.get("survival_rounds", 0)
+			# ═══════════════════════════════════════════════════════════════════
+			# ВОССТАНОВЛЕНИЕ ПОЛНОГО СОСТОЯНИЯ СТОЛА из TableStateManager
+			# ═══════════════════════════════════════════════════════════════════
 
-				# Восстанавливаем выбранного победителя (маркер)
-				var saved_winner = state.get("selected_winner", "")
-				if saved_winner != "" and winner_selection_manager:
-					winner_selection_manager.select_winner(saved_winner)
-					print("🎯 Восстановлен выбранный маркер: %s" % saved_winner)
-					if survival_ui:
-						survival_ui.current_lives = state.get("survival_lives", 7)
-						survival_ui.is_active = state.get("survival_active", false)
+			if not TableStateManager.has_saved_state():
+				push_error("❌ TableStateManager не содержит сохраненного состояния!")
+				PayoutContextManager.clear_context()
+				GameDataManager.clear()
+				return
 
-			# Восстанавливаем камеру
+			# 1. Восстанавливаем карты
+			phase_manager.player_hand = TableStateManager.player_hand.duplicate()
+			phase_manager.banker_hand = TableStateManager.banker_hand.duplicate()
+			print("♻️  Восстановлены карты: Player=%d, Banker=%d" % [
+				phase_manager.player_hand.size(),
+				phase_manager.banker_hand.size()
+			])
+
+			# 2. Показываем карты на UI
+			_restore_cards_ui()
+
+			# 2.5. Обновляем GameStateManager с восстановленными картами
+			var player_third_card = phase_manager.player_hand[2] if phase_manager.player_hand.size() >= 3 else null
+			var banker_third_card = phase_manager.banker_hand[2] if phase_manager.banker_hand.size() >= 3 else null
+			GameStateManager.determine_and_update_state(
+				false,  # cards_hidden = false (карты открыты)
+				phase_manager.player_hand,
+				phase_manager.banker_hand,
+				player_third_card,
+				banker_third_card
+			)
+			print("♻️  GameStateManager обновлен: состояние = %s" % GameStateManager.get_current_state())
+
+			# 3. Восстанавливаем маркер победителя
+			var saved_winner = TableStateManager.selected_winner
+			if saved_winner != "" and winner_selection_manager:
+				winner_selection_manager.select_winner(saved_winner)
+				print("🎯 Восстановлен маркер: %s" % saved_winner)
+
+			# 4. Восстанавливаем survival режим
+			survival_rounds_completed = TableStateManager.survival_rounds
+			if survival_ui:
+				survival_ui.current_lives = TableStateManager.survival_lives
+				survival_ui.is_active = TableStateManager.survival_active
+
+			# 5. Восстанавливаем PayoutQueueManager из TableStateManager
+			payout_queue_manager = PayoutQueueManager.new()
+			for bet_state in TableStateManager.bets:
+				payout_queue_manager.add_bet(
+					bet_state.bet_type,
+					bet_state.stake,
+					bet_state.payout,
+					bet_state.won,
+					bet_state.player_score,
+					bet_state.banker_score
+				)
+				# Восстанавливаем статус оплаты
+				if bet_state.is_paid:
+					payout_queue_manager.mark_as_paid(bet_state.bet_type)
+
+			print("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
+
+
+			# Обновляем видимость фишек (показываем неоплаченные выигрыши)
+			_update_chip_visibility()
+			# 6. Обрабатываем результат текущей выплаты
+			var bet_type = context.get("bet_type", "")
+			var is_correct = GameDataManager.payout_is_correct
+			var collected = GameDataManager.payout_collected
+			var expected = GameDataManager.payout_expected
+
+			if is_correct:
+				EventBus.payout_correct.emit(collected, expected)
+				print("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
+
+				# Отмечаем ставку как оплаченную в обоих менеджерах
+				payout_queue_manager.mark_as_paid(bet_type)
+				TableStateManager.mark_bet_as_paid(bet_type)
+
+				# Обновляем видимость фишек
+				_update_chip_visibility()
+
+				print("✅ Все выплаты оплачены! Можно начинать новый раунд")
+			else:
+				EventBus.payout_wrong.emit(collected, expected)
+				print("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
+
+			# 7. Восстанавливаем камеру (для выбора следующей выплаты)
 			if camera:
 				camera.position = CAMERA_POS_CHIPS
 				camera.zoom = CAMERA_ZOOM_CHIPS
 				is_first_deal = false
 				print("📷 Камера восстановлена: зум на фишки")
 
-			# Получаем результат выплаты из GameDataManager
-			var bet_type = context.get("bet_type", "")
-			var is_correct = GameDataManager.payout_is_correct
-			var collected = GameDataManager.payout_collected
-			var expected = GameDataManager.payout_expected
-
-			# Обновляем статистику
-			if is_correct:
-				EventBus.payout_correct.emit(collected, expected)
-				print("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
-
-				# Отмечаем ставку как оплаченную
-				if payout_queue_manager:
-					payout_queue_manager.mark_as_paid(bet_type)
-
-				# Обновляем видимость фишек
-				_update_chip_visibility()
-
-				# Проверяем, остались ли неоплаченные выплаты
-				if payout_queue_manager and not payout_queue_manager.has_unpaid_winnings():
-					print("✅ Все выплаты оплачены! Можно начинать новый раунд")
-					# Toast о том, что можно начинать новую игру
-					EventBus.show_toast_success.emit(Localization.t("ALL_PAYOUTS_COMPLETED"))
-			else:
-				EventBus.payout_wrong.emit(collected, expected)
-				print("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
-				# Ставка остается неоплаченной, фишка остается видимой
-
-			# Очищаем контекст
+			# Очищаем контексты
 			PayoutContextManager.clear_context()
 			PayoutContextManager.clear_saved_state()
 			GameDataManager.clear()
@@ -712,8 +788,8 @@ func _check_payout_return():
 
 		# Восстанавливаем приближенное состояние камеры (без анимации)
 		if camera:
-			camera.position = CAMERA_POS_CARDS
-			camera.zoom = CAMERA_ZOOM_CARDS
+			camera.position = CAMERA_POS_CHIPS
+			camera.zoom = CAMERA_ZOOM_CHIPS
 			is_first_deal = false  # Уже не первая раздача
 			print("📷 Камера восстановлена: приближенный план")
 
@@ -844,10 +920,10 @@ func camera_zoom_in():
 	tween.set_trans(Tween.TRANS_CUBIC)
 	tween.set_ease(Tween.EASE_IN_OUT)
 
-	tween.tween_property(camera, "position", CAMERA_POS_CARDS, CAMERA_TRANSITION_DURATION)
-	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CARDS, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "position", CAMERA_POS_CHIPS, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CHIPS, CAMERA_TRANSITION_DURATION)
 
-	print("📷 Зум на карты (zoom %.1f)" % CAMERA_ZOOM_CARDS.x)
+	print("📷 Зум на карты (zoom %.1f)" % CAMERA_ZOOM_CHIPS.x)
 
 
 func camera_zoom_out():
@@ -880,6 +956,12 @@ func camera_zoom_chips():
 	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CHIPS, CAMERA_TRANSITION_DURATION)
 
 	print("📷 Зум на фишки (zoom %.1f)" % CAMERA_ZOOM_CHIPS.x)
+
+
+func camera_zoom_cards():
+	"""Плавный зум на область карт (алиас для camera_zoom_in)"""
+	camera_zoom_in()
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НОВЫЕ МЕНЕДЖЕРЫ - ИНИЦИАЛИЗАЦИЯ
@@ -1023,27 +1105,62 @@ func _on_chip_clicked(bet_type: String):
 # ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
 
 func _open_payout_scene(bet_type: String, stake: float, expected_payout: float):
-	"""Открыть PayoutScene для конкретной ставки"""
-	# Устанавливаем контекст для PayoutScene
+	"""Открыть PayoutScene для конкретной ставки
+
+	Использует TableStateManager для полного сохранения состояния стола
+	"""
+	# Получаем данные ставки из TableStateManager
+	var bet_data = TableStateManager.get_bet_data(bet_type)
+	if not bet_data:
+		push_error("❌ _open_payout_scene: ставка %s не найдена в TableStateManager" % bet_type)
+		return
+
+	print("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
+
+	# Устанавливаем данные в GameDataManager (PayoutScene читает данные оттуда)
+	GameDataManager.payout_winner = bet_type
+	GameDataManager.payout_stake = bet_data.stake
+	GameDataManager.payout_amount = bet_data.payout
+	print("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
+
+	# Устанавливаем контекст для PayoutScene через старый PayoutContextManager (для совместимости)
 	PayoutContextManager.set_context({
 		"bet_type": bet_type,
-		"stake": stake,
-		"expected_payout": expected_payout,
+		"stake": bet_data.stake,  # ← Используем данные из TableStateManager
+		"expected_payout": bet_data.payout,
 		"return_to_game": true,
-		"manual_mode": true  # ← Флаг ручного режима
-	})
-
-	# Сохраняем состояние игры (включая выбранного победителя)
-	var selected_winner = ""
-	if winner_selection_manager:
-		selected_winner = winner_selection_manager.get_selected_winner()
-
-	PayoutContextManager.save_game_state({
-		"survival_rounds": survival_rounds_completed,
-		"survival_lives": survival_ui.current_lives if survival_ui else 7,
-		"survival_active": is_survival_mode,
-		"selected_winner": selected_winner  # ← Сохраняем выбранного победителя
+		"manual_mode": true
 	})
 
 	# Переходим к PayoutScene
 	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
+
+func _restore_cards_ui():
+	"""Восстановить карты на UI после возврата из PayoutScene"""
+	# Показываем первые две карты игрока
+	if phase_manager.player_hand.size() >= 1:
+		ui_manager.player_card1.texture = phase_manager.player_hand[0].get_texture(card_manager)
+		ui_manager.player_card1.visible = true
+	if phase_manager.player_hand.size() >= 2:
+		ui_manager.player_card2.texture = phase_manager.player_hand[1].get_texture(card_manager)
+		ui_manager.player_card2.visible = true
+	if phase_manager.player_hand.size() >= 3:
+		ui_manager.player_card3.texture = phase_manager.player_hand[2].get_texture(card_manager)
+		ui_manager.player_card3.visible = true
+
+	# Показываем первые две карты банкира
+	if phase_manager.banker_hand.size() >= 1:
+		ui_manager.banker_card1.texture = phase_manager.banker_hand[0].get_texture(card_manager)
+		ui_manager.banker_card1.visible = true
+	if phase_manager.banker_hand.size() >= 2:
+		ui_manager.banker_card2.texture = phase_manager.banker_hand[1].get_texture(card_manager)
+		ui_manager.banker_card2.visible = true
+	if phase_manager.banker_hand.size() >= 3:
+		ui_manager.banker_card3.texture = phase_manager.banker_hand[2].get_texture(card_manager)
+		ui_manager.banker_card3.visible = true
+
+	# Скрываем toggles третьих карт (карты уже открыты)
+	ui_manager.player_third_toggle.visible = false
+	ui_manager.banker_third_toggle.visible = false
+
+	print("♻️  Карты восстановлены на UI")

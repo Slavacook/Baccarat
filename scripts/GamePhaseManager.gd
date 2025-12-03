@@ -28,7 +28,12 @@ func on_error_occurred() -> void:
 	if game_controller and game_controller.is_survival_mode:
 		game_controller.survival_ui.lose_life()
 
-func reset():
+func reset(update_state: bool = true):
+	"""Сброс раунда
+
+	Args:
+		update_state: Обновлять ли GameStateManager (false при подготовке к новой игре)
+	"""
 	player_hand.clear()
 	banker_hand.clear()
 	player_third_selected = false
@@ -38,7 +43,14 @@ func reset():
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
 	ui.enable_action_button()
-	_update_game_state_manager()
+
+	# ← ВАЖНО: Инвалидируем кэш GameStateManager даже при update_state=false
+	# чтобы при следующей раздаче состояние определялось правильно
+	GameStateManager._cache_hash = -1
+	print("🔄 Кэш GameStateManager инвалидирован")
+
+	if update_state:
+		_update_game_state_manager()
 
 	# ← Очищаем PayoutQueueManager и фишки для нового раунда
 	if game_controller:
@@ -47,9 +59,13 @@ func reset():
 			game_controller.chip_visual_manager.hide_all_chips()
 		if game_controller.winner_selection_manager:
 			game_controller.winner_selection_manager.reset()
-		print("🔄 Сброс раунда: очищены выплаты, фишки и маркеры")
+		# Очищаем TableStateManager (полное состояние стола)
+		TableStateManager.clear_state()
+		print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры и TableStateManager")
 
 func deal_first_four():
+	print("🎮 deal_first_four() вызван")
+
 	# Проверяем, есть ли активные ставки (включая пары)
 	var has_main_bets = PayoutSettingsManager.has_any_active_bet()
 	var has_pair_bets = false
@@ -60,10 +76,23 @@ func deal_first_four():
 	if not has_main_bets and not has_pair_bets:
 		EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
 
-	# Зум на карты только при первой раздаче
-	if game_controller and game_controller.is_first_deal:
+	# Проверяем флаг подготовки к новой игре (после оплаты всех фишек)
+	var is_prepared_table = game_controller and game_controller.is_table_prepared_for_new_game
+	print("  → is_prepared_table: %s" % is_prepared_table)
+	print("  → is_first_deal: %s" % (game_controller.is_first_deal if game_controller else "N/A"))
+
+	# Зум на карты при первой раздаче ИЛИ после подготовки стола
+	if game_controller and (game_controller.is_first_deal or is_prepared_table):
+		print("  → Условие зума выполнено → вызываем camera_zoom_in()")
 		game_controller.camera_zoom_in()
 		game_controller.is_first_deal = false
+		# Сбрасываем флаг подготовки (начинаем новую игру)
+		if is_prepared_table:
+			game_controller.is_table_prepared_for_new_game = false
+			print("  → ✅ Флаг is_table_prepared_for_new_game сброшен")
+			print("🎮 Начинаем новую раздачу после подготовки стола")
+	else:
+		print("  → ⚠️ Условие зума НЕ выполнено, зум не произойдет")
 
 	player_hand = [deck.draw(), deck.draw()]
 	banker_hand = [deck.draw(), deck.draw()]
@@ -121,8 +150,32 @@ func _should_banker_draw() -> bool:
 	)
 
 func on_action_pressed():
+	print("==================================================")
+	print("🎮 on_action_pressed() вызван")
+
+	# Детальная проверка game_controller
+	print("  → game_controller существует: %s" % (game_controller != null))
+	if game_controller:
+		print("  → game_controller.is_table_prepared_for_new_game = %s" % game_controller.is_table_prepared_for_new_game)
+
+	# Проверяем флаг подготовки
+	var flag_is_set = game_controller and game_controller.is_table_prepared_for_new_game
+	print("  → Результат проверки флага: %s" % flag_is_set)
+
+	# ← ВАЖНО: Проверяем флаг подготовки ДО определения состояния
+	# (после reset(false) руки пустые, и состояние определится как WAITING)
+	if flag_is_set:
+		print("==================================================")
+		print("  → ✅ ФЛАГ УСТАНОВЛЕН → вызываем deal_first_four()")
+		print("==================================================")
+		deal_first_four()
+		return
+	else:
+		print("  → Флаг НЕ установлен, продолжаем обычную логику")
+
 	var state = GameStateManager.get_current_state()
-	
+	print("  → Текущее состояние: %s" % state)
+
 	if state == GameStateManager.GameState.WAITING:
 		deal_first_four()
 		return
@@ -155,11 +208,37 @@ func on_action_pressed():
 				on_error_occurred()
 				return
 
-			# Все выплаты оплачены → можно начинать новую игру
-			print("✅ Все выплаты оплачены, сброс раунда")
-			reset()
-			return
+			# Все выплаты оплачены → подготовка к новой игре
+			print("==================================================")
+			print("✅ ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
+			print("==================================================")
+			print("  → Выполняем camera_zoom_out()")
 
+			# Зумаут камеры на общий план
+			if game_controller and game_controller.camera:
+				game_controller.camera_zoom_out()
+				print("  → ✅ Камера отзумлена на общий план")
+			else:
+				print("  → ⚠️ camera отсутствует, зум не выполнен")
+
+			print("  → Вызываем reset(false) - сброс БЕЗ обновления состояния")
+			# Сброс раунда (карты, маркеры, TableStateManager)
+			reset(false)  # ← НЕ обновляем GameStateManager
+			print("  → ✅ Сброс выполнен, карты показаны рубашками")
+
+			print("  → Устанавливаем флаг is_table_prepared_for_new_game = true")
+			# Устанавливаем флаг подготовки к новой игре
+			if game_controller:
+				game_controller.is_table_prepared_for_new_game = true
+				print("  → ✅ Флаг is_table_prepared_for_new_game установлен!")
+				print("  → Следующее нажатие 'Карты' начнет новую раздачу")
+			else:
+				print("  → ⚠️ game_controller отсутствует, флаг не установлен!")
+
+			print("==================================================")
+			print("✅ ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
+			print("==================================================")
+			return
 		# Если нет PayoutQueueManager → проверяем выбор победителя (первый выбор)
 		_validate_winner_selection()
 		return
@@ -444,7 +523,7 @@ func _validate_winner_selection() -> void:
 	var victory_msg = _format_victory_toast(actual_winner)
 	EventBus.show_toast_success.emit(victory_msg)
 
-	# Зум камеры на фишки для оплаты
+	# Зум камеры на фишки после валидации победителя
 	if game_controller:
 		game_controller.camera_zoom_chips()
 
