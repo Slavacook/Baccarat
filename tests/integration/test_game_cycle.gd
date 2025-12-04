@@ -179,7 +179,7 @@ func test_edge_case_tie():
 func test_edge_case_special_66():
 	# Особая комбинация 6-6
 	var player_hand = _make_hand([Card.new(0, 6), Card.new(1, 10)])  # 6♠, 10♥ = 6
-	var banker_hand = _make_hand([Card.new(2, 3), Card.new(3, 3)]   # 3♦, 3♣ = 6
+	var banker_hand = _make_hand([Card.new(2, 3), Card.new(3, 3)])  # 3♦, 3♣ = 6
 
 	var state = GameStateManager.determine_state(false, player_hand, banker_hand, null, null)
 	assert_eq(state, GameStateManager.GameState.CHOOSE_WINNER, "6-6: особая комбинация, выбор победителя")
