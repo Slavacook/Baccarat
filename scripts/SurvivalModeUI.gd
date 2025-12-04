@@ -20,6 +20,12 @@ func _ready():
 
 # ← Активировать режим выживания
 func activate():
+	if is_active:
+		# Уже активен - НЕ сбрасываем жизни, просто показываем
+		show()
+		print("♻️  Режим выживания уже активен, жизней: ", current_lives)
+		return
+
 	is_active = true
 	current_lives = MAX_LIVES
 	_update_hearts()
@@ -77,3 +83,9 @@ func _trigger_game_over():
 func reset():
 	current_lives = MAX_LIVES
 	_update_hearts()
+
+# ← Установить количество жизней (для синхронизации из PayoutScene)
+func set_lives(lives: int):
+	current_lives = clamp(lives, 0, MAX_LIVES)
+	_update_hearts()
+	print("♻️  SurvivalModeUI: установлено жизней: %d" % current_lives)

@@ -6,3 +6,4 @@ res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/PayoutQueueManager.gd
 res://scripts/ChipVisualManager.gd
 res://scripts/autoload/TableStateManager.gd
+res://scripts/SurvivalModeUI.gd

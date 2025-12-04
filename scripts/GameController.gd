@@ -134,6 +134,12 @@ func _ready():
 		_restore_chips_from_table_state()  # Восстанавливает ВСЕ фишки + PairBettingManager
 		print("♻️  Восстановлено состояние из TableStateManager snapshot")
 
+		# Синхронизируем сердечки из GameDataManager обратно в survival_ui
+		if is_survival_mode and survival_ui:
+			var lives_from_payout = GameDataManager.survival_lives
+			survival_ui.set_lives(lives_from_payout)
+			print("♻️  Синхронизированы сердечки: %d (из PayoutScene)" % lives_from_payout)
+
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
 
@@ -1235,6 +1241,33 @@ func _open_payout_scene(bet_type: String, stake: float, expected_payout: float):
 		"return_to_game": true,
 		"manual_mode": true
 	})
+
+	# Передаем состояние режима выживания в GameDataManager
+	print("🔍 DEBUG _open_payout_scene:")
+	print("  → is_survival_mode = %s" % is_survival_mode)
+	print("  → survival_ui exists = %s" % (survival_ui != null))
+	if survival_ui:
+		print("  → survival_ui.current_lives = %d" % survival_ui.current_lives)
+	print("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.survival_lives)
+
+	var surv_lives = 7  # Значение по умолчанию
+	if is_survival_mode and survival_ui:
+		# Режим выживания активен - берем текущее количество жизней
+		surv_lives = survival_ui.current_lives
+		print("  → Берем из survival_ui: %d" % surv_lives)
+	elif is_survival_mode:
+		# Режим выживания активен, но survival_ui не инициализирован - берем из GameDataManager
+		surv_lives = GameDataManager.survival_lives
+		print("  → Берем из GameDataManager: %d" % surv_lives)
+	else:
+		print("  → Используем значение по умолчанию: %d" % surv_lives)
+
+	GameDataManager.set_game_state(
+		survival_rounds_completed,
+		surv_lives,
+		is_survival_mode
+	)
+	print("  → ✅ Установлено состояние игры: rounds=%d, lives=%d, survival=%s" % [survival_rounds_completed, surv_lives, is_survival_mode])
 
 	# Переходим к PayoutScene
 	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
