@@ -6,3 +6,4 @@ res://scenes/PayoutScene.tscn
 res://scripts/GamePhaseManager.gd
 res://scripts/UIManager.gd
 res://scripts/autoload/TableStateManager.gd
+res://scripts/autoload/EventBus.gd

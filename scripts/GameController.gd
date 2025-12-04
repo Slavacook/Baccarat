@@ -96,8 +96,22 @@ func _ready():
 
 	GameModeManager.load_saved_mode()
 	_load_survival_mode_setting()
-	phase_manager = GamePhaseManager.new(deck, card_manager, ui_manager)
-	phase_manager.set_game_controller(self)
+
+	# ← Создаем все менеджеры ПЕРЕД phase_manager (для DI)
+	_setup_chip_visual_manager()
+	_setup_winner_selection_manager()
+	_setup_pair_betting_manager()
+
+	# ← Создаем phase_manager с передачей всех зависимостей (Dependency Injection)
+	phase_manager = GamePhaseManager.new(
+		deck,
+		card_manager,
+		ui_manager,
+		payout_queue_manager,
+		chip_visual_manager,
+		winner_selection_manager,
+		pair_betting_manager
+	)
 
 	ui_manager.action_button_pressed.connect(phase_manager.on_action_pressed)
 	ui_manager.player_third_toggled.connect(phase_manager.on_player_third_toggled)
@@ -119,11 +133,6 @@ func _ready():
 
 	ui_manager.help_popup.hide()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-
-	# Всегда создаем все менеджеры
-	_setup_chip_visual_manager()
-	_setup_winner_selection_manager()
-	_setup_pair_betting_manager()
 
 	# Всегда настраиваем toggles (подключаем сигналы)
 	_setup_payout_toggles()
@@ -147,6 +156,14 @@ func _ready():
 
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
+
+	# ← Подписки на новые события EventBus (для Dependency Injection рефакторинга)
+	EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested)
+	EventBus.life_loss_requested.connect(_on_life_loss_requested)
+	EventBus.manual_payout_requested.connect(_on_manual_payout_requested)
+	EventBus.first_deal_completed.connect(_on_first_deal_completed)
+	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
+	print("✅ Подписки на EventBus события установлены (camera, life_loss, payouts, flags)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -1308,3 +1325,38 @@ func _restore_cards_ui():
 	ui_manager.banker_third_toggle.visible = false
 
 	print("♻️  Карты восстановлены на UI")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ СОБЫТИЙ EVENTBUS (для Dependency Injection рефакторинга Фазы 1)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_camera_zoom_requested(zoom_type: String):
+	"""Обработка запроса зума камеры от GamePhaseManager через EventBus"""
+	match zoom_type:
+		"in":
+			camera_zoom_in()
+		"out":
+			camera_zoom_out()
+		"chips":
+			camera_zoom_chips()
+		_:
+			push_error("GameController: неизвестный тип зума '%s'" % zoom_type)
+
+func _on_life_loss_requested():
+	"""Обработка запроса потери жизни от GamePhaseManager через EventBus"""
+	if is_survival_mode and survival_ui:
+		survival_ui.lose_life()
+
+func _on_manual_payout_requested(winner: String):
+	"""Обработка запроса подготовки выплат от GamePhaseManager через EventBus"""
+	_prepare_payouts_manual(winner)
+
+func _on_first_deal_completed():
+	"""Обработка завершения первой раздачи (флаг is_first_deal сброшен)"""
+	is_first_deal = false
+	print("🎮 Первая раздача завершена (флаг is_first_deal сброшен)")
+
+func _on_table_prepared():
+	"""Обработка подготовки стола к новой игре"""
+	is_table_prepared_for_new_game = true
+	print("🎮 Стол подготовлен к новой игре (флаг is_table_prepared установлен)")

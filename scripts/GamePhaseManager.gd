@@ -4,30 +4,44 @@
 class_name GamePhaseManager
 extends RefCounted
 
-var game_controller = null
+# Зависимости (Dependency Injection)
+var deck: Deck
+var card_manager: CardTextureManager
+var ui: UIManager
+var payout_queue_manager: PayoutQueueManager
+var chip_visual_manager: ChipVisualManager
+var winner_selection_manager: WinnerSelectionManager
+var pair_betting_manager: PairBettingManager
 
+# Состояние раунда
 var player_hand: Array[Card] = []
 var banker_hand: Array[Card] = []
 var player_third_selected: bool = false
 var banker_third_selected: bool = false
 
-var deck: Deck
-var card_manager: CardTextureManager
-var ui: UIManager
+# Флаги для камеры и состояния
+var is_first_deal: bool = true
+var is_table_prepared: bool = false
 
-func _init(deck_ref: Deck, card_manager_ref: CardTextureManager, ui_ref: UIManager):
+func _init(
+	deck_ref: Deck,
+	card_manager_ref: CardTextureManager,
+	ui_ref: UIManager,
+	payout_queue_mgr: PayoutQueueManager,
+	chip_visual_mgr: ChipVisualManager,
+	winner_selection_mgr: WinnerSelectionManager,
+	pair_betting_mgr: PairBettingManager
+):
 	deck = deck_ref
 	card_manager = card_manager_ref
 	ui = ui_ref
+	payout_queue_manager = payout_queue_mgr
+	chip_visual_manager = chip_visual_mgr
+	winner_selection_manager = winner_selection_mgr
+	pair_betting_manager = pair_betting_mgr
+
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
-
-func set_game_controller(controller) -> void:
-	game_controller = controller
-
-func on_error_occurred() -> void:
-	if game_controller and game_controller.is_survival_mode:
-		game_controller.survival_ui.lose_life()
 
 func reset(update_state: bool = true):
 	"""Сброс раунда
@@ -55,15 +69,14 @@ func reset(update_state: bool = true):
 		_update_game_state_manager()
 
 	# ← Очищаем PayoutQueueManager и фишки для нового раунда
-	if game_controller:
-		game_controller.payout_queue_manager = null
-		if game_controller.chip_visual_manager:
-			game_controller.chip_visual_manager.hide_all_chips()
-		if game_controller.winner_selection_manager:
-			game_controller.winner_selection_manager.reset()
-		# Очищаем TableStateManager (полное состояние стола)
-		TableStateManager.clear_state()
-		print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры и TableStateManager")
+	payout_queue_manager = null
+	if chip_visual_manager:
+		chip_visual_manager.hide_all_chips()
+	if winner_selection_manager:
+		winner_selection_manager.reset()
+	# Очищаем TableStateManager (полное состояние стола)
+	TableStateManager.clear_state()
+	print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры и TableStateManager")
 
 func deal_first_four():
 	print("🎮 deal_first_four() вызван")
@@ -71,27 +84,27 @@ func deal_first_four():
 	# Проверяем, есть ли активные ставки (включая пары)
 	var has_main_bets = PayoutSettingsManager.has_any_active_bet()
 	var has_pair_bets = false
-	if game_controller and game_controller.pair_betting_manager:
-		has_pair_bets = game_controller.pair_betting_manager.pair_player_bet_enabled or \
-						 game_controller.pair_betting_manager.pair_banker_bet_enabled
+	if pair_betting_manager:
+		has_pair_bets = pair_betting_manager.pair_player_bet_enabled or \
+						pair_betting_manager.pair_banker_bet_enabled
 
 	if not has_main_bets and not has_pair_bets:
 		EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
 
 	# Проверяем флаг подготовки к новой игре (после оплаты всех фишек)
-	var is_prepared_table = game_controller and game_controller.is_table_prepared_for_new_game
-	print("  → is_prepared_table: %s" % is_prepared_table)
-	print("  → is_first_deal: %s" % (game_controller.is_first_deal if game_controller else "N/A"))
+	print("  → is_prepared_table: %s" % is_table_prepared)
+	print("  → is_first_deal: %s" % is_first_deal)
 
 	# Зум на карты при первой раздаче ИЛИ после подготовки стола
-	if game_controller and (game_controller.is_first_deal or is_prepared_table):
-		print("  → Условие зума выполнено → вызываем camera_zoom_in()")
-		game_controller.camera_zoom_in()
-		game_controller.is_first_deal = false
+	if is_first_deal or is_table_prepared:
+		print("  → Условие зума выполнено → вызываем camera_zoom_requested")
+		EventBus.camera_zoom_requested.emit("in")
+		is_first_deal = false
+		EventBus.first_deal_completed.emit()
 		# Сбрасываем флаг подготовки (начинаем новую игру)
-		if is_prepared_table:
-			game_controller.is_table_prepared_for_new_game = false
-			print("  → ✅ Флаг is_table_prepared_for_new_game сброшен")
+		if is_table_prepared:
+			is_table_prepared = false
+			print("  → ✅ Флаг is_table_prepared сброшен")
 			print("🎮 Начинаем новую раздачу после подготовки стола")
 	else:
 		print("  → ⚠️ Условие зума НЕ выполнено, зум не произойдет")
@@ -106,14 +119,14 @@ func deal_first_four():
 	ui.set_action_button_state("confirm")
 
 	# ← Проверяем пары МОЛЧА (без оповещений)
-	if game_controller and game_controller.pair_betting_manager:
-		game_controller.pair_betting_manager.check_pairs(
+	if pair_betting_manager:
+		pair_betting_manager.check_pairs(
 			player_hand[0], player_hand[1],
 			banker_hand[0], banker_hand[1]
 		)
 		print("🃏 Проверка пар: Player=%s, Banker=%s" % [
-			game_controller.pair_betting_manager.player_pair_detected,
-			game_controller.pair_betting_manager.banker_pair_detected
+			pair_betting_manager.player_pair_detected,
+			pair_betting_manager.banker_pair_detected
 		])
 
 	# Фишки уже показаны при настройке ставок, не обновляем их здесь
@@ -155,18 +168,12 @@ func on_action_pressed():
 	print("==================================================")
 	print("🎮 on_action_pressed() вызван")
 
-	# Детальная проверка game_controller
-	print("  → game_controller существует: %s" % (game_controller != null))
-	if game_controller:
-		print("  → game_controller.is_table_prepared_for_new_game = %s" % game_controller.is_table_prepared_for_new_game)
-
 	# Проверяем флаг подготовки
-	var flag_is_set = game_controller and game_controller.is_table_prepared_for_new_game
-	print("  → Результат проверки флага: %s" % flag_is_set)
+	print("  → is_table_prepared = %s" % is_table_prepared)
 
 	# ← ВАЖНО: Проверяем флаг подготовки ДО определения состояния
 	# (после reset(false) руки пустые, и состояние определится как WAITING)
-	if flag_is_set:
+	if is_table_prepared:
 		print("==================================================")
 		print("  → ✅ ФЛАГ УСТАНОВЛЕН → вызываем deal_first_four()")
 		print("==================================================")
@@ -201,51 +208,43 @@ func on_action_pressed():
 			return
 
 		# Проверяем, есть ли неоплаченные выплаты (ручной режим)
-		if game_controller and game_controller.payout_queue_manager:
-			var queue_mgr = game_controller.payout_queue_manager
-			if queue_mgr.has_unpaid_winnings():
-				var unpaid_count = queue_mgr.get_unpaid_count()
-				EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS", [unpaid_count]))
-				EventBus.action_error.emit("unpaid_bets", "")
-				on_error_occurred()
-				return
-
-			# Все выплаты оплачены → подготовка к новой игре
-			print("==================================================")
-			print("✅ ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
-			print("==================================================")
-			print("  → Выполняем camera_zoom_out()")
-
-			# Зумаут камеры на общий план
-			if game_controller and game_controller.camera:
-				game_controller.camera_zoom_out()
-				print("  → ✅ Камера отзумлена на общий план")
-			else:
-				print("  → ⚠️ camera отсутствует, зум не выполнен")
-
-			print("  → Вызываем reset(false) - сброс БЕЗ обновления состояния")
-			# Сброс раунда (карты, маркеры, TableStateManager)
-			reset(false)  # ← НЕ обновляем GameStateManager
-			print("  → ✅ Сброс выполнен, карты показаны рубашками")
-
-			# Восстанавливаем видимость активных фишек для следующей игры
-			if game_controller and game_controller.chip_visual_manager:
-				_restore_active_bet_chips()
-				print("  → ✅ Активные фишки восстановлены")
-
-			print("  → Устанавливаем флаг is_table_prepared_for_new_game = true")
-			# Устанавливаем флаг подготовки к новой игре
-			if game_controller:
-				game_controller.is_table_prepared_for_new_game = true
-				print("  → ✅ Флаг is_table_prepared_for_new_game установлен!")
-				print("  → Следующее нажатие 'Карты' начнет новую раздачу")
-			else:
-				print("  → ⚠️ game_controller отсутствует, флаг не установлен!")
-
-			print("==================================================")
-			print("✅ ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
-			print("==================================================")
+		if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
+			var unpaid_count = payout_queue_manager.get_unpaid_count()
+			EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS", [unpaid_count]))
+			EventBus.action_error.emit("unpaid_bets", "")
+			on_error_occurred()
 			return
+
+		# Все выплаты оплачены → подготовка к новой игре
+		print("==================================================")
+		print("✅ ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
+		print("==================================================")
+		print("  → Выполняем camera_zoom_out()")
+
+		# Зумаут камеры на общий план
+		EventBus.camera_zoom_requested.emit("out")
+		print("  → ✅ Камера отзумлена на общий план")
+
+		print("  → Вызываем reset(false) - сброс БЕЗ обновления состояния")
+		# Сброс раунда (карты, маркеры, TableStateManager)
+		reset(false)  # ← НЕ обновляем GameStateManager
+		print("  → ✅ Сброс выполнен, карты показаны рубашками")
+
+		# Восстанавливаем видимость активных фишек для следующей игры
+		if chip_visual_manager:
+			_restore_active_bet_chips()
+			print("  → ✅ Активные фишки восстановлены")
+
+		print("  → Устанавливаем флаг is_table_prepared = true")
+		# Устанавливаем флаг подготовки к новой игре
+		is_table_prepared = true
+		print("  → ✅ Флаг is_table_prepared установлен!")
+		print("  → Следующее нажатие 'Карты' начнет новую раздачу")
+
+		print("==================================================")
+		print("✅ ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
+		print("==================================================")
+		return
 		# Если нет PayoutQueueManager → проверяем выбор победителя (первый выбор)
 		_validate_winner_selection()
 		return
@@ -454,10 +453,8 @@ func _restore_active_bet_chips() -> void:
 	При подготовке к новой игре восстанавливаем ВСЕ фишки (включая проигрышные из предыдущей раздачи)
 	с их оригинальными текстурами. Это показывает игроку какие ставки будут в следующей раздаче.
 	"""
-	if not game_controller or not game_controller.chip_visual_manager:
+	if not chip_visual_manager:
 		return
-
-	var chip_mgr = game_controller.chip_visual_manager
 
 	# Проверяем есть ли сохраненное состояние
 	if TableStateManager.has_saved_state() and TableStateManager.bets.size() > 0:
@@ -465,57 +462,55 @@ func _restore_active_bet_chips() -> void:
 		print("♻️  Восстановление фишек для новой раздачи из TableStateManager...")
 		for bet in TableStateManager.bets:
 			if bet.chip_texture.is_empty():
-				chip_mgr.make_chip_visible(bet.bet_type)
+				chip_visual_manager.make_chip_visible(bet.bet_type)
 			else:
-				chip_mgr.set_chip_texture(bet.bet_type, bet.chip_texture)
+				chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
 			print("  → Восстановлена фишка %s" % bet.bet_type)
 	else:
 		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
 		print("⚠️  Нет сохраненного состояния, показываем фишки на основе toggles")
 		if PayoutSettingsManager.player_payout_enabled:
-			chip_mgr.make_chip_visible("Player")
+			chip_visual_manager.make_chip_visible("Player")
 		if PayoutSettingsManager.banker_payout_enabled:
-			chip_mgr.make_chip_visible("Banker")
+			chip_visual_manager.make_chip_visible("Banker")
 		if PayoutSettingsManager.tie_payout_enabled:
-			chip_mgr.make_chip_visible("Tie")
-		if game_controller.pair_betting_manager:
-			if game_controller.pair_betting_manager.pair_player_bet_enabled:
-				chip_mgr.make_chip_visible("PairPlayer")
-			if game_controller.pair_betting_manager.pair_banker_bet_enabled:
-				chip_mgr.make_chip_visible("PairBanker")
+			chip_visual_manager.make_chip_visible("Tie")
+		if pair_betting_manager:
+			if pair_betting_manager.pair_player_bet_enabled:
+				chip_visual_manager.make_chip_visible("PairPlayer")
+			if pair_betting_manager.pair_banker_bet_enabled:
+				chip_visual_manager.make_chip_visible("PairBanker")
 
 	print("💰 Показаны фишки всех активных ставок")
 
 
 func _show_active_bet_chips() -> void:
 	"""Показать фишки всех активных ставок при раздаче"""
-	if not game_controller or not game_controller.chip_visual_manager:
+	if not chip_visual_manager:
 		return
-
-	var chip_mgr = game_controller.chip_visual_manager
 
 	# Основные ставки
 	if PayoutSettingsManager.player_payout_enabled:
-		chip_mgr.show_chip("Player")
-		chip_mgr.make_chip_clickable("Player", false)  # Пока некликабельны
+		chip_visual_manager.show_chip("Player")
+		chip_visual_manager.make_chip_clickable("Player", false)  # Пока некликабельны
 
 	if PayoutSettingsManager.banker_payout_enabled:
-		chip_mgr.show_chip("Banker")
-		chip_mgr.make_chip_clickable("Banker", false)
+		chip_visual_manager.show_chip("Banker")
+		chip_visual_manager.make_chip_clickable("Banker", false)
 
 	if PayoutSettingsManager.tie_payout_enabled:
-		chip_mgr.show_chip("Tie")
-		chip_mgr.make_chip_clickable("Tie", false)
+		chip_visual_manager.show_chip("Tie")
+		chip_visual_manager.make_chip_clickable("Tie", false)
 
 	# Ставки на пары
-	if game_controller.pair_betting_manager:
-		if game_controller.pair_betting_manager.pair_player_bet_enabled:
-			chip_mgr.show_chip("PairPlayer")
-			chip_mgr.make_chip_clickable("PairPlayer", false)
+	if pair_betting_manager:
+		if pair_betting_manager.pair_player_bet_enabled:
+			chip_visual_manager.show_chip("PairPlayer")
+			chip_visual_manager.make_chip_clickable("PairPlayer", false)
 
-		if game_controller.pair_betting_manager.pair_banker_bet_enabled:
-			chip_mgr.show_chip("PairBanker")
-			chip_mgr.make_chip_clickable("PairBanker", false)
+		if pair_betting_manager.pair_banker_bet_enabled:
+			chip_visual_manager.show_chip("PairBanker")
+			chip_visual_manager.make_chip_clickable("PairBanker", false)
 
 	print("💰 Показаны фишки всех активных ставок")
 
@@ -538,12 +533,11 @@ func _update_game_state_manager():
 
 func _validate_winner_selection() -> void:
 	"""Проверка выбранного победителя через маркеры"""
-	if not game_controller or not game_controller.winner_selection_manager:
+	if not winner_selection_manager:
 		EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
 		return
 
-	var winner_mgr = game_controller.winner_selection_manager
-	var selected_winner = winner_mgr.get_selected_winner()
+	var selected_winner = winner_selection_manager.get_selected_winner()
 
 	# Не выбран ни один маркер?
 	if selected_winner == "":
@@ -559,7 +553,7 @@ func _validate_winner_selection() -> void:
 		EventBus.action_error.emit("winner_wrong", "")
 		on_error_occurred()
 		# Сбрасываем выбор маркера
-		winner_mgr.reset()
+		winner_selection_manager.reset()
 		return
 
 	# ✅ Правильный выбор!
@@ -573,12 +567,10 @@ func _validate_winner_selection() -> void:
 	EventBus.show_toast_success.emit(victory_msg)
 
 	# Зум камеры на фишки после валидации победителя
-	if game_controller:
-		game_controller.camera_zoom_chips()
+	EventBus.camera_zoom_requested.emit("chips")
 
-	# Вызываем метод формирования очереди выплат в GameController
-	if game_controller:
-		game_controller._prepare_payouts_manual(actual_winner)
+	# Вызываем метод формирования очереди выплат через EventBus
+	EventBus.manual_payout_requested.emit(actual_winner)
 
 func _format_victory_toast(winner: String) -> String:
 	"""Форматирование сообщения победы"""
