@@ -113,9 +113,7 @@ func deal_first_four():
 			game_controller.pair_betting_manager.banker_pair_detected
 		])
 
-	# ← Показываем фишки всех активных ставок
-	if game_controller and game_controller.chip_visual_manager:
-		_show_active_bet_chips()
+	# Фишки уже показаны при настройке ставок, не обновляем их здесь
 
 	_update_game_state_manager()
 
@@ -225,6 +223,11 @@ func on_action_pressed():
 			# Сброс раунда (карты, маркеры, TableStateManager)
 			reset(false)  # ← НЕ обновляем GameStateManager
 			print("  → ✅ Сброс выполнен, карты показаны рубашками")
+
+			# Восстанавливаем видимость активных фишек для следующей игры
+			if game_controller and game_controller.chip_visual_manager:
+				_restore_active_bet_chips()
+				print("  → ✅ Активные фишки восстановлены")
 
 			print("  → Устанавливаем флаг is_table_prepared_for_new_game = true")
 			# Устанавливаем флаг подготовки к новой игре
@@ -441,6 +444,45 @@ func _validate_banker_after_player():
 			return
 		complete_game()
 
+func _restore_active_bet_chips() -> void:
+	"""Восстановить ВСЕ фишки из TableStateManager для новой раздачи
+
+	При подготовке к новой игре восстанавливаем ВСЕ фишки (включая проигрышные из предыдущей раздачи)
+	с их оригинальными текстурами. Это показывает игроку какие ставки будут в следующей раздаче.
+	"""
+	if not game_controller or not game_controller.chip_visual_manager:
+		return
+
+	var chip_mgr = game_controller.chip_visual_manager
+
+	# Проверяем есть ли сохраненное состояние
+	if TableStateManager.has_saved_state() and TableStateManager.bets.size() > 0:
+		# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
+		print("♻️  Восстановление фишек для новой раздачи из TableStateManager...")
+		for bet in TableStateManager.bets:
+			if bet.chip_texture.is_empty():
+				chip_mgr.make_chip_visible(bet.bet_type)
+			else:
+				chip_mgr.set_chip_texture(bet.bet_type, bet.chip_texture)
+			print("  → Восстановлена фишка %s" % bet.bet_type)
+	else:
+		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
+		print("⚠️  Нет сохраненного состояния, показываем фишки на основе toggles")
+		if PayoutSettingsManager.player_payout_enabled:
+			chip_mgr.make_chip_visible("Player")
+		if PayoutSettingsManager.banker_payout_enabled:
+			chip_mgr.make_chip_visible("Banker")
+		if PayoutSettingsManager.tie_payout_enabled:
+			chip_mgr.make_chip_visible("Tie")
+		if game_controller.pair_betting_manager:
+			if game_controller.pair_betting_manager.pair_player_bet_enabled:
+				chip_mgr.make_chip_visible("PairPlayer")
+			if game_controller.pair_betting_manager.pair_banker_bet_enabled:
+				chip_mgr.make_chip_visible("PairBanker")
+
+	print("💰 Показаны фишки всех активных ставок")
+
+
 func _show_active_bet_chips() -> void:
 	"""Показать фишки всех активных ставок при раздаче"""
 	if not game_controller or not game_controller.chip_visual_manager:
@@ -536,13 +578,20 @@ func _format_victory_toast(winner: String) -> String:
 	var player_score = BaccaratRules.hand_value(player_hand)
 	var banker_score = BaccaratRules.hand_value(banker_hand)
 
-	var winner_text = ""
-	match winner:
-		"Player":
-			winner_text = Localization.t("PLAYER")
-		"Banker":
-			winner_text = Localization.t("BANKER")
-		"Tie":
-			winner_text = Localization.t("TIE")
+	if winner == "Tie":
+		return "Игалите"
 
-	return Localization.t("VICTORY_TOAST", [winner_text, player_score, banker_score])
+	var winner_text = ""
+	var winner_score = 0
+	var loser_score = 0
+
+	if winner == "Player":
+		winner_text = Localization.t("PLAYER")
+		winner_score = player_score
+		loser_score = banker_score
+	else:  # Banker
+		winner_text = Localization.t("BANKER")
+		winner_score = banker_score
+		loser_score = player_score
+
+	return "Выиграл %s: [color=red]%d[/color] vs [color=red]%d[/color]" % [winner_text, winner_score, loser_score]

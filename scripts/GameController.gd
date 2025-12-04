@@ -119,10 +119,20 @@ func _ready():
 
 	ui_manager.help_popup.hide()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-	# Инициализация новых менеджеров
-	_setup_new_managers()
+
+	# Всегда создаем все менеджеры
+	_setup_chip_visual_manager()
+	_setup_winner_selection_manager()
+	_setup_pair_betting_manager()
+
+	# Всегда настраиваем toggles (подключаем сигналы)
 	_setup_payout_toggles()
 	_setup_pair_toggles()
+
+	if is_payout_return:
+		# При возврате - восстанавливаем полный snapshot стола из TableStateManager
+		_restore_chips_from_table_state()  # Восстанавливает ВСЕ фишки + PairBettingManager
+		print("♻️  Восстановлено состояние из TableStateManager snapshot")
 
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
@@ -418,19 +428,22 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 		payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score)
 
 	# 2. Ставки на пары
-	# Pair Player
-	if pair_betting_manager.pair_player_bet_enabled:
-		var won = pair_betting_manager.player_pair_detected
-		var stake = limits_manager.generate_pair_bet()
-		var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer") if won else 0.0
-		payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score)
+	if pair_betting_manager:
+		# Pair Player
+		if pair_betting_manager.pair_player_bet_enabled:
+			var won = pair_betting_manager.player_pair_detected
+			var stake = limits_manager.generate_pair_bet()
+			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer") if won else 0.0
+			payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score)
 
-	# Pair Banker
-	if pair_betting_manager.pair_banker_bet_enabled:
-		var won = pair_betting_manager.banker_pair_detected
-		var stake = limits_manager.generate_pair_bet()
-		var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker") if won else 0.0
-		payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score)
+		# Pair Banker
+		if pair_betting_manager.pair_banker_bet_enabled:
+			var won = pair_betting_manager.banker_pair_detected
+			var stake = limits_manager.generate_pair_bet()
+			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker") if won else 0.0
+			payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score)
+	else:
+		push_warning("⚠️  pair_betting_manager is null в _prepare_payouts_manual")
 
 	# Выводим статус очереди
 	payout_queue_manager.print_status()
@@ -447,6 +460,15 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	var surv_lives = survival_ui.current_lives if survival_ui else 7
 	var surv_active = survival_ui.is_active if survival_ui else false
 
+	# Получаем состояние toggles пар
+	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
+	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
+	var pair_player_pressed = pair_player_toggle.button_pressed if pair_player_toggle else false
+	var pair_banker_pressed = pair_banker_toggle.button_pressed if pair_banker_toggle else false
+
+	# Получаем текущие текстуры фишек
+	var chip_textures = chip_visual_manager.current_textures if chip_visual_manager else {}
+
 	TableStateManager.save_table_state(
 		phase_manager.player_hand,
 		phase_manager.banker_hand,
@@ -458,7 +480,10 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 		GameModeManager.get_mode_string(),
 		survival_rounds_completed,
 		surv_lives,
-		surv_active
+		surv_active,
+		pair_player_pressed,
+		pair_banker_pressed,
+		chip_textures
 	)
 
 
@@ -967,8 +992,8 @@ func camera_zoom_cards():
 # НОВЫЕ МЕНЕДЖЕРЫ - ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _setup_new_managers():
-	"""Инициализация новых менеджеров для фишек и пар"""
+func _setup_chip_visual_manager():
+	"""Инициализация ChipVisualManager"""
 	chip_visual_manager = ChipVisualManager.new()
 	var chip_player = get_node_or_null("ChipPlayer")
 	var chip_banker = get_node_or_null("ChipBanker")
@@ -981,6 +1006,9 @@ func _setup_new_managers():
 		print("✅ ChipVisualManager инициализирован")
 	else:
 		push_warning("⚠️  Узлы фишек не найдены в сцене")
+
+func _setup_winner_selection_manager():
+	"""Инициализация WinnerSelectionManager"""
 	winner_selection_manager = WinnerSelectionManager.new()
 	var player_marker = get_node_or_null("PlayerMarker")
 	var banker_marker = get_node_or_null("BankerMarker")
@@ -991,32 +1019,43 @@ func _setup_new_managers():
 		print("✅ WinnerSelectionManager инициализирован")
 	else:
 		push_warning("⚠️  Маркеры не найдены в сцене")
+
+func _setup_pair_betting_manager():
+	"""Инициализация PairBettingManager"""
 	# PayoutQueueManager создается динамически в _prepare_payouts_manual()
 	pair_betting_manager = PairBettingManager.new()
 	# ← Сигнал pair_detected больше не используется (молчаливая проверка)
 	print("✅ PairBettingManager инициализирован")
 
 func _setup_payout_toggles():
-	"""Настройка toggles для основных ставок"""
+	"""Настройка toggles для основных ставок (подключение сигналов и начальное состояние)"""
 	var player_toggle = get_node_or_null("PayoutTogglePlayer")
 	var banker_toggle = get_node_or_null("PayoutToggleBanker")
 	var tie_toggle = get_node_or_null("PayoutToggleTie")
 	if not player_toggle or not banker_toggle or not tie_toggle:
 		print("⚠️  PayoutToggle кнопки не найдены (пропускаем)")
 		return
+
 	player_toggle.toggle_mode = true
 	banker_toggle.toggle_mode = true
 	tie_toggle.toggle_mode = true
-	if PayoutSettingsManager:
+
+	# Устанавливаем начальное состояние только при первой загрузке
+	var is_payout_return = TableStateManager.has_saved_state()
+	if not is_payout_return and PayoutSettingsManager:
 		player_toggle.button_pressed = PayoutSettingsManager.player_payout_enabled
 		banker_toggle.button_pressed = PayoutSettingsManager.banker_payout_enabled
 		tie_toggle.button_pressed = PayoutSettingsManager.tie_payout_enabled
+
+		# Показываем фишки только при первой загрузке
 		if player_toggle.button_pressed and chip_visual_manager:
 			chip_visual_manager.show_chip("Player")
 		if banker_toggle.button_pressed and chip_visual_manager:
 			chip_visual_manager.show_chip("Banker")
 		if tie_toggle.button_pressed and chip_visual_manager:
 			chip_visual_manager.show_chip("Tie")
+
+	# Подключаем сигналы всегда
 	player_toggle.toggled.connect(_on_payout_toggle_player)
 	banker_toggle.toggled.connect(_on_payout_toggle_banker)
 	tie_toggle.toggled.connect(_on_payout_toggle_tie)
@@ -1034,6 +1073,71 @@ func _setup_pair_toggles():
 	pair_player_toggle.toggled.connect(_on_payout_toggle_pair_player)
 	pair_banker_toggle.toggled.connect(_on_payout_toggle_pair_banker)
 	print("✅ Toggles пар настроены")
+
+func _restore_pair_betting_state():
+	"""Восстановить состояние PairBettingManager из toggles при возврате из PayoutScene"""
+	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
+	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
+	if pair_player_toggle and pair_betting_manager:
+		if pair_player_toggle.button_pressed:
+			pair_betting_manager.toggle_pair_player_bet(true)
+	if pair_banker_toggle and pair_betting_manager:
+		if pair_banker_toggle.button_pressed:
+			pair_betting_manager.toggle_pair_banker_bet(true)
+
+
+func _restore_chips_from_table_state():
+	"""Восстановить ВСЕ фишки из TableStateManager при возврате из PayoutScene
+
+	Восстанавливает полный snapshot стола:
+	- Все фишки (выигравшие и проигравшие) с их текстурами
+	- Затем скрывает проигрышные и оплаченные
+	"""
+	print("♻️  Восстановление фишек из TableStateManager snapshot...")
+
+	if not chip_visual_manager:
+		push_warning("⚠️  chip_visual_manager is null")
+		return
+
+	if not TableStateManager.has_saved_state():
+		print("⚠️  Нет сохраненного состояния в TableStateManager")
+		return
+
+	# Восстанавливаем ВСЕ фишки из сохраненных ставок
+	for bet in TableStateManager.bets:
+		if bet.chip_texture.is_empty():
+			# Нет сохраненной текстуры - используем случайную
+			chip_visual_manager.show_chip(bet.bet_type)
+		else:
+			# Восстанавливаем конкретную текстуру
+			chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
+
+		print("  → Восстановлена фишка %s (texture=%s)" % [bet.bet_type, bet.chip_texture.get_file() if not bet.chip_texture.is_empty() else "random"])
+
+	# Применяем логику скрытия проигрышных и оплаченных
+	for bet in TableStateManager.bets:
+		if not bet.won or bet.is_paid:
+			chip_visual_manager.hide_chip(bet.bet_type)
+			var reason = "проигрышная" if not bet.won else "оплаченная"
+			print("  → Скрыта %s фишка %s" % [reason, bet.bet_type])
+
+	# Синхронизируем PairBettingManager на основе восстановленных ставок
+	if pair_betting_manager:
+		var has_pair_player = false
+		var has_pair_banker = false
+		for bet in TableStateManager.bets:
+			if bet.bet_type == "PairPlayer":
+				has_pair_player = true
+			elif bet.bet_type == "PairBanker":
+				has_pair_banker = true
+
+		if has_pair_player:
+			pair_betting_manager.toggle_pair_player_bet(true)
+		if has_pair_banker:
+			pair_betting_manager.toggle_pair_banker_bet(true)
+
+	print("♻️  Восстановление фишек завершено (всего: %d)" % TableStateManager.bets.size())
+
 
 func _on_payout_toggle_player(enabled: bool):
 	if PayoutSettingsManager:

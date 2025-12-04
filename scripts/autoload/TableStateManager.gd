@@ -30,8 +30,9 @@ class BetStateData:
 	var is_paid: bool
 	var player_score: int
 	var banker_score: int
+	var chip_texture: String  # Путь к текстуре фишки
 
-	func _init(type: String, s: float, p: float, w: bool, paid: bool, ps: int, bs: int):
+	func _init(type: String, s: float, p: float, w: bool, paid: bool, ps: int, bs: int, texture: String = ""):
 		bet_type = type
 		stake = s
 		payout = p
@@ -39,6 +40,7 @@ class BetStateData:
 		is_paid = paid
 		player_score = ps
 		banker_score = bs
+		chip_texture = texture
 
 var bets: Array[BetStateData] = []
 
@@ -59,6 +61,13 @@ var survival_lives: int = 7
 var survival_active: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
+# СОСТОЯНИЕ TOGGLES (для восстановления после возврата из PayoutScene)
+# ═══════════════════════════════════════════════════════════════════════════
+
+var pair_player_toggle_pressed: bool = false
+var pair_banker_toggle_pressed: bool = false
+
+# ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ СОХРАНЕНИЯ/ВОССТАНОВЛЕНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -73,9 +82,16 @@ func save_table_state(
 	mode: String,
 	surv_rounds: int,
 	surv_lives: int,
-	surv_active: bool
+	surv_active: bool,
+	pair_player_pressed: bool = false,
+	pair_banker_pressed: bool = false,
+	chip_textures: Dictionary = {}
 ) -> void:
-	"""Сохранить полное состояние стола перед переходом в PayoutScene"""
+	"""Сохранить полное состояние стола перед переходом в PayoutScene
+
+	Args:
+		chip_textures: Словарь {bet_type: texture_path} для сохранения текстур фишек
+	"""
 
 	player_hand = p_hand.duplicate()
 	banker_hand = b_hand.duplicate()
@@ -87,10 +103,13 @@ func save_table_state(
 	survival_rounds = surv_rounds
 	survival_lives = surv_lives
 	survival_active = surv_active
+	pair_player_toggle_pressed = pair_player_pressed
+	pair_banker_toggle_pressed = pair_banker_pressed
 
-	# Сохраняем ставки
+	# Сохраняем ставки с текстурами
 	bets.clear()
 	for bet in bet_data:
+		var texture = chip_textures.get(bet.bet_type, "")
 		var bet_state = BetStateData.new(
 			bet.bet_type,
 			bet.stake,
@@ -98,7 +117,8 @@ func save_table_state(
 			bet.won,
 			bet.is_paid,
 			bet.player_score,
-			bet.banker_score
+			bet.banker_score,
+			texture
 		)
 		bets.append(bet_state)
 
@@ -106,6 +126,7 @@ func save_table_state(
 	print("   Карты: Player=%d, Banker=%d" % [player_hand.size(), banker_hand.size()])
 	print("   Победитель: %s (выбран: %s)" % [actual_winner, selected_winner])
 	print("   Ставок: %d" % bets.size())
+	print("   Toggles пар: Player=%s, Banker=%s" % [pair_player_pressed, pair_banker_pressed])
 
 
 func has_saved_state() -> bool:
@@ -126,6 +147,8 @@ func clear_state() -> void:
 	survival_rounds = 0
 	survival_lives = 7
 	survival_active = false
+	pair_player_toggle_pressed = false
+	pair_banker_toggle_pressed = false
 
 	print("🗑️  TableStateManager: состояние очищено")
 

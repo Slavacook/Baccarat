@@ -99,6 +99,40 @@ func show_chip(bet_type: String) -> void:
 	print("💰 ChipVisualManager: показана фишка %s (%s)" % [bet_type, texture_path.get_file()])
 
 
+func set_chip_texture(bet_type: String, texture_path: String) -> void:
+	"""Установить конкретную текстуру фишки (без рандомизации)"""
+	if not chip_nodes.has(bet_type):
+		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
+		return
+
+	if texture_path.is_empty():
+		push_warning("ChipVisualManager: пустой путь к текстуре для %s, используем рандомную" % bet_type)
+		show_chip(bet_type)
+		return
+
+	var chip = chip_nodes[bet_type]
+	var texture = load(texture_path)
+	if not texture:
+		push_error("ChipVisualManager: не удалось загрузить текстуру '%s'" % texture_path)
+		return
+
+	chip.texture_normal = texture
+	chip.visible = true
+	current_textures[bet_type] = texture_path
+
+	print("💰 ChipVisualManager: установлена текстура фишки %s (%s)" % [bet_type, texture_path.get_file()])
+
+
+func make_chip_visible(bet_type: String) -> void:
+	"""Просто показать фишку БЕЗ изменения текстуры"""
+	if not chip_nodes.has(bet_type):
+		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
+		return
+
+	chip_nodes[bet_type].visible = true
+	print("👁️ ChipVisualManager: фишка %s сделана видимой" % bet_type)
+
+
 func hide_chip(bet_type: String) -> void:
 	"""Скрыть фишку"""
 	if not chip_nodes.has(bet_type):
@@ -106,7 +140,7 @@ func hide_chip(bet_type: String) -> void:
 		return
 
 	chip_nodes[bet_type].visible = false
-	current_textures.erase(bet_type)
+	# НЕ стираем current_textures - сохраняем текстуру для восстановления
 
 	print("🚫 ChipVisualManager: скрыта фишка %s" % bet_type)
 
