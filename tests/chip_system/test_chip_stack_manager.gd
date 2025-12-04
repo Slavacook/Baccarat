@@ -28,8 +28,8 @@ func test_initial_state_empty():
 	assert_eq(manager.get_stack_count(), 0, "Количество стопок должно быть 0")
 
 func test_initial_slot_count():
-	assert_eq(manager.slot_count, ChipStackManager.SLOT_COUNT_SMALL, "Изначально должно быть 6 слотов")
-	assert_eq(manager.current_scale, ChipStackManager.SCALE_SMALL, "Масштаб должен быть 1.0")
+	assert_eq(manager.slot_count, GameConstants.CHIP_STACK_SLOT_COUNT_SMALL, "Изначально должно быть 9 слотов")
+	assert_eq(manager.current_scale, GameConstants.CHIP_STACK_SCALE_SMALL, "Масштаб должен быть 0.75")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ ДОБАВЛЕНИЯ ФИШЕК
@@ -132,8 +132,8 @@ func test_rescale_to_10_slots_when_7th_stack():
 	for denom in denominations:
 		manager.add_chip(denom)
 
-	assert_eq(manager.slot_count, ChipStackManager.SLOT_COUNT_LARGE, "Должно быть 10 слотов")
-	assert_eq(manager.current_scale, ChipStackManager.SCALE_LARGE, "Масштаб должен быть 0.6")
+	assert_eq(manager.slot_count, GameConstants.CHIP_STACK_SLOT_COUNT_LARGE, "Должно быть 13 слотов")
+	assert_eq(manager.current_scale, GameConstants.CHIP_STACK_SCALE_LARGE, "Масштаб должен быть 0.6")
 
 func test_rescale_back_to_6_slots_when_removing():
 	# Добавляем 7 номиналов (переключится на 10 слотов)
@@ -144,8 +144,8 @@ func test_rescale_back_to_6_slots_when_removing():
 	# Удаляем 1 фишку (осталось 6 стопок)
 	manager.remove_chip(100)
 
-	assert_eq(manager.slot_count, ChipStackManager.SLOT_COUNT_SMALL, "Должно вернуться к 6 слотам")
-	assert_eq(manager.current_scale, ChipStackManager.SCALE_SMALL, "Масштаб должен быть 1.0")
+	assert_eq(manager.slot_count, GameConstants.CHIP_STACK_SLOT_COUNT_SMALL, "Должно вернуться к 9 слотам")
+	assert_eq(manager.current_scale, GameConstants.CHIP_STACK_SCALE_SMALL, "Масштаб должен быть 0.75")
 
 func test_max_10_stacks_limit():
 	# Пытаемся добавить 11 разных номиналов
