@@ -159,8 +159,12 @@ func test_100_rounds_statistics():
 	for i in range(100):
 		var round_deck = Deck.new()
 
-		var player_hand = [round_deck.draw(), round_deck.draw()]
-		var banker_hand = [round_deck.draw(), round_deck.draw()]
+		var player_hand: Array[Card] = []
+		player_hand.append(round_deck.draw())
+		player_hand.append(round_deck.draw())
+		var banker_hand: Array[Card] = []
+		banker_hand.append(round_deck.draw())
+		banker_hand.append(round_deck.draw())
 
 		var state = GameStateManager.determine_state(false, player_hand, banker_hand, null, null)
 
