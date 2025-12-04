@@ -10,7 +10,7 @@ signal winner_selected(winner: String)
 signal help_button_pressed()
 signal lang_button_pressed()
 
-var action_button: Button
+var action_button: TextureButton
 var player_card1: TextureRect
 var player_card2: TextureRect
 var player_card3: TextureRect
@@ -224,7 +224,46 @@ func update_banker_third_card_ui(state: String, card: Card = null):
 	
 
 func update_action_button(text: String):
-	action_button.text = text
+	# TextureButton не использует text, текстуры устанавливаются через set_action_button_state()
+	pass
+
+func set_action_button_state(state: String):
+	"""Установить состояние кнопки с текстурами
+
+	States:
+	- "start": Начать игру (карты скрыты)
+	- "confirm": Подтвердить действие (карты открыты)
+	- "complete": Завершить/Новая игра (раздача закончена)
+	"""
+	const TEXTURES = {
+		"start": {
+			"normal": "res://assets/ui/buttons/start_button.png",
+			"pressed": "res://assets/ui/buttons/start_button_pressed.png"
+		},
+		"confirm": {
+			"normal": "res://assets/ui/buttons/confirm_button.png",
+			"pressed": "res://assets/ui/buttons/confirm_button_pressed.png"
+		},
+		"complete": {
+			"normal": "res://assets/ui/buttons/complete_button.png",
+			"pressed": "res://assets/ui/buttons/complete_pressed_button.png"
+		}
+	}
+
+	if not TEXTURES.has(state):
+		push_error("UIManager: неизвестное состояние кнопки '%s'" % state)
+		return
+
+	var tex_data = TEXTURES[state]
+	var normal_tex = load(tex_data["normal"])
+	var pressed_tex = load(tex_data["pressed"])
+
+	if normal_tex:
+		action_button.texture_normal = normal_tex
+	if pressed_tex:
+		action_button.texture_pressed = pressed_tex
+
+	print("🔘 Кнопка: %s" % state)
 
 func enable_action_button():
 	action_button.disabled = false

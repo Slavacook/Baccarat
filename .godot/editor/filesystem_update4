@@ -3,3 +3,6 @@ res://scenes/Game.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scenes/PayoutScene.tscn
+res://scripts/GamePhaseManager.gd
+res://scripts/UIManager.gd
+res://scripts/autoload/TableStateManager.gd

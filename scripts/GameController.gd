@@ -140,6 +140,11 @@ func _ready():
 			survival_ui.set_lives(lives_from_payout)
 			print("♻️  Синхронизированы сердечки: %d (из PayoutScene)" % lives_from_payout)
 
+		# Восстанавливаем состояние кнопки
+		if ui_manager:
+			ui_manager.set_action_button_state(TableStateManager.action_button_state)
+			print("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
+
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
 
@@ -489,7 +494,8 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 		surv_active,
 		pair_player_pressed,
 		pair_banker_pressed,
-		chip_textures
+		chip_textures,
+		"complete"  # Кнопка всегда в состоянии "complete" при переходе к выплатам
 	)
 
 

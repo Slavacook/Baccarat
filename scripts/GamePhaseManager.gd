@@ -20,6 +20,7 @@ func _init(deck_ref: Deck, card_manager_ref: CardTextureManager, ui_ref: UIManag
 	card_manager = card_manager_ref
 	ui = ui_ref
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	ui.set_action_button_state("start")
 
 func set_game_controller(controller) -> void:
 	game_controller = controller
@@ -40,6 +41,7 @@ func reset(update_state: bool = true):
 	banker_third_selected = false
 	ui.reset_ui()
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	ui.set_action_button_state("start")
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
 	ui.enable_action_button()
@@ -101,6 +103,7 @@ func deal_first_four():
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
 	ui.show_first_four_cards(player_hand, banker_hand)
+	ui.set_action_button_state("confirm")
 
 	# ← Проверяем пары МОЛЧА (без оповещений)
 	if game_controller and game_controller.pair_betting_manager:
@@ -136,6 +139,7 @@ func complete_game():
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	# Кнопка НЕ меняется здесь - только после правильного выбора победителя
 	EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
 
 
@@ -560,6 +564,9 @@ func _validate_winner_selection() -> void:
 
 	# ✅ Правильный выбор!
 	EventBus.action_correct.emit("winner")
+
+	# Меняем кнопку на "complete" (готовность к выплатам)
+	ui.set_action_button_state("complete")
 
 	# Показываем toast с результатом (кто выиграл и с какими картами)
 	var victory_msg = _format_victory_toast(actual_winner)

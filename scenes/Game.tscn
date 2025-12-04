@@ -175,13 +175,13 @@ scale = Vector2(0.6, 0.6)
 position = Vector2(231, 416.00003)
 scale = Vector2(0.6, 0.6)
 
-[node name="CardsButton" type="Button" parent="."]
-offset_left = 12.0
-offset_top = 538.0
-offset_right = 231.0
-offset_bottom = 635.0
-theme_override_font_sizes/font_size = 40
-text = "Раздать"
+[node name="CardsButton" type="TextureButton" parent="."]
+modulate = Color(1, 1, 1, 0.8627451)
+offset_left = 512.0
+offset_top = 566.0
+offset_right = 731.0
+offset_bottom = 663.0
+scale = Vector2(0.5, 0.5)
 
 [node name="TieMarker" type="TextureButton" parent="."]
 offset_left = 538.0

@@ -67,6 +67,9 @@ var survival_active: bool = false
 var pair_player_toggle_pressed: bool = false
 var pair_banker_toggle_pressed: bool = false
 
+# Состояние кнопки действия ("start", "confirm", "complete")
+var action_button_state: String = "start"
+
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ СОХРАНЕНИЯ/ВОССТАНОВЛЕНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -85,12 +88,14 @@ func save_table_state(
 	surv_active: bool,
 	pair_player_pressed: bool = false,
 	pair_banker_pressed: bool = false,
-	chip_textures: Dictionary = {}
+	chip_textures: Dictionary = {},
+	button_state: String = "complete"
 ) -> void:
 	"""Сохранить полное состояние стола перед переходом в PayoutScene
 
 	Args:
 		chip_textures: Словарь {bet_type: texture_path} для сохранения текстур фишек
+		button_state: Состояние кнопки действия ("start", "confirm", "complete")
 	"""
 
 	player_hand = p_hand.duplicate()
@@ -105,6 +110,7 @@ func save_table_state(
 	survival_active = surv_active
 	pair_player_toggle_pressed = pair_player_pressed
 	pair_banker_toggle_pressed = pair_banker_pressed
+	action_button_state = button_state
 
 	# Сохраняем ставки с текстурами
 	bets.clear()
@@ -149,6 +155,7 @@ func clear_state() -> void:
 	survival_active = false
 	pair_player_toggle_pressed = false
 	pair_banker_toggle_pressed = false
+	action_button_state = "start"
 
 	print("🗑️  TableStateManager: состояние очищено")
 
