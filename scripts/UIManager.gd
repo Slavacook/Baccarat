@@ -43,6 +43,14 @@ var help_button: Button
 var player_third_toggle: TextureRect
 var banker_third_toggle: TextureRect
 
+# ← Узлы карт (для прямого доступа в _restore_cards_ui)
+var player_card1: TextureRect
+var player_card2: TextureRect
+var player_card3: TextureRect
+var banker_card1: TextureRect
+var banker_card2: TextureRect
+var banker_card3: TextureRect
+
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -78,6 +86,14 @@ func _init(scene: Node, card_manager: CardTextureManager):
 	help_button = button_ui.help_button
 	player_third_toggle = toggle_ui.player_third_toggle
 	banker_third_toggle = toggle_ui.banker_third_toggle
+
+	# Узлы карт (для _restore_cards_ui в GameController)
+	player_card1 = card_ui.player_card1
+	player_card2 = card_ui.player_card2
+	player_card3 = card_ui.player_card3
+	banker_card1 = card_ui.banker_card1
+	banker_card2 = card_ui.banker_card2
+	banker_card3 = card_ui.banker_card3
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ШАГ 3: Проброс сигналов от дочерних менеджеров
