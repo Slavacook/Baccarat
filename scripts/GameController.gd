@@ -33,15 +33,15 @@ var camera: Camera2D
 # Общий план (1:1, показывает весь стол)
 const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)
 # Зум на карты (1.3:1, фокус на зоне раздачи)
-const CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)
+const CAMERA_ZOOM_CARDS = Vector2(1.4, 1.4)
 # Зум на фишки (1.3:1, фокус на зоне ставок - выше на 200px)
-const CAMERA_ZOOM_CHIPS = Vector2(1.3, 1.3)
+const CAMERA_ZOOM_CHIPS = Vector2(1.6, 1.6)
 # Позиция камеры для общего плана (центр окна 1154x650)
 const CAMERA_POS_GENERAL = Vector2(577, 325)
 # Позиция камеры для зума на карты (центр зоны Player/Banker)
 const CAMERA_POS_CARDS = Vector2(595, 400)
 # Позиция камеры для зума на фишки (на 200px выше общего плана)
-const CAMERA_POS_CHIPS = Vector2(595, 295)
+const CAMERA_POS_CHIPS = Vector2(795, 250)
 # Длительность плавного перехода камеры (секунды)
 const CAMERA_TRANSITION_DURATION = 0.5
 var is_first_deal: bool = true                     # Флаг первой раздачи (для зума)
@@ -921,7 +921,8 @@ func _setup_fixed_ui():
 		"PayoutToggleTie",
 		"PayoutTogglePairPlayer",
 		"PayoutTogglePairBanker",
-		"LimitsButton"
+		"LimitsButton",
+		"CardsButton"
 	]
 
 	for button_name in buttons_to_move:

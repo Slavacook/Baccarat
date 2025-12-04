@@ -180,10 +180,10 @@ position = Vector2(231, 416.00003)
 scale = Vector2(0.6, 0.6)
 
 [node name="CardsButton" type="Button" parent="."]
-offset_left = 513.0
-offset_top = 475.0
-offset_right = 682.0
-offset_bottom = 591.0
+offset_left = 470.0
+offset_top = 514.0
+offset_right = 689.0
+offset_bottom = 611.0
 theme_override_font_sizes/font_size = 40
 text = "Раздать"
 
