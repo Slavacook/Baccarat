@@ -1,9 +1,4 @@
 res://scripts/GameController.gd
-res://scripts/GamePhaseManager.gd
 res://scenes/Game.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/PayoutQueueManager.gd
-res://scripts/ChipVisualManager.gd
-res://scripts/autoload/TableStateManager.gd
-res://scripts/SurvivalModeUI.gd

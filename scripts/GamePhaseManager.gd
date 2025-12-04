@@ -594,4 +594,4 @@ func _format_victory_toast(winner: String) -> String:
 		winner_score = banker_score
 		loser_score = player_score
 
-	return "Выиграл %s: [color=red]%d[/color] vs [color=red]%d[/color]" % [winner_text, winner_score, loser_score]
+	return "Выиграл %s: %d vs %d" % [winner_text, winner_score, loser_score]

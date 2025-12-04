@@ -951,10 +951,10 @@ func camera_zoom_in():
 	tween.set_trans(Tween.TRANS_CUBIC)
 	tween.set_ease(Tween.EASE_IN_OUT)
 
-	tween.tween_property(camera, "position", CAMERA_POS_CHIPS, CAMERA_TRANSITION_DURATION)
-	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CHIPS, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "position", CAMERA_POS_CARDS, CAMERA_TRANSITION_DURATION)
+	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CARDS, CAMERA_TRANSITION_DURATION)
 
-	print("📷 Зум на карты (zoom %.1f)" % CAMERA_ZOOM_CHIPS.x)
+	print("📷 Зум на карты (zoom %.1f)" % CAMERA_ZOOM_CARDS.x)
 
 
 func camera_zoom_out():
