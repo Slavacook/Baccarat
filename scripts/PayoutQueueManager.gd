@@ -57,6 +57,11 @@ func mark_as_paid(bet_type: String) -> bool:
 	return false
 
 
+func has_any_payouts() -> bool:
+	"""Проверить, есть ли хотя бы одна ставка в очереди"""
+	return bets.size() > 0
+
+
 func has_unpaid_winnings() -> bool:
 	"""Проверить, есть ли неоплаченные выигравшие ставки"""
 	for bet in bets:

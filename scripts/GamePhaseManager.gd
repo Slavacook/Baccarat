@@ -215,6 +215,13 @@ func on_action_pressed():
 			EventBus.life_loss_requested.emit()
 			return
 
+		# Проверяем: если очередь выплат пуста → нужно выбрать победителя
+		if not payout_queue_manager or not payout_queue_manager.has_any_payouts():
+			# Очередь выплат пуста → это первое нажатие кнопки после CHOOSE_WINNER
+			# Проверяем выбор победителя через маркеры
+			_validate_winner_selection()
+			return
+
 		# Все выплаты оплачены → подготовка к новой игре
 		print("==================================================")
 		print("✅ ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
@@ -244,9 +251,6 @@ func on_action_pressed():
 		print("==================================================")
 		print("✅ ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
 		print("==================================================")
-		return
-		# Если нет PayoutQueueManager → проверяем выбор победителя (первый выбор)
-		_validate_winner_selection()
 		return
 
 	_validate_and_execute_third_cards()
