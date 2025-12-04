@@ -254,6 +254,10 @@ func set_action_button_state(state: String):
 		push_error("UIManager: неизвестное состояние кнопки '%s'" % state)
 		return
 
+	# Проверяем что кнопка существует (в тестах её может не быть)
+	if not action_button:
+		return
+
 	var tex_data = TEXTURES[state]
 	var normal_tex = load(tex_data["normal"])
 	var pressed_tex = load(tex_data["pressed"])
@@ -266,10 +270,12 @@ func set_action_button_state(state: String):
 	print("🔘 Кнопка: %s" % state)
 
 func enable_action_button():
-	action_button.disabled = false
+	if action_button:
+		action_button.disabled = false
 
 func disable_action_button():
-	action_button.disabled = true
+	if action_button:
+		action_button.disabled = true
 
 func update_lang_button():
 	if lang_button:

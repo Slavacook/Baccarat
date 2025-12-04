@@ -20,6 +20,9 @@ class MockUI extends UIManager:
 	func update_action_button(text: String):
 		pass  # Заглушка для вызова в GamePhaseManager._init()
 
+	func set_action_button_state(state: String):
+		pass  # Заглушка для установки состояния кнопки (текстур)
+
 	func reset_ui():
 		pass
 
