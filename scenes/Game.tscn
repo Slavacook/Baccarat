@@ -177,11 +177,11 @@ scale = Vector2(0.6, 0.6)
 
 [node name="CardsButton" type="TextureButton" parent="."]
 modulate = Color(1, 1, 1, 0.8627451)
-offset_left = 512.0
-offset_top = 566.0
-offset_right = 731.0
-offset_bottom = 663.0
-scale = Vector2(0.5, 0.5)
+offset_left = 949.0
+offset_top = 548.0
+offset_right = 1266.0
+offset_bottom = 681.0
+scale = Vector2(0.6, 0.6)
 
 [node name="TieMarker" type="TextureButton" parent="."]
 offset_left = 538.0
