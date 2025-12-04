@@ -39,6 +39,7 @@ offset_top = 20.0
 offset_right = 300.0
 offset_bottom = 120.0
 grow_horizontal = 2
+mouse_filter = 2
 
 [node name="TopUI" type="CanvasLayer" parent="."]
 layer = 128
@@ -46,13 +47,8 @@ layer = 128
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
 [node name="Background" type="TextureRect" parent="."]
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
 offset_right = 1920.0
 offset_bottom = 1080.0
-grow_horizontal = 2
-grow_vertical = 2
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_qbsmt")
 
@@ -180,10 +176,10 @@ position = Vector2(231, 416.00003)
 scale = Vector2(0.6, 0.6)
 
 [node name="CardsButton" type="Button" parent="."]
-offset_left = 470.0
-offset_top = 514.0
-offset_right = 689.0
-offset_bottom = 611.0
+offset_left = 12.0
+offset_top = 538.0
+offset_right = 231.0
+offset_bottom = 635.0
 theme_override_font_sizes/font_size = 40
 text = "Раздать"
 
