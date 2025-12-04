@@ -41,6 +41,26 @@ class MockUI extends UIManager:
 	func show_banker_third_card(card: Card):
 		pass
 
+# Mock для PayoutQueueManager
+class MockPayoutQueueManager extends PayoutQueueManager:
+	func _init():
+		pass  # Пустой конструктор
+
+# Mock для ChipVisualManager
+class MockChipVisualManager extends ChipVisualManager:
+	func _init():
+		pass  # Пустой конструктор
+
+# Mock для WinnerSelectionManager
+class MockWinnerSelectionManager extends WinnerSelectionManager:
+	func _init():
+		pass  # Пустой конструктор
+
+# Mock для PairBettingManager
+class MockPairBettingManager extends PairBettingManager:
+	func _init():
+		pass  # Пустой конструктор
+
 # ========================================
 # ТЕСТЫ ЛОГИКИ ВАЛИДАЦИИ
 # ========================================
@@ -49,6 +69,10 @@ var phase_manager: GamePhaseManager
 var mock_deck: Deck
 var mock_card_manager: MockCardManager
 var mock_ui: MockUI
+var mock_payout_queue_manager: MockPayoutQueueManager
+var mock_chip_visual_manager: MockChipVisualManager
+var mock_winner_selection_manager: MockWinnerSelectionManager
+var mock_pair_betting_manager: MockPairBettingManager
 
 # ========================================
 # SETUP / TEARDOWN
@@ -61,9 +85,21 @@ func before_each():
 	# Создаём mock объекты (ручные заглушки с правильными типами)
 	mock_card_manager = MockCardManager.new()
 	mock_ui = MockUI.new()
+	mock_payout_queue_manager = MockPayoutQueueManager.new()
+	mock_chip_visual_manager = MockChipVisualManager.new()
+	mock_winner_selection_manager = MockWinnerSelectionManager.new()
+	mock_pair_betting_manager = MockPairBettingManager.new()
 
-	# Инициализируем phase_manager
-	phase_manager = GamePhaseManager.new(mock_deck, mock_card_manager, mock_ui)
+	# Инициализируем phase_manager с новыми параметрами (Dependency Injection)
+	phase_manager = GamePhaseManager.new(
+		mock_deck,
+		mock_card_manager,
+		mock_ui,
+		mock_payout_queue_manager,
+		mock_chip_visual_manager,
+		mock_winner_selection_manager,
+		mock_pair_betting_manager
+	)
 
 # ========================================
 # ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
