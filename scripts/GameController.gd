@@ -793,6 +793,9 @@ func _check_payout_return():
 
 			print("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
 
+			# ← КРИТИЧНО: Обновляем ссылку в phase_manager после восстановления!
+			phase_manager.payout_queue_manager = payout_queue_manager
+			print("♻️  Ссылка phase_manager.payout_queue_manager обновлена")
 
 			# Обновляем видимость фишек (показываем неоплаченные выигрыши)
 			_update_chip_visibility()
