@@ -199,7 +199,7 @@ func on_action_pressed():
 		if player_third_selected or banker_third_selected:
 			EventBus.show_toast_error.emit("Игра закончена! Нельзя заказывать карты. Выберите победителя.")
 			EventBus.action_error.emit("final_card_error", "")
-			on_error_occurred()
+			EventBus.life_loss_requested.emit()
 			# Сбрасываем галочки
 			player_third_selected = false
 			banker_third_selected = false
@@ -212,7 +212,7 @@ func on_action_pressed():
 			var unpaid_count = payout_queue_manager.get_unpaid_count()
 			EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS", [unpaid_count]))
 			EventBus.action_error.emit("unpaid_bets", "")
-			on_error_occurred()
+			EventBus.life_loss_requested.emit()
 			return
 
 		# Все выплаты оплачены → подготовка к новой игре
@@ -316,7 +316,7 @@ func _handle_natural_case() -> void:
 	if player_third_selected or banker_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("ERR_NATURAL_NO_DRAW"))
 		EventBus.action_error.emit("natural_draw", Localization.t("ERR_NATURAL_NO_DRAW"))
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		player_third_selected = false
 		banker_third_selected = false
 		ui.update_player_third_card_ui("?")
@@ -331,7 +331,7 @@ func _handle_card_to_each() -> void:
 	if not player_third_selected or not banker_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("BOTH_CARDS_NEEDED"))
 		EventBus.action_error.emit("both_wrong", Localization.t("BOTH_CARDS_NEEDED"))
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_player_third_card_ui("?")
 		ui.update_banker_third_card_ui("?")
 		return
@@ -346,7 +346,7 @@ func _handle_card_to_player_with_banker_7(ps: int, bs: int) -> void:
 	if not player_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("ERR_PLAYER_MUST_DRAW", [ps]))
 		EventBus.action_error.emit("player_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_player_third_card_ui("?")
 		player_third_selected = true
 		return
@@ -355,7 +355,7 @@ func _handle_card_to_player_with_banker_7(ps: int, bs: int) -> void:
 	if banker_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_NO_DRAW", [bs]))
 		EventBus.action_error.emit("banker_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_banker_third_card_ui("?")
 		banker_third_selected = false
 		return
@@ -369,7 +369,7 @@ func _handle_card_to_player_with_banker_3_6(ps: int) -> void:
 	if not player_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("ERR_PLAYER_MUST_DRAW", [ps]))
 		EventBus.action_error.emit("player_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_player_third_card_ui("?")
 		player_third_selected = true
 		return
@@ -378,7 +378,7 @@ func _handle_card_to_player_with_banker_3_6(ps: int) -> void:
 	if banker_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("BANKER_NO_CARD_YET"))
 		EventBus.action_error.emit("banker_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_banker_third_card_ui("?")
 		banker_third_selected = false
 		return
@@ -392,7 +392,7 @@ func _handle_card_to_banker_only(ps: int, bs: int) -> void:
 	if not banker_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_MUST_DRAW", [bs]))
 		EventBus.action_error.emit("banker_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_banker_third_card_ui("?")
 		banker_third_selected = true
 		return
@@ -401,7 +401,7 @@ func _handle_card_to_banker_only(ps: int, bs: int) -> void:
 	if player_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("ERR_PLAYER_NO_DRAW", [ps]))
 		EventBus.action_error.emit("player_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		ui.update_player_third_card_ui("?")
 		player_third_selected = false
 		return
@@ -424,14 +424,14 @@ func _validate_banker_after_player():
 		if not banker_third_selected:
 			EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_MUST_DRAW", [bs]))
 			EventBus.action_error.emit("banker_wrong", "")
-			on_error_occurred()
+			EventBus.life_loss_requested.emit()
 			ui.update_banker_third_card_ui("?")
 			banker_third_selected = true
 			return
 		if player_third_selected:
 			EventBus.show_toast_error.emit("Игроку уже дали карту!")
 			EventBus.action_error.emit("player_wrong", "")
-			on_error_occurred()
+			EventBus.life_loss_requested.emit()
 			ui.update_player_third_card_ui("?")
 			player_third_selected = false
 			return
@@ -441,7 +441,7 @@ func _validate_banker_after_player():
 		if banker_third_selected:
 			EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_NO_DRAW", [bs]))
 			EventBus.action_error.emit("banker_wrong", "")
-			on_error_occurred()
+			EventBus.life_loss_requested.emit()
 			ui.update_banker_third_card_ui("?")
 			banker_third_selected = false
 			return
@@ -551,7 +551,7 @@ func _validate_winner_selection() -> void:
 		# ❌ Неправильный выбор
 		EventBus.show_toast_error.emit(Localization.t("ERR_WRONG_WINNER", [actual_winner]))
 		EventBus.action_error.emit("winner_wrong", "")
-		on_error_occurred()
+		EventBus.life_loss_requested.emit()
 		# Сбрасываем выбор маркера
 		winner_selection_manager.reset()
 		return
