@@ -1,7 +1,13 @@
 # res://scripts/UIManager.gd
+# Фасад-агрегатор для управления всеми UI элементами
+# Делегирует работу специализированным менеджерам (Phase 2 Refactoring)
 
 class_name UIManager
 extends RefCounted
+
+# ═══════════════════════════════════════════════════════════════════════════
+# СИГНАЛЫ (Публичный API - проброс от дочерних менеджеров)
+# ═══════════════════════════════════════════════════════════════════════════
 
 signal action_button_pressed()
 signal player_third_toggled(selected: bool)
@@ -10,316 +16,186 @@ signal winner_selected(winner: String)
 signal help_button_pressed()
 signal lang_button_pressed()
 
-var action_button: TextureButton
-var player_card1: TextureRect
-var player_card2: TextureRect
-var player_card3: TextureRect
-var banker_card1: TextureRect
-var banker_card2: TextureRect
-var banker_card3: TextureRect
-var player_third_toggle: TextureRect
-var banker_third_toggle: TextureRect
-var help_button: Button
-var help_popup: Popup
-var player_marker: Control
-var banker_marker: Control
-var tie_marker: Control
+# ═══════════════════════════════════════════════════════════════════════════
+# СПЕЦИАЛИЗИРОВАННЫЕ МЕНЕДЖЕРЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+var card_ui: CardUIManager              # Управление картами и анимациями
+var toggle_ui: ToggleUIManager          # Управление toggles третьих карт
+var button_ui: ButtonUIManager          # Управление кнопками
+var marker_ui: MarkerUIManager          # Управление маркерами победителя
+var payout_toggle_ui: PayoutToggleManager  # Управление переключателями выплат
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРЯМЫЕ ССЫЛКИ НА UI УЗЛЫ (для обратной совместимости)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Эти узлы используются напрямую другими классами (StatsManager, popups, etc.)
 var stats_label: Label
-var lang_button: Button
+var help_popup: Popup
 var bet_chip: TextureButton
 var bet_popup: PopupPanel
-var card_manager: CardTextureManager
 var tie_chip: TextureButton
-var flip_cards = []
-var main_node = null
 
-# Переключатели выплат
-var payout_toggle_player: Button
-var payout_toggle_banker: Button
-var payout_toggle_tie: Button
+# ← Эти ссылки сохранены для внешнего доступа (GameController, GamePhaseManager)
+var action_button: TextureButton
+var player_third_toggle: TextureRect
+var banker_third_toggle: TextureRect
 
-func _init(scene: Node, cm: CardTextureManager):
-	card_manager = cm
+# ═══════════════════════════════════════════════════════════════════════════
+# КОНСТРУКТОР (Dependency Injection)
+# ═══════════════════════════════════════════════════════════════════════════
 
-	action_button = scene.get_node("CardsButton")
-	player_card1 = scene.get_node("PlayerZone/Card1")
-	player_card2 = scene.get_node("PlayerZone/Card2")
-	player_card3 = scene.get_node("PlayerZone/Card3")
-	banker_card1 = scene.get_node("BankerZone/Card1")
-	banker_card2 = scene.get_node("BankerZone/Card2")
-	banker_card3 = scene.get_node("BankerZone/Card3")
-	player_third_toggle = scene.get_node("PlayerZone/PlayerThirdCardToggle")
-	banker_third_toggle = scene.get_node("BankerZone/BankerThirdCardToggle")
-	help_button = scene.get_node("HelpButton")
-	help_popup = scene.get_node("HelpPopup")
-	player_marker = scene.get_node("PlayerMarker")
-	banker_marker = scene.get_node("BankerMarker")
-	tie_marker = scene.get_node("TieMarker")
+func _init(scene: Node, card_manager: CardTextureManager):
+	"""Инициализация UIManager и всех дочерних менеджеров
+
+	Создаёт специализированные менеджеры и пробрасывает их сигналы.
+
+	Args:
+		scene: Корневой узел сцены Game.tscn
+		card_manager: CardTextureManager для загрузки текстур карт
+	"""
+	# ═══════════════════════════════════════════════════════════════════
+	# ШАГ 1: Создание специализированных менеджеров
+	# ═══════════════════════════════════════════════════════════════════
+
+	card_ui = CardUIManager.new(scene, card_manager)
+	toggle_ui = ToggleUIManager.new(scene, card_manager)
+	button_ui = ButtonUIManager.new(scene)
+	marker_ui = MarkerUIManager.new(scene)
+	payout_toggle_ui = PayoutToggleManager.new(scene)
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ШАГ 2: Получение прямых ссылок (для обратной совместимости)
+	# ═══════════════════════════════════════════════════════════════════
+
 	stats_label = scene.get_node("StatsLabel")
+	help_popup = scene.get_node("HelpPopup")
 
-	if scene.has_node("LangButton"):
-		lang_button = scene.get_node("LangButton")
-		lang_button.pressed.connect(func(): lang_button_pressed.emit())
+	# Эти ссылки используются для прямого доступа извне
+	action_button = button_ui.action_button
+	player_third_toggle = toggle_ui.player_third_toggle
+	banker_third_toggle = toggle_ui.banker_third_toggle
 
+	# ═══════════════════════════════════════════════════════════════════
+	# ШАГ 3: Проброс сигналов от дочерних менеджеров
+	# ═══════════════════════════════════════════════════════════════════
 
+	# От ButtonUIManager
+	button_ui.action_button_pressed.connect(
+		func(): action_button_pressed.emit()
+	)
+	button_ui.help_button_pressed.connect(
+		func(): help_button_pressed.emit()
+	)
+	button_ui.lang_button_pressed.connect(
+		func(): lang_button_pressed.emit()
+	)
 
-	action_button.pressed.connect(func(): action_button_pressed.emit())
-	player_third_toggle.gui_input.connect(_on_player_toggle_input)
-	banker_third_toggle.gui_input.connect(_on_banker_toggle_input)
-	help_button.pressed.connect(func(): help_button_pressed.emit())
+	# От ToggleUIManager
+	toggle_ui.player_third_toggled.connect(
+		func(selected): player_third_toggled.emit(selected)
+	)
+	toggle_ui.banker_third_toggled.connect(
+		func(selected): banker_third_toggled.emit(selected)
+	)
 
-	# ← ОТКЛЮЧЕНО: маркеры теперь управляются через WinnerSelectionManager
-	# connect_winner_button(player_marker, "Player")
-	# connect_winner_button(banker_marker, "Banker")
-	# connect_winner_button(tie_marker, "Tie")
+	# От MarkerUIManager (в текущей архитектуре не используется, но оставляем для совместимости)
+	# winner_selected эмитится через WinnerSelectionManager
 
-
-
-	# Инициализация переключателей выплат (если они есть в сцене)
-	if scene.has_node("PayoutTogglePlayer"):
-		payout_toggle_player = scene.get_node("PayoutTogglePlayer")
-		payout_toggle_player.toggle_mode = true
-		payout_toggle_player.button_pressed = PayoutSettingsManager.player_payout_enabled
-		payout_toggle_player.toggled.connect(_on_payout_player_toggled)
-		_update_payout_toggle_style(payout_toggle_player, PayoutSettingsManager.player_payout_enabled, GameConstants.PAYOUT_TOGGLE_COLOR_PLAYER)
-
-	if scene.has_node("PayoutToggleBanker"):
-		payout_toggle_banker = scene.get_node("PayoutToggleBanker")
-		payout_toggle_banker.toggle_mode = true
-		payout_toggle_banker.button_pressed = PayoutSettingsManager.banker_payout_enabled
-		payout_toggle_banker.toggled.connect(_on_payout_banker_toggled)
-		_update_payout_toggle_style(payout_toggle_banker, PayoutSettingsManager.banker_payout_enabled, GameConstants.PAYOUT_TOGGLE_COLOR_BANKER)
-
-	if scene.has_node("PayoutToggleTie"):
-		payout_toggle_tie = scene.get_node("PayoutToggleTie")
-		payout_toggle_tie.toggle_mode = true
-		payout_toggle_tie.button_pressed = PayoutSettingsManager.tie_payout_enabled
-		payout_toggle_tie.toggled.connect(_on_payout_tie_toggled)
-		_update_payout_toggle_style(payout_toggle_tie, PayoutSettingsManager.tie_payout_enabled, GameConstants.PAYOUT_TOGGLE_COLOR_TIE)
-
-func set_flip_cards(cards):
-	flip_cards = cards
-
-func set_main_node(node):
-	main_node = node
-
-func _on_player_toggle_input(event):
-	if event is InputEventMouseButton and event.pressed:
-		player_third_toggled.emit(true)  # логика выбора через GamePhaseManager
-
-func _on_banker_toggle_input(event):
-	if event is InputEventMouseButton and event.pressed:
-		banker_third_toggled.emit(true)
-
-func connect_winner_button(button: Control, winner: String):
-	button.pressed.connect(func(): winner_selected.emit(winner))
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ КАРТАМИ (→ CardUIManager)
+# ═══════════════════════════════════════════════════════════════════════════
 
 func show_first_four_cards(player_hand: Array[Card], banker_hand: Array[Card]):
-	player_card1.visible = false
-	flip_cards[0].visible = true
-	flip_cards[0].play_flip()
-	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	player_card1.texture = player_hand[0].get_texture(card_manager)
-	player_card1.visible = true
-	flip_cards[0].visible = false
+	"""Анимация раздачи первых четырёх карт"""
+	card_ui.show_first_four_cards(player_hand, banker_hand)
 
-	player_card2.visible = false
-	flip_cards[1].visible = true
-	flip_cards[1].play_flip()
-	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	player_card2.texture = player_hand[1].get_texture(card_manager)
-	player_card2.visible = true
-	flip_cards[1].visible = false
-
-	banker_card1.visible = false
-	flip_cards[2].visible = true
-	flip_cards[2].play_flip()
-	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	banker_card1.texture = banker_hand[0].get_texture(card_manager)
-	banker_card1.visible = true
-	flip_cards[2].visible = false
-
-	banker_card2.visible = false
-	flip_cards[3].visible = true
-	flip_cards[3].play_flip()
-	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	banker_card2.texture = banker_hand[1].get_texture(card_manager)
-	banker_card2.visible = true
-	flip_cards[3].visible = false
 
 func show_player_third_card(card: Card):
-	player_card3.visible = false
-	flip_cards[4].visible = true
-	flip_cards[4].play_flip()
-	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	player_card3.texture = card.get_texture(card_manager)
-	player_card3.visible = true
-	flip_cards[4].visible = false
+	"""Анимация раздачи третьей карты игроку"""
+	card_ui.show_player_third_card(card)
+
 
 func show_banker_third_card(card: Card):
-	banker_card3.visible = false
-	flip_cards[5].visible = true
-	flip_cards[5].play_flip()
-	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	banker_card3.texture = card.get_texture(card_manager)
-	banker_card3.visible = true
-	flip_cards[5].visible = false
+	"""Анимация раздачи третьей карты банкиру"""
+	card_ui.show_banker_third_card(card)
 
-func reset_ui():
-	_hide_all_cards()
-	_show_initial_backs()
-	player_third_toggle.visible = true
-	banker_third_toggle.visible = true
-	update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-	action_button.disabled = false
 
-func _hide_all_cards():
-	player_card1.visible = false
-	player_card2.visible = false
-	player_card3.visible = false
-	banker_card1.visible = false
-	banker_card2.visible = false
-	banker_card3.visible = false
+func set_flip_cards(cards):
+	"""Установить массив анимаций переворота карт"""
+	card_ui.set_flip_cards(cards)
 
-func _show_initial_backs():
-	var back = card_manager.get_back_texture()
-	player_card1.texture = back
-	player_card2.texture = back
-	banker_card1.texture = back
-	banker_card2.texture = back
-	player_card1.visible = true
-	player_card2.visible = true
-	banker_card1.visible = true
-	banker_card2.visible = true
 
-# Универсальные функции для управления состоянием тумблера заказа третьей карты (ТЕПЕРЬ БЕЗ ПРОЗРАЧНОСТИ!)
+func set_main_node(node):
+	"""Установить главный узел для await"""
+	card_ui.set_main_node(node)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ TOGGLES (→ ToggleUIManager)
+# ═══════════════════════════════════════════════════════════════════════════
+
 func update_player_third_card_ui(state: String, card: Card = null):
-	if state == "hidden":
-		player_third_toggle.visible = false
-	elif state == "?":
-		player_third_toggle.visible = true
-		player_third_toggle.texture = card_manager.get_back_question_texture()
-		player_third_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	elif state == "!":
-		player_third_toggle.visible = true
-		player_third_toggle.texture = card_manager.get_back_exclamation_texture()
-		player_third_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	elif state == "card" and card != null:
-		player_third_toggle.visible = false  # Как только карта открыта — тумблер полностью исчезает!
-	
+	"""Обновление UI переключателя третьей карты игрока"""
+	toggle_ui.update_player_third_card_ui(state, card)
+
 
 func update_banker_third_card_ui(state: String, card: Card = null):
-	if state == "hidden":
-		banker_third_toggle.visible = false
-	elif state == "?":
-		banker_third_toggle.visible = true
-		banker_third_toggle.texture = card_manager.get_back_question_texture()
-		banker_third_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	elif state == "!":
-		banker_third_toggle.visible = true
-		banker_third_toggle.texture = card_manager.get_back_exclamation_texture()
-		banker_third_toggle.mouse_filter = Control.MOUSE_FILTER_STOP
-	elif state == "card" and card != null:
-		banker_third_toggle.visible = false
-	
+	"""Обновление UI переключателя третьей карты банкира"""
+	toggle_ui.update_banker_third_card_ui(state, card)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ КНОПКАМИ (→ ButtonUIManager)
+# ═══════════════════════════════════════════════════════════════════════════
 
 func update_action_button(text: String):
-	# TextureButton не использует text, текстуры устанавливаются через set_action_button_state()
-	pass
+	"""Обновление текста action button (legacy для совместимости)"""
+	button_ui.update_action_button(text)
+
 
 func set_action_button_state(state: String):
-	"""Установить состояние кнопки с текстурами
+	"""Установить состояние action button (start/confirm/complete)"""
+	button_ui.set_action_button_state(state)
 
-	States:
-	- "start": Начать игру (карты скрыты)
-	- "confirm": Подтвердить действие (карты открыты)
-	- "complete": Завершить/Новая игра (раздача закончена)
-	"""
-	const TEXTURES = {
-		"start": {
-			"normal": "res://assets/ui/buttons/start_button.png",
-			"pressed": "res://assets/ui/buttons/start_button_pressed.png"
-		},
-		"confirm": {
-			"normal": "res://assets/ui/buttons/confirm_button.png",
-			"pressed": "res://assets/ui/buttons/confirm_button_pressed.png"
-		},
-		"complete": {
-			"normal": "res://assets/ui/buttons/complete_button.png",
-			"pressed": "res://assets/ui/buttons/complete_pressed_button.png"
-		}
-	}
-
-	if not TEXTURES.has(state):
-		push_error("UIManager: неизвестное состояние кнопки '%s'" % state)
-		return
-
-	# Проверяем что кнопка существует (в тестах её может не быть)
-	if not action_button:
-		return
-
-	var tex_data = TEXTURES[state]
-	var normal_tex = load(tex_data["normal"])
-	var pressed_tex = load(tex_data["pressed"])
-
-	if normal_tex:
-		action_button.texture_normal = normal_tex
-	if pressed_tex:
-		action_button.texture_pressed = pressed_tex
-
-	print("🔘 Кнопка: %s" % state)
 
 func enable_action_button():
-	if action_button:
-		action_button.disabled = false
+	"""Включить action button"""
+	button_ui.enable_action_button()
+
 
 func disable_action_button():
-	if action_button:
-		action_button.disabled = true
+	"""Отключить action button"""
+	button_ui.disable_action_button()
+
 
 func update_lang_button():
-	if lang_button:
-		lang_button.text = Localization.get_lang().to_upper()
+	"""Обновить текст кнопки языка"""
+	button_ui.update_lang_button()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ПЕРЕКЛЮЧАТЕЛИ ВЫПЛАТ
+# МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ МАРКЕРАМИ (→ MarkerUIManager)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ← Обработчик переключателя Player
-func _on_payout_player_toggled(enabled: bool):
-	PayoutSettingsManager.toggle_player(enabled)
-	_update_payout_toggle_style(payout_toggle_player, enabled, GameConstants.PAYOUT_TOGGLE_COLOR_PLAYER)
+func connect_winner_button(button: Control, winner: String):
+	"""Подключить обработчик клика к маркеру (DEPRECATED)"""
+	marker_ui.connect_winner_button(button, winner)
 
-# ← Обработчик переключателя Banker
-func _on_payout_banker_toggled(enabled: bool):
-	PayoutSettingsManager.toggle_banker(enabled)
-	_update_payout_toggle_style(payout_toggle_banker, enabled, GameConstants.PAYOUT_TOGGLE_COLOR_BANKER)
+# ═══════════════════════════════════════════════════════════════════════════
+# СБРОС UI К НАЧАЛЬНОМУ СОСТОЯНИЮ
+# ═══════════════════════════════════════════════════════════════════════════
 
-# ← Обработчик переключателя Tie
-func _on_payout_tie_toggled(enabled: bool):
-	PayoutSettingsManager.toggle_tie(enabled)
-	_update_payout_toggle_style(payout_toggle_tie, enabled, GameConstants.PAYOUT_TOGGLE_COLOR_TIE)
+func reset_ui():
+	"""Сброс всех UI элементов к начальному состоянию
 
-# ← Обновление визуального стиля переключателя
-func _update_payout_toggle_style(button: Button, enabled: bool, color: Color):
-	if not button:
-		return
+	Вызывается при старте нового раунда.
+	Координирует сброс всех дочерних менеджеров.
+	"""
+	# Сброс карт
+	card_ui.reset_cards()
 
-	# Создаём или обновляем StyleBox
-	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = color
-	style_normal.corner_radius_top_left = 8
-	style_normal.corner_radius_top_right = 8
-	style_normal.corner_radius_bottom_left = 8
-	style_normal.corner_radius_bottom_right = 8
-	style_normal.border_width_left = 2
-	style_normal.border_width_top = 2
-	style_normal.border_width_right = 2
-	style_normal.border_width_bottom = 2
-	style_normal.border_color = Color.WHITE if enabled else Color(0.5, 0.5, 0.5, 0.5)
+	# Сброс toggles третьих карт
+	toggle_ui.reset_toggles()
 
-	button.add_theme_stylebox_override("normal", style_normal)
-	button.add_theme_stylebox_override("pressed", style_normal)
-
-	# Прозрачность кнопки
-	button.modulate.a = 1.0 if enabled else GameConstants.PAYOUT_TOGGLE_DISABLED_ALPHA
+	# Сброс кнопки действия
+	button_ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	button_ui.enable_action_button()
