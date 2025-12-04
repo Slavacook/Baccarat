@@ -87,9 +87,9 @@ func test_remove_last_chip_deletes_stack():
 
 func test_remove_from_last_stack_of_denomination():
 	# Создаём 2 стопки номинала 100 (по 20 фишек каждая)
-	for i in range(ChipStack.MAX_CHIPS):
+	for i in range(GameConstants.CHIP_STACK_MAX_CHIPS):
 		manager.add_chip(100.0)
-	for i in range(ChipStack.MAX_CHIPS):
+	for i in range(GameConstants.CHIP_STACK_MAX_CHIPS):
 		manager.add_chip(100.0)
 
 	assert_eq(manager.get_stack_count(), 2, "Должно быть 2 стопки номинала 100")
@@ -98,8 +98,8 @@ func test_remove_from_last_stack_of_denomination():
 	manager.remove_chip(100.0)
 
 	var stacks = manager.get_stacks()
-	assert_eq(stacks[0].count, ChipStack.MAX_CHIPS, "Первая стопка: полная (20 фишек)")
-	assert_eq(stacks[1].count, ChipStack.MAX_CHIPS - 1, "Вторая стопка: 19 фишек")
+	assert_eq(stacks[0].count, GameConstants.CHIP_STACK_MAX_CHIPS, "Первая стопка: полная (20 фишек)")
+	assert_eq(stacks[1].count, GameConstants.CHIP_STACK_MAX_CHIPS - 1, "Вторая стопка: 19 фишек")
 
 func test_remove_chip_nonexistent_denomination():
 	manager.add_chip(100.0)
