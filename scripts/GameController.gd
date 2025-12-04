@@ -549,10 +549,13 @@ func _on_lang_button_pressed():
 	Localization.set_lang(new_lang)
 	ui_manager.update_lang_button()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	# Обновление toggles третьих карт (если видимы)
 	if ui_manager.player_third_toggle.visible:
-		ui_manager.update_player_toggle(phase_manager.player_third_selected)
+		var state = "!" if phase_manager.player_third_selected else "?"
+		ui_manager.update_player_third_card_ui(state)
 	if ui_manager.banker_third_toggle.visible:
-		ui_manager.update_banker_toggle(phase_manager.banker_third_selected)
+		var state = "!" if phase_manager.banker_third_selected else "?"
+		ui_manager.update_banker_third_card_ui(state)
 
 func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 	if is_correct:
@@ -629,10 +632,13 @@ func _on_mode_changed(mode: String):
 
 func _on_language_changed(_lang: String):
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	# Обновление toggles третьих карт (если видимы)
 	if ui_manager.player_third_toggle.visible:
-		ui_manager.update_player_toggle(phase_manager.player_third_selected)
+		var state = "!" if phase_manager.player_third_selected else "?"
+		ui_manager.update_player_third_card_ui(state)
 	if ui_manager.banker_third_toggle.visible:
-		ui_manager.update_banker_toggle(phase_manager.banker_third_selected)
+		var state = "!" if phase_manager.banker_third_selected else "?"
+		ui_manager.update_banker_third_card_ui(state)
 
 func _on_survival_mode_changed(enabled: bool):
 	is_survival_mode = enabled

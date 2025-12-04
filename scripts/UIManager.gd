@@ -39,6 +39,7 @@ var tie_chip: TextureButton
 
 # ← Эти ссылки сохранены для внешнего доступа (GameController, GamePhaseManager)
 var action_button: TextureButton
+var help_button: Button
 var player_third_toggle: TextureRect
 var banker_third_toggle: TextureRect
 
@@ -74,6 +75,7 @@ func _init(scene: Node, card_manager: CardTextureManager):
 
 	# Эти ссылки используются для прямого доступа извне
 	action_button = button_ui.action_button
+	help_button = button_ui.help_button
 	player_third_toggle = toggle_ui.player_third_toggle
 	banker_third_toggle = toggle_ui.banker_third_toggle
 
