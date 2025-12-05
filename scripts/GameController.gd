@@ -153,6 +153,9 @@ func _ready():
 		if ui_manager:
 			ui_manager.set_action_button_state(TableStateManager.action_button_state)
 			print("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
+	else:
+		# При обычной загрузке - синхронизируем фишки пар с toggles
+		_sync_pair_chips_with_toggles()
 
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
@@ -1113,6 +1116,33 @@ func _setup_pair_toggles():
 	pair_player_toggle.toggled.connect(_on_payout_toggle_pair_player)
 	pair_banker_toggle.toggled.connect(_on_payout_toggle_pair_banker)
 	print("✅ Toggles пар настроены")
+
+
+func _sync_pair_chips_with_toggles():
+	"""Синхронизация видимости фишек пар с состоянием toggles
+
+	Вызывается при загрузке игры чтобы показать фишки пар, если они включены в настройках.
+	PayoutToggleManager устанавливает button_pressed ДО подключения сигналов в GameController,
+	поэтому нужна ручная синхронизация.
+	"""
+	if not chip_visual_manager:
+		return
+
+	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
+	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
+
+	if pair_player_toggle and pair_player_toggle.button_pressed:
+		chip_visual_manager.show_chip("PairPlayer")
+		if pair_betting_manager:
+			pair_betting_manager.toggle_pair_player_bet(true)
+		print("✅ Фишка PairPlayer показана при загрузке (из настроек)")
+
+	if pair_banker_toggle and pair_banker_toggle.button_pressed:
+		chip_visual_manager.show_chip("PairBanker")
+		if pair_betting_manager:
+			pair_betting_manager.toggle_pair_banker_bet(true)
+		print("✅ Фишка PairBanker показана при загрузке (из настроек)")
+
 
 func _restore_pair_betting_state():
 	"""Восстановить состояние PairBettingManager из toggles при возврате из PayoutScene"""
