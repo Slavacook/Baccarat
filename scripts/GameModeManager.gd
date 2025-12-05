@@ -20,7 +20,7 @@ const JUNKET_CONFIG = {
 	"pairs_max": 15000,
 	"pairs_step": 100,
 	"banker_commission": 0.95,  # 5% комиссия = 95% выплата
-	"chip_denominations": [100000, 50000, 25000, 10000, 5000, 1000, 500, 100, 25]
+	"chip_denominations": [50000, 25000, 10000, 5000, 1000, 500, 100, 25]
 }
 
 # Конфигурация Classic режима
