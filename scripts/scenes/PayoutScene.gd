@@ -485,6 +485,9 @@ func _show_error_animation(_collected: float):
 	is_button_blocked = true
 	payout_button.disabled = true
 
+	# ← СРАЗУ очищаем фишки (до показа надписи), чтобы можно было начать вводить новую выплату
+	stack_manager.clear_all()
+
 	# Показываем локальный overlay внутри попапа
 	feedback_container.visible = true
 	feedback_label.text = "Ошибка!"
@@ -509,9 +512,6 @@ func _show_error_animation(_collected: float):
 	payout_button.disabled = false
 	feedback_container.visible = false
 	feedback_label.text = ""
-
-	# Автоматически очищаем все фишки
-	stack_manager.clear_all()
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
 
