@@ -12,7 +12,7 @@ extends Control
 @onready var stake_label = $MarginContainer/VBoxContainer/HeaderHBox/StakeLabel
 @onready var amount_panel = $MarginContainer/VBoxContainer/HeaderHBox/AmountPanel
 @onready var collected_amount_label = $MarginContainer/VBoxContainer/HeaderHBox/AmountPanel/CollectedAmountLabel
-@onready var payout_button = $MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/PayoutButton
+@onready var payout_button = $MarginContainer/VBoxContainer/HeaderHBox/PayoutButton
 @onready var hint_button = $MarginContainer/VBoxContainer/HeaderHBox/HintButton
 @onready var score_label = %ScoreLabel
 @onready var main_panel = %MainPanel
