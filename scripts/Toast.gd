@@ -4,6 +4,9 @@ extends PanelContainer
 @onready var label: Label = $MarginContainer/Label
 
 func _ready():
+	# ← Пропускаем клики через тост (не блокируем кнопки под ним)
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	# ← Непрозрачная подложка для тоста
 	var stylebox = StyleBoxFlat.new()
 	stylebox.bg_color = Color(0.15, 0.15, 0.2, 0.8)  # Тёмный, непрозрачный
