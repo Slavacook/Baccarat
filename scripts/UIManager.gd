@@ -177,6 +177,11 @@ func set_action_button_state(state: String):
 	button_ui.set_action_button_state(state)
 
 
+func get_action_button_state() -> String:
+	"""Получить текущее состояние action button"""
+	return button_ui.get_action_button_state()
+
+
 func enable_action_button():
 	"""Включить action button"""
 	button_ui.enable_action_button()
