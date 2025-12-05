@@ -11,7 +11,7 @@ class_name GameConstants
 const FLIP_CARD_DELAY: float = 0.3           # Задержка между flip анимациями карт (секунды)
 const TOAST_DURATION: float = 2.0            # Длительность показа toast (секунды)
 const SUCCESS_ANIMATION_DURATION: float = 1.0  # Длительность анимации успеха (секунды)
-const ERROR_ANIMATION_DURATION: float = 2.0    # Длительность анимации ошибки (секунды)
+const ERROR_ANIMATION_DURATION: float = 0.8    # Длительность анимации ошибки (секунды)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # UI РАЗМЕРЫ И МАСШТАБЫ
