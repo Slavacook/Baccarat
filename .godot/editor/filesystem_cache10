@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1764921111
+::res://::1764922515
 ARCHITECTURE.md::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
 BUGFIXES.md::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
 CHANGELOG_SURVIVAL.md::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
@@ -113,12 +113,12 @@ LobsterTwo-BoldItalic.ttf::FontFile::3182965850633207044::1764465235::1764465235
 LobsterTwo-Italic.ttf::FontFile::7759867820021968437::1764465235::1764465235::1::::<><><>0<>0<>996d6c75f556b60eb6da0fffa0a54d4e<>res://.godot/imported/LobsterTwo-Italic.ttf-f93abf6c25390c85ad5fb6c4ee75159e.fontdata::
 LobsterTwo-Regular.ttf::FontFile::2115948870915788183::1764465235::1764465235::1::::<><><>0<>0<>8d1ca8c94ef93d21f94ba83f40f0d62a<>res://.godot/imported/LobsterTwo-Regular.ttf-f3fcfa01cd671c8da433dd875d0fe04b.fontdata::
 OFL.txt::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
-::res://addons/gut/gui/::1764819646
+::res://addons/gut/gui/::1764922307
 about.gd::GDScript::488202083672295193::1764465235::0::1::::<>AcceptDialog<><>0<>1<><>::
 about.tscn::PackedScene::8284998557770768332::1764465235::0::1::::<><><>0<>0<><>::uid://g7qu8ihdt3pd::::res://addons/gut/gui/about.gd<>uid://bjkn8mhx2fmt1::::res://addons/gut/gui/GutLogo.tscn
 arrow.png::CompressedTexture2D::2222304255268796957::1764465235::1764465235::1::::<><><>0<>0<>c6670127146b5956636ca7e2cf440791<>res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex::
-EditorRadioButton.tres::Theme::8460222933348692164::1764819646::0::1::::<><><>0<>0<><>::
-editor_globals.gd::GDScript::4861108855360548659::1764819646::0::1::::<>RefCounted<><>0<>1<><>::
+EditorRadioButton.tres::Theme::8460222933348692164::1764922307::0::1::::<><><>0<>0<><>::
+editor_globals.gd::GDScript::4861108855360548659::1764922307::0::1::::<>RefCounted<><>0<>1<><>::
 GutBottomPanel.gd::GDScript::8536994468377110612::1764465235::0::1::::<>Control<><>0<>1<><>::
 GutBottomPanel.tscn::PackedScene::4354655867367614688::1764465235::0::1::::<><><>0<>0<><>::uid://dtvnb0xatk0my::::res://addons/gut/gui/GutBottomPanel.gd<>uid://0yunjxtaa8iw::::res://addons/gut/gui/RunAtCursor.tscn<>uid://cr6tvdv0ve6cv::::res://addons/gut/gui/play.png<>uid://bvo0uao7deu0q::::res://addons/gut/icon.png<>uid://4gyyn12um08h::::res://addons/gut/gui/RunResults.tscn<>uid://bqmo4dj64c7yl::::res://addons/gut/gui/OutputText.tscn<>uid://dj5ve0bq7xa5j::::res://addons/gut/gui/ShortcutDialog.tscn<>uid://ckv5eh8xyrwbk::::res://addons/gut/gui/ShellOutOptions.tscn
 GutControl.gd::GDScript::5919874032655369281::1764465235::0::1::::<>Control<><>0<>1<><>::
@@ -344,7 +344,7 @@ icon_180x180.png::CompressedTexture2D::8829146504763687343::1764465235::17644652
 icon_512x512.png::CompressedTexture2D::2774166128768893739::1764465235::1764465235::1::::<><><>0<>0<>15eba9eb905c26fc5924d28c6cd0d31d<>res://.godot/imported/icon_512x512.png-c621fedcf114cdbf0e85b5d9ad40b835.ctex::
 ::res://resources/::1764465235
 GameConfig.gd::GDScript::9082664074550891935::1764465235::0::1::::GameConfig<>Resource<><>0<>0<><>::
-::res://scenes/::1764921100
+::res://scenes/::1764922469
 BetPopup.tscn::PackedScene::4738235037960788730::1764465235::0::1::::<><><>0<>0<><>::uid://c60k5ekwpxfw7::::res://scripts/BetPopup.gd
 dust.tscn::PackedScene::2569557927807458103::1764465235::0::1::::<><><>0<>0<><>::uid://d212mi5krthoy::::res://scripts/Dust.gd<>uid://cvjnq02pacoxm::::res://assets/animation/animation_dust_card/1_card/card_1.PNG<>uid://ckvafm36yuru5::::res://assets/animation/animation_dust_card/1_card/card_2.PNG<>uid://bm243wkne64gs::::res://assets/animation/animation_dust_card/1_card/card_3.PNG<>uid://b2k8feb004khm::::res://assets/animation/animation_dust_card/1_card/card_4.PNG<>uid://c6cvyycf3ao3x::::res://assets/animation/animation_dust_card/1_card/card_5.PNG<>uid://dpdhefbpqy68r::::res://assets/animation/animation_dust_card/1_card/card_6.PNG<>uid://b4jlu41pk1he4::::res://assets/animation/animation_dust_card/1_card/card_7.PNG<>uid://bpcxehvtdhtoc::::res://assets/animation/animation_dust_card/1_card/card_8.PNG<>uid://bb23s3yotgf7::::res://assets/animation/animation_dust_card/2_card/card_1.PNG<>uid://bhxaab08a1lor::::res://assets/animation/animation_dust_card/2_card/card_2.PNG<>uid://dsccveexgkkjh::::res://assets/animation/animation_dust_card/2_card/card_3.PNG<>uid://clicspmbxiq2m::::res://assets/animation/animation_dust_card/2_card/card_4.PNG<>uid://daehvpmtcggts::::res://assets/animation/animation_dust_card/2_card/card_5.PNG<>uid://cw0ot54waqu0l::::res://assets/animation/animation_dust_card/2_card/card_6.PNG<>uid://rg4qy4ajs2dd::::res://assets/animation/animation_dust_card/2_card/card_7.PNG<>uid://kte0w75lir82::::res://assets/animation/animation_dust_card/2_card/card_8.PNG
 flip_card.tscn::PackedScene::2203904829151038995::1764465235::0::1::::<><><>0<>0<><>::uid://3g33us4ym5r1::::res://scripts/FlipCard.gd<>uid://bxgut3oh6s8sw::::res://assets/animation/animation_open_card/open_card_1.png<>uid://bti40v4x1wmd0::::res://assets/animation/animation_open_card/open_card_2.png<>uid://bupv608aq1x0h::::res://assets/animation/animation_open_card/open_card_3.png<>uid://dfq1uvneroypd::::res://assets/animation/animation_open_card/open_card_4.png<>uid://bnr1ecy1lb78t::::res://assets/animation/animation_open_card/open_card_5.png<>uid://co6t8ijeehbjd::::res://assets/animation/animation_open_card/open_card_6.png<>uid://dr13684kelh8t::::res://assets/animation/animation_open_card/open_card_7.png<>uid://cg8nsjoqi70ya::::res://assets/animation/animation_open_card/open_card_8.png<>uid://ikpc5htslnwk::::res://assets/animation/animation_open_card/open_card_9.png<>uid://cn7uayylmw18a::::res://assets/animation/animation_open_card/open_card_10.png<>uid://c8i6qcnshcre0::::res://assets/sound/flip_card8.wav
@@ -353,7 +353,7 @@ GameOverPopup.tscn::PackedScene::-1::1764465235::0::1::::<><><>0<>0<><>::res://s
 HelpPopup.tscn::PackedScene::1318077622054836299::1764465235::0::1::::<><><>0<>0<><>::uid://3yyj0s6pxqkk::::res://scripts/HelpPopup.gd
 LimitsPopup.tscn::PackedScene::6556987529166432286::1764465235::0::1::::<><><>0<>0<><>::uid://hxo8nl6k4neq::::res://scripts/TableLimitsPopup.gd
 OverlayNotification.tscn::PackedScene::-1::1764465235::0::1::::<><><>0<>0<><>::res://scripts/OverlayNotification.gd
-PayoutScene.tscn::PackedScene::5056559289898713349::1764921100::0::1::::<><><>0<>0<><>::uid://duptxv0hwgyyk::::res://scripts/scenes/PayoutScene.gd
+PayoutScene.tscn::PackedScene::5056559289898713349::1764922469::0::1::::<><><>0<>0<><>::uid://duptxv0hwgyyk::::res://scripts/scenes/PayoutScene.gd
 SettingsPopup.tscn::PackedScene::8682819899485884407::1764465235::0::1::::<><><>0<>0<><>::uid://fl5the672xbt::::res://scripts/SettingsPopup.gd
 SurvivalModeUI.tscn::PackedScene::1200197571375732007::1764465235::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd
 Toast.tscn::PackedScene::1936476259211108317::1764920309::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
@@ -408,8 +408,8 @@ PHASE_1_ANALYSIS.md::TextFile::-1::1764842064::0::1::::<><><>0<>0<><>::
 PHASE_2_ANALYSIS.md::TextFile::-1::1764851325::0::1::::<><><>0<>0<><>::
 README.md::TextFile::-1::1764831729::0::1::::<><><>0<>0<><>::
 TESTING_CHECKLIST.md::TextFile::-1::1764831671::0::1::::<><><>0<>0<><>::
-::res://scripts/scenes/::1764921043
-PayoutScene.gd::GDScript::8595200428231398090::1764921043::0::1::::<>Control<><>0<>0<><>::
+::res://scripts/scenes/::1764921549
+PayoutScene.gd::GDScript::8595200428231398090::1764921549::0::1::::<>Control<><>0<>0<><>::
 ::res://scripts/ui/::1764905201
 ButtonUIManager.gd::GDScript::6765460019147174517::1764905201::0::1::::ButtonUIManager<>RefCounted<><>0<>0<><>::
 CardUIManager.gd::GDScript::2927073092701654880::1764851497::0::1::::CardUIManager<>RefCounted<><>0<>0<><>::

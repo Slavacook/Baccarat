@@ -118,7 +118,7 @@ theme_override_constants/margin_bottom = 10
 
 [node name="FleetHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/FleetPanel/FleetMargin"]
 layout_mode = 2
-theme_override_constants/separation = 10
+theme_override_constants/separation = 20
 
 [node name="ChipFleetContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
 unique_name_in_owner = true
@@ -127,7 +127,7 @@ size_flags_horizontal = 3
 alignment = 1
 
 [node name="PayoutButton" type="Button" parent="MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
-custom_minimum_size = Vector2(100, 80)
+custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_vertical = 4
 text = "Выплатить"

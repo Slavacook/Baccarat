@@ -1,0 +1,4 @@
+res://scenes/PayoutScene.tscn
+res://addons/gut/gui/editor_globals.gd
+res://addons/gut/gui/EditorRadioButton.tres
+res://scripts/GameModeManager.gd
