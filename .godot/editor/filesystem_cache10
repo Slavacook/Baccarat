@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1764922515
+::res://::1764923124
 ARCHITECTURE.md::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
 BUGFIXES.md::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
 CHANGELOG_SURVIVAL.md::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
@@ -113,12 +113,12 @@ LobsterTwo-BoldItalic.ttf::FontFile::3182965850633207044::1764465235::1764465235
 LobsterTwo-Italic.ttf::FontFile::7759867820021968437::1764465235::1764465235::1::::<><><>0<>0<>996d6c75f556b60eb6da0fffa0a54d4e<>res://.godot/imported/LobsterTwo-Italic.ttf-f93abf6c25390c85ad5fb6c4ee75159e.fontdata::
 LobsterTwo-Regular.ttf::FontFile::2115948870915788183::1764465235::1764465235::1::::<><><>0<>0<>8d1ca8c94ef93d21f94ba83f40f0d62a<>res://.godot/imported/LobsterTwo-Regular.ttf-f3fcfa01cd671c8da433dd875d0fe04b.fontdata::
 OFL.txt::TextFile::-1::1764465235::0::1::::<><><>0<>0<><>::
-::res://addons/gut/gui/::1764922307
+::res://addons/gut/gui/::1764922554
 about.gd::GDScript::488202083672295193::1764465235::0::1::::<>AcceptDialog<><>0<>1<><>::
 about.tscn::PackedScene::8284998557770768332::1764465235::0::1::::<><><>0<>0<><>::uid://g7qu8ihdt3pd::::res://addons/gut/gui/about.gd<>uid://bjkn8mhx2fmt1::::res://addons/gut/gui/GutLogo.tscn
 arrow.png::CompressedTexture2D::2222304255268796957::1764465235::1764465235::1::::<><><>0<>0<>c6670127146b5956636ca7e2cf440791<>res://.godot/imported/arrow.png-2b5b2d838b5b3467cf300ac2da1630d9.ctex::
-EditorRadioButton.tres::Theme::8460222933348692164::1764922307::0::1::::<><><>0<>0<><>::
-editor_globals.gd::GDScript::4861108855360548659::1764922307::0::1::::<>RefCounted<><>0<>1<><>::
+EditorRadioButton.tres::Theme::8460222933348692164::1764922554::0::1::::<><><>0<>0<><>::
+editor_globals.gd::GDScript::4861108855360548659::1764922554::0::1::::<>RefCounted<><>0<>1<><>::
 GutBottomPanel.gd::GDScript::8536994468377110612::1764465235::0::1::::<>Control<><>0<>1<><>::
 GutBottomPanel.tscn::PackedScene::4354655867367614688::1764465235::0::1::::<><><>0<>0<><>::uid://dtvnb0xatk0my::::res://addons/gut/gui/GutBottomPanel.gd<>uid://0yunjxtaa8iw::::res://addons/gut/gui/RunAtCursor.tscn<>uid://cr6tvdv0ve6cv::::res://addons/gut/gui/play.png<>uid://bvo0uao7deu0q::::res://addons/gut/icon.png<>uid://4gyyn12um08h::::res://addons/gut/gui/RunResults.tscn<>uid://bqmo4dj64c7yl::::res://addons/gut/gui/OutputText.tscn<>uid://dj5ve0bq7xa5j::::res://addons/gut/gui/ShortcutDialog.tscn<>uid://ckv5eh8xyrwbk::::res://addons/gut/gui/ShellOutOptions.tscn
 GutControl.gd::GDScript::5919874032655369281::1764465235::0::1::::<>Control<><>0<>1<><>::
@@ -344,7 +344,7 @@ icon_180x180.png::CompressedTexture2D::8829146504763687343::1764465235::17644652
 icon_512x512.png::CompressedTexture2D::2774166128768893739::1764465235::1764465235::1::::<><><>0<>0<>15eba9eb905c26fc5924d28c6cd0d31d<>res://.godot/imported/icon_512x512.png-c621fedcf114cdbf0e85b5d9ad40b835.ctex::
 ::res://resources/::1764465235
 GameConfig.gd::GDScript::9082664074550891935::1764465235::0::1::::GameConfig<>Resource<><>0<>0<><>::
-::res://scenes/::1764922469
+::res://scenes/::1764923103
 BetPopup.tscn::PackedScene::4738235037960788730::1764465235::0::1::::<><><>0<>0<><>::uid://c60k5ekwpxfw7::::res://scripts/BetPopup.gd
 dust.tscn::PackedScene::2569557927807458103::1764465235::0::1::::<><><>0<>0<><>::uid://d212mi5krthoy::::res://scripts/Dust.gd<>uid://cvjnq02pacoxm::::res://assets/animation/animation_dust_card/1_card/card_1.PNG<>uid://ckvafm36yuru5::::res://assets/animation/animation_dust_card/1_card/card_2.PNG<>uid://bm243wkne64gs::::res://assets/animation/animation_dust_card/1_card/card_3.PNG<>uid://b2k8feb004khm::::res://assets/animation/animation_dust_card/1_card/card_4.PNG<>uid://c6cvyycf3ao3x::::res://assets/animation/animation_dust_card/1_card/card_5.PNG<>uid://dpdhefbpqy68r::::res://assets/animation/animation_dust_card/1_card/card_6.PNG<>uid://b4jlu41pk1he4::::res://assets/animation/animation_dust_card/1_card/card_7.PNG<>uid://bpcxehvtdhtoc::::res://assets/animation/animation_dust_card/1_card/card_8.PNG<>uid://bb23s3yotgf7::::res://assets/animation/animation_dust_card/2_card/card_1.PNG<>uid://bhxaab08a1lor::::res://assets/animation/animation_dust_card/2_card/card_2.PNG<>uid://dsccveexgkkjh::::res://assets/animation/animation_dust_card/2_card/card_3.PNG<>uid://clicspmbxiq2m::::res://assets/animation/animation_dust_card/2_card/card_4.PNG<>uid://daehvpmtcggts::::res://assets/animation/animation_dust_card/2_card/card_5.PNG<>uid://cw0ot54waqu0l::::res://assets/animation/animation_dust_card/2_card/card_6.PNG<>uid://rg4qy4ajs2dd::::res://assets/animation/animation_dust_card/2_card/card_7.PNG<>uid://kte0w75lir82::::res://assets/animation/animation_dust_card/2_card/card_8.PNG
 flip_card.tscn::PackedScene::2203904829151038995::1764465235::0::1::::<><><>0<>0<><>::uid://3g33us4ym5r1::::res://scripts/FlipCard.gd<>uid://bxgut3oh6s8sw::::res://assets/animation/animation_open_card/open_card_1.png<>uid://bti40v4x1wmd0::::res://assets/animation/animation_open_card/open_card_2.png<>uid://bupv608aq1x0h::::res://assets/animation/animation_open_card/open_card_3.png<>uid://dfq1uvneroypd::::res://assets/animation/animation_open_card/open_card_4.png<>uid://bnr1ecy1lb78t::::res://assets/animation/animation_open_card/open_card_5.png<>uid://co6t8ijeehbjd::::res://assets/animation/animation_open_card/open_card_6.png<>uid://dr13684kelh8t::::res://assets/animation/animation_open_card/open_card_7.png<>uid://cg8nsjoqi70ya::::res://assets/animation/animation_open_card/open_card_8.png<>uid://ikpc5htslnwk::::res://assets/animation/animation_open_card/open_card_9.png<>uid://cn7uayylmw18a::::res://assets/animation/animation_open_card/open_card_10.png<>uid://c8i6qcnshcre0::::res://assets/sound/flip_card8.wav
@@ -353,11 +353,11 @@ GameOverPopup.tscn::PackedScene::-1::1764465235::0::1::::<><><>0<>0<><>::res://s
 HelpPopup.tscn::PackedScene::1318077622054836299::1764465235::0::1::::<><><>0<>0<><>::uid://3yyj0s6pxqkk::::res://scripts/HelpPopup.gd
 LimitsPopup.tscn::PackedScene::6556987529166432286::1764465235::0::1::::<><><>0<>0<><>::uid://hxo8nl6k4neq::::res://scripts/TableLimitsPopup.gd
 OverlayNotification.tscn::PackedScene::-1::1764465235::0::1::::<><><>0<>0<><>::res://scripts/OverlayNotification.gd
-PayoutScene.tscn::PackedScene::5056559289898713349::1764922469::0::1::::<><><>0<>0<><>::uid://duptxv0hwgyyk::::res://scripts/scenes/PayoutScene.gd
+PayoutScene.tscn::PackedScene::5056559289898713349::1764923103::0::1::::<><><>0<>0<><>::uid://duptxv0hwgyyk::::res://scripts/scenes/PayoutScene.gd
 SettingsPopup.tscn::PackedScene::8682819899485884407::1764465235::0::1::::<><><>0<>0<><>::uid://fl5the672xbt::::res://scripts/SettingsPopup.gd
 SurvivalModeUI.tscn::PackedScene::1200197571375732007::1764465235::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd
 Toast.tscn::PackedScene::1936476259211108317::1764920309::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
-::res://scripts/::1764920201
+::res://scripts/::1764923070
 BaccaratRules.gd::GDScript::5836862682016780837::1764465235::0::1::::BaccaratRules<>RefCounted<><>0<>0<><>::
 BetPopup.gd::GDScript::7000965934323491592::1764465235::0::1::::<>PopupPanel<><>0<>0<><>::
 Card.gd::GDScript::3661103580919269901::1764465235::0::1::::Card<>RefCounted<><>0<>0<><>::
@@ -370,7 +370,7 @@ FocusManager.gd::GDScript::2268358975655087253::1764465235::0::1::::<>Node<><>0<
 GameConstants.gd::GDScript::5908386211620384816::1764911995::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
 GameController.gd::GDScript::5622432768509677956::1764911419::0::1::::<>Node2D<><>0<>0<><>::
 GameDataManager.gd::GDScript::3173968144031983268::1764497966::0::1::::<>Node<><>0<>0<><>::
-GameModeManager.gd::GDScript::5355736345804787176::1764560273::0::1::::<>Node<><>0<>0<><>::
+GameModeManager.gd::GDScript::5355736345804787176::1764922712::0::1::::<>Node<><>0<>0<><>::
 GameOverPopup.gd::GDScript::5627445595560981844::1764465235::0::1::::<>PopupPanel<><>0<>0<><>::
 GamePhaseManager.gd::GDScript::1038087620930647068::1764849993::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
 HelpPopup.gd::GDScript::2016307310253579686::1764465235::0::1::::<>PopupPanel<><>0<>0<><>::
@@ -381,7 +381,7 @@ OverlayNotificationManager.gd::GDScript::7654303330837225282::1764465235::0::1::
 PairBettingManager.gd::GDScript::6346628608273793759::1764498983::0::1::::PairBettingManager<>RefCounted<><>0<>0<><>::
 PayoutContextManager.gd::GDScript::4733859750709543363::1764465235::0::1::::<>Node<><>0<>0<><>::
 PayoutQueueManager.gd::GDScript::340946509004253663::1764850054::0::1::::PayoutQueueManager<>RefCounted<><>0<>0<><>::
-SaveManager.gd::GDScript::8627907365010767779::1764465235::0::1::::<>Node<><>0<>0<><>::
+SaveManager.gd::GDScript::8627907365010767779::1764923070::0::1::::<>Node<><>0<>0<><>::
 SettingsPopup.gd::GDScript::375508188647023817::1764465235::0::1::::<>PopupPanel<><>0<>0<><>::
 StatsManager.gd::GDScript::7422061842198344417::1764465235::0::1::::<>Node<><>0<>0<><>::
 SurvivalModeUI.gd::GDScript::6868350488718170528::1764817642::0::1::::<>Control<><>0<>0<><>::
@@ -391,11 +391,11 @@ ToastManager.gd::GDScript::2410074093126528627::1764490579::0::1::::<>Node<><>0<
 ToastPool.gd::GDScript::5388200129698335381::1764465235::0::1::::ToastPool<>RefCounted<><>0<>0<><>::
 UIManager.gd::GDScript::1118681647054706915::1764905895::0::1::::UIManager<>RefCounted<><>0<>0<><>::
 WinnerSelectionManager.gd::GDScript::1716130692499533290::1764763268::0::1::::WinnerSelectionManager<>RefCounted<><>0<>0<><>::
-::res://scripts/autoload/::1764842133
+::res://scripts/autoload/::1764923045
 BetProfileManager.gd::GDScript::8384333793926410519::1764560346::0::1::::<>Node<><>0<>0<><>::
 EventBus.gd::GDScript::3593151948523363606::1764842133::0::1::::<>Node<><>0<>0<><>::
 GameStateManager.gd::GDScript::2944304400268701279::1764467465::0::1::::<>Node<><>0<>0<><>::
-PayoutSettingsManager.gd::GDScript::2318296590108159483::1764465235::0::1::::<>Node<><>0<>0<><>::
+PayoutSettingsManager.gd::GDScript::2318296590108159483::1764923045::0::1::::<>Node<><>0<>0<><>::
 TableStateManager.gd::GDScript::1339250922692929002::1764829830::0::1::::<>Node<><>0<>0<><>::
 ::res://scripts/chip_system/::1764848644
 ChipStack.gd::GDScript::1674756323753705090::1764848644::0::1::::ChipStack<>RefCounted<><>0<>0<><>::

@@ -1,4 +1,10 @@
+res://scripts/ui/PayoutToggleManager.gd
 res://scenes/PayoutScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/GameModeManager.gd
+res://scripts/GameController.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/UIManager.gd
+res://scripts/ui/ButtonUIManager.gd
+res://scenes/Toast.tscn
+res://scripts/Toast.gd
