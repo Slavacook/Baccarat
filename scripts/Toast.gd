@@ -6,7 +6,7 @@ extends PanelContainer
 func _ready():
 	# ← Непрозрачная подложка для тоста
 	var stylebox = StyleBoxFlat.new()
-	stylebox.bg_color = Color(0.15, 0.15, 0.2, 1.0)  # Тёмный, непрозрачный
+	stylebox.bg_color = Color(0.15, 0.15, 0.2, 0.8)  # Тёмный, непрозрачный
 	stylebox.border_width_left = 2
 	stylebox.border_width_top = 2
 	stylebox.border_width_right = 2

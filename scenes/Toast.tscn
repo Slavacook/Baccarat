@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://c4fvahxd63mip" path="res://scripts/Toast.gd" id="1_1bt00"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_1bt00"]
-bg_color = Color(0, 0, 0, 0.6)
+bg_color = Color(0, 0, 0, 0.019607844)
 border_width_left = 2
 border_width_right = 2
 border_color = Color(0.8406308, 0.7062913, 0, 1)
