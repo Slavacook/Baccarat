@@ -59,8 +59,8 @@ func _init(scene: Node):
 			GameConstants.PAYOUT_TOGGLE_COLOR_TIE
 		)
 
-	if scene.has_node("PayoutTogglePlayerPair"):
-		payout_toggle_player_pair = scene.get_node("PayoutTogglePlayerPair")
+	if scene.has_node("PayoutTogglePairPlayer"):
+		payout_toggle_player_pair = scene.get_node("PayoutTogglePairPlayer")
 		payout_toggle_player_pair.toggle_mode = true
 		payout_toggle_player_pair.button_pressed = PayoutSettingsManager.player_pair_payout_enabled
 		payout_toggle_player_pair.toggled.connect(_on_payout_player_pair_toggled)
@@ -70,8 +70,8 @@ func _init(scene: Node):
 			GameConstants.PAYOUT_TOGGLE_COLOR_PLAYER
 		)
 
-	if scene.has_node("PayoutToggleBankerPair"):
-		payout_toggle_banker_pair = scene.get_node("PayoutToggleBankerPair")
+	if scene.has_node("PayoutTogglePairBanker"):
+		payout_toggle_banker_pair = scene.get_node("PayoutTogglePairBanker")
 		payout_toggle_banker_pair.toggle_mode = true
 		payout_toggle_banker_pair.button_pressed = PayoutSettingsManager.banker_pair_payout_enabled
 		payout_toggle_banker_pair.toggled.connect(_on_payout_banker_pair_toggled)
