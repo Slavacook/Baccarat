@@ -12,6 +12,8 @@ extends RefCounted
 var payout_toggle_player: Button
 var payout_toggle_banker: Button
 var payout_toggle_tie: Button
+var payout_toggle_player_pair: Button
+var payout_toggle_banker_pair: Button
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -57,6 +59,28 @@ func _init(scene: Node):
 			GameConstants.PAYOUT_TOGGLE_COLOR_TIE
 		)
 
+	if scene.has_node("PayoutTogglePlayerPair"):
+		payout_toggle_player_pair = scene.get_node("PayoutTogglePlayerPair")
+		payout_toggle_player_pair.toggle_mode = true
+		payout_toggle_player_pair.button_pressed = PayoutSettingsManager.player_pair_payout_enabled
+		payout_toggle_player_pair.toggled.connect(_on_payout_player_pair_toggled)
+		_update_payout_toggle_style(
+			payout_toggle_player_pair,
+			PayoutSettingsManager.player_pair_payout_enabled,
+			GameConstants.PAYOUT_TOGGLE_COLOR_PLAYER
+		)
+
+	if scene.has_node("PayoutToggleBankerPair"):
+		payout_toggle_banker_pair = scene.get_node("PayoutToggleBankerPair")
+		payout_toggle_banker_pair.toggle_mode = true
+		payout_toggle_banker_pair.button_pressed = PayoutSettingsManager.banker_pair_payout_enabled
+		payout_toggle_banker_pair.toggled.connect(_on_payout_banker_pair_toggled)
+		_update_payout_toggle_style(
+			payout_toggle_banker_pair,
+			PayoutSettingsManager.banker_pair_payout_enabled,
+			GameConstants.PAYOUT_TOGGLE_COLOR_BANKER
+		)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ ПЕРЕКЛЮЧАТЕЛЕЙ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -88,6 +112,26 @@ func _on_payout_tie_toggled(enabled: bool):
 		payout_toggle_tie,
 		enabled,
 		GameConstants.PAYOUT_TOGGLE_COLOR_TIE
+	)
+
+
+func _on_payout_player_pair_toggled(enabled: bool):
+	"""Обработка переключателя выплаты Player Pair"""
+	PayoutSettingsManager.toggle_player_pair(enabled)
+	_update_payout_toggle_style(
+		payout_toggle_player_pair,
+		enabled,
+		GameConstants.PAYOUT_TOGGLE_COLOR_PLAYER
+	)
+
+
+func _on_payout_banker_pair_toggled(enabled: bool):
+	"""Обработка переключателя выплаты Banker Pair"""
+	PayoutSettingsManager.toggle_banker_pair(enabled)
+	_update_payout_toggle_style(
+		payout_toggle_banker_pair,
+		enabled,
+		GameConstants.PAYOUT_TOGGLE_COLOR_BANKER
 	)
 
 # ═══════════════════════════════════════════════════════════════════════════
