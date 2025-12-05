@@ -1244,14 +1244,17 @@ func _on_chip_clicked(bet_type: String):
 	if bet.is_paid:
 		ToastManager.instance.show_info("Эта ставка уже оплачена")
 		return
-	_open_payout_scene(bet_type, bet.stake, bet.payout)
+	_open_payout_scene(bet_type)
 
 # ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
 
-func _open_payout_scene(bet_type: String, stake: float, expected_payout: float):
+func _open_payout_scene(bet_type: String):
 	"""Открыть PayoutScene для конкретной ставки
 
 	Использует TableStateManager для полного сохранения состояния стола
+
+	Args:
+		bet_type: Тип ставки ("main"/"player_pair"/"banker_pair")
 	"""
 	# Получаем данные ставки из TableStateManager
 	var bet_data = TableStateManager.get_bet_data(bet_type)

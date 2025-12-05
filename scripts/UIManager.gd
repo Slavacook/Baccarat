@@ -12,6 +12,7 @@ extends RefCounted
 signal action_button_pressed()
 signal player_third_toggled(selected: bool)
 signal banker_third_toggled(selected: bool)
+@warning_ignore("unused_signal")
 signal winner_selected(winner: String)
 signal help_button_pressed()
 signal lang_button_pressed()
