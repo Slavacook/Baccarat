@@ -13,6 +13,7 @@ extends RefCounted
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+@warning_ignore("unused_signal")
 signal winner_selected(winner: String)
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -47,6 +48,7 @@ func _init(scene: Node):
 # ПОДКЛЮЧЕНИЕ КНОПОК (DEPRECATED)
 # ═══════════════════════════════════════════════════════════════════════════
 
+@warning_ignore("unused_parameter")
 func connect_winner_button(button: Control, winner: String):
 	"""Подключить обработчик клика к маркеру (DEPRECATED)
 

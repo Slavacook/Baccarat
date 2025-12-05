@@ -48,6 +48,7 @@ func _init(scene: Node):
 # УПРАВЛЕНИЕ ACTION BUTTON
 # ═══════════════════════════════════════════════════════════════════════════
 
+@warning_ignore("unused_parameter")
 func update_action_button(text: String):
 	"""Обновление текста action button (legacy метод для совместимости)
 
