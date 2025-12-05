@@ -779,8 +779,9 @@ func _check_payout_return():
 			# 4. Восстанавливаем survival режим
 			survival_rounds_completed = TableStateManager.survival_rounds
 			if survival_ui:
-				survival_ui.current_lives = TableStateManager.survival_lives
 				survival_ui.is_active = TableStateManager.survival_active
+				survival_ui.set_lives(TableStateManager.survival_lives)  # ← Используем set_lives() для обновления визуала
+				print("♻️  Survival режим восстановлен: жизней=%d, раундов=%d" % [TableStateManager.survival_lives, survival_rounds_completed])
 
 			# 5. Восстанавливаем PayoutQueueManager из TableStateManager
 			payout_queue_manager = PayoutQueueManager.new()
