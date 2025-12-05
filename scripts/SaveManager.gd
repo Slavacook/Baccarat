@@ -113,11 +113,13 @@ func load_survival_mode() -> bool:
 	return settings.get("survival_mode", false)
 
 # ← Настройки выплат (переключатели ставок)
-func save_payout_settings(player: bool, banker: bool, tie: bool):
+func save_payout_settings(player: bool, banker: bool, tie: bool, player_pair: bool = true, banker_pair: bool = true):
 	var settings = load_settings()
 	settings["payout_player"] = player
 	settings["payout_banker"] = banker
 	settings["payout_tie"] = tie
+	settings["payout_player_pair"] = player_pair
+	settings["payout_banker_pair"] = banker_pair
 	save_settings(settings)
 
 func load_payout_settings() -> Dictionary:
@@ -125,7 +127,9 @@ func load_payout_settings() -> Dictionary:
 	return {
 		"player": settings.get("payout_player", true),
 		"banker": settings.get("payout_banker", true),
-		"tie": settings.get("payout_tie", true)
+		"tie": settings.get("payout_tie", true),
+		"player_pair": settings.get("payout_player_pair", true),
+		"banker_pair": settings.get("payout_banker_pair", true)
 	}
 
 # ← Настройки профиля ставок
