@@ -241,10 +241,10 @@ scale = Vector2(1.24, 1.24)
 texture = ExtResource("14_7ua8r")
 
 [node name="SettingsButton" type="Button" parent="."]
-offset_left = 1093.0
-offset_top = 4.9999847
-offset_right = 1627.0
-offset_bottom = 525.0
+offset_left = 1094.0
+offset_top = 2.0000002
+offset_right = 1628.0
+offset_bottom = 522.0
 scale = Vector2(0.1, 0.1)
 size_flags_horizontal = 4
 theme_override_icons/icon = ExtResource("18_45i86")
@@ -254,29 +254,29 @@ icon = ExtResource("18_45i86")
 [node name="SettingsPopup" parent="." instance=ExtResource("18_kyk2p")]
 
 [node name="PayoutTogglePlayer" type="Button" parent="."]
-offset_left = 1092.0
-offset_top = 61.0
-offset_right = 1739.0
-offset_bottom = 655.0
-scale = Vector2(0.09, 0.09)
+offset_left = 1088.0001
+offset_top = 55.000004
+offset_right = 1735.0001
+offset_bottom = 649.0
+scale = Vector2(0.105, 0.105)
 icon = ExtResource("18_sv1m6")
 flat = true
 
 [node name="PayoutToggleBanker" type="Button" parent="."]
-offset_left = 1092.0
-offset_top = 123.0
-offset_right = 1687.0
-offset_bottom = 717.0
-scale = Vector2(0.089, 0.089)
+offset_left = 1087.0
+offset_top = 117.00001
+offset_right = 1682.0
+offset_bottom = 711.0
+scale = Vector2(0.105, 0.105)
 icon = ExtResource("19_attvq")
 flat = true
 
 [node name="PayoutToggleTie" type="Button" parent="."]
-offset_left = 1092.0
-offset_top = 185.99998
-offset_right = 1686.0
-offset_bottom = 780.0
-scale = Vector2(0.09, 0.09)
+offset_left = 1085.0
+offset_top = 180.0
+offset_right = 1679.0
+offset_bottom = 774.0
+scale = Vector2(0.11, 0.11)
 icon = ExtResource("20_bneo8")
 flat = true
 
@@ -316,19 +316,19 @@ offset_right = 683.0
 offset_bottom = 301.0
 
 [node name="PayoutTogglePairPlayer" type="Button" parent="."]
-offset_left = 1092.0
-offset_top = 248.0
-offset_right = 1686.0
-offset_bottom = 842.0
+offset_left = 1049.0
+offset_top = 245.0
+offset_right = 2178.0
+offset_bottom = 1247.0
 scale = Vector2(0.09, 0.09)
 icon = ExtResource("21_ocgqw")
 flat = true
 
 [node name="PayoutTogglePairBanker" type="Button" parent="."]
-offset_left = 1092.0
-offset_top = 312.0
-offset_right = 1687.0
-offset_bottom = 907.0
+offset_left = 1049.0
+offset_top = 341.0
+offset_right = 2182.0
+offset_bottom = 1348.0
 scale = Vector2(0.09, 0.09)
 icon = ExtResource("22_jbgew")
 flat = true

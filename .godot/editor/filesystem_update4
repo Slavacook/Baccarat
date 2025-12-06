@@ -8,3 +8,4 @@ res://scripts/UIManager.gd
 res://scripts/ui/ButtonUIManager.gd
 res://scenes/Toast.tscn
 res://scripts/Toast.gd
+res://scenes/Game.tscn
