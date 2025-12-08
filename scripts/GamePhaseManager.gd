@@ -160,7 +160,6 @@ func complete_game():
 	ui.update_banker_third_card_ui("?")
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	# Кнопка НЕ меняется здесь - только после правильного выбора победителя
-	EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
 
 
 
@@ -204,7 +203,7 @@ func on_action_pressed():
 	if state == GameStateManager.GameState.CHOOSE_WINNER:
 		# Проверяем, пытается ли игрок заказать карты в финале
 		if player_third_selected or banker_third_selected:
-			EventBus.show_toast_error.emit("Игра закончена! Нельзя заказывать карты. Выберите победителя.")
+			EventBus.show_toast_error.emit(Localization.t("ERR_NATURAL_NO_DRAW"))
 			EventBus.action_error.emit("final_card_error", "")
 			EventBus.life_loss_requested.emit()
 			# Сбрасываем галочки
@@ -241,8 +240,12 @@ func on_action_pressed():
 			print("✅ НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
 			EventBus.show_toast_info.emit("Нет активных ставок. Начинаем новый раунд.")
 		elif not payout_queue_manager.has_unpaid_winnings():
-			print("✅ НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-			EventBus.show_toast_info.emit("Нет выигрышных ставок. Начинаем новый раунд.")
+			if payout_queue_manager.has_any_winning_bets():
+				print("✅ ВСЕ СТАВКИ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
+				EventBus.show_toast_info.emit(Localization.t("ALL_BETS_PAID"))
+			else:
+				print("✅ НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
+				EventBus.show_toast_info.emit(Localization.t("NO_WINNING_BETS"))
 		else:
 			print("✅ ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
 		print("==================================================")
@@ -308,7 +311,6 @@ func on_tie_button_pressed():
 	# Проверяем что состояние CHOOSE_WINNER
 	var state = GameStateManager.get_current_state()
 	if state != GameStateManager.GameState.CHOOSE_WINNER:
-		EventBus.show_toast_error.emit(Localization.t("ERR_ALL_CARDS_OPENED"))
 		return
 
 	# Определяем реального победителя
@@ -316,9 +318,8 @@ func on_tie_button_pressed():
 
 	if actual_winner != "Tie":
 		# ❌ Ошибка! Нет ничьей
-		var winner_text = Localization.t("PLAYER") if actual_winner == "Player" else Localization.t("BANKER")
-		EventBus.show_toast_error.emit(Localization.t("ERR_TIE_WRONG", [winner_text]))
-		EventBus.action_error.emit("tie_wrong", Localization.t("ERR_TIE_WRONG", [winner_text]))
+		EventBus.show_toast_error.emit(Localization.t("ERR_TIE_WRONG"))
+		EventBus.action_error.emit("tie_wrong", Localization.t("ERR_TIE_WRONG"))
 		EventBus.life_loss_requested.emit()
 		print("❌ Ошибка! Нет ничьей. Выиграл: %s" % actual_winner)
 		return
@@ -379,6 +380,22 @@ func _validate_and_execute_third_cards() -> void:
 		return
 
 	# Fallback: оба стоят
+	# Проверяем, не пытается ли игрок заказать карты когда оба должны стоять
+	if player_third_selected or banker_third_selected:
+		if player_third_selected:
+			EventBus.show_toast_error.emit(Localization.t("ERR_PLAYER_NO_DRAW", [ps]))
+			EventBus.action_error.emit("player_wrong", "")
+			EventBus.life_loss_requested.emit()
+			ui.update_player_third_card_ui("?")
+			player_third_selected = false
+		if banker_third_selected:
+			EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_NO_DRAW", [bs]))
+			EventBus.action_error.emit("banker_wrong", "")
+			EventBus.life_loss_requested.emit()
+			ui.update_banker_third_card_ui("?")
+			banker_third_selected = false
+		return
+
 	complete_game()
 
 # ========================================
@@ -397,7 +414,6 @@ func _handle_natural_case() -> void:
 		ui.update_banker_third_card_ui("?")
 		return
 
-	EventBus.show_toast_info.emit(Localization.t("INFO_NATURAL_CHOOSE_WINNER"))
 	complete_game()
 
 # State 2: Карта каждому (банкир 0-2, игрок 0-5)
@@ -486,9 +502,8 @@ func _handle_card_to_banker_only(ps: int, bs: int) -> void:
 func _handle_banker_after_player():
 	var banker_draw: bool = _should_banker_draw()
 	if banker_draw:
-		EventBus.show_toast_info.emit(Localization.t("INFO_BANKER_DECISION"))
+		pass  # Банкир должен взять третью карту - переходим к валидации
 	else:
-		EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
 		complete_game()
 
 func _validate_banker_after_player():
@@ -501,13 +516,6 @@ func _validate_banker_after_player():
 			EventBus.life_loss_requested.emit()
 			ui.update_banker_third_card_ui("?")
 			banker_third_selected = true
-			return
-		if player_third_selected:
-			EventBus.show_toast_error.emit("Игроку уже дали карту!")
-			EventBus.action_error.emit("player_wrong", "")
-			EventBus.life_loss_requested.emit()
-			ui.update_player_third_card_ui("?")
-			player_third_selected = false
 			return
 		draw_banker_third()
 		complete_game()
@@ -615,7 +623,6 @@ func _validate_winner_selection() -> void:
 
 	# Не выбран ни один маркер?
 	if selected_winner == "":
-		EventBus.show_toast_info.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
 		return
 
 	# Проверяем правильность

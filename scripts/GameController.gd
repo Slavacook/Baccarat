@@ -268,7 +268,6 @@ func _on_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int, tie
 func _on_winner_selected(chosen: String):
 	if not GameStateManager.is_action_valid(GameStateManager.Action.SELECT_WINNER):
 		var error_msg = GameStateManager.get_error_message(GameStateManager.Action.SELECT_WINNER)
-		EventBus.show_toast_error.emit(error_msg)
 
 		# Штраф только если не в состоянии WAITING (карты уже раздавались)
 		var current_state = GameStateManager.get_current_state()
@@ -285,10 +284,6 @@ func _on_winner_selected(chosen: String):
 	if chosen == actual:
 		# ✅ Правильный выбор победителя
 		EventBus.action_correct.emit("winner")
-
-		# Показываем краткий тост победы
-		var victory_msg = _format_victory_toast(actual)
-		EventBus.show_toast_success.emit(victory_msg)
 
 		# Пауза 1 секунда (карты остаются открытыми, маркер активен)
 		await get_tree().create_timer(GameConstants.VICTORY_TOAST_DELAY).timeout
@@ -370,11 +365,7 @@ func _on_winner_selected(chosen: String):
 			phase_manager.reset()
 	else:
 		# ❌ Неправильный выбор
-		var res = _format_result()
-		var t = Localization.t("WIN_PLAYER") if actual == "Player" else Localization.t("WIN_BANKER") if actual == "Banker" else Localization.t("WIN_TIE")
-		var chosen_t = Localization.t("WIN_PLAYER") if chosen == "Player" else Localization.t("WIN_BANKER") if chosen == "Banker" else Localization.t("WIN_TIE")
-		EventBus.show_toast_error.emit(Localization.t("WIN_INCORRECT", [chosen_t, t, res]))
-		EventBus.action_error.emit("winner_wrong", Localization.t("WIN_INCORRECT", [chosen_t, t, res]))
+		EventBus.action_error.emit("winner_wrong", "")
 		if is_survival_mode:
 			survival_ui.lose_life()
 
@@ -954,7 +945,8 @@ func _setup_fixed_ui():
 		"PayoutTogglePairPlayer",
 		"PayoutTogglePairBanker",
 		"LimitsButton",
-		"CardsButton"
+		"CardsButton",
+		"TieButton"
 	]
 
 	for button_name in buttons_to_move:

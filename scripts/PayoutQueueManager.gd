@@ -70,6 +70,14 @@ func has_unpaid_winnings() -> bool:
 	return false
 
 
+func has_any_winning_bets() -> bool:
+	"""Проверить, были ли вообще выигравшие ставки (оплаченные или нет)"""
+	for bet in bets:
+		if bet.won:
+			return true
+	return false
+
+
 func get_unpaid_count() -> int:
 	"""Количество неоплаченных выигравших ставок"""
 	var count = 0

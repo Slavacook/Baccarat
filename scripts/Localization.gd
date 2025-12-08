@@ -4,7 +4,7 @@ extends Node
 
 const DATA = {
 	"ru": {
-		"ERR_NATURAL_NO_DRAW": "Ошибка! При натурале нельзя брать третьи карты.",
+		"ERR_NATURAL_NO_DRAW": "Натуральная победа! Выбирайте победителя",
 		"ERR_PLAYER_MUST_DRAW": "Ошибка! Игроку с %d очками нужна третья карта.",
 		"ERR_PLAYER_NO_DRAW": "Ошибка! Игроку с %d очками не нужна третья карта.",
 		"ERR_BANKER_MUST_DRAW": "Ошибка! Банкиру с %d очками нужна третья карта.",
@@ -15,8 +15,8 @@ const DATA = {
 		"ERR_FINISH_THIRD_CARDS": "Сначала завершите раздачу третьих карт или закажите их при необходимости.",
 		"ERR_OPEN_BANKER_CARD": "Сначала откройте карту Банкира (ему нужна третья карта).",
 		"ERR_FINISH_DEAL": "Сначала завершите раздачу.",
-		"ERR_TIE_WRONG": "Ошибка! Нет ничьей. Выиграл %s",
-		"INFO_NATURAL_CHOOSE_WINNER": "Натурал! Выберите победителя без нажатия 'Карты'.",
+		"ERR_TIE_WRONG": "Ошибка!",
+		"INFO_NATURAL_CHOOSE_WINNER": "Натуральная победа! Выбирайте победителя",
 		"INFO_BANKER_DEPENDS_ON_PLAYER": "Решение для Банкира зависит от третьей карты Игрока. Сначала откройте её.",
 		"INFO_PLAYER_CARD_OPENED": "Карта Игрока открыта: %s. Теперь решите про Банкира.",
 		"INFO_BANKER_NO_DRAW_CHOOSE_WINNER": "Банкиру не нужна третья карта. Переходим к выбору победителя.",
@@ -70,12 +70,14 @@ const DATA = {
 		"BET_PROFILE_DESC_LARGE": "Имитация богатого клиента",
 		"ERR_UNPAID_BETS": "Ошибка! Осталось %d неоплаченных выплат. Оплатите их, нажав на фишки.",
 		"ALL_PAYOUTS_COMPLETED": "Все выплаты оплачены! Можно начинать новую игру.",
+		"ALL_BETS_PAID": "Все ставки оплачены!",
+		"NO_WINNING_BETS": "Нет выигрышных ставок. Начинаем новый раунд.",
 		"ERR_WRONG_WINNER": "Ошибка! Неправильный выбор. Выиграл %s",
 		"VICTORY_TOAST": "Выигрывает %s: %d vs %d",
 		"PAYOUT_EMPTY_WARNING": "Ничего не забыл?"
 	},
 	"en": {
-		"ERR_NATURAL_NO_DRAW": "Error! Natural — no third cards allowed.",
+		"ERR_NATURAL_NO_DRAW": "Natural victory! Choose winner",
 		"ERR_PLAYER_MUST_DRAW": "Error! Player with %d points must draw.",
 		"ERR_PLAYER_NO_DRAW": "Error! Player with %d points must stand.",
 		"ERR_BANKER_MUST_DRAW": "Error! Banker with %d points must draw.",
@@ -86,8 +88,8 @@ const DATA = {
 		"ERR_FINISH_THIRD_CARDS": "Finish third card decisions first.",
 		"ERR_OPEN_BANKER_CARD": "First open Banker's third card.",
 		"ERR_FINISH_DEAL": "Complete the deal first.",
-		"ERR_TIE_WRONG": "Error! Not a tie. Winner is %s",
-		"INFO_NATURAL_CHOOSE_WINNER": "Natural! Choose winner without 'Cards'.",
+		"ERR_TIE_WRONG": "Error!",
+		"INFO_NATURAL_CHOOSE_WINNER": "Natural victory! Choose winner",
 		"INFO_BANKER_DEPENDS_ON_PLAYER": "Banker depends on Player's third card. Open it first.",
 		"INFO_PLAYER_CARD_OPENED": "Player's card: %s. Now decide for Banker.",
 		"INFO_BANKER_NO_DRAW_CHOOSE_WINNER": "Banker stands. Choose winner.",

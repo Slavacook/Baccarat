@@ -12,3 +12,5 @@ res://scenes/Game.tscn
 res://scripts/Localization.gd
 res://scripts/WinnerSelectionManager.gd
 res://scripts/ui/MarkerUIManager.gd
+res://scripts/scenes/PayoutScene.gd
+res://scripts/PayoutQueueManager.gd

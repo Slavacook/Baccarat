@@ -153,11 +153,6 @@ func _on_payout_pressed():
 
 	var collected_total = stack_manager.get_total()
 
-	# ← Проверка на пустую выплату (ничего не собрано)
-	if collected_total == 0:
-		EventBus.show_toast_info.emit(Localization.t("PAYOUT_EMPTY_WARNING"))
-		return
-
 	var is_correct = validator.validate(collected_total, expected_payout)
 
 	# Сохраняем результат для передачи обратно в Game
@@ -228,7 +223,7 @@ func _on_hint_pressed():
 
 		if game_over:
 			print("🎮 GAME OVER! Очки упали ниже 0 после подсказки")
-			EventBus.show_toast_error.emit("GAME OVER! Очки упали ниже 0")
+			EventBus.show_toast_error.emit("GAME OVER!")
 			# Сохраняем текущий результат и возвращаемся в игру
 			GameDataManager.set_payout_result(false, 0.0, expected_payout)
 			await get_tree().create_timer(2.0).timeout
