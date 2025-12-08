@@ -1,4 +1,4 @@
-[gd_scene load_steps=23 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=21 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -7,9 +7,7 @@
 [ext_resource type="PackedScene" path="res://scenes/GameOverPopup.tscn" id="4_gameover"]
 [ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="4_kiw3p"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="4_survival"]
-[ext_resource type="Texture2D" uid="uid://pjrcoee4fq31" path="res://assets/ui/Tie.png" id="5_2rd6h"]
 [ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="5_g4kob"]
-[ext_resource type="Texture2D" uid="uid://bpjf6tt0ch2bw" path="res://assets/ui/Tie_win.png" id="6_7ua8r"]
 [ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="6_qy1jj"]
 [ext_resource type="Texture2D" uid="uid://ychwh6o6frhy" path="res://assets/ui/banker_marker.png" id="7_3xj3m"]
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="7_sv1m6"]
@@ -183,16 +181,6 @@ offset_right = 1266.0
 offset_bottom = 681.0
 scale = Vector2(0.6, 0.6)
 
-[node name="TieMarker" type="TextureButton" parent="."]
-offset_left = 538.0
-offset_top = 300.0
-offset_right = 1038.0
-offset_bottom = 800.0
-scale = Vector2(0.2, 0.2)
-texture_normal = ExtResource("5_2rd6h")
-texture_pressed = ExtResource("6_7ua8r")
-texture_hover = ExtResource("6_7ua8r")
-
 [node name="PlayerMarker" type="TextureButton" parent="."]
 offset_left = 730.0
 offset_top = 300.0
@@ -333,10 +321,16 @@ scale = Vector2(0.09, 0.09)
 icon = ExtResource("22_jbgew")
 flat = true
 
+[node name="TieButton" type="Button" parent="."]
+offset_left = 801.0
+offset_top = 581.0
+offset_right = 938.0
+offset_bottom = 638.0
+text = "Игалите"
+
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]
 [connection signal="pressed" from="CardsButton" to="." method="_on_cards_button_pressed"]
-[connection signal="pressed" from="TieMarker" to="." method="_on_tie_marker_pressed"]
 [connection signal="pressed" from="PlayerMarker" to="." method="_on_player_marker_pressed"]
 [connection signal="pressed" from="BankerMarker" to="." method="_on_banker_marker_pressed"]
 [connection signal="pressed" from="HelpButton" to="." method="_on_help_button_pressed"]

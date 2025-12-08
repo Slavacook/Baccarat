@@ -60,6 +60,9 @@ func reset(update_state: bool = true):
 	ui.update_banker_third_card_ui("?")
 	ui.enable_action_button()
 
+	# Скрываем кнопку Игалите при сбросе
+	ui.hide_tie_button()
+
 	# ← ВАЖНО: Инвалидируем кэш GameStateManager даже при update_state=false
 	# чтобы при следующей раздаче состояние определялось правильно
 	GameStateManager._cache_hash = -1
@@ -117,6 +120,10 @@ func deal_first_four():
 	ui.update_banker_third_card_ui("?")
 	ui.show_first_four_cards(player_hand, banker_hand)
 	ui.set_action_button_state("confirm")
+
+	# Показываем кнопку Игалите (активна только когда маркеры не выбраны)
+	ui.show_tie_button()
+	ui.enable_tie_button()
 
 	# ← Проверяем пары МОЛЧА (без оповещений)
 	if pair_betting_manager:
@@ -288,6 +295,50 @@ func on_banker_third_toggled(_selected: bool):
 		ui.update_banker_third_card_ui("!")
 	else:
 		ui.update_banker_third_card_ui("?")
+
+
+func on_tie_button_pressed():
+	"""Обработка нажатия кнопки Игалите
+
+	Кнопка одновременно выбирает и подтверждает ничью.
+	Эквивалентна выбору маркера Tie + нажатию кнопки Подтвердить.
+	"""
+	print("🎯 Нажата кнопка Игалите")
+
+	# Проверяем что состояние CHOOSE_WINNER
+	var state = GameStateManager.get_current_state()
+	if state != GameStateManager.GameState.CHOOSE_WINNER:
+		EventBus.show_toast_error.emit(Localization.t("ERR_ALL_CARDS_OPENED"))
+		return
+
+	# Определяем реального победителя
+	var actual_winner = BaccaratRules.get_winner(player_hand, banker_hand)
+
+	if actual_winner != "Tie":
+		# ❌ Ошибка! Нет ничьей
+		var winner_text = Localization.t("PLAYER") if actual_winner == "Player" else Localization.t("BANKER")
+		EventBus.show_toast_error.emit(Localization.t("ERR_TIE_WRONG", [winner_text]))
+		EventBus.action_error.emit("tie_wrong", Localization.t("ERR_TIE_WRONG", [winner_text]))
+		EventBus.life_loss_requested.emit()
+		print("❌ Ошибка! Нет ничьей. Выиграл: %s" % actual_winner)
+		return
+
+	# ✅ Правильно! Действительно ничья
+	EventBus.action_correct.emit("winner")
+
+	# Меняем кнопку на "complete"
+	ui.set_action_button_state("complete")
+
+	# Показываем toast
+	EventBus.show_toast_success.emit("Игалите")
+
+	# Зум камеры на фишки
+	EventBus.camera_zoom_requested.emit("chips")
+
+	# Формируем очередь выплат
+	EventBus.manual_payout_requested.emit("Tie")
+
+	print("✅ Игалите подтверждена!")
 
 
 # ========================================

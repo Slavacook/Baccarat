@@ -12,12 +12,14 @@ extends RefCounted
 signal action_button_pressed()
 signal help_button_pressed()
 signal lang_button_pressed()
+signal tie_button_pressed()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # UI УЗЛЫ КНОПОК
 # ═══════════════════════════════════════════════════════════════════════════
 
 var action_button: TextureButton  # Главная кнопка "Карты" / "Подтвердить" / "Завершить"
+var tie_button: Button            # Кнопка "Игалите" (появляется после раздачи)
 var help_button: Button           # Кнопка помощи
 var lang_button: Button           # Кнопка смены языка (опционально)
 
@@ -37,6 +39,12 @@ func _init(scene: Node):
 	# Получаем ссылки на UI узлы кнопок
 	action_button = scene.get_node("CardsButton")
 	help_button = scene.get_node("HelpButton")
+
+	# Tie button (появляется при раздаче, скрыта по умолчанию)
+	if scene.has_node("TieButton"):
+		tie_button = scene.get_node("TieButton")
+		tie_button.pressed.connect(func(): tie_button_pressed.emit())
+		tie_button.visible = false  # Скрыта до начала раздачи
 
 	# Lang button опционально (может отсутствовать в некоторых сценах)
 	if scene.has_node("LangButton"):
@@ -137,3 +145,32 @@ func update_lang_button():
 	"""Обновить текст кнопки языка (RU / EN)"""
 	if lang_button:
 		lang_button.text = Localization.get_lang().to_upper()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ TIE BUTTON
+# ═══════════════════════════════════════════════════════════════════════════
+
+func show_tie_button():
+	"""Показать кнопку Игалите (при раздаче карт)"""
+	if tie_button:
+		tie_button.visible = true
+		# Обновляем текст при показе (на случай смены языка)
+		tie_button.text = Localization.t("TIE_BUTTON")
+
+
+func hide_tie_button():
+	"""Скрыть кнопку Игалите (после завершения раундa)"""
+	if tie_button:
+		tie_button.visible = false
+
+
+func enable_tie_button():
+	"""Активировать кнопку Игалите (когда маркеры Player/Banker не выбраны)"""
+	if tie_button:
+		tie_button.disabled = false
+
+
+func disable_tie_button():
+	"""Деактивировать кнопку Игалите (когда выбран маркер Player или Banker)"""
+	if tie_button:
+		tie_button.disabled = true

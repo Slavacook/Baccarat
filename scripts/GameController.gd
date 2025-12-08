@@ -116,6 +116,7 @@ func _ready():
 	ui_manager.action_button_pressed.connect(phase_manager.on_action_pressed)
 	ui_manager.player_third_toggled.connect(phase_manager.on_player_third_toggled)
 	ui_manager.banker_third_toggled.connect(phase_manager.on_banker_third_toggled)
+	ui_manager.tie_button_pressed.connect(phase_manager.on_tie_button_pressed)
 	# ui_manager.winner_selected.connect(_on_winner_selected)  # ← ОТКЛЮЧЕНО: теперь через WinnerSelectionManager + кнопка "Карты"
 	ui_manager.help_button_pressed.connect(_on_help_button_pressed)
 	ui_manager.lang_button_pressed.connect(_on_lang_button_pressed)
@@ -215,10 +216,6 @@ func _unhandled_input(event: InputEvent):
 	elif event.is_action_pressed("BankerMarker"):
 		FocusManager.deactivate()
 		get_node("BankerMarker").emit_signal("pressed")
-		get_viewport().set_input_as_handled()
-	elif event.is_action_pressed("TieMarker"):
-		FocusManager.deactivate()
-		get_node("TieMarker").emit_signal("pressed")
 		get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("PlayerMarker"):
 		FocusManager.deactivate()
@@ -696,10 +693,9 @@ func _setup_keyboard_navigation():
 		ui_manager.player_third_toggle
 	]
 
-	# Уровень 3: Banker, Tie, Player
+	# Уровень 3: Banker, Player (Tie теперь кнопка, не маркер)
 	var level3_elements = [
 		get_node("BankerMarker"),
-		get_node("TieMarker"),
 		get_node("PlayerMarker")
 	]
 
@@ -1055,11 +1051,10 @@ func _setup_winner_selection_manager():
 	winner_selection_manager = WinnerSelectionManager.new()
 	var player_marker = get_node_or_null("PlayerMarker")
 	var banker_marker = get_node_or_null("BankerMarker")
-	var tie_marker = get_node_or_null("TieMarker")
-	if player_marker and banker_marker and tie_marker:
-		winner_selection_manager.setup(player_marker, banker_marker, tie_marker)
+	if player_marker and banker_marker:
+		winner_selection_manager.setup(player_marker, banker_marker)
 		winner_selection_manager.winner_toggled.connect(_on_winner_toggled)
-		print("✅ WinnerSelectionManager инициализирован")
+		print("✅ WinnerSelectionManager инициализирован (Player, Banker)")
 	else:
 		push_warning("⚠️  Маркеры не найдены в сцене")
 
@@ -1257,8 +1252,13 @@ func _on_payout_toggle_pair_banker(enabled: bool):
 func _on_winner_toggled(winner: String, selected: bool):
 	if selected:
 		print("🎯 Выбран: %s" % winner)
+		# Деактивируем кнопку Игалите когда выбран маркер Player или Banker
+		ui_manager.disable_tie_button()
 	else:
 		print("🎯 Снят выбор: %s" % winner)
+		# Активируем кнопку Игалите если ни один маркер не выбран
+		if not winner_selection_manager.is_winner_selected():
+			ui_manager.enable_tie_button()
 
 func _on_chip_clicked(bet_type: String):
 	print("🖱️  Клик на фишку: %s" % bet_type)

@@ -14,7 +14,7 @@ signal winner_toggled(winner: String, selected: bool)
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Словарь маркеров: {"Player": TextureButton, "Banker": TextureButton, "Tie": TextureButton}
+# Словарь маркеров: {"Player": TextureButton, "Banker": TextureButton}
 var marker_nodes: Dictionary = {}
 
 # Текущий выбранный победитель (или пустая строка если никто не выбран)
@@ -29,10 +29,6 @@ const MARKER_TEXTURES = {
 	"Banker": {
 		"normal": "res://assets/ui/banker_marker.png",
 		"active": "res://assets/ui/banker_marker_wins.png"
-	},
-	"Tie": {
-		"normal": "res://assets/ui/Tie.png",
-		"active": "res://assets/ui/Tie_win.png"
 	}
 }
 
@@ -40,11 +36,13 @@ const MARKER_TEXTURES = {
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func setup(player_marker: TextureButton, banker_marker: TextureButton, tie_marker: TextureButton):
-	"""Настройка ссылок на маркеры и подключение сигналов"""
+func setup(player_marker: TextureButton, banker_marker: TextureButton):
+	"""Настройка ссылок на маркеры и подключение сигналов
+
+	Примечание: Маркер "Tie" удалён - теперь используется кнопка TieButton
+	"""
 	marker_nodes["Player"] = player_marker
 	marker_nodes["Banker"] = banker_marker
-	marker_nodes["Tie"] = tie_marker
 
 	# Подключаем сигналы к каждому маркеру
 	for winner_type in marker_nodes.keys():
@@ -52,7 +50,7 @@ func setup(player_marker: TextureButton, banker_marker: TextureButton, tie_marke
 		# Отключаем автоматическое поведение TextureButton
 		marker.pressed.connect(_on_marker_clicked.bind(winner_type))
 
-	print("✅ WinnerSelectionManager: маркеры настроены")
+	print("✅ WinnerSelectionManager: маркеры настроены (Player, Banker)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

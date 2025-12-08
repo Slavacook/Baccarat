@@ -9,3 +9,6 @@ res://scripts/ui/ButtonUIManager.gd
 res://scenes/Toast.tscn
 res://scripts/Toast.gd
 res://scenes/Game.tscn
+res://scripts/Localization.gd
+res://scripts/WinnerSelectionManager.gd
+res://scripts/ui/MarkerUIManager.gd
