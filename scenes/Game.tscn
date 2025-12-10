@@ -281,7 +281,7 @@ text = "Игалите"
 visible = false
 
 [node name="PayoutOverlay" type="CanvasLayer" parent="."]
-layer = 10
+layer = 200
 visible = false
 script = ExtResource("16_y5y3l")
 
