@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=17 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -13,6 +13,7 @@
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="7_sv1m6"]
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="8_mcffj"]
 [ext_resource type="Texture2D" uid="uid://dcyp1p7e010hj" path="res://assets/ui/Shuffle .png" id="14_7ua8r"]
+[ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_y5y3l"]
 [ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="18_45i86"]
 [ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="21_a8wo8"]
 
@@ -278,6 +279,134 @@ text = "Игалите"
 
 [node name="SettingsScene" parent="." instance=ExtResource("21_a8wo8")]
 visible = false
+
+[node name="PayoutOverlay" type="CanvasLayer" parent="."]
+layer = 10
+visible = false
+script = ExtResource("16_y5y3l")
+
+[node name="ColorRect" type="ColorRect" parent="PayoutOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0, 0, 0, 0.8627451)
+
+[node name="MarginContainer" type="MarginContainer" parent="PayoutOverlay/ColorRect"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_right = 508.0
+offset_bottom = 250.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 50
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 50
+theme_override_constants/margin_bottom = 30
+
+[node name="VBoxContainer" type="VBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HeaderHBox" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer"]
+custom_minimum_size = Vector2(0, 60)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="ResultLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "БАНКИР"
+
+[node name="StakeLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+text = "Ставка: 200"
+
+[node name="AmountPanel" type="Panel" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+custom_minimum_size = Vector2(120, 50)
+layout_mode = 2
+
+[node name="CollectedAmountLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+text = "0"
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Spacer" type="Control" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="HintButton" type="Button" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+custom_minimum_size = Vector2(50, 50)
+layout_mode = 2
+text = "?"
+
+[node name="ScoreLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Очки: 10"
+
+[node name="MainPanel" type="Panel" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="MainMargin" type="MarginContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/MainPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 15
+theme_override_constants/margin_top = 15
+theme_override_constants/margin_right = 15
+theme_override_constants/margin_bottom = 15
+
+[node name="ChipStacksContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/MainPanel/MainMargin"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="FleetPanel" type="Panel" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 150)
+layout_mode = 2
+
+[node name="FleetMargin" type="MarginContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 10
+
+[node name="FleetHBox" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="ChipFleetContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="PayoutButton" type="Button" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
+custom_minimum_size = Vector2(80, 80)
+layout_mode = 2
+size_flags_vertical = 4
+text = "Выплатить"
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]
