@@ -1,3 +1,13 @@
 Button
 HBoxContainer
+HSeparator
+Label
+OptionButton
+CheckBox
+VBoxContainer
+MarginContainer
+PanelContainer
+CenterContainer
+Panel
+CanvasLayer
 TextureButton

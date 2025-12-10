@@ -14,3 +14,6 @@ res://scripts/WinnerSelectionManager.gd
 res://scripts/ui/MarkerUIManager.gd
 res://scripts/scenes/PayoutScene.gd
 res://scripts/PayoutQueueManager.gd
+res://scenes/SettingsScene.tscn
+res://scripts/SettingsScene.gd
+res://scripts/autoload/EventBus.gd

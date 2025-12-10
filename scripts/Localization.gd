@@ -74,7 +74,20 @@ const DATA = {
 		"NO_WINNING_BETS": "Нет выигрышных ставок. Начинаем новый раунд.",
 		"ERR_WRONG_WINNER": "Ошибка! Неправильный выбор. Выиграл %s",
 		"VICTORY_TOAST": "Выигрывает %s: %d vs %d",
-		"PAYOUT_EMPTY_WARNING": "Ничего не забыл?"
+		"PAYOUT_EMPTY_WARNING": "Ничего не забыл?",
+
+		# === НАСТРОЙКИ (SETTINGS SCENE) ===
+		"SETTINGS_TITLE": "НАСТРОЙКИ",
+		"SETTINGS_SECTION_SURVIVAL": "РЕЖИМ ВЫЖИВАНИЯ",
+		"SETTINGS_SECTION_GAME_MODE": "РЕЖИМ ИГРЫ",
+		"SETTINGS_SECTION_BETS": "СТАВКИ",
+		"SETTINGS_SECTION_BET_SIZE": "РАЗМЕР СТАВОК",
+		"SETTINGS_SECTION_LANGUAGE": "ЯЗЫК",
+		"SETTINGS_SURVIVAL_CHECKBOX": "Включить (7 жизней)",
+		"SETTINGS_BET_PAIR_PLAYER": "Пара Игрока",
+		"SETTINGS_BET_PAIR_BANKER": "Пара Банкира",
+		"SETTINGS_BUTTON_APPLY": "Применить",
+		"SETTINGS_BUTTON_CANCEL": "Отменить"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural victory! Choose winner",
@@ -145,7 +158,20 @@ const DATA = {
 		"ALL_PAYOUTS_COMPLETED": "All payouts completed! You can start a new game.",
 		"ERR_WRONG_WINNER": "Error! Wrong choice. Winner is %s",
 		"VICTORY_TOAST": "%s Wins: %d vs %d",
-		"PAYOUT_EMPTY_WARNING": "Didn't forget anything?"
+		"PAYOUT_EMPTY_WARNING": "Didn't forget anything?",
+
+		# === SETTINGS (SETTINGS SCENE) ===
+		"SETTINGS_TITLE": "SETTINGS",
+		"SETTINGS_SECTION_SURVIVAL": "SURVIVAL MODE",
+		"SETTINGS_SECTION_GAME_MODE": "GAME MODE",
+		"SETTINGS_SECTION_BETS": "BETS",
+		"SETTINGS_SECTION_BET_SIZE": "BET SIZE",
+		"SETTINGS_SECTION_LANGUAGE": "LANGUAGE",
+		"SETTINGS_SURVIVAL_CHECKBOX": "Enable (7 lives)",
+		"SETTINGS_BET_PAIR_PLAYER": "Player Pair",
+		"SETTINGS_BET_PAIR_BANKER": "Banker Pair",
+		"SETTINGS_BUTTON_APPLY": "Apply",
+		"SETTINGS_BUTTON_CANCEL": "Cancel"
 	}
 }
 

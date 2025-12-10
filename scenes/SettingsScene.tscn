@@ -1,0 +1,229 @@
+[gd_scene load_steps=3 format=3 uid="uid://dvci1lc3qrbac"]
+
+[ext_resource type="Script" path="res://scripts/SettingsScene.gd" id="1_8limm"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d6yml"]
+bg_color = Color(0, 0, 0, 0.78431374)
+
+[node name="SettingsScene" type="CanvasLayer"]
+layer = 100
+script = ExtResource("1_8limm")
+
+[node name="BackgroundPanel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_d6yml")
+
+[node name="CenterContainer" type="CenterContainer" parent="BackgroundPanel"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="PanelContainer" type="PanelContainer" parent="BackgroundPanel/CenterContainer"]
+custom_minimum_size = Vector2(900, 550)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="BackgroundPanel/CenterContainer/PanelContainer"]
+layout_mode = 2
+theme_override_constants/margin_left = 30
+theme_override_constants/margin_top = 30
+theme_override_constants/margin_right = 30
+theme_override_constants/margin_bottom = 30
+
+[node name="MainVBox" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 32
+text = "НАСТРОЙКИ"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+layout_mode = 2
+
+[node name="MainHBox" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 30
+
+[node name="LeftColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="SectionSurvival" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "РЕЖИМ ВЫЖИВАНИЯ"
+
+[node name="SurvivalCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+text = "Включить (7 жизней)"
+
+[node name="HSeparator2" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+
+[node name="SectionGameMode" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "РЕЖИМ ИГРЫ"
+
+[node name="GameModeButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="JunketButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/GameModeButtons"]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Junket"
+
+[node name="ClassicButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/GameModeButtons"]
+custom_minimum_size = Vector2(100, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Classic"
+
+[node name="ModeInfoLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 14
+text = "Основные ставки: 2000-200000, шаг 500
+Tie: 100-900, шаг 25
+Пары: 100-900, шаг 25
+Комиссия банкира: 95%"
+autowrap_mode = 3
+
+[node name="MiddleColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="SectionBets" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "СТАВКИ"
+
+[node name="BetsContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="BetPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="BetPlayerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Игрок"
+
+[node name="BetPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
+layout_mode = 2
+
+[node name="BetBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="BetBankerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Банкир"
+
+[node name="BetBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
+layout_mode = 2
+
+[node name="BetTieRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="BetTieLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Ничья"
+
+[node name="BetTieCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
+layout_mode = 2
+
+[node name="BetPairPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="BetPairPlayerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Пара Игрока"
+
+[node name="BetPairPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
+layout_mode = 2
+
+[node name="BetPairBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="BetPairBankerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Пара Банкира"
+
+[node name="BetPairBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
+layout_mode = 2
+
+[node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="SectionBetSize" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "РАЗМЕР СТАВОК"
+
+[node name="BetSizeOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
+[node name="HSeparator3" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
+[node name="SectionLanguage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ЯЗЫК"
+
+[node name="LanguageButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="RuButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/LanguageButtons"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Русский"
+
+[node name="EnButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/LanguageButtons"]
+custom_minimum_size = Vector2(80, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "English"
+
+[node name="HSeparator4" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+layout_mode = 2
+
+[node name="ControlButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+layout_mode = 2
+size_flags_horizontal = 4
+theme_override_constants/separation = 20
+
+[node name="ApplyButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ControlButtons"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Применить"
+
+[node name="CancelButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ControlButtons"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Отменить"

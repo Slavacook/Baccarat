@@ -90,6 +90,12 @@ signal hint_used()
 @warning_ignore("unused_signal")
 signal manual_payout_requested(winner: String)
 
+## Изменена настройка выплаты (включена/выключена ставка)
+## bet_type: "Player", "Banker", "Tie", "PairPlayer", "PairBanker"
+## enabled: true (включено) / false (выключено)
+@warning_ignore("unused_signal")
+signal payout_setting_changed(bet_type: String, enabled: bool)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # 📢 УВЕДОМЛЕНИЯ (TOAST)
 # ═══════════════════════════════════════════════════════════════════════════

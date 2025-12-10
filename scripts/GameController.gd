@@ -10,7 +10,7 @@ var phase_manager: GamePhaseManager
 var limits_manager: LimitsManager
 var limits_popup: PopupPanel
 var limits_button: Button
-var settings_popup: PopupPanel
+var settings_scene: CanvasLayer  # Новая сцена настроек (заменила SettingsPopup)
 var settings_button: Button
 var survival_ui: Control
 var game_over_popup: PopupPanel
@@ -84,11 +84,15 @@ func _ready():
 	# ← Подписываемся на Game Over по очкам
 	SaveManager.instance.score_game_over.connect(_on_score_game_over)
 
-	if has_node("SettingsPopup"):
-		settings_popup = get_node("SettingsPopup")
-		settings_popup.mode_changed.connect(_on_mode_changed)
-		settings_popup.language_changed.connect(_on_language_changed)
-		settings_popup.survival_mode_changed.connect(_on_survival_mode_changed)
+	if has_node("SettingsScene"):
+		print("✅ SettingsScene найден в сцене!")
+		settings_scene = get_node("SettingsScene")
+		settings_scene.mode_changed.connect(_on_mode_changed)
+		settings_scene.language_changed.connect(_on_language_changed)
+		settings_scene.survival_mode_changed.connect(_on_survival_mode_changed)
+		print("✅ SettingsScene подключен к GameController")
+	else:
+		print("❌ SettingsScene НЕ НАЙДЕН в сцене Game.tscn!")
 
 	if has_node("SettingsButton"):
 		settings_button = get_node("SettingsButton")
@@ -135,10 +139,6 @@ func _ready():
 	ui_manager.help_popup.hide()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 
-	# Всегда настраиваем toggles (подключаем сигналы)
-	_setup_payout_toggles()
-	_setup_pair_toggles()
-
 	if is_payout_return:
 		# При возврате - восстанавливаем полный snapshot стола из TableStateManager
 		_restore_chips_from_table_state()  # Восстанавливает ВСЕ фишки + PairBettingManager
@@ -155,8 +155,23 @@ func _ready():
 			ui_manager.set_action_button_state(TableStateManager.action_button_state)
 			print("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
 	else:
-		# При обычной загрузке - синхронизируем фишки пар с toggles
-		_sync_pair_chips_with_toggles()
+		# При обычной загрузке - показываем фишки на основе настроек PayoutSettingsManager
+		if chip_visual_manager:
+			if PayoutSettingsManager.player_payout_enabled:
+				chip_visual_manager.show_chip("Player")
+			if PayoutSettingsManager.banker_payout_enabled:
+				chip_visual_manager.show_chip("Banker")
+			if PayoutSettingsManager.tie_payout_enabled:
+				chip_visual_manager.show_chip("Tie")
+			if PayoutSettingsManager.player_pair_payout_enabled:
+				chip_visual_manager.show_chip("PairPlayer")
+				if pair_betting_manager:
+					pair_betting_manager.toggle_pair_player_bet(true)
+			if PayoutSettingsManager.banker_pair_payout_enabled:
+				chip_visual_manager.show_chip("PairBanker")
+				if pair_betting_manager:
+					pair_betting_manager.toggle_pair_banker_bet(true)
+			print("✅ Фишки синхронизированы с настройками")
 
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
@@ -167,7 +182,8 @@ func _ready():
 	EventBus.manual_payout_requested.connect(_on_manual_payout_requested)
 	EventBus.first_deal_completed.connect(_on_first_deal_completed)
 	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
-	print("✅ Подписки на EventBus события установлены (camera, life_loss, payouts, flags)")
+	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
+	print("✅ Подписки на EventBus события установлены (camera, life_loss, payouts, flags, settings)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -479,11 +495,9 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	var surv_lives = survival_ui.current_lives if survival_ui else 7
 	var surv_active = survival_ui.is_active if survival_ui else false
 
-	# Получаем состояние toggles пар
-	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
-	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
-	var pair_player_pressed = pair_player_toggle.button_pressed if pair_player_toggle else false
-	var pair_banker_pressed = pair_banker_toggle.button_pressed if pair_banker_toggle else false
+	# Получаем состояние ставок на пары из настроек
+	var pair_player_pressed = PayoutSettingsManager.player_pair_payout_enabled
+	var pair_banker_pressed = PayoutSettingsManager.banker_pair_payout_enabled
 
 	# Получаем текущие текстуры фишек
 	var chip_textures = chip_visual_manager.current_textures if chip_visual_manager else {}
@@ -598,16 +612,24 @@ func _on_restart_game():
 	phase_manager.reset()
 
 func _on_settings_button_pressed():
-	if settings_popup:
-		if settings_popup.visible:
-			settings_popup.hide()
+	print("🔘 Кнопка настроек нажата!")
+	print("  settings_scene существует: ", settings_scene != null)
+
+	if settings_scene:
+		print("  settings_scene.visible = ", settings_scene.visible)
+		if settings_scene.visible:
+			print("  → Закрываем настройки")
+			settings_scene.close_settings()
 		else:
 			if not GameStateManager.can_change_settings():
 				var msg = GameStateManager.get_settings_lock_message()
 				EventBus.show_toast_error.emit(msg)
 				print("🔒 [НОВАЯ СИСТЕМА] " + msg)
 				return
-			settings_popup.popup_centered()
+			print("  → Открываем настройки")
+			settings_scene.open_settings()
+	else:
+		print("  ❌ ОШИБКА: settings_scene = null!")
 
 func _on_mode_changed(mode: String):
 	print("Режим игры изменён на: ", mode)
@@ -649,8 +671,8 @@ func _on_survival_mode_changed(enabled: bool):
 func _load_survival_mode_setting():
 	var enabled = SaveManager.load_survival_mode()
 	is_survival_mode = enabled
-	if settings_popup:
-		settings_popup.set_survival_mode(enabled)
+	if settings_scene:
+		settings_scene.set_survival_mode(enabled)
 	if enabled:
 		survival_ui.activate()
 		ui_manager.stats_label.visible = false
@@ -690,23 +712,13 @@ func _setup_keyboard_navigation():
 		get_node("PlayerMarker")
 	]
 
-	# Уровень 4 (верхний): Подсказка, Настройки, переключатели выплат
+	# Уровень 4 (верхний): Подсказка, Настройки
 	var level4_elements = [
 		ui_manager.help_button
 	]
-	# Кнопки теперь в TopUI после _setup_fixed_ui()
+	# Кнопка настроек теперь в TopUI после _setup_fixed_ui()
 	if has_node("TopUI/SettingsButton"):
 		level4_elements.append(get_node("TopUI/SettingsButton"))
-	if has_node("TopUI/PayoutTogglePlayer"):
-		level4_elements.append(get_node("TopUI/PayoutTogglePlayer"))
-	if has_node("TopUI/PayoutToggleBanker"):
-		level4_elements.append(get_node("TopUI/PayoutToggleBanker"))
-	if has_node("TopUI/PayoutToggleTie"):
-		level4_elements.append(get_node("TopUI/PayoutToggleTie"))
-	if has_node("TopUI/PayoutTogglePairPlayer"):
-		level4_elements.append(get_node("TopUI/PayoutTogglePairPlayer"))
-	if has_node("TopUI/PayoutTogglePairBanker"):
-		level4_elements.append(get_node("TopUI/PayoutTogglePairBanker"))
 
 	# Регистрируем уровни (is_payout=false для Game)
 	FocusManager.register_level(1, level1_elements, false)
@@ -939,11 +951,6 @@ func _setup_fixed_ui():
 		"HelpButton",
 		"StatsLabel",
 		"SettingsButton",
-		"PayoutTogglePlayer",
-		"PayoutToggleBanker",
-		"PayoutToggleTie",
-		"PayoutTogglePairPlayer",
-		"PayoutTogglePairBanker",
 		"LimitsButton",
 		"CardsButton",
 		"TieButton"
@@ -1057,90 +1064,6 @@ func _setup_pair_betting_manager():
 	# ← Сигнал pair_detected больше не используется (молчаливая проверка)
 	print("✅ PairBettingManager инициализирован")
 
-func _setup_payout_toggles():
-	"""Настройка toggles для основных ставок (подключение сигналов и начальное состояние)"""
-	var player_toggle = get_node_or_null("PayoutTogglePlayer")
-	var banker_toggle = get_node_or_null("PayoutToggleBanker")
-	var tie_toggle = get_node_or_null("PayoutToggleTie")
-	if not player_toggle or not banker_toggle or not tie_toggle:
-		print("⚠️  PayoutToggle кнопки не найдены (пропускаем)")
-		return
-
-	player_toggle.toggle_mode = true
-	banker_toggle.toggle_mode = true
-	tie_toggle.toggle_mode = true
-
-	# Устанавливаем начальное состояние только при первой загрузке
-	var is_payout_return = TableStateManager.has_saved_state()
-	if not is_payout_return and PayoutSettingsManager:
-		player_toggle.button_pressed = PayoutSettingsManager.player_payout_enabled
-		banker_toggle.button_pressed = PayoutSettingsManager.banker_payout_enabled
-		tie_toggle.button_pressed = PayoutSettingsManager.tie_payout_enabled
-
-		# Показываем фишки только при первой загрузке
-		if player_toggle.button_pressed and chip_visual_manager:
-			chip_visual_manager.show_chip("Player")
-		if banker_toggle.button_pressed and chip_visual_manager:
-			chip_visual_manager.show_chip("Banker")
-		if tie_toggle.button_pressed and chip_visual_manager:
-			chip_visual_manager.show_chip("Tie")
-
-	# Подключаем сигналы всегда
-	player_toggle.toggled.connect(_on_payout_toggle_player)
-	banker_toggle.toggled.connect(_on_payout_toggle_banker)
-	tie_toggle.toggled.connect(_on_payout_toggle_tie)
-	print("✅ Toggles основных ставок настроены")
-
-func _setup_pair_toggles():
-	"""Настройка toggles для ставок на пары"""
-	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
-	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
-	if not pair_player_toggle or not pair_banker_toggle:
-		print("⚠️  Toggles для пар не найдены (пропускаем)")
-		return
-	pair_player_toggle.toggle_mode = true
-	pair_banker_toggle.toggle_mode = true
-	pair_player_toggle.toggled.connect(_on_payout_toggle_pair_player)
-	pair_banker_toggle.toggled.connect(_on_payout_toggle_pair_banker)
-	print("✅ Toggles пар настроены")
-
-
-func _sync_pair_chips_with_toggles():
-	"""Синхронизация видимости фишек пар с состоянием toggles
-
-	Вызывается при загрузке игры чтобы показать фишки пар, если они включены в настройках.
-	PayoutToggleManager устанавливает button_pressed ДО подключения сигналов в GameController,
-	поэтому нужна ручная синхронизация.
-	"""
-	if not chip_visual_manager:
-		return
-
-	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
-	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
-
-	if pair_player_toggle and pair_player_toggle.button_pressed:
-		chip_visual_manager.show_chip("PairPlayer")
-		if pair_betting_manager:
-			pair_betting_manager.toggle_pair_player_bet(true)
-		print("✅ Фишка PairPlayer показана при загрузке (из настроек)")
-
-	if pair_banker_toggle and pair_banker_toggle.button_pressed:
-		chip_visual_manager.show_chip("PairBanker")
-		if pair_betting_manager:
-			pair_betting_manager.toggle_pair_banker_bet(true)
-		print("✅ Фишка PairBanker показана при загрузке (из настроек)")
-
-
-func _restore_pair_betting_state():
-	"""Восстановить состояние PairBettingManager из toggles при возврате из PayoutScene"""
-	var pair_player_toggle = get_node_or_null("PayoutTogglePairPlayer")
-	var pair_banker_toggle = get_node_or_null("PayoutTogglePairBanker")
-	if pair_player_toggle and pair_betting_manager:
-		if pair_player_toggle.button_pressed:
-			pair_betting_manager.toggle_pair_player_bet(true)
-	if pair_banker_toggle and pair_betting_manager:
-		if pair_banker_toggle.button_pressed:
-			pair_betting_manager.toggle_pair_banker_bet(true)
 
 
 func _restore_chips_from_table_state():
@@ -1196,50 +1119,24 @@ func _restore_chips_from_table_state():
 	print("♻️  Восстановление фишек завершено (всего: %d)" % TableStateManager.bets.size())
 
 
-func _on_payout_toggle_player(enabled: bool):
-	if PayoutSettingsManager:
-		PayoutSettingsManager.toggle_player(enabled)
-	if chip_visual_manager:
-		if enabled:
-			chip_visual_manager.show_chip("Player")
-		else:
-			chip_visual_manager.hide_chip("Player")
+func _on_payout_setting_changed(bet_type: String, enabled: bool):
+	"""Обработка изменения настроек выплат из SettingsScene"""
+	if not chip_visual_manager:
+		return
 
-func _on_payout_toggle_banker(enabled: bool):
-	if PayoutSettingsManager:
-		PayoutSettingsManager.toggle_banker(enabled)
-	if chip_visual_manager:
-		if enabled:
-			chip_visual_manager.show_chip("Banker")
-		else:
-			chip_visual_manager.hide_chip("Banker")
+	# Управляем видимостью фишек
+	if enabled:
+		chip_visual_manager.show_chip(bet_type)
+	else:
+		chip_visual_manager.hide_chip(bet_type)
 
-func _on_payout_toggle_tie(enabled: bool):
-	if PayoutSettingsManager:
-		PayoutSettingsManager.toggle_tie(enabled)
-	if chip_visual_manager:
-		if enabled:
-			chip_visual_manager.show_chip("Tie")
-		else:
-			chip_visual_manager.hide_chip("Tie")
-
-func _on_payout_toggle_pair_player(enabled: bool):
-	if pair_betting_manager:
+	# Для пар - также обновляем PairBettingManager
+	if bet_type == "PairPlayer" and pair_betting_manager:
 		pair_betting_manager.toggle_pair_player_bet(enabled)
-	if chip_visual_manager:
-		if enabled:
-			chip_visual_manager.show_chip("PairPlayer")
-		else:
-			chip_visual_manager.hide_chip("PairPlayer")
-
-func _on_payout_toggle_pair_banker(enabled: bool):
-	if pair_betting_manager:
+	elif bet_type == "PairBanker" and pair_betting_manager:
 		pair_betting_manager.toggle_pair_banker_bet(enabled)
-	if chip_visual_manager:
-		if enabled:
-			chip_visual_manager.show_chip("PairBanker")
-		else:
-			chip_visual_manager.hide_chip("PairBanker")
+
+	print("💰 Настройка выплаты изменена: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
 
 func _on_winner_toggled(winner: String, selected: bool):
 	if selected:
