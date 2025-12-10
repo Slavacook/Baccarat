@@ -15,13 +15,14 @@ extends CanvasLayer
 @onready var collected_amount_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel/CollectedAmountLabel
 @onready var payout_button: Button = $ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/PayoutButton
 @onready var hint_button = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/HintButton
-@onready var score_label = %ScoreLabel
-@onready var main_panel = %MainPanel
-@onready var chip_stacks_container = %ChipStacksContainer
-@onready var fleet_panel = %FleetPanel
-@onready var chip_fleet_container = %ChipFleetContainer
-@onready var feedback_label = %FeedbackLabel
-@onready var feedback_container = $ColorRect/FeedbackContainer
+@onready var score_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/ScoreLabel
+@onready var main_panel = $ColorRect/MarginContainer/VBoxContainer/MainPanel
+@onready var chip_stacks_container = $ColorRect/MarginContainer/VBoxContainer/MainPanel/MainMargin/ChipStacksContainer
+@onready var fleet_panel = $ColorRect/MarginContainer/VBoxContainer/FleetPanel
+@onready var chip_fleet_container = $ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/ChipFleetContainer
+# FeedbackContainer и FeedbackLabel опциональны (могут отсутствовать в Game.tscn)
+@onready var feedback_label = get_node_or_null("ColorRect/FeedbackContainer/FeedbackLabel")
+@onready var feedback_container = get_node_or_null("ColorRect/FeedbackContainer")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
@@ -72,8 +73,9 @@ func _ready():
 	# Настройка стилей
 	_setup_styles()
 
-	# Скрываем контейнер обратной связи по умолчанию
-	feedback_container.visible = false
+	# Скрываем контейнер обратной связи по умолчанию (если есть)
+	if feedback_container:
+		feedback_container.visible = false
 
 	# Создаём кнопки номиналов
 	_create_chip_buttons()
@@ -399,17 +401,21 @@ func _format_amount(amount: float) -> String:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _show_success_animation(is_correct: bool, collected: float, expected: float):
-	# Показываем локальный overlay внутри сцены
-	feedback_container.visible = true
-	feedback_label.text = "Верно!"
-	feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
-	feedback_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.2))
-	feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	feedback_label.add_theme_constant_override("outline_size", 5)
+	# Показываем локальный overlay внутри сцены (если есть)
+	if feedback_container and feedback_label:
+		feedback_container.visible = true
+		feedback_label.text = "Верно!"
+		feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
+		feedback_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.2))
+		feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		feedback_label.add_theme_constant_override("outline_size", 5)
 
-	await get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
-	feedback_container.visible = false
-	feedback_label.text = ""
+		await get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
+		feedback_container.visible = false
+		feedback_label.text = ""
+	else:
+		# Небольшая пауза даже без анимации
+		await get_tree().create_timer(0.5).timeout
 
 	# Возвращаемся к игре с результатом
 	_return_to_game(is_correct, collected, expected)
@@ -421,13 +427,14 @@ func _show_error_animation(_collected: float):
 	# ← СРАЗУ очищаем фишки (до показа надписи), чтобы можно было начать вводить новую выплату
 	stack_manager.clear_all()
 
-	# Показываем локальный overlay внутри попапа
-	feedback_container.visible = true
-	feedback_label.text = "Ошибка!"
-	feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
-	feedback_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))
-	feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	feedback_label.add_theme_constant_override("outline_size", 5)
+	# Показываем локальный overlay внутри попапа (если есть)
+	if feedback_container and feedback_label:
+		feedback_container.visible = true
+		feedback_label.text = "Ошибка!"
+		feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
+		feedback_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))
+		feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
+		feedback_label.add_theme_constant_override("outline_size", 5)
 
 	# Анимация тряски кнопки
 	var tween = create_tween()
@@ -443,8 +450,10 @@ func _show_error_animation(_collected: float):
 	await get_tree().create_timer(GameConstants.ERROR_ANIMATION_DURATION).timeout
 	is_button_blocked = false
 	payout_button.disabled = false
-	feedback_container.visible = false
-	feedback_label.text = ""
+
+	if feedback_container and feedback_label:
+		feedback_container.visible = false
+		feedback_label.text = ""
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
 
