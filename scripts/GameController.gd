@@ -30,7 +30,7 @@ var pair_betting_manager: PairBettingManager
 
 # false = scene transition (старый способ)
 # true = overlay (новый способ)
-const USE_OVERLAY_PAYOUT = false
+const USE_OVERLAY_PAYOUT = true
 
 # PayoutOverlay - CanvasLayer для выплат (новый способ)
 var payout_overlay: CanvasLayer = null
@@ -1360,13 +1360,14 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 					break
 
 		if not has_unpaid:
-			# Все выплаты оплачены → сброс раунда
-			print("  ✅ Все выплаты оплачены! Начинаем новый раунд")
-			phase_manager.reset()
+			# Все выплаты оплачены → эмитим событие подготовки стола
+			print("  ✅ Все выплаты оплачены! Стол готов к новой раздаче")
 
-			# Разблокируем маркеры для новой игры
-			if winner_selection_manager:
-				winner_selection_manager.unlock_markers()
+			# Эмитим событие для разблокировки маркеров и подготовки стола
+			EventBus.table_prepared_for_new_game.emit()
+
+			# НЕ вызываем phase_manager.reset() в overlay режиме!
+			# Карты остаются на столе, пользователь нажимает "Завершить" для новой раздачи
 		else:
 			print("  ⏳ Есть еще неоплаченные выплаты, ждем клика на следующую фишку")
 
