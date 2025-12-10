@@ -6,22 +6,22 @@
 extends CanvasLayer
 
 # ═══════════════════════════════════════════════════════════════════════════
-# UI ЭЛЕМЕНТЫ (обновленные пути)
+# UI ЭЛЕМЕНТЫ (обновленные пути для CanvasLayer → ColorRect → ...)
 # ═══════════════════════════════════════════════════════════════════════════
 
-@onready var result_label = $MarginContainer/VBoxContainer/HeaderHBox/ResultLabel
-@onready var stake_label = $MarginContainer/VBoxContainer/HeaderHBox/StakeLabel
-@onready var amount_panel = $MarginContainer/VBoxContainer/HeaderHBox/AmountPanel
-@onready var collected_amount_label = $MarginContainer/VBoxContainer/HeaderHBox/AmountPanel/CollectedAmountLabel
-@onready var payout_button: Button = $MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/PayoutButton
-@onready var hint_button = $MarginContainer/VBoxContainer/HeaderHBox/HintButton
+@onready var result_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/ResultLabel
+@onready var stake_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/StakeLabel
+@onready var amount_panel = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel
+@onready var collected_amount_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel/CollectedAmountLabel
+@onready var payout_button: Button = $ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/PayoutButton
+@onready var hint_button = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/HintButton
 @onready var score_label = %ScoreLabel
 @onready var main_panel = %MainPanel
 @onready var chip_stacks_container = %ChipStacksContainer
 @onready var fleet_panel = %FleetPanel
 @onready var chip_fleet_container = %ChipFleetContainer
 @onready var feedback_label = %FeedbackLabel
-@onready var feedback_container = $FeedbackContainer
+@onready var feedback_container = $ColorRect/FeedbackContainer
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
