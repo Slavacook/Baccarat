@@ -32,7 +32,8 @@ signal payout_confirmed(is_correct: bool, collected: float, expected: float)
 signal hint_used()
 
 # Новый сигнал для overlay режима
-signal payout_completed(is_correct: bool, collected: float, expected: float)
+# bet_type: тип ставки ("Player"/"Banker"/"Tie"/"PairPlayer"/"PairBanker")
+signal payout_completed(bet_type: String, is_correct: bool, collected: float, expected: float)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МОДУЛИ
@@ -473,13 +474,13 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 
 	Эмитит сигнал payout_completed и скрывает overlay
 	"""
-	# Эмитим сигнал с результатом
-	payout_completed.emit(is_correct, collected, expected)
+	# Эмитим сигнал с результатом (включая тип ставки)
+	payout_completed.emit(current_winner, is_correct, collected, expected)
 
 	# Скрываем overlay
 	hide()
 
-	print("💰 PayoutOverlay скрыт: correct=%s, collected=%.1f, expected=%.1f" % [is_correct, collected, expected])
+	print("💰 PayoutOverlay скрыт: bet_type=%s, correct=%s, collected=%.1f, expected=%.1f" % [current_winner, is_correct, collected, expected])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ

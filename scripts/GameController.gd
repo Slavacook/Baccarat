@@ -24,6 +24,17 @@ var winner_selection_manager: WinnerSelectionManager
 var payout_queue_manager: PayoutQueueManager
 var pair_betting_manager: PairBettingManager
 
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ ВЫПЛАТЫ (переключатель для тестирования)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# false = scene transition (старый способ)
+# true = overlay (новый способ)
+const USE_OVERLAY_PAYOUT = false
+
+# PayoutOverlay - CanvasLayer для выплат (новый способ)
+var payout_overlay: CanvasLayer = null
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КАМЕРА
@@ -211,6 +222,16 @@ func _ready():
 
 	# Проверяем, вернулись ли из PayoutScene
 	_check_payout_return()
+
+	# ← Подключаем PayoutOverlay (новый способ выплат)
+	if has_node("PayoutOverlay"):
+		payout_overlay = get_node("PayoutOverlay")
+		payout_overlay.payout_completed.connect(_on_payout_overlay_completed)
+		payout_overlay.hide()  # Убедиться что скрыт
+		print("✅ PayoutOverlay подключен к GameController (overlay режим)")
+	else:
+		if USE_OVERLAY_PAYOUT:
+			print("⚠️  PayoutOverlay НЕ НАЙДЕН в Game.tscn (но USE_OVERLAY_PAYOUT=true)")
 
 func _unhandled_input(event: InputEvent):
 	# Обработка прямых кнопок геймпада (работают параллельно с FocusManager)
@@ -1176,7 +1197,16 @@ func _on_chip_clicked(bet_type: String):
 	if bet.is_paid:
 		ToastManager.instance.show_info("Эта ставка уже оплачена")
 		return
-	_open_payout_scene(bet_type)
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА ВЫПЛАТ
+	# ═══════════════════════════════════════════════════════════════════
+	if USE_OVERLAY_PAYOUT:
+		# НОВЫЙ СПОСОБ: показать overlay поверх Game.tscn
+		_show_payout_overlay(bet_type, bet.stake, bet.payout)
+	else:
+		# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
+		_open_payout_scene(bet_type)
 
 # ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
 
@@ -1240,6 +1270,106 @@ func _open_payout_scene(bet_type: String):
 
 	# Переходим к PayoutScene
 	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# OVERLAY РЕЖИМ ВЫПЛАТ (новая логика)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _show_payout_overlay(bet_type: String, stake: float, payout: float):
+	"""Показать PayoutOverlay с параметрами выплаты (новый способ)
+
+	Вызывается при клике на фишку в overlay режиме (USE_OVERLAY_PAYOUT=true).
+	Game.tscn остается в памяти, overlay показывается поверх.
+
+	Args:
+		bet_type: Тип ставки ("Player"/"Banker"/"Tie"/"PairPlayer"/"PairBanker")
+		stake: Размер ставки
+		payout: Ожидаемая выплата
+	"""
+	if not payout_overlay:
+		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
+		return
+
+	print("💰 Показываем PayoutOverlay (overlay режим): %s, stake=%.1f, payout=%.1f" % [bet_type, stake, payout])
+
+	# Вызываем метод show_payout() из PayoutOverlay.gd
+	# Overlay сам управляет UI, фишками и валидацией
+	payout_overlay.show_payout(bet_type, stake, payout)
+
+
+func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected: float, expected: float):
+	"""Обработчик завершения выплаты в overlay режиме
+
+	Вызывается когда PayoutOverlay эмитит сигнал payout_completed.
+	Обрабатывает результат (правильно/неправильно) и управляет переходом к следующей выплате.
+
+	Args:
+		bet_type: Тип ставки ("Player"/"Banker"/"Tie"/"PairPlayer"/"PairBanker")
+		is_correct: Правильная ли выплата
+		collected: Собранная сумма
+		expected: Ожидаемая сумма
+	"""
+	print("💰 Завершена выплата в overlay режиме: bet_type=%s, correct=%s, collected=%.1f, expected=%.1f" % [bet_type, is_correct, collected, expected])
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ОБРАБОТКА РЕЗУЛЬТАТА (эмитим события как в старом режиме)
+	# ═══════════════════════════════════════════════════════════════════
+	if is_correct:
+		EventBus.payout_correct.emit(collected, expected)
+		print("  ✅ Правильная выплата %s: %.1f" % [bet_type, expected])
+
+		# Отмечаем ставку как оплаченную в PayoutQueueManager
+		if payout_queue_manager:
+			payout_queue_manager.mark_as_paid(bet_type)
+			print("  ✅ Ставка %s отмечена как оплаченная" % bet_type)
+
+		# Скрываем фишку оплаченной ставки
+		if chip_visual_manager:
+			chip_visual_manager.hide_chip(bet_type)
+			print("  🎨 Фишка %s скрыта" % bet_type)
+
+		# Увеличиваем счетчик раундов в survival mode
+		if is_survival_mode:
+			survival_rounds_completed += 1
+			print("  🎮 Survival: раунд %d завершен" % survival_rounds_completed)
+	else:
+		EventBus.payout_wrong.emit(collected, expected)
+		print("  ❌ Неправильная выплата %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
+
+		# Потеря жизни обрабатывается через EventBus в SurvivalUI
+		# (EventBus.payout_wrong → SurvivalUI.lose_life)
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ОСТАВШИХСЯ ВЫПЛАТ
+	# ═══════════════════════════════════════════════════════════════════
+	# TODO: Если есть еще неоплаченные выплаты - можно автоматически показать следующую
+	# Пока оставляем ручной режим - пользователь кликает на следующую фишку
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ЗАВЕРШЕНИЕ РАУНДА (если все выплаты оплачены И последняя правильная)
+	# ═══════════════════════════════════════════════════════════════════
+	if is_correct:
+		# Проверяем, остались ли неоплаченные выплаты
+		var has_unpaid = false
+		if payout_queue_manager:
+			for check_bet_type in ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]:
+				var bet = payout_queue_manager.get_bet_by_type(check_bet_type)
+				if bet and bet.won and not bet.is_paid:
+					has_unpaid = true
+					break
+
+		if not has_unpaid:
+			# Все выплаты оплачены → сброс раунда
+			print("  ✅ Все выплаты оплачены! Начинаем новый раунд")
+			phase_manager.reset()
+
+			# Разблокируем маркеры для новой игры
+			if winner_selection_manager:
+				winner_selection_manager.unlock_markers()
+		else:
+			print("  ⏳ Есть еще неоплаченные выплаты, ждем клика на следующую фишку")
+
 
 func _restore_cards_ui():
 	"""Восстановить карты на UI после возврата из PayoutScene"""
