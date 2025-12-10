@@ -1,3 +1,5 @@
+ColorRect
+CanvasLayer
 Button
 HBoxContainer
 HSeparator
@@ -9,5 +11,4 @@ MarginContainer
 PanelContainer
 CenterContainer
 Panel
-CanvasLayer
 TextureButton

@@ -21,28 +21,28 @@
 ### **Было (Scene Transition):**
 ```
 GameController → change_scene_to_file("PayoutScene.tscn")
-    ↓
+	↓
 Game.tscn 🗑️ УДАЛЁН из памяти
-    ↓
+	↓
 PayoutScene.tscn загружен (весь экран)
-    ↓
+	↓
 change_scene_to_file("Game.tscn")
-    ↓
+	↓
 Game.tscn загружен ЗАНОВО (_ready() вызван снова)
-    ↓
+	↓
 Восстановление состояния из TableStateManager
 ```
 
 ### **Станет (Overlay):**
 ```
 GameController → payout_overlay.show()
-    ↓
+	↓
 Game.tscn остаётся в памяти ✅
-    ↓
+	↓
 PayoutOverlay (CanvasLayer) показан поверх
-    ↓
+	↓
 payout_overlay.hide()
-    ↓
+	↓
 Game.tscn виден снова (всё на месте)
 ```
 
@@ -148,25 +148,25 @@ git commit -m "docs: план рефакторинга PayoutScene → PayoutOve
    ├─ ChipBet
    ├─ SettingsScene (CanvasLayer)
    └─ PayoutOverlay (CanvasLayer) ← NEW!
-       └─ ColorRect (затемнение фона - опционально)
-           └─ MarginContainer
-               └─ VBoxContainer
-                   ├─ HeaderHBox
-                   │   ├─ ResultLabel
-                   │   ├─ StakeLabel
-                   │   ├─ AmountPanel
-                   │   │   └─ CollectedAmountLabel
-                   │   └─ HintButton
-                   ├─ FleetPanel
-                   │   └─ FleetMargin
-                   │       └─ FleetHBox
-                   │           ├─ ChipFleetContainer
-                   │           └─ PayoutButton
-                   ├─ MainPanel
-                   │   └─ ChipStacksContainer
-                   ├─ ScoreLabel
-                   └─ FeedbackContainer
-                       └─ FeedbackLabel
+	   └─ ColorRect (затемнение фона - опционально)
+		   └─ MarginContainer
+			   └─ VBoxContainer
+				   ├─ HeaderHBox
+				   │   ├─ ResultLabel
+				   │   ├─ StakeLabel
+				   │   ├─ AmountPanel
+				   │   │   └─ CollectedAmountLabel
+				   │   └─ HintButton
+				   ├─ FleetPanel
+				   │   └─ FleetMargin
+				   │       └─ FleetHBox
+				   │           ├─ ChipFleetContainer
+				   │           └─ PayoutButton
+				   ├─ MainPanel
+				   │   └─ ChipStacksContainer
+				   ├─ ScoreLabel
+				   └─ FeedbackContainer
+					   └─ FeedbackLabel
    ```
 
 5. **Добавить затемнение фона (опционально)**
@@ -177,7 +177,7 @@ git commit -m "docs: план рефакторинга PayoutScene → PayoutOve
    - Mouse Filter: Stop (блокирует клики по столу)
 
 6. **Сохранить сцену**
-   - Ctrl+S или Scene → Save Scene
+   - Ctrl+S или Scene → Save Sceneы
 
 **Commit:**
 ```bash
@@ -219,21 +219,21 @@ git commit -m "feat: добавлен PayoutOverlay (CanvasLayer) в Game.tscn
    **Было:**
    ```gdscript
    func _ready():
-       # ...
-       # Загружаем данные из GameDataManager
-       setup_payout(
-           GameDataManager.payout_winner,
-           GameDataManager.payout_stake,
-           GameDataManager.payout_amount
-       )
+	   # ...
+	   # Загружаем данные из GameDataManager
+	   setup_payout(
+		   GameDataManager.payout_winner,
+		   GameDataManager.payout_stake,
+		   GameDataManager.payout_amount
+	   )
    ```
 
    **Стало:**
    ```gdscript
    func _ready():
-       # ...
-       # Данные передаются напрямую через setup_payout()
-       # (вызывается из GameController)
+	   # ...
+	   # Данные передаются напрямую через setup_payout()
+	   # (вызывается из GameController)
    ```
 
 4. **Изменить метод завершения выплаты**
@@ -241,11 +241,11 @@ git commit -m "feat: добавлен PayoutOverlay (CanvasLayer) в Game.tscn
    **Было (PayoutScene.gd:524):**
    ```gdscript
    func _transition_back_to_game():
-       # Сохраняем результат в GameDataManager
-       GameDataManager.set_payout_result(is_correct, collected, expected)
+	   # Сохраняем результат в GameDataManager
+	   GameDataManager.set_payout_result(is_correct, collected, expected)
 
-       # Переходим обратно на Game.tscn
-       get_tree().change_scene_to_file("res://scenes/Game.tscn")
+	   # Переходим обратно на Game.tscn
+	   get_tree().change_scene_to_file("res://scenes/Game.tscn")
    ```
 
    **Стало (PayoutOverlay.gd):**
@@ -253,27 +253,27 @@ git commit -m "feat: добавлен PayoutOverlay (CanvasLayer) в Game.tscn
    signal payout_completed(is_correct: bool, collected: float, expected: float)
 
    func _transition_back_to_game():
-       # Эмитим сигнал с результатом
-       payout_completed.emit(is_correct, collected, expected)
+	   # Эмитим сигнал с результатом
+	   payout_completed.emit(is_correct, collected, expected)
 
-       # Скрываем overlay
-       hide()
+	   # Скрываем overlay
+	   hide()
    ```
 
 5. **Добавить метод show_payout() для внешнего вызова**
    ```gdscript
    func show_payout(winner: String, stake: float, payout: float):
-       """Показать overlay с параметрами выплаты
+	   """Показать overlay с параметрами выплаты
 
        Вызывается из GameController вместо scene transition
-       """
-       setup_payout(winner, stake, payout)
-       show()  # Показать CanvasLayer
+	   """
+	   setup_payout(winner, stake, payout)
+	   show()  # Показать CanvasLayer
 
-       # Установить фокус на первую кнопку флота
-       if chip_fleet_container.get_child_count() > 0:
-           var first_chip_button = chip_fleet_container.get_child(0)
-           first_chip_button.grab_focus()
+	   # Установить фокус на первую кнопку флота
+	   if chip_fleet_container.get_child_count() > 0:
+		   var first_chip_button = chip_fleet_container.get_child(0)
+		   first_chip_button.grab_focus()
    ```
 
 6. **Обновить метод _update_score_display()**
@@ -281,8 +281,8 @@ git commit -m "feat: добавлен PayoutOverlay (CanvasLayer) в Game.tscn
    **Было:**
    ```gdscript
    func _update_score_display():
-       var score = SaveManager.instance.get_score()
-       score_label.text = Localization.t("SCORE") + ": %d" % score
+	   var score = SaveManager.instance.get_score()
+	   score_label.text = Localization.t("SCORE") + ": %d" % score
    ```
 
    **Стало (без изменений, но проверить):**
@@ -345,81 +345,81 @@ git commit -m "feat: создан PayoutOverlay.gd для overlay режима
 4. **Подключить сигнал в _ready()**
    ```gdscript
    func _ready():
-       # ... существующий код ...
+	   # ... существующий код ...
 
-       # Подключаем PayoutOverlay
-       if has_node("PayoutOverlay"):
-           payout_overlay = get_node("PayoutOverlay")
-           payout_overlay.payout_completed.connect(_on_payout_overlay_completed)
-           payout_overlay.hide()  # Убедиться что скрыт
-           print("✅ PayoutOverlay подключен к GameController")
-       else:
-           print("⚠️  PayoutOverlay НЕ НАЙДЕН в Game.tscn")
+	   # Подключаем PayoutOverlay
+	   if has_node("PayoutOverlay"):
+		   payout_overlay = get_node("PayoutOverlay")
+		   payout_overlay.payout_completed.connect(_on_payout_overlay_completed)
+		   payout_overlay.hide()  # Убедиться что скрыт
+		   print("✅ PayoutOverlay подключен к GameController")
+	   else:
+		   print("⚠️  PayoutOverlay НЕ НАЙДЕН в Game.tscn")
    ```
 
 5. **Создать новый метод _show_payout_overlay()**
    ```gdscript
    func _show_payout_overlay(winner: String, stake: float, payout: float):
-       """Показать PayoutOverlay (новый способ - overlay)"""
+	   """Показать PayoutOverlay (новый способ - overlay)"""
 
-       print("💰 Показываю PayoutOverlay: %s, stake=%.1f, payout=%.1f" % [winner, stake, payout])
+	   print("💰 Показываю PayoutOverlay: %s, stake=%.1f, payout=%.1f" % [winner, stake, payout])
 
-       # Показываем overlay с параметрами
-       payout_overlay.show_payout(winner, stake, payout)
+	   # Показываем overlay с параметрами
+	   payout_overlay.show_payout(winner, stake, payout)
    ```
 
 6. **Создать обработчик завершения**
    ```gdscript
    func _on_payout_overlay_completed(is_correct: bool, collected: float, expected: float):
-       """Обработка завершения выплаты в overlay режиме"""
+	   """Обработка завершения выплаты в overlay режиме"""
 
-       print("💰 Выплата завершена: correct=%s, collected=%.1f, expected=%.1f" % [is_correct, collected, expected])
+	   print("💰 Выплата завершена: correct=%s, collected=%.1f, expected=%.1f" % [is_correct, collected, expected])
 
-       if is_correct:
-           # ✅ Правильная выплата
-           EventBus.payout_correct.emit(collected, expected)
+	   if is_correct:
+		   # ✅ Правильная выплата
+		   EventBus.payout_correct.emit(collected, expected)
 
-           # Обновляем очки
-           SaveManager.instance.add_score(1)
+		   # Обновляем очки
+		   SaveManager.instance.add_score(1)
 
-           # Проверяем следующую выплату в очереди
-           if payout_queue_manager.has_next_payout():
-               # Есть ещё выплаты (например, пары)
-               var next_payout = payout_queue_manager.get_next_payout()
-               _show_payout_overlay(
-                   next_payout.bet_type,
-                   next_payout.stake,
-                   next_payout.payout
-               )
-           else:
-               # Все выплаты завершены
-               _on_all_payouts_completed()
-       else:
-           # ❌ Неправильная выплата
-           EventBus.payout_wrong.emit(collected, expected)
+		   # Проверяем следующую выплату в очереди
+		   if payout_queue_manager.has_next_payout():
+			   # Есть ещё выплаты (например, пары)
+			   var next_payout = payout_queue_manager.get_next_payout()
+			   _show_payout_overlay(
+				   next_payout.bet_type,
+				   next_payout.stake,
+				   next_payout.payout
+			   )
+		   else:
+			   # Все выплаты завершены
+			   _on_all_payouts_completed()
+	   else:
+		   # ❌ Неправильная выплата
+		   EventBus.payout_wrong.emit(collected, expected)
 
-           if is_survival_mode:
-               survival_ui.lose_life()
+		   if is_survival_mode:
+			   survival_ui.lose_life()
 
 
    func _on_all_payouts_completed():
-       """Все выплаты в очереди обработаны"""
+	   """Все выплаты в очереди обработаны"""
 
-       if is_survival_mode:
-           survival_rounds_completed += 1
-           print("🏆 Раунд выживания завершён: %d" % survival_rounds_completed)
+	   if is_survival_mode:
+		   survival_rounds_completed += 1
+		   print("🏆 Раунд выживания завершён: %d" % survival_rounds_completed)
 
-       # Сбрасываем стол для новой раздачи
-       phase_manager.reset()
-       ui_manager.reset_ui()
-       camera_zoom_out()
+	   # Сбрасываем стол для новой раздачи
+	   phase_manager.reset()
+	   ui_manager.reset_ui()
+	   camera_zoom_out()
 
-       # Разблокируем маркеры
-       if winner_selection_manager:
-           winner_selection_manager.unlock_markers()
+	   # Разблокируем маркеры
+	   if winner_selection_manager:
+		   winner_selection_manager.unlock_markers()
 
-       # Эмитим событие подготовки стола
-       EventBus.table_prepared_for_new_game.emit()
+	   # Эмитим событие подготовки стола
+	   EventBus.table_prepared_for_new_game.emit()
    ```
 
 7. **Изменить существующий метод _prepare_payouts() с переключателем**
@@ -428,27 +428,27 @@ git commit -m "feat: создан PayoutOverlay.gd для overlay режима
 
    ```gdscript
    func _prepare_payouts(winner: String, stake: float, payout: float):
-       """Подготовка очереди выплат и показ первой"""
+	   """Подготовка очереди выплат и показ первой"""
 
-       # ... существующая логика создания очереди ...
+	   # ... существующая логика создания очереди ...
 
-       # Показываем первую выплату
-       var first_payout = payout_queue_manager.get_next_payout()
+	   # Показываем первую выплату
+	   var first_payout = payout_queue_manager.get_next_payout()
 
-       if USE_OVERLAY_PAYOUT:
-           # 🆕 Новый способ - overlay
-           _show_payout_overlay(
-               first_payout.bet_type,
-               first_payout.stake,
-               first_payout.payout
-           )
-       else:
-           # 🗑️ Старый способ - scene transition
-           _prepare_payout_transition(
-               first_payout.bet_type,
-               first_payout.stake,
-               first_payout.payout
-           )
+	   if USE_OVERLAY_PAYOUT:
+		   # 🆕 Новый способ - overlay
+		   _show_payout_overlay(
+			   first_payout.bet_type,
+			   first_payout.stake,
+			   first_payout.payout
+		   )
+	   else:
+		   # 🗑️ Старый способ - scene transition
+		   _prepare_payout_transition(
+			   first_payout.bet_type,
+			   first_payout.stake,
+			   first_payout.payout
+		   )
    ```
 
 **Commit:**
@@ -533,9 +533,9 @@ git commit -m "feat: интеграция PayoutOverlay в GameController
    - [ ] Нет warnings (кроме известных)
 
 10. **Если ВСЁ работает:**
-    ```bash
-    git add scripts/GameController.gd
-    git commit -m "test: overlay режим работает корректно
+	```bash
+	git add scripts/GameController.gd
+	git commit -m "test: overlay режим работает корректно
 
     Протестированы сценарии:
     - Обычная выплата
@@ -546,16 +546,16 @@ git commit -m "feat: интеграция PayoutOverlay в GameController
     - Джойпад навигация
 
     USE_OVERLAY_PAYOUT = true оставлен включённым"
-    ```
+	```
 
 11. **Если что-то НЕ работает:**
-    ```gdscript
-    const USE_OVERLAY_PAYOUT = false  # Вернуть старый способ
-    ```
+	```gdscript
+	const USE_OVERLAY_PAYOUT = false  # Вернуть старый способ
+	```
 
-    - Записать что именно не работает
-    - Исправить в PayoutOverlay.gd или GameController.gd
-    - Повторить тестирование
+	- Записать что именно не работает
+	- Исправить в PayoutOverlay.gd или GameController.gd
+	- Повторить тестирование
 
 **Критерий успеха:** ✅ Все 6 тестов пройдены, overlay работает как scene transition
 
@@ -587,44 +587,44 @@ git commit -m "feat: интеграция PayoutOverlay в GameController
 3. **Упростить _prepare_payouts()**
    ```gdscript
    func _prepare_payouts(winner: String, stake: float, payout: float):
-       """Подготовка очереди выплат и показ первой"""
+	   """Подготовка очереди выплат и показ первой"""
 
-       # Очищаем очередь
-       payout_queue_manager.clear_queue()
+	   # Очищаем очередь
+	   payout_queue_manager.clear_queue()
 
-       # Добавляем основную выплату
-       payout_queue_manager.add_payout({
-           "bet_type": winner,
-           "stake": stake,
-           "payout": payout,
-           "player_score": BaccaratRules.hand_value(phase_manager.player_hand),
-           "banker_score": BaccaratRules.hand_value(phase_manager.banker_hand)
-       })
+	   # Добавляем основную выплату
+	   payout_queue_manager.add_payout({
+		   "bet_type": winner,
+		   "stake": stake,
+		   "payout": payout,
+		   "player_score": BaccaratRules.hand_value(phase_manager.player_hand),
+		   "banker_score": BaccaratRules.hand_value(phase_manager.banker_hand)
+	   })
 
-       # Добавляем выплаты за пары (если есть)
-       if pair_betting_manager.player_pair_detected:
-           var pair_payout = pair_betting_manager.get_player_pair_payout()
-           payout_queue_manager.add_payout({
-               "bet_type": "PlayerPair",
-               "stake": pair_betting_manager.player_pair_stake,
-               "payout": pair_payout
-           })
+	   # Добавляем выплаты за пары (если есть)
+	   if pair_betting_manager.player_pair_detected:
+		   var pair_payout = pair_betting_manager.get_player_pair_payout()
+		   payout_queue_manager.add_payout({
+			   "bet_type": "PlayerPair",
+			   "stake": pair_betting_manager.player_pair_stake,
+			   "payout": pair_payout
+		   })
 
-       if pair_betting_manager.banker_pair_detected:
-           var pair_payout = pair_betting_manager.get_banker_pair_payout()
-           payout_queue_manager.add_payout({
-               "bet_type": "BankerPair",
-               "stake": pair_betting_manager.banker_pair_stake,
-               "payout": pair_payout
-           })
+	   if pair_betting_manager.banker_pair_detected:
+		   var pair_payout = pair_betting_manager.get_banker_pair_payout()
+		   payout_queue_manager.add_payout({
+			   "bet_type": "BankerPair",
+			   "stake": pair_betting_manager.banker_pair_stake,
+			   "payout": pair_payout
+		   })
 
-       # Показываем первую выплату
-       var first_payout = payout_queue_manager.get_next_payout()
-       _show_payout_overlay(
-           first_payout.bet_type,
-           first_payout.stake,
-           first_payout.payout
-       )
+	   # Показываем первую выплату
+	   var first_payout = payout_queue_manager.get_next_payout()
+	   _show_payout_overlay(
+		   first_payout.bet_type,
+		   first_payout.stake,
+		   first_payout.payout
+	   )
    ```
 
 4. **Проверить использование GameDataManager**
