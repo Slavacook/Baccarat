@@ -70,6 +70,9 @@ func _ready():
 	# Подключаем сигналы кнопок
 	_connect_signals()
 
+	# Подписываемся на изменение языка через EventBus для синхронизации
+	EventBus.language_changed.connect(_on_language_changed_external)
+
 	# Обновляем тексты (локализация)
 	_update_texts()
 
@@ -252,16 +255,11 @@ func _update_mode_info(mode: String):
 	if not mode_info_label:
 		return
 
+	# Используем локализацию вместо хардкода
 	if mode == "junket":
-		mode_info_label.text = """Основные ставки: 2000-200000, шаг 500
-Tie: 100-900, шаг 25
-Пары: 100-900, шаг 25
-Комиссия банкира: 95%"""
+		mode_info_label.text = Localization.t("MODE_INFO_JUNKET")
 	else:  # classic
-		mode_info_label.text = """Основные ставки: 50-3000, шаг 1
-Tie: 25-300, шаг 1
-Пары: 25-200, шаг 1
-Комиссия банкира: 50%"""
+		mode_info_label.text = Localization.t("MODE_INFO_CLASSIC")
 
 func _update_lang_buttons():
 	"""Обновить состояние кнопок языка"""
@@ -296,17 +294,18 @@ func _on_survival_toggled(pressed: bool):
 # === РЕЖИМ ИГРЫ ===
 func _on_junket_pressed():
 	"""Обработка нажатия кнопки Junket"""
-	_update_mode_buttons("junket")
-	_update_mode_info("junket")
-	mode_changed.emit("junket")
-	print("🎮 Режим игры изменён: Junket")
+	_switch_game_mode("junket")
 
 func _on_classic_pressed():
 	"""Обработка нажатия кнопки Classic"""
-	_update_mode_buttons("classic")
-	_update_mode_info("classic")
-	mode_changed.emit("classic")
-	print("🎮 Режим игры изменён: Classic")
+	_switch_game_mode("classic")
+
+func _switch_game_mode(mode: String):
+	"""Переключить режим игры (Junket/Classic)"""
+	_update_mode_buttons(mode)
+	_update_mode_info(mode)
+	mode_changed.emit(mode)
+	print("🎮 Режим игры изменён: %s" % mode.capitalize())
 
 # === СТАВКИ ===
 func _on_bet_player_toggled(pressed: bool):
@@ -378,3 +377,16 @@ func _on_cancel_pressed():
 	# Закрываем окно
 	close_settings()
 	print("❌ Настройки отменены")
+
+# === СИНХРОНИЗАЦИЯ С EVENTBUS ===
+func _on_language_changed_external(lang: String):
+	"""Обработка внешнего изменения языка через EventBus"""
+	# Синхронизируем UI с новым языком
+	_update_lang_buttons()
+	_update_texts()
+
+	# Обновляем информацию о режиме игры с учетом нового языка
+	var current_mode = GameModeManager.get_mode_string()
+	_update_mode_info(current_mode)
+
+	print("🔄 SettingsScene синхронизирован с языком: %s" % lang)
