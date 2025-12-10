@@ -1,0 +1,247 @@
+ОТЧЕТ АНАЛИЗА ПРОЕКТА BACCARAT
+Дата: среда, 10 декабря 2025 г. 22:18:58 (+10)
+======================================
+
+🔍 АНАЛИЗ НЕИСПОЛЬЗУЕМЫХ СКРИПТОВ
+==================================
+
+📁 Поиск всех .gd файлов (кроме addons)...
+
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ui/ToggleUIManager.gd [1;33m(       6 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ui/PayoutToggleManager.gd [1;33m(       4 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ui/ButtonUIManager.gd [1;33m(       8 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ui/MarkerUIManager.gd [1;33m(       6 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ui/CardUIManager.gd [1;33m(       5 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/GamePhaseManager.gd [1;33m(      18 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/Toast.gd [1;33m(      37 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/SettingsScene.gd [1;33m(      13 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/GameModeManager.gd [1;33m(      25 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/GameDataManager.gd [1;33m(      63 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/PayoutContextManager.gd [1;33m(      13 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/scenes/PayoutScene.gd [1;33m(      49 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ToastManager.gd [1;33m(      13 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/Localization.gd [1;33m(      80 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/Card.gd [1;33m(     256 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/SaveManager.gd [1;33m(      35 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/OverlayNotificationManager.gd [1;33m(       3 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/GameController.gd [1;33m(      20 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/FocusManager.gd [1;33m(      20 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/UIManager.gd [1;33m(      40 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/BetPopup.gd [1;33m(       5 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ToastPool.gd [1;33m(       7 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/OverlayNotification.gd [1;33m(       9 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/GameOverPopup.gd [1;33m(       6 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/TableLimitsPopup.gd [1;33m(       2 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/ChipVisualManager.gd [1;33m(      33 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/WinnerSelectionManager.gd [1;33m(      29 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/Deck.gd [1;33m(      15 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/GameConstants.gd [1;33m(      71 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/FlipCard.gd [1;33m(      16 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/HelpPopup.gd [1;33m(       6 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/BaccaratRules.gd [1;33m(      61 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/autoload/BetProfileManager.gd [1;33m(      17 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/autoload/EventBus.gd [1;33m(     129 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/autoload/GameStateManager.gd [1;33m(      66 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/autoload/TableStateManager.gd [1;33m(      44 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/autoload/PayoutSettingsManager.gd [1;33m(      69 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/SurvivalModeUI.gd [1;33m(       7 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/PairBettingManager.gd [1;33m(      19 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/chip_system/ChipStackManager.gd [1;33m(      23 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/chip_system/PayoutValidator.gd [1;33m(      11 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/chip_system/ChipStack.gd [1;33m(      44 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/StatsManager.gd [1;33m(      12 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/CardTextureManager.gd [1;33m(      17 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/PayoutQueueManager.gd [1;33m(      24 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/LimitsManager.gd [1;33m(       5 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scripts/Dust.gd [1;33m(       2 упоминаний)[0m
+
+==================================
+📊 ИТОГИ:
+  Всего скриптов: 47
+  [0;32mИспользуются: 47[0m
+  [0;31mНе используются: 0[0m
+==================================
+========================================
+
+🎬 АНАЛИЗ НЕИСПОЛЬЗУЕМЫХ СЦЕН
+==================================
+
+📁 Поиск всех .tscn файлов...
+
+[0;32m✅ ГЛАВНАЯ СЦЕНА:[0m scenes/Game.tscn
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/PayoutScene.tscn [1;33m(53 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/flip_card.tscn [1;33m(39 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/SurvivalModeUI.tscn [1;33m(8 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/GameOverPopup.tscn [1;33m(7 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/SettingsScene.tscn [1;33m(14 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/HelpPopup.tscn [1;33m(7 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/LimitsPopup.tscn [1;33m(7 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/Toast.tscn [1;33m(39 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/dust.tscn [1;33m(29 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/OverlayNotification.tscn [1;33m(10 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/BetPopup.tscn [1;33m(6 упоминаний)[0m
+[0;32m✅ ИСПОЛЬЗУЕТСЯ:[0m scenes/SettingsPopup.tscn [1;33m(4 упоминаний)[0m
+
+==================================
+📊 ИТОГИ:
+  Всего сцен: 13
+  [0;32mИспользуются: 13[0m
+  [0;31mНе используются: 0[0m
+==================================
+========================================
+
+🔧 АНАЛИЗ AUTOLOAD СИНГЛТОНОВ
+==================================
+
+📁 Чтение autoload из project.godot...
+
+[0;31m❌ Autoload секция не найдена в project.godot[0m
+========================================
+
+🖼️  АНАЛИЗ НЕИСПОЛЬЗУЕМЫХ РЕСУРСОВ
+==================================
+
+📁 Поиск ресурсов в assets/...
+
+[1;33m🔍 Проверяю .png файлы...[0m
+
+[0;32m  ✅ Используется:[0m assets/ui/PayoutTogglePlayer.png [1;33m(       3 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/buttons/complete_button.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/buttons/start_button.png [1;33m(       4 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/buttons/complete_pressed_button.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/buttons/confirm_button.png [1;33m(      10 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/buttons/confirm_button_pressed.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/buttons/start_button_pressed.png [1;33m(       1 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/ui/Tie_win.png
+[0;32m  ✅ Используется:[0m assets/ui/player_marker.png [1;33m(      17 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/banker_marker_wins.png [1;33m(       2 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/heart_empty.png [1;33m(       2 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/PairPlayer.png [1;33m(      39 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/ui/chip_bet_1.png
+[0;32m  ✅ Используется:[0m assets/ui/set.png [1;33m(     506 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/heart.png [1;33m(      18 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/PayoutToggleTie.png [1;33m(       3 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/table_background.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/PayoutToggleBanker.png [1;33m(       3 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/Tie.png [1;33m(      95 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/player_marker_wins.png [1;33m(       2 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/ui/chip_bet.png
+[0;32m  ✅ Используется:[0m assets/ui/PairBanker.png [1;33m(      39 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/banker_marker.png [1;33m(      17 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/ui/Shuffle .png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/chips/stacks.png [1;33m(      64 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/chip_10000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_100000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_10000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/chip_25000.png
+[0;32m  ✅ Используется:[0m assets/chips/chip_1000.png [1;33m(       4 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_500.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_50000.png
+[0;32m  ✅ Используется:[0m assets/chips/chip_1.png [1;33m(       7 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/chips/chip_5.png [1;33m(       7 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_0.5.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_1000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_100.png
+[0;32m  ✅ Используется:[0m assets/chips/chip_100.png [1;33m(       7 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_25.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_5000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_1.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/chip_0.5.png
+[0;32m  ✅ Используется:[0m assets/chips/chip_25.png [1;33m(       1 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/chip_100000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_25000.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/stack_5.png
+[0;32m  ✅ Используется:[0m assets/chips/chip_5000.png [1;33m(       2 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/chips/chip_50000.png
+[0;32m  ✅ Используется:[0m assets/chips/chip_500.png [1;33m(       7 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/6_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/9_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/queen_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/4_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/jack_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/2_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/queen_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/ace_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/7_spades.png
+[0;32m  ✅ Используется:[0m assets/cards/back/card_back_?.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/cards/back/card_back_!.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/cards/back/card_back.png [1;33m(       3 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/ace_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/jack_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/king_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/7_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/6_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/6_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/5_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/7_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/10_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/king_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/king_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/3_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/8_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/jack_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/2_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/5_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/4_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/6_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/9_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/2_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/8_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/cards_atlas.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/4_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/3_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/king_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/10_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/5_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/3_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/10_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/10_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/queen_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/4_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/2_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/5_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/9_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/9_diamonds.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/8_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/3_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/ace_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/jack_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/queen_spades.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/ace_clubs.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/7_hearts.png
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/cards/8_diamonds.png
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_5.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_4.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_6.png [1;33m(       1 упоминаний)[0m
+[0;31m  ❌ НЕИСПОЛЬЗУЕМЫЙ:[0m assets/animation/animation_open_card/open_card_11.png
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_10.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_7.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_3.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_2.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_1.png [1;33m(       2 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_9.png [1;33m(       1 упоминаний)[0m
+[0;32m  ✅ Используется:[0m assets/animation/animation_open_card/open_card_8.png [1;33m(       1 упоминаний)[0m
+
+[1;33m🔍 Проверяю .jpg файлы...[0m
+
+
+[1;33m🔍 Проверяю .jpeg файлы...[0m
+
+
+[1;33m🔍 Проверяю .svg файлы...[0m
+
+
+[1;33m🔍 Проверяю .tres файлы...[0m
+
+
+==================================
+📊 ИТОГИ:
+  Всего ресурсов: 116
+  [0;32mИспользуются: 42[0m
+  [0;31mНе используются: 74[0m
+==================================
+
+⚠️  ВНИМАНИЕ: Некоторые ресурсы могут загружаться динамически через load().
+   Проверьте вручную перед удалением!
+========================================
+
