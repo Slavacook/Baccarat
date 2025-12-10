@@ -117,6 +117,34 @@ func reset() -> void:
 	deselect_winner()
 
 
+func lock_markers() -> void:
+	"""Заблокировать все маркеры (некликабельные)
+
+	Используется во время выплат, чтобы игрок случайно не изменил выбор
+	"""
+	for winner_type in marker_nodes.keys():
+		var marker = marker_nodes[winner_type]
+		marker.disabled = true
+		# Делаем полупрозрачными для визуальной индикации
+		marker.modulate = Color(1.0, 1.0, 1.0, 0.5)
+
+	print("🔒 WinnerSelectionManager: маркеры заблокированы")
+
+
+func unlock_markers() -> void:
+	"""Разблокировать все маркеры (кликабельные)
+
+	Используется при подготовке стола к новой игре
+	"""
+	for winner_type in marker_nodes.keys():
+		var marker = marker_nodes[winner_type]
+		marker.disabled = false
+		# Возвращаем полную непрозрачность
+		marker.modulate = Color(1.0, 1.0, 1.0, 1.0)
+
+	print("🔓 WinnerSelectionManager: маркеры разблокированы")
+
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА КЛИКОВ
 # ═══════════════════════════════════════════════════════════════════════════

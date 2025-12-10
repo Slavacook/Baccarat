@@ -133,6 +133,10 @@ func _ready():
 		phase_manager.reset()
 		# Также сбрасываем GameStateManager только при обычной загрузке
 		GameStateManager.reset()
+
+		# Разблокируем маркеры для начала новой игры
+		if winner_selection_manager:
+			winner_selection_manager.unlock_markers()
 	else:
 		print("♻️  Пропускаем GameStateManager.reset() при возврате из PayoutScene")
 
@@ -300,6 +304,10 @@ func _on_winner_selected(chosen: String):
 	if chosen == actual:
 		# ✅ Правильный выбор победителя
 		EventBus.action_correct.emit("winner")
+
+		# Блокируем маркеры, чтобы игрок не мог случайно изменить выбор во время выплат
+		if winner_selection_manager:
+			winner_selection_manager.lock_markers()
 
 		# Пауза 1 секунда (карты остаются открытыми, маркер активен)
 		await get_tree().create_timer(GameConstants.VICTORY_TOAST_DELAY).timeout
@@ -609,6 +617,11 @@ func _on_restart_game():
 	if is_survival_mode:
 		survival_ui.reset()
 		survival_ui.activate()
+
+	# Разблокируем маркеры для новой игры
+	if winner_selection_manager:
+		winner_selection_manager.unlock_markers()
+
 	phase_manager.reset()
 
 func _on_settings_button_pressed():
@@ -1291,4 +1304,9 @@ func _on_first_deal_completed():
 func _on_table_prepared():
 	"""Обработка подготовки стола к новой игре"""
 	is_table_prepared_for_new_game = true
-	print("🎮 Стол подготовлен к новой игре (флаг is_table_prepared установлен)")
+
+	# Разблокируем маркеры для новой игры
+	if winner_selection_manager:
+		winner_selection_manager.unlock_markers()
+
+	print("🎮 Стол подготовлен к новой игре (флаг is_table_prepared установлен, маркеры разблокированы)")
