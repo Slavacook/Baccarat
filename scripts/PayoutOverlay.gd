@@ -3,7 +3,7 @@
 # Отображается поверх Game.tscn (CanvasLayer)
 # Использует модульную архитектуру: ChipStack, ChipStackManager, PayoutValidator
 
-extends Control
+extends CanvasLayer
 
 # ═══════════════════════════════════════════════════════════════════════════
 # UI ЭЛЕМЕНТЫ (обновленные пути)
