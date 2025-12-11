@@ -67,6 +67,9 @@ func _ready():
 	stack_manager.stack_added.connect(_on_stack_added)
 	GameModeManager.mode_changed.connect(_on_mode_changed)
 
+	# Подписываемся на потерю жизни для обновления сердечек
+	EventBus.payout_wrong.connect(_on_payout_wrong_event)
+
 	# Получаем номиналы фишек
 	_update_chip_denominations()
 
@@ -470,6 +473,20 @@ func _show_error_animation(_collected: float):
 		feedback_label.text = ""
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
+
+func _on_payout_wrong_event(_collected: float, _expected: float):
+	"""Обработчик события неправильной выплаты
+
+	Вызывается когда EventBus.payout_wrong эмитится.
+	Обновляем отображение сердечек после потери жизни.
+	"""
+	# Небольшая задержка чтобы SurvivalUI успел обновить жизни
+	await get_tree().create_timer(0.1).timeout
+
+	# Обновляем отображение сердечек/очков
+	_update_score_display()
+
+	print("♥️  PayoutOverlay: сердечки обновлены после потери жизни")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # OVERLAY УПРАВЛЕНИЕ

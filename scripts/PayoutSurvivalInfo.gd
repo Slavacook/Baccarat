@@ -15,7 +15,8 @@ extends HBoxContainer
 # ═══════════════════════════════════════════════════════════════════════════
 
 const MAX_LIVES = 7
-const HEART_SIZE = 28  # ← Размер сердечек (можно настроить)
+const HEART_SIZE = 24  # ← Размер сердечек (уменьшен с 28 до 24)
+const HEART_SEPARATION = 1  # ← Расстояние между сердечками (минимальное)
 
 var heart_nodes: Array[TextureRect] = []
 var heart_full: Texture2D
@@ -29,6 +30,10 @@ func _ready():
 	# Загружаем текстуры сердечек (используем те же что и в SurvivalModeUI)
 	heart_full = preload("res://assets/ui/heart.png")
 	heart_empty = preload("res://assets/ui/heart_empty.png")
+
+	# Устанавливаем минимальное расстояние между сердечками
+	if lives_container:
+		lives_container.add_theme_constant_override("separation", HEART_SEPARATION)
 
 	# Создаём 7 сердечек в LivesContainer
 	_create_hearts()
