@@ -1,26 +1,300 @@
-[gd_scene load_steps=2 format=3 uid="uid://cebo17nsn5lij"]
+[gd_scene load_steps=18 format=3 uid="uid://cebo17nsn5lij"]
 
-[ext_resource type="Script" uid="uid://duptxv0hwgyyk" path="res://scripts/scenes/PayoutScene.gd" id="1_payout"]
+[ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_iwhjp"]
+[ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="2_vsqai"]
+[ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="3_ipdf3"]
+[ext_resource type="PackedScene" uid="uid://b8ribk4n0q8w1" path="res://scenes/BetPopup.tscn" id="4_38olc"]
+[ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="5_3c4in"]
+[ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="6_sh7wo"]
+[ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="7_pygfp"]
+[ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="8_0em12"]
+[ext_resource type="Texture2D" uid="uid://ychwh6o6frhy" path="res://assets/ui/banker_marker.png" id="9_8grfm"]
+[ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="10_1g12a"]
+[ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="11_dh6ev"]
+[ext_resource type="PackedScene" path="res://scenes/GameOverPopup.tscn" id="12_r0u5q"]
+[ext_resource type="Texture2D" uid="uid://dcyp1p7e010hj" path="res://assets/ui/Shuffle .png" id="13_a5nln"]
+[ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="14_64t5t"]
+[ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="15_aflha"]
+[ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_p6km1"]
+[ext_resource type="Script" uid="uid://8fqkmr4r5o0l" path="res://scripts/PayoutSurvivalInfo.gd" id="17_gmy0e"]
 
-[node name="PayoutScene" type="Control"]
-layout_mode = 3
+[node name="Game" type="Node2D"]
+script = ExtResource("1_iwhjp")
+
+[node name="UI" type="CanvasLayer" parent="."]
+offset = Vector2(0, 50)
+transform = Transform2D(1, 0, 0, 1, 0, 50)
+
+[node name="ToastContainer" type="VBoxContainer" parent="UI"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -546.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = 120.0
+grow_horizontal = 2
+mouse_filter = 2
+
+[node name="TopUI" type="CanvasLayer" parent="."]
+layer = 128
+
+[node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("2_vsqai")]
+
+[node name="Background" type="TextureRect" parent="."]
+offset_right = 1920.0
+offset_bottom = 1080.0
+scale = Vector2(0.6, 0.6)
+texture = ExtResource("3_ipdf3")
+
+[node name="BetPopup" parent="." instance=ExtResource("4_38olc")]
+
+[node name="LimitsButton" type="Button" parent="."]
+visible = false
+offset_left = 1018.0
+offset_top = 191.0
+offset_right = 1101.0
+offset_bottom = 222.0
+scale = Vector2(1.5, 1.5)
+text = "ЛИМИТЫ"
+
+[node name="LimitsPopup" parent="." instance=ExtResource("5_3c4in")]
+
+[node name="PlayerZone" type="Node2D" parent="."]
+
+[node name="Card1" type="TextureRect" parent="PlayerZone"]
+offset_left = 680.0
+offset_top = 395.0
+offset_right = 946.6666
+offset_bottom = 693.3335
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+stretch_mode = 2
+
+[node name="Card2" type="TextureRect" parent="PlayerZone"]
+offset_left = 785.0
+offset_top = 395.0
+offset_right = 1001.6665
+offset_bottom = 616.6666
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+stretch_mode = 2
+
+[node name="Card3" type="TextureRect" parent="PlayerZone"]
+visible = false
+z_index = 1
+offset_left = 910.0
+offset_top = 395.0
+offset_right = 1100.0
+offset_bottom = 623.3334
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+stretch_mode = 2
+
+[node name="PlayerThirdCardToggle" type="TextureRect" parent="PlayerZone"]
+editor_description = "??"
+offset_left = 910.0
+offset_top = 395.0
+offset_right = 1098.3334
+offset_bottom = 643.3333
+scale = Vector2(0.6, 0.6)
+tooltip_text = "Карту Игроку?"
+mouse_filter = 0
+stretch_mode = 2
+
+[node name="BankerZone" type="Node2D" parent="."]
+
+[node name="Card1" type="TextureRect" parent="BankerZone"]
+offset_left = 305.0
+offset_top = 395.0
+offset_right = 446.6665
+offset_bottom = 611.6666
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+stretch_mode = 2
+
+[node name="Card2" type="TextureRect" parent="BankerZone"]
+offset_left = 410.0
+offset_top = 395.0
+offset_right = 515.0
+offset_bottom = 563.3333
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+stretch_mode = 2
+
+[node name="Card3" type="TextureRect" parent="BankerZone"]
+visible = false
+z_index = 1
+offset_left = 180.0
+offset_top = 395.0
+offset_right = 356.66666
+offset_bottom = 641.6666
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+stretch_mode = 2
+
+[node name="BankerThirdCardToggle" type="TextureRect" parent="BankerZone"]
+editor_description = "??"
+offset_left = 180.0
+offset_top = 395.0
+offset_right = 351.66666
+offset_bottom = 636.6666
+scale = Vector2(0.6, 0.6)
+tooltip_text = "Карту банкиру?"
+mouse_filter = 0
+stretch_mode = 2
+
+[node name="OpenCard" type="Node" parent="."]
+
+[node name="FlipCard1" parent="OpenCard" instance=ExtResource("6_sh7wo")]
+position = Vector2(731, 416)
+scale = Vector2(0.6, 0.6)
+
+[node name="FlipCard2" parent="OpenCard" instance=ExtResource("6_sh7wo")]
+position = Vector2(836, 416)
+scale = Vector2(0.6, 0.6)
+
+[node name="FlipCard5" parent="OpenCard" instance=ExtResource("6_sh7wo")]
+position = Vector2(961.00006, 416)
+scale = Vector2(0.6, 0.6)
+
+[node name="FlipCard3" parent="OpenCard" instance=ExtResource("6_sh7wo")]
+position = Vector2(356, 416.00003)
+scale = Vector2(0.6, 0.6)
+
+[node name="FlipCard4" parent="OpenCard" instance=ExtResource("6_sh7wo")]
+position = Vector2(462.00003, 416)
+scale = Vector2(0.6, 0.6)
+
+[node name="FlipCard6" parent="OpenCard" instance=ExtResource("6_sh7wo")]
+position = Vector2(231, 416.00003)
+scale = Vector2(0.6, 0.6)
+
+[node name="CardsButton" type="TextureButton" parent="."]
+modulate = Color(1, 1, 1, 0.8627451)
+offset_left = 949.0
+offset_top = 548.0
+offset_right = 1266.0
+offset_bottom = 681.0
+scale = Vector2(0.6, 0.6)
+
+[node name="PlayerMarker" type="TextureButton" parent="."]
+offset_left = 730.0
+offset_top = 300.0
+offset_right = 1230.0
+offset_bottom = 800.0
+scale = Vector2(0.2, 0.2)
+texture_normal = ExtResource("7_pygfp")
+texture_pressed = ExtResource("8_0em12")
+texture_hover = ExtResource("8_0em12")
+
+[node name="BankerMarker" type="TextureButton" parent="."]
+offset_left = 355.0
+offset_top = 300.0
+offset_right = 855.0
+offset_bottom = 800.0
+scale = Vector2(0.2, 0.2)
+texture_normal = ExtResource("9_8grfm")
+texture_pressed = ExtResource("10_1g12a")
+texture_hover = ExtResource("10_1g12a")
+
+[node name="HelpButton" type="Button" parent="."]
+custom_minimum_size = Vector2(40, 40)
+offset_left = 969.0
+offset_top = 6.0
+offset_right = 1018.0
+offset_bottom = 48.0
+theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 0.35686275)
+theme_override_font_sizes/font_size = 24
+text = "?"
+
+[node name="HelpPopup" parent="." instance=ExtResource("11_dh6ev")]
+
+[node name="GameOverPopup" parent="." instance=ExtResource("12_r0u5q")]
+
+[node name="StatsLabel" type="Label" parent="."]
+offset_left = 595.0
+offset_top = -2.0
+offset_right = 806.0
+offset_bottom = 21.0
+scale = Vector2(1.5, 1.5)
+text = "Правильно: 0 | Ошибок: 0"
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(21, 465)
+scale = Vector2(1.24, 1.24)
+texture = ExtResource("13_a5nln")
+
+[node name="SettingsButton" type="Button" parent="."]
+offset_left = 1094.0
+offset_top = 2.0000002
+offset_right = 1628.0
+offset_bottom = 522.0
+scale = Vector2(0.1, 0.1)
+size_flags_horizontal = 4
+theme_override_icons/icon = ExtResource("14_64t5t")
+text = "⚙︎"
+icon = ExtResource("14_64t5t")
+
+[node name="ChipPlayer" type="TextureButton" parent="."]
+visible = false
+offset_left = 872.0
+offset_top = 70.0
+offset_right = 912.0
+offset_bottom = 110.0
+
+[node name="ChipBanker" type="TextureButton" parent="."]
+visible = false
+offset_left = 864.0
+offset_top = 129.0
+offset_right = 904.0
+offset_bottom = 169.0
+
+[node name="ChipTie" type="TextureButton" parent="."]
+visible = false
+offset_left = 855.0
+offset_top = 193.0
+offset_right = 895.0
+offset_bottom = 233.0
+
+[node name="ChipPairPlayer" type="TextureButton" parent="."]
+visible = false
+offset_left = 799.0
+offset_top = 261.0
+offset_right = 839.0
+offset_bottom = 301.0
+
+[node name="ChipPairBanker" type="TextureButton" parent="."]
+visible = false
+offset_left = 643.0
+offset_top = 261.0
+offset_right = 683.0
+offset_bottom = 301.0
+
+[node name="TieButton" type="Button" parent="."]
+offset_left = 494.0
+offset_top = 557.0
+offset_right = 671.0
+offset_bottom = 632.0
+text = "Игалите"
+
+[node name="SettingsScene" parent="." instance=ExtResource("15_aflha")]
+visible = false
+
+[node name="PayoutOverlay" type="CanvasLayer" parent="."]
+layer = 200
+visible = false
+script = ExtResource("16_p6km1")
+
+[node name="ColorRect" type="ColorRect" parent="PayoutOverlay"]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-script = ExtResource("1_payout")
+color = Color(0, 0, 0, 0.8627451)
 
-[node name="Background" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.05, 0.1, 0.05, 1)
-
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="PayoutOverlay/ColorRect"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -32,28 +306,28 @@ theme_override_constants/margin_top = 30
 theme_override_constants/margin_right = 50
 theme_override_constants/margin_bottom = 30
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="HeaderHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="HeaderHBox" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer"]
 custom_minimum_size = Vector2(0, 60)
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="ResultLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="ResultLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
 text = "БАНКИР"
 
-[node name="StakeLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="StakeLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
 text = "Ставка: 200"
 
-[node name="AmountPanel" type="Panel" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="AmountPanel" type="Panel" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 custom_minimum_size = Vector2(120, 50)
 layout_mode = 2
 
-[node name="CollectedAmountLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderHBox/AmountPanel"]
+[node name="CollectedAmountLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -64,26 +338,34 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Spacer" type="Control" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="Spacer" type="Control" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HintButton" type="Button" parent="MarginContainer/VBoxContainer/HeaderHBox"]
+[node name="PayoutSurvivalInfo" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+theme_override_constants/separation = 3
+script = ExtResource("17_gmy0e")
+
+[node name="LivesContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
+layout_mode = 2
+theme_override_constants/separation = 1
+
+[node name="ScoreLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
+layout_mode = 2
+text = "Очки: 0"
+
+[node name="HintButton" type="Button" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 custom_minimum_size = Vector2(50, 50)
 layout_mode = 2
 text = "?"
 
-[node name="ScoreLabel" type="Label" parent="MarginContainer/VBoxContainer/HeaderHBox"]
-unique_name_in_owner = true
-layout_mode = 2
-text = "Очки: 10"
-
-[node name="MainPanel" type="Panel" parent="MarginContainer/VBoxContainer"]
+[node name="MainPanel" type="Panel" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="MainMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/MainPanel"]
+[node name="MainMargin" type="MarginContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/MainPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -95,16 +377,16 @@ theme_override_constants/margin_top = 15
 theme_override_constants/margin_right = 15
 theme_override_constants/margin_bottom = 15
 
-[node name="ChipStacksContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/MainPanel/MainMargin"]
+[node name="ChipStacksContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/MainPanel/MainMargin"]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="FleetPanel" type="Panel" parent="MarginContainer/VBoxContainer"]
+[node name="FleetPanel" type="Panel" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(0, 150)
 layout_mode = 2
 
-[node name="FleetMargin" type="MarginContainer" parent="MarginContainer/VBoxContainer/FleetPanel"]
+[node name="FleetMargin" type="MarginContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -116,48 +398,41 @@ theme_override_constants/margin_top = 10
 theme_override_constants/margin_right = 10
 theme_override_constants/margin_bottom = 10
 
-[node name="FleetHBox" type="HBoxContainer" parent="MarginContainer/VBoxContainer/FleetPanel/FleetMargin"]
+[node name="FleetHBox" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin"]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="ChipFleetContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
+[node name="ChipFleetContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 
-[node name="PayoutButton" type="Button" parent="MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
+[node name="PayoutButton" type="Button" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox"]
 custom_minimum_size = Vector2(80, 80)
 layout_mode = 2
 size_flags_vertical = 4
 text = "Выплатить"
 
-[node name="FeedbackContainer" type="CenterContainer" parent="."]
-z_index = 100
-layout_mode = 0
+[node name="FeedbackContainer" type="VBoxContainer" parent="PayoutOverlay/ColorRect"]
+layout_mode = 1
+anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+alignment = 1
 
-[node name="FeedbackLabel" type="Label" parent="FeedbackContainer"]
-unique_name_in_owner = true
+[node name="FeedbackLabel" type="Label" parent="PayoutOverlay/ColorRect/FeedbackContainer"]
 layout_mode = 2
+size_flags_horizontal = 4
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="UI" type="CanvasLayer" parent="."]
-offset = Vector2(0, 50)
-transform = Transform2D(1, 0, 0, 1, 0, 50)
-
-[node name="ToastContainer" type="VBoxContainer" parent="UI"]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -300.0
-offset_top = 60.0
-offset_right = 300.0
-offset_bottom = 160.0
-grow_horizontal = 2
-mouse_filter = 2
+[connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
+[connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]
+[connection signal="pressed" from="CardsButton" to="." method="_on_cards_button_pressed"]
+[connection signal="pressed" from="PlayerMarker" to="." method="_on_player_marker_pressed"]
+[connection signal="pressed" from="BankerMarker" to="." method="_on_banker_marker_pressed"]
+[connection signal="pressed" from="HelpButton" to="." method="_on_help_button_pressed"]

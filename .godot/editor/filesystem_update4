@@ -7,3 +7,4 @@ res://scenes/SurvivalModeUI.tscn
 res://scripts/PayoutSurvivalInfo.gd
 res://scenes/PayoutScene.tscn
 res://scripts/SurvivalModeUI.gd
+res://scripts/GamePhaseManager.gd
