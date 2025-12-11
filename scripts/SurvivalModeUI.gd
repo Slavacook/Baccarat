@@ -18,6 +18,18 @@ var heart_empty = preload("res://assets/ui/heart_empty.png")
 func _ready():
 	hide()  # Скрыто по умолчанию
 
+	# Подписываемся на события ошибок для потери жизней
+	EventBus.action_error.connect(_on_error)
+	EventBus.payout_wrong.connect(_on_payout_wrong)
+
+func _on_error(_type: String = "", _message: String = ""):
+	"""Обработчик ошибок действий (третья карта, выбор победителя)"""
+	lose_life()
+
+func _on_payout_wrong(_collected: float, _expected: float):
+	"""Обработчик неправильной выплаты"""
+	lose_life()
+
 # ← Активировать режим выживания
 func activate():
 	if is_active:
