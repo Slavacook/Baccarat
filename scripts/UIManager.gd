@@ -302,14 +302,19 @@ func _update_single_card_back(card: TextureRect, new_back: Texture2D):
 	if not card or not card.texture:
 		return
 
-	# Проверяем показывает ли карта рубашку (любого типа)
-	var old_back = card_manager.get_back_texture()
-	var old_question = card_manager.get_back_question_texture()
-	var old_exclamation = card_manager.get_back_exclamation_texture()
+	# Загружаем ОБЕ возможные рубашки (тигр и леопард)
+	var tiger_back = load("res://assets/cards/back/card_back.png")
+	var leopard_back = load("res://assets/cards/back/card_back_2.png")
+	var question = card_manager.get_back_question_texture()
+	var exclamation = card_manager.get_back_exclamation_texture()
 
-	if card.texture == old_back:
+	# Проверяем показывает ли карта рубашку (любую: тигр, леопард, ?, !)
+	if card.texture == tiger_back or card.texture == leopard_back:
+		# Обычная рубашка → меняем на новую
 		card.texture = new_back
-	elif card.texture == old_question:
+	elif card.texture == question:
+		# ? рубашка → обновляем (могла измениться)
 		card.texture = card_manager.get_back_question_texture()
-	elif card.texture == old_exclamation:
+	elif card.texture == exclamation:
+		# ! рубашка → обновляем (могла измениться)
 		card.texture = card_manager.get_back_exclamation_texture()
