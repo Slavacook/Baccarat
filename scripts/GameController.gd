@@ -193,12 +193,12 @@ func _ready():
 
 	# ← Подписки на новые события EventBus (для Dependency Injection рефакторинга)
 	EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested)
-	EventBus.life_loss_requested.connect(_on_life_loss_requested)
+	# life_loss_requested УДАЛЁН - теперь SurvivalModeUI сам слушает action_error
 	EventBus.manual_payout_requested.connect(_on_manual_payout_requested)
 	EventBus.first_deal_completed.connect(_on_first_deal_completed)
 	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
 	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
-	print("✅ Подписки на EventBus события установлены (camera, life_loss, payouts, flags, settings)")
+	print("✅ Подписки на EventBus события установлены (camera, payouts, flags, settings)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -314,8 +314,7 @@ func _on_winner_selected(chosen: String):
 		var current_state = GameStateManager.get_current_state()
 		if current_state != GameStateManager.GameState.WAITING:
 			EventBus.action_error.emit("winner_early", error_msg)
-			if is_survival_mode:
-				survival_ui.lose_life()
+			# Жизнь отнимается автоматически через EventBus → SurvivalModeUI
 
 		print("🚫 [НОВАЯ СИСТЕМА] %s" % error_msg)
 		return
@@ -411,8 +410,7 @@ func _on_winner_selected(chosen: String):
 	else:
 		# ❌ Неправильный выбор
 		EventBus.action_error.emit("winner_wrong", "")
-		if is_survival_mode:
-			survival_ui.lose_life()
+		# Жизнь отнимается автоматически через EventBus → SurvivalModeUI
 
 func _format_result() -> String:
 	var p0 = BaccaratRules.hand_value([phase_manager.player_hand[0], phase_manager.player_hand[1]])
@@ -1417,11 +1415,6 @@ func _on_camera_zoom_requested(zoom_type: String):
 			camera_zoom_chips()
 		_:
 			push_error("GameController: неизвестный тип зума '%s'" % zoom_type)
-
-func _on_life_loss_requested():
-	"""Обработка запроса потери жизни от GamePhaseManager через EventBus"""
-	if is_survival_mode and survival_ui:
-		survival_ui.lose_life()
 
 func _on_manual_payout_requested(winner: String):
 	"""Обработка запроса подготовки выплат от GamePhaseManager через EventBus"""
