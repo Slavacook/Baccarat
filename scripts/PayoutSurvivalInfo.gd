@@ -69,13 +69,17 @@ func update_display(is_survival_mode: bool, current_lives: int, score: int):
 		current_lives: Текущее количество жизней (для survival mode)
 		score: Текущий счёт (для обычного режима)
 	"""
+	print("🔍 PayoutSurvivalInfo.update_display вызван: survival=%s, lives=%d, score=%d" % [is_survival_mode, current_lives, score])
+
 	if is_survival_mode:
 		# Показываем сердечки, скрываем очки
+		print("  → Показываем сердечки")
 		lives_container.visible = true
 		score_label.visible = false
 		_update_hearts(current_lives)
 	else:
 		# Показываем очки, скрываем сердечки
+		print("  → Показываем очки")
 		lives_container.visible = false
 		score_label.visible = true
 		_update_score(score)
@@ -87,12 +91,15 @@ func _update_hearts(current_lives: int):
 		current_lives: Текущее количество жизней (0-7)
 	"""
 	var clamped_lives = clamp(current_lives, 0, MAX_LIVES)
+	print("  → _update_hearts: current_lives=%d, clamped=%d, heart_nodes.size=%d" % [current_lives, clamped_lives, heart_nodes.size()])
 
 	for i in range(MAX_LIVES):
 		if i < clamped_lives:
 			heart_nodes[i].texture = heart_full  # Красное сердечко
 		else:
 			heart_nodes[i].texture = heart_empty  # Черное сердечко
+
+	print("  ✅ Сердечки обновлены: %d красных, %d черных" % [clamped_lives, MAX_LIVES - clamped_lives])
 
 func _update_score(score: int):
 	"""Обновить счёт в обычном режиме

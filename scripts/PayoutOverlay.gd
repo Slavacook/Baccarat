@@ -73,6 +73,12 @@ func _ready():
 	# Получаем номиналы фишек
 	_update_chip_denominations()
 
+	# DEBUG: Проверяем что survival_info существует
+	if survival_info:
+		print("✅ PayoutOverlay: survival_info найден")
+	else:
+		push_error("❌ PayoutOverlay: survival_info НЕ НАЙДЕН!")
+
 	# Настройка стилей
 	_setup_styles()
 
@@ -391,26 +397,35 @@ func _update_chip_denominations():
 # ← Обновление отображения survival info (жизни или очки)
 func _update_score_display():
 	"""Обновить отображение жизней (survival mode) или очков (normal mode)"""
+	print("🔍 DEBUG: _update_score_display() вызван")
+
 	if not survival_info:
+		push_error("❌ survival_info == null!")
 		return
+
+	print("🔍 DEBUG: survival_info существует")
 
 	# Получаем GameController (PayoutOverlay это child узел Game)
 	var game_controller = get_parent()
 	if not game_controller:
-		push_warning("PayoutOverlay: GameController (parent) не найден")
+		push_error("❌ GameController (parent) не найден")
 		return
+
+	print("🔍 DEBUG: GameController найден")
 
 	var is_survival = game_controller.is_survival_mode
 	var current_lives = 7  # Значение по умолчанию
 	if is_survival and game_controller.survival_ui:
 		current_lives = game_controller.survival_ui.current_lives
+		print("🔍 DEBUG: survival_ui.current_lives = %d" % current_lives)
 
 	var current_score = SaveManager.instance.score
+	print("🔍 DEBUG: вызываем survival_info.update_display(%s, %d, %d)" % [is_survival, current_lives, current_score])
 
 	# Обновляем компонент
 	survival_info.update_display(is_survival, current_lives, current_score)
 
-	print("♥️  PayoutSurvivalInfo обновлен: survival=%s, lives=%d, score=%d" % [is_survival, current_lives, current_score])
+	print("✅ PayoutSurvivalInfo обновлен: survival=%s, lives=%d, score=%d" % [is_survival, current_lives, current_score])
 
 func _format_amount(amount: float) -> String:
 	if amount == floor(amount):
@@ -485,13 +500,16 @@ func _on_payout_wrong_event(_collected: float, _expected: float):
 	Вызывается когда EventBus.payout_wrong эмитится.
 	Обновляем отображение сердечек после потери жизни.
 	"""
+	print("🔔 DEBUG: _on_payout_wrong_event вызван! collected=%.1f, expected=%.1f" % [_collected, _expected])
+
 	# Небольшая задержка чтобы SurvivalUI успел обновить жизни
 	await get_tree().create_timer(0.1).timeout
+	print("🔍 DEBUG: Прошло 0.1 сек, вызываем _update_score_display()")
 
 	# Обновляем отображение сердечек/очков
 	_update_score_display()
 
-	print("♥️  PayoutOverlay: сердечки обновлены после потери жизни")
+	print("✅ PayoutOverlay: сердечки обновлены после потери жизни")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # OVERLAY УПРАВЛЕНИЕ
