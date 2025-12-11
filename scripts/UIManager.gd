@@ -252,3 +252,60 @@ func reset_ui():
 	# Сброс кнопки действия
 	button_ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	button_ui.enable_action_button()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБНОВЛЕНИЕ РУБАШЕК КАРТ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func update_all_card_backs():
+	"""Обновить текстуры всех рубашек карт при смене стиля
+
+	Вызывается при изменении настройки рубашки (Тигр/Леопард).
+	Обновляет ВСЕ карты и toggles которые показывают рубашку.
+	"""
+	# Получаем новую текстуру рубашки из CardTextureManager
+	var new_back_texture = card_manager.get_back_texture()
+
+	# Обновляем карты игрока (если показывают рубашку)
+	if player_card1.texture == card_manager.get_back_texture() or \
+	   player_card1.texture == card_manager.get_back_question_texture() or \
+	   player_card1.texture == card_manager.get_back_exclamation_texture():
+		# Сохраняем тип рубашки (обычная/? /!)
+		if player_card1.texture == card_manager.get_back_question_texture():
+			player_card1.texture = card_manager.get_back_question_texture()
+		elif player_card1.texture == card_manager.get_back_exclamation_texture():
+			player_card1.texture = card_manager.get_back_exclamation_texture()
+		else:
+			player_card1.texture = new_back_texture
+
+	# Аналогично для всех остальных карт
+	_update_single_card_back(player_card2, new_back_texture)
+	_update_single_card_back(player_card3, new_back_texture)
+	_update_single_card_back(banker_card1, new_back_texture)
+	_update_single_card_back(banker_card2, new_back_texture)
+	_update_single_card_back(banker_card3, new_back_texture)
+
+	# Обновляем toggles третьих карт
+	if player_third_toggle:
+		_update_single_card_back(player_third_toggle, new_back_texture)
+	if banker_third_toggle:
+		_update_single_card_back(banker_third_toggle, new_back_texture)
+
+	print("🎴 Рубашки всех карт обновлены")
+
+func _update_single_card_back(card: TextureRect, new_back: Texture2D):
+	"""Обновить одну карту если она показывает рубашку"""
+	if not card or not card.texture:
+		return
+
+	# Проверяем показывает ли карта рубашку (любого типа)
+	var old_back = card_manager.get_back_texture()
+	var old_question = card_manager.get_back_question_texture()
+	var old_exclamation = card_manager.get_back_exclamation_texture()
+
+	if card.texture == old_back:
+		card.texture = new_back
+	elif card.texture == old_question:
+		card.texture = card_manager.get_back_question_texture()
+	elif card.texture == old_exclamation:
+		card.texture = card_manager.get_back_exclamation_texture()

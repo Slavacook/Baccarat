@@ -198,7 +198,8 @@ func _ready():
 	EventBus.first_deal_completed.connect(_on_first_deal_completed)
 	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
 	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
-	print("✅ Подписки на EventBus события установлены (camera, payouts, flags, settings)")
+	EventBus.card_back_style_changed.connect(_on_card_back_style_changed)
+	print("✅ Подписки на EventBus события установлены (camera, payouts, flags, settings, card backs)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -1169,6 +1170,20 @@ func _on_payout_setting_changed(bet_type: String, enabled: bool):
 		pair_betting_manager.toggle_pair_banker_bet(enabled)
 
 	print("💰 Настройка выплаты изменена: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
+
+func _on_card_back_style_changed(style: String):
+	"""Обработка изменения стиля рубашки карт из SettingsScene
+
+	Args:
+		style: "tiger" или "leopard"
+	"""
+	if not ui_manager:
+		return
+
+	# Обновляем все рубашки карт на столе
+	ui_manager.update_all_card_backs()
+
+	print("🎴 Стиль рубашки карт изменён: %s" % style)
 
 func _on_winner_toggled(winner: String, selected: bool):
 	if selected:
