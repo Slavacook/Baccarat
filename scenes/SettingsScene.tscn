@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://dvci1lc3qrbac"]
 
-[ext_resource type="Script" path="res://scripts/SettingsScene.gd" id="1_8limm"]
+[ext_resource type="Script" uid="uid://d3ov5kmwxvbem" path="res://scripts/SettingsScene.gd" id="1_8limm"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_d6yml"]
 bg_color = Color(0, 0, 0, 0.78431374)
@@ -18,7 +18,7 @@ grow_vertical = 2
 theme_override_styles/panel = SubResource("StyleBoxFlat_d6yml")
 
 [node name="CenterContainer" type="CenterContainer" parent="BackgroundPanel"]
-anchors_preset = 15
+layout_mode = 0
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
@@ -209,6 +209,28 @@ custom_minimum_size = Vector2(80, 40)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "English"
+
+[node name="CardBackSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Рубашка"
+
+[node name="HBoxContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/Label"]
+layout_mode = 0
+offset_top = 27.0
+offset_right = 128.0
+offset_bottom = 67.0
+
+[node name="TigerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/Label/HBoxContainer"]
+layout_mode = 2
+text = "Тигр"
+
+[node name="LeopardButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/Label/HBoxContainer"]
+layout_mode = 2
+text = "Леопард"
 
 [node name="HSeparator4" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2

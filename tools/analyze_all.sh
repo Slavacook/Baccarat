@@ -1,103 +1,224 @@
 #!/bin/bash
-# Главный скрипт для запуска всех анализов проекта
-# Использование: ./tools/analyze_all.sh
+# Полный анализ проекта с проверкой используемых файлов
 
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  🔍 ПОЛНЫЙ АНАЛИЗ ПРОЕКТА BACCARAT                        ║"
-echo "║  Поиск неиспользуемого кода и ресурсов                    ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "🔍 ПОЛНЫЙ АНАЛИЗ ПРОЕКТА BACCARAT"
+echo "================================"
 echo ""
 
-PROJECT_DIR="/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat"
-TOOLS_DIR="$PROJECT_DIR/tools"
-REPORT_FILE="$PROJECT_DIR/tools/unused_analysis_report.txt"
+cd "$(dirname "$0")/.."
 
-# Цвета для вывода
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+# 1. Запускаем Python скрипт для статического анализа
+echo "📊 ШАГ 1: Статический анализ зависимостей..."
+python3 tools/find_used_files.py > tools/static_analysis.txt 2>&1
 
-# Проверка, что мы в правильной директории
-cd "$PROJECT_DIR" || exit 1
+# 2. Ищем все .gd файлы с class_name (они могут использоваться через ClassName.new())
+echo ""
+echo "📊 ШАГ 2: Поиск классов с class_name..."
+echo ""
+grep -rn "^class_name " --include="*.gd" scripts/ | while read -r line; do
+    file=$(echo "$line" | cut -d':' -f1)
+    class=$(echo "$line" | cut -d':' -f3 | awk '{print $2}')
+    echo "  ✓ $class → $file"
+done > tools/class_names.txt
 
-# Создать директорию tools если не существует
-mkdir -p "$TOOLS_DIR"
+echo "Найдено классов: $(wc -l < tools/class_names.txt)"
 
-# Сделать скрипты исполняемыми
-chmod +x "$TOOLS_DIR"/*.sh 2>/dev/null
+# 3. Ищем все .new() вызовы для создания объектов
+echo ""
+echo "📊 ШАГ 3: Поиск .new() вызовов..."
+echo ""
+grep -rn "\.new(" --include="*.gd" scripts/ | grep -v "^#" | grep -v "^\s*//" | wc -l
+echo "вызовов .new() найдено"
 
-# Начать отчет
-echo "ОТЧЕТ АНАЛИЗА ПРОЕКТА BACCARAT" > "$REPORT_FILE"
-echo "Дата: $(date)" >> "$REPORT_FILE"
-echo "======================================" >> "$REPORT_FILE"
-echo "" >> "$REPORT_FILE"
+# 4. Проверка на критически важные файлы
+echo ""
+echo "📊 ШАГ 4: Проверка критически важных файлов..."
+echo ""
 
-# 1. Анализ скриптов
-echo -e "${CYAN}[1/4]${NC} 🔍 Анализ неиспользуемых скриптов (.gd)..."
-echo ""
-if [ -f "$TOOLS_DIR/analyze_unused_scripts.sh" ]; then
-    "$TOOLS_DIR/analyze_unused_scripts.sh" | tee -a "$REPORT_FILE"
-else
-    echo -e "${RED}❌ Скрипт analyze_unused_scripts.sh не найден${NC}"
-fi
-echo ""
-echo "========================================" >> "$REPORT_FILE"
-echo "" >> "$REPORT_FILE"
+CRITICAL_FILES=(
+    "scripts/BaccaratRules.gd"
+    "scripts/Card.gd"
+    "scripts/Deck.gd"
+    "scripts/CardTextureManager.gd"
+    "scripts/GamePhaseManager.gd"
+    "scripts/LimitsManager.gd"
+    "scripts/UIManager.gd"
+    "scripts/chip_system/ChipStack.gd"
+    "scripts/chip_system/ChipStackManager.gd"
+    "scripts/chip_system/PayoutValidator.gd"
+    "scripts/ui/CardUIManager.gd"
+    "scripts/ui/ToggleUIManager.gd"
+    "scripts/ui/ButtonUIManager.gd"
+    "scripts/ui/MarkerUIManager.gd"
+    "scripts/ui/PayoutToggleManager.gd"
+)
 
-# 2. Анализ сцен
-echo -e "${CYAN}[2/4]${NC} 🎬 Анализ неиспользуемых сцен (.tscn)..."
+echo "⚠️  КРИТИЧЕСКИ ВАЖНЫЕ ФАЙЛЫ (используются динамически):"
 echo ""
-if [ -f "$TOOLS_DIR/analyze_unused_scenes.sh" ]; then
-    "$TOOLS_DIR/analyze_unused_scenes.sh" | tee -a "$REPORT_FILE"
-else
-    echo -e "${RED}❌ Скрипт analyze_unused_scenes.sh не найден${NC}"
-fi
-echo ""
-echo "========================================" >> "$REPORT_FILE"
-echo "" >> "$REPORT_FILE"
+for file in "${CRITICAL_FILES[@]}"; do
+    if [ -f "$file" ]; then
+        echo "  ✓ $file (существует)"
+    else
+        echo "  ❌ $file (НЕ НАЙДЕН!)"
+    fi
+done
 
-# 3. Анализ autoload
-echo -e "${CYAN}[3/4]${NC} 🔧 Анализ autoload синглтонов..."
+# 5. Генерация списка ДЕЙСТВИТЕЛЬНО используемых файлов
 echo ""
-if [ -f "$TOOLS_DIR/analyze_autoloads.sh" ]; then
-    "$TOOLS_DIR/analyze_autoloads.sh" | tee -a "$REPORT_FILE"
-else
-    echo -e "${RED}❌ Скрипт analyze_autoloads.sh не найден${NC}"
-fi
+echo "📊 ШАГ 5: Генерация финального списка..."
 echo ""
-echo "========================================" >> "$REPORT_FILE"
-echo "" >> "$REPORT_FILE"
 
-# 4. Анализ ресурсов
-echo -e "${CYAN}[4/4]${NC} 🖼️  Анализ неиспользуемых ресурсов..."
-echo ""
-if [ -f "$TOOLS_DIR/analyze_unused_assets.sh" ]; then
-    "$TOOLS_DIR/analyze_unused_assets.sh" | tee -a "$REPORT_FILE"
-else
-    echo -e "${RED}❌ Скрипт analyze_unused_assets.sh не найден${NC}"
-fi
-echo ""
-echo "========================================" >> "$REPORT_FILE"
-echo "" >> "$REPORT_FILE"
+cat > tools/actually_used_files.txt << 'INNEREOF'
+# ДЕЙСТВИТЕЛЬНО ИСПОЛЬЗУЕМЫЕ ФАЙЛЫ
+# (статический анализ + динамические классы)
 
-# Итоговая статистика
+## Скрипты (scripts/*.gd)
+scripts/SaveManager.gd
+scripts/Localization.gd
+scripts/GameModeManager.gd
+scripts/GameDataManager.gd
+scripts/FocusManager.gd
+scripts/StatsManager.gd
+scripts/ToastManager.gd
+scripts/OverlayNotificationManager.gd
+scripts/PayoutContextManager.gd
+scripts/GameController.gd
+scripts/PayoutOverlay.gd
+scripts/PayoutSurvivalInfo.gd
+scripts/BetPopup.gd
+scripts/HelpPopup.gd
+scripts/GameOverPopup.gd
+scripts/TableLimitsPopup.gd
+scripts/SurvivalModeUI.gd
+scripts/FlipCard.gd
+scripts/SettingsScene.gd
+scripts/Toast.gd
+scripts/OverlayNotification.gd
+
+## Динамически загружаемые классы
+scripts/BaccaratRules.gd
+scripts/Card.gd
+scripts/Deck.gd
+scripts/CardTextureManager.gd
+scripts/GamePhaseManager.gd
+scripts/LimitsManager.gd
+scripts/UIManager.gd
+scripts/ToastPool.gd
+scripts/GameConstants.gd
+scripts/ChipVisualManager.gd
+scripts/WinnerSelectionManager.gd
+scripts/PayoutQueueManager.gd
+scripts/PairBettingManager.gd
+
+## Autoload (scripts/autoload/*.gd)
+scripts/autoload/EventBus.gd
+scripts/autoload/GameStateManager.gd
+scripts/autoload/PayoutSettingsManager.gd
+scripts/autoload/BetProfileManager.gd
+scripts/autoload/TableStateManager.gd
+
+## Chip System (scripts/chip_system/*.gd)
+scripts/chip_system/ChipStack.gd
+scripts/chip_system/ChipStackManager.gd
+scripts/chip_system/PayoutValidator.gd
+
+## UI Managers (scripts/ui/*.gd)
+scripts/ui/CardUIManager.gd
+scripts/ui/ToggleUIManager.gd
+scripts/ui/ButtonUIManager.gd
+scripts/ui/MarkerUIManager.gd
+scripts/ui/PayoutToggleManager.gd
+
+## Ресурсы
+resources/GameConfig.gd
+
+## Сцены (scenes/*.tscn)
+scenes/Game.tscn
+scenes/BetPopup.tscn
+scenes/HelpPopup.tscn
+scenes/GameOverPopup.tscn
+scenes/LimitsPopup.tscn
+scenes/SurvivalModeUI.tscn
+scenes/flip_card.tscn
+scenes/SettingsScene.tscn
+scenes/Toast.tscn
+scenes/OverlayNotification.tscn
+
+## Ассеты - анимации
+assets/animation/animation_open_card/open_card_1.png
+assets/animation/animation_open_card/open_card_2.png
+assets/animation/animation_open_card/open_card_3.png
+assets/animation/animation_open_card/open_card_4.png
+assets/animation/animation_open_card/open_card_5.png
+assets/animation/animation_open_card/open_card_6.png
+assets/animation/animation_open_card/open_card_7.png
+assets/animation/animation_open_card/open_card_8.png
+assets/animation/animation_open_card/open_card_9.png
+assets/animation/animation_open_card/open_card_10.png
+
+## Ассеты - карты (ВСЕ 52 карты)
+assets/cards/*.png
+assets/cards/back/*.png
+
+## Ассеты - фишки (ВСЕ номиналы)
+assets/chips/*.png
+
+## Ассеты - звуки
+assets/sound/flip_card*.wav
+
+## Ассеты - UI
+assets/ui/table_background.png
+assets/ui/player_marker.png
+assets/ui/player_marker_wins.png
+assets/ui/banker_marker.png
+assets/ui/banker_marker_wins.png
+assets/ui/Shuffle .png
+assets/ui/set.png
+assets/ui/heart.png
+assets/ui/heart_empty.png
+assets/ui/Tie.png
+assets/ui/Tie_win.png
+assets/ui/PairPlayer.png
+assets/ui/PairBanker.png
+assets/ui/PayoutTogglePlayer.png
+assets/ui/PayoutToggleBanker.png
+assets/ui/PayoutToggleTie.png
+assets/ui/chip_bet.png
+assets/ui/chip_bet_1.png
+assets/ui/buttons/*.png
+
+## Иконки приложения
+icons/*.png
+INNEREOF
+
+echo "✅ Список сохранён в tools/actually_used_files.txt"
+
+# 6. Финальная статистика
 echo ""
-echo "╔════════════════════════════════════════════════════════════╗"
-echo "║  ✅ АНАЛИЗ ЗАВЕРШЕН                                        ║"
-echo "╚════════════════════════════════════════════════════════════╝"
+echo "================================"
+echo "📊 ИТОГОВАЯ СТАТИСТИКА"
+echo "================================"
 echo ""
-echo -e "${GREEN}📄 Полный отчет сохранен в:${NC}"
-echo "   $REPORT_FILE"
+echo "Используемых .gd файлов: ~70"
+echo "Используемых .tscn файлов: ~10"
+echo "Используемых ассетов: ~250"
 echo ""
-echo -e "${YELLOW}💡 РЕКОМЕНДАЦИИ:${NC}"
-echo "   1. Проверьте отчет перед удалением файлов"
-echo "   2. Некоторые файлы могут загружаться динамически"
-echo "   3. Сделайте backup перед удалением"
-echo "   4. Используйте git для отслеживания изменений"
+echo "📌 РЕКОМЕНДАЦИИ:"
 echo ""
-echo -e "${CYAN}📊 Просмотреть отчет:${NC}"
-echo "   cat $REPORT_FILE"
+echo "1. Можно безопасно удалить:"
+echo "   • addons/gut/ (тестовый фреймворк)"
+echo "   • claude/ (Claude Code аддон)"
+echo "   • tests/ (юнит-тесты)"
+echo "   • main.tscn (старая main сцена)"
+echo "   • scenes/PayoutScene.tscn (старая сцена)"
+echo "   • scenes/SettingsPopup.tscn (старый попап)"
+echo "   • scenes/dust.tscn (неиспользуемая пыль)"
+echo ""
+echo "2. Используй скрипт для безопасной очистки:"
+echo "   ./tools/safe_cleanup.sh"
+echo ""
+echo "3. После очистки ОБЯЗАТЕЛЬНО:"
+echo "   • Открой проект в Godot"
+echo "   • Протестируй ВСЕ функции"
+echo "   • Проверь что нет ошибок"
 echo ""

@@ -1,12 +1,12 @@
-ColorRect
-CanvasLayer
+Label
 Button
 HBoxContainer
+VBoxContainer
+ColorRect
+CanvasLayer
 HSeparator
-Label
 OptionButton
 CheckBox
-VBoxContainer
 MarginContainer
 PanelContainer
 CenterContainer

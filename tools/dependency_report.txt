@@ -1,0 +1,437 @@
+🔍 Начинаем анализ зависимостей Godot проекта...
+
+🗺️  Построение UID → path mapping...
+   Найдено 214 UID маппингов
+
+🎬 Main сцена: uid://bfjp1iwsis27p
+⚡ Autoload: *res://scripts/SaveManager.gd
+⚡ Autoload: *res://scripts/Localization.gd
+⚡ Autoload: *res://scripts/GameModeManager.gd
+⚡ Autoload: *res://scripts/autoload/GameStateManager.gd
+⚡ Autoload: *res://scripts/autoload/EventBus.gd
+⚡ Autoload: *res://scripts/StatsManager.gd
+⚡ Autoload: *res://scripts/ToastManager.gd
+⚡ Autoload: *res://scripts/OverlayNotificationManager.gd
+⚡ Autoload: *res://scripts/FocusManager.gd
+⚡ Autoload: *res://scripts/GameDataManager.gd
+⚡ Autoload: *res://scripts/autoload/PayoutSettingsManager.gd
+⚡ Autoload: *res://scripts/autoload/BetProfileManager.gd
+⚡ Autoload: *res://scripts/PayoutContextManager.gd
+⚡ Autoload: *res://scripts/autoload/TableStateManager.gd
+  ✓ res://scenes/Game.tscn (was uid://bfjp1iwsis27p)
+  ✓ res://scripts/SaveManager.gd (was *res://scripts/SaveManager.gd)
+  ✓ res://scripts/Localization.gd (was *res://scripts/Localization.gd)
+  ✓ res://scripts/GameModeManager.gd (was *res://scripts/GameModeManager.gd)
+  ✓ res://scripts/autoload/GameStateManager.gd (was *res://scripts/autoload/GameStateManager.gd)
+  ✓ res://scripts/autoload/EventBus.gd (was *res://scripts/autoload/EventBus.gd)
+  ✓ res://scripts/StatsManager.gd (was *res://scripts/StatsManager.gd)
+  ✓ res://scripts/ToastManager.gd (was *res://scripts/ToastManager.gd)
+  ✓ res://scripts/OverlayNotificationManager.gd (was *res://scripts/OverlayNotificationManager.gd)
+  ✓ res://scripts/FocusManager.gd (was *res://scripts/FocusManager.gd)
+  ✓ res://scripts/GameDataManager.gd (was *res://scripts/GameDataManager.gd)
+  ✓ res://scripts/autoload/PayoutSettingsManager.gd (was *res://scripts/autoload/PayoutSettingsManager.gd)
+  ✓ res://scripts/autoload/BetProfileManager.gd (was *res://scripts/autoload/BetProfileManager.gd)
+  ✓ res://scripts/PayoutContextManager.gd (was *res://scripts/PayoutContextManager.gd)
+  ✓ res://scripts/autoload/TableStateManager.gd (was *res://scripts/autoload/TableStateManager.gd)
+  ✓ res://scripts/GameController.gd
+  ✓ res://scripts/PayoutOverlay.gd
+  ✓ res://scripts/PayoutSurvivalInfo.gd
+  ✓ res://scenes/BetPopup.tscn
+  ✓ res://scenes/HelpPopup.tscn
+  ✓ res://scenes/GameOverPopup.tscn
+  ✓ res://scenes/LimitsPopup.tscn
+  ✓ res://scenes/SurvivalModeUI.tscn
+  ✓ res://scenes/flip_card.tscn
+  ✓ res://scenes/SettingsScene.tscn
+  ✓ res://assets/ui/table_background.png
+  ✓ res://assets/ui/player_marker.png
+  ✓ res://assets/ui/player_marker_wins.png
+  ✓ res://assets/ui/banker_marker.png
+  ✓ res://assets/ui/banker_marker_wins.png
+  ✓ res://assets/ui/Shuffle .png
+  ✓ res://assets/ui/set.png
+  ✓ res://scenes/Toast.tscn
+  ✓ res://scenes/OverlayNotification.tscn
+  ✓ res://assets/ui/heart.png
+  ✓ res://assets/ui/heart_empty.png
+  ✓ res://scripts/BetPopup.gd
+  ✓ res://scripts/HelpPopup.gd
+  ✓ res://scripts/GameOverPopup.gd
+  ✓ res://scripts/TableLimitsPopup.gd
+  ✓ res://scripts/SurvivalModeUI.gd
+  ✓ res://scripts/FlipCard.gd
+  ✓ res://assets/animation/animation_open_card/open_card_1.png
+  ✓ res://assets/animation/animation_open_card/open_card_2.png
+  ✓ res://assets/animation/animation_open_card/open_card_3.png
+  ✓ res://assets/animation/animation_open_card/open_card_4.png
+  ✓ res://assets/animation/animation_open_card/open_card_5.png
+  ✓ res://assets/animation/animation_open_card/open_card_6.png
+  ✓ res://assets/animation/animation_open_card/open_card_7.png
+  ✓ res://assets/animation/animation_open_card/open_card_8.png
+  ✓ res://assets/animation/animation_open_card/open_card_9.png
+  ✓ res://assets/animation/animation_open_card/open_card_10.png
+  ✓ res://assets/sound/flip_card8.wav
+  ✓ res://scripts/SettingsScene.gd
+  ✓ res://scripts/Toast.gd
+  ✓ res://scripts/OverlayNotification.gd
+
+================================================================================
+📊 ОТЧЁТ ОБ ИСПОЛЬЗУЕМЫХ ФАЙЛАХ
+================================================================================
+
+📝 Скрипты (.gd): 26
+  • res://scripts/BetPopup.gd
+  • res://scripts/FlipCard.gd
+  • res://scripts/FocusManager.gd
+  • res://scripts/GameController.gd
+  • res://scripts/GameDataManager.gd
+  • res://scripts/GameModeManager.gd
+  • res://scripts/GameOverPopup.gd
+  • res://scripts/HelpPopup.gd
+  • res://scripts/Localization.gd
+  • res://scripts/OverlayNotification.gd
+  • res://scripts/OverlayNotificationManager.gd
+  • res://scripts/PayoutContextManager.gd
+  • res://scripts/PayoutOverlay.gd
+  • res://scripts/PayoutSurvivalInfo.gd
+  • res://scripts/SaveManager.gd
+  • res://scripts/SettingsScene.gd
+  • res://scripts/StatsManager.gd
+  • res://scripts/SurvivalModeUI.gd
+  • res://scripts/TableLimitsPopup.gd
+  • res://scripts/Toast.gd
+  • res://scripts/ToastManager.gd
+  • res://scripts/autoload/BetProfileManager.gd
+  • res://scripts/autoload/EventBus.gd
+  • res://scripts/autoload/GameStateManager.gd
+  • res://scripts/autoload/PayoutSettingsManager.gd
+  • res://scripts/autoload/TableStateManager.gd
+
+🎬 Сцены (.tscn): 10
+  • res://scenes/BetPopup.tscn
+  • res://scenes/Game.tscn
+  • res://scenes/GameOverPopup.tscn
+  • res://scenes/HelpPopup.tscn
+  • res://scenes/LimitsPopup.tscn
+  • res://scenes/OverlayNotification.tscn
+  • res://scenes/SettingsScene.tscn
+  • res://scenes/SurvivalModeUI.tscn
+  • res://scenes/Toast.tscn
+  • res://scenes/flip_card.tscn
+
+📦 Ресурсы (.tres/.res): 0
+
+🖼️  Ассеты (PNG/OGG/etc): 20
+  • res://assets/animation/animation_open_card/open_card_1.png
+  • res://assets/animation/animation_open_card/open_card_10.png
+  • res://assets/animation/animation_open_card/open_card_2.png
+  • res://assets/animation/animation_open_card/open_card_3.png
+  • res://assets/animation/animation_open_card/open_card_4.png
+  • res://assets/animation/animation_open_card/open_card_5.png
+  • res://assets/animation/animation_open_card/open_card_6.png
+  • res://assets/animation/animation_open_card/open_card_7.png
+  • res://assets/animation/animation_open_card/open_card_8.png
+  • res://assets/animation/animation_open_card/open_card_9.png
+  • res://assets/sound/flip_card8.wav
+  • res://assets/ui/Shuffle .png
+  • res://assets/ui/banker_marker.png
+  • res://assets/ui/banker_marker_wins.png
+  • res://assets/ui/heart.png
+  • res://assets/ui/heart_empty.png
+  • res://assets/ui/player_marker.png
+  • res://assets/ui/player_marker_wins.png
+  • res://assets/ui/set.png
+  • res://assets/ui/table_background.png
+
+📊 ИТОГО используемых файлов: 56
+
+================================================================================
+🗑️  ПОТЕНЦИАЛЬНО НЕИСПОЛЬЗУЕМЫЕ ФАЙЛЫ
+================================================================================
+
+❌ Неиспользуемые скрипты (.gd): 116
+  • res://INTEGRATION_CODE.gd
+  • res://addons/gut/GutScene.gd
+  • res://addons/gut/UserFileViewer.gd
+  • res://addons/gut/autofree.gd
+  • res://addons/gut/awaiter.gd
+  • res://addons/gut/cli/change_project_warnings.gd
+  • res://addons/gut/cli/gut_cli.gd
+  • res://addons/gut/cli/optparse.gd
+  • res://addons/gut/collected_script.gd
+  • res://addons/gut/collected_test.gd
+  • res://addons/gut/comparator.gd
+  • res://addons/gut/compare_result.gd
+  • res://addons/gut/diff_formatter.gd
+  • res://addons/gut/diff_tool.gd
+  • res://addons/gut/double_tools.gd
+  • res://addons/gut/doubler.gd
+  • res://addons/gut/dynamic_gdscript.gd
+  • res://addons/gut/editor_caret_context_notifier.gd
+  • res://addons/gut/error_tracker.gd
+  • res://addons/gut/get_editor_interface.gd
+  • res://addons/gut/gui/GutBottomPanel.gd
+  • res://addons/gut/gui/GutControl.gd
+  • res://addons/gut/gui/GutEditorWindow.gd
+  • res://addons/gut/gui/GutRunner.gd
+  • res://addons/gut/gui/OutputText.gd
+  • res://addons/gut/gui/ResizeHandle.gd
+  • res://addons/gut/gui/ResultsTree.gd
+  • res://addons/gut/gui/RunAtCursor.gd
+  • res://addons/gut/gui/RunExternally.gd
+  • res://addons/gut/gui/RunResults.gd
+  • res://addons/gut/gui/ShellOutOptions.gd
+  • res://addons/gut/gui/ShortcutButton.gd
+  • res://addons/gut/gui/ShortcutDialog.gd
+  • res://addons/gut/gui/about.gd
+  • res://addons/gut/gui/editor_globals.gd
+  • res://addons/gut/gui/gut_config_gui.gd
+  • res://addons/gut/gui/gut_gui.gd
+  • res://addons/gut/gui/gut_logo.gd
+  • res://addons/gut/gui/gut_user_preferences.gd
+  • res://addons/gut/gui/option_maker.gd
+  • res://addons/gut/gui/panel_controls.gd
+  • res://addons/gut/gui/run_from_editor.gd
+  • res://addons/gut/gut.gd
+  • res://addons/gut/gut_cmdln.gd
+  • res://addons/gut/gut_config.gd
+  • res://addons/gut/gut_fonts.gd
+  • res://addons/gut/gut_loader.gd
+  • res://addons/gut/gut_menu.gd
+  • res://addons/gut/gut_plugin.gd
+  • res://addons/gut/gut_to_move.gd
+  • res://addons/gut/gut_tracked_error.gd
+  • res://addons/gut/gut_vscode_debugger.gd
+  • res://addons/gut/hook_script.gd
+  • res://addons/gut/inner_class_registry.gd
+  • res://addons/gut/input_factory.gd
+  • res://addons/gut/input_sender.gd
+  • res://addons/gut/junit_xml_export.gd
+  • res://addons/gut/lazy_loader.gd
+  • res://addons/gut/logger.gd
+  • res://addons/gut/method_maker.gd
+  • res://addons/gut/one_to_many.gd
+  • res://addons/gut/orphan_counter.gd
+  • res://addons/gut/parameter_factory.gd
+  • res://addons/gut/parameter_handler.gd
+  • res://addons/gut/printers.gd
+  • res://addons/gut/result_exporter.gd
+  • res://addons/gut/script_parser.gd
+  • res://addons/gut/signal_watcher.gd
+  • res://addons/gut/spy.gd
+  • res://addons/gut/strutils.gd
+  • res://addons/gut/stub_params.gd
+  • res://addons/gut/stubber.gd
+  • res://addons/gut/summary.gd
+  • res://addons/gut/test.gd
+  • res://addons/gut/test_collector.gd
+  • res://addons/gut/thing_counter.gd
+  • res://addons/gut/utils.gd
+  • res://addons/gut/version_conversion.gd
+  • res://addons/gut/version_numbers.gd
+  • res://addons/gut/warnings_manager.gd
+  • res://claude/addons/claude_3.5_sonnet_chat_api/dock_window.gd
+  • res://claude/addons/claude_3.5_sonnet_chat_api/plugin.gd
+  • res://resources/GameConfig.gd
+  • res://scripts/BaccaratRules.gd
+  • res://scripts/Card.gd
+  • res://scripts/CardTextureManager.gd
+  • res://scripts/ChipVisualManager.gd
+  • res://scripts/Deck.gd
+  • res://scripts/Dust.gd
+  • res://scripts/GameConstants.gd
+  • res://scripts/GamePhaseManager.gd
+  • res://scripts/LimitsManager.gd
+  • res://scripts/PairBettingManager.gd
+  • res://scripts/PayoutQueueManager.gd
+  • res://scripts/ToastPool.gd
+  • res://scripts/UIManager.gd
+  • res://scripts/WinnerSelectionManager.gd
+  • res://scripts/chip_system/ChipStack.gd
+  • res://scripts/chip_system/ChipStackManager.gd
+  • res://scripts/chip_system/PayoutValidator.gd
+  • res://scripts/scenes/PayoutScene.gd
+  • res://scripts/ui/ButtonUIManager.gd
+  • res://scripts/ui/CardUIManager.gd
+  • res://scripts/ui/MarkerUIManager.gd
+  • res://scripts/ui/PayoutToggleManager.gd
+  • res://scripts/ui/ToggleUIManager.gd
+  • res://tests/chip_system/test_chip_stack.gd
+  • res://tests/chip_system/test_chip_stack_manager.gd
+  • res://tests/chip_system/test_payout_validator.gd
+  • res://tests/integration/test_game_cycle.gd
+  • res://tests/integration/test_performance.gd
+  • res://tests/test_baccarat_rules.gd
+  • res://tests/test_game_phase_manager.gd
+  • res://tests/test_game_phase_manager_simple.gd
+  • res://tests/test_simple_check.gd
+  • res://tests/test_unused_code_detection.gd
+
+❌ Неиспользуемые сцены (.tscn): 27
+  • res://addons/gut/GutScene.tscn
+  • res://addons/gut/UserFileViewer.tscn
+  • res://addons/gut/gui/GutBottomPanel.tscn
+  • res://addons/gut/gui/GutControl.tscn
+  • res://addons/gut/gui/GutEditorWindow.tscn
+  • res://addons/gut/gui/GutLogo.tscn
+  • res://addons/gut/gui/GutRunner.tscn
+  • res://addons/gut/gui/MinGui.tscn
+  • res://addons/gut/gui/NormalGui.tscn
+  • res://addons/gut/gui/OutputText.tscn
+  • res://addons/gut/gui/ResizeHandle.tscn
+  • res://addons/gut/gui/ResultsTree.tscn
+  • res://addons/gut/gui/RunAtCursor.tscn
+  • res://addons/gut/gui/RunExternally.tscn
+  • res://addons/gut/gui/RunResults.tscn
+  • res://addons/gut/gui/Settings.tscn
+  • res://addons/gut/gui/ShellOutOptions.tscn
+  • res://addons/gut/gui/ShortcutButton.tscn
+  • res://addons/gut/gui/ShortcutDialog.tscn
+  • res://addons/gut/gui/about.tscn
+  • res://addons/gut/gui/run_from_editor.tscn
+  • res://addons/gut/gut_loader_the_scene.tscn
+  • res://claude/addons/claude_3.5_sonnet_chat_api/dock_window.tscn
+  • res://main.tscn
+  • res://scenes/PayoutScene.tscn
+  • res://scenes/SettingsPopup.tscn
+  • res://scenes/dust.tscn
+
+❌ Неиспользуемые ресурсы (.tres/.res): 2
+  • res://addons/gut/gui/EditorRadioButton.tres
+  • res://addons/gut/gui/GutSceneTheme.tres
+
+❌ Неиспользуемые ассеты: 128
+  • res://addons/gut/gui/arrow.png
+  • res://addons/gut/gui/play.png
+  • res://addons/gut/icon.png
+  • res://addons/gut/images/Folder.svg
+  • res://addons/gut/images/GutIconV2_base.png
+  • res://addons/gut/images/GutIconV2_no_shine.png
+  • res://addons/gut/images/HSplitContainer.svg
+  • res://addons/gut/images/Script.svg
+  • res://addons/gut/images/VSplitContainer.svg
+  • res://addons/gut/images/eyey.png
+  • res://addons/gut/images/green.png
+  • res://addons/gut/images/red.png
+  • res://addons/gut/images/yellow.png
+  • res://assets/animation/animation_open_card/open_card_11.png
+  • res://assets/cards/10_clubs.png
+  • res://assets/cards/10_diamonds.png
+  • res://assets/cards/10_hearts.png
+  • res://assets/cards/10_spades.png
+  • res://assets/cards/2_clubs.png
+  • res://assets/cards/2_diamonds.png
+  • res://assets/cards/2_hearts.png
+  • res://assets/cards/2_spades.png
+  • res://assets/cards/3_clubs.png
+  • res://assets/cards/3_diamonds.png
+  • res://assets/cards/3_hearts.png
+  • res://assets/cards/3_spades.png
+  • res://assets/cards/4_clubs.png
+  • res://assets/cards/4_diamonds.png
+  • res://assets/cards/4_hearts.png
+  • res://assets/cards/4_spades.png
+  • res://assets/cards/5_clubs.png
+  • res://assets/cards/5_diamonds.png
+  • res://assets/cards/5_hearts.png
+  • res://assets/cards/5_spades.png
+  • res://assets/cards/6_clubs.png
+  • res://assets/cards/6_diamonds.png
+  • res://assets/cards/6_hearts.png
+  • res://assets/cards/6_spades.png
+  • res://assets/cards/7_clubs.png
+  • res://assets/cards/7_diamonds.png
+  • res://assets/cards/7_hearts.png
+  • res://assets/cards/7_spades.png
+  • res://assets/cards/8_clubs.png
+  • res://assets/cards/8_diamonds.png
+  • res://assets/cards/8_hearts.png
+  • res://assets/cards/8_spades.png
+  • res://assets/cards/9_clubs.png
+  • res://assets/cards/9_diamonds.png
+  • res://assets/cards/9_hearts.png
+  • res://assets/cards/9_spades.png
+  • res://assets/cards/ace_clubs.png
+  • res://assets/cards/ace_diamonds.png
+  • res://assets/cards/ace_hearts.png
+  • res://assets/cards/ace_spades.png
+  • res://assets/cards/back/card_back.png
+  • res://assets/cards/back/card_back_!.png
+  • res://assets/cards/back/card_back_2.png
+  • res://assets/cards/back/card_back_?.png
+  • res://assets/cards/cards_atlas.png
+  • res://assets/cards/jack_clubs.png
+  • res://assets/cards/jack_diamonds.png
+  • res://assets/cards/jack_hearts.png
+  • res://assets/cards/jack_spades.png
+  • res://assets/cards/king_clubs.png
+  • res://assets/cards/king_diamonds.png
+  • res://assets/cards/king_hearts.png
+  • res://assets/cards/king_spades.png
+  • res://assets/cards/queen_clubs.png
+  • res://assets/cards/queen_diamonds.png
+  • res://assets/cards/queen_hearts.png
+  • res://assets/cards/queen_spades.png
+  • res://assets/chips/chip_0.5.png
+  • res://assets/chips/chip_1.png
+  • res://assets/chips/chip_100.png
+  • res://assets/chips/chip_1000.png
+  • res://assets/chips/chip_10000.png
+  • res://assets/chips/chip_100000.png
+  • res://assets/chips/chip_25.png
+  • res://assets/chips/chip_25000.png
+  • res://assets/chips/chip_5.png
+  • res://assets/chips/chip_500.png
+  • res://assets/chips/chip_5000.png
+  • res://assets/chips/chip_50000.png
+  • res://assets/chips/stack_0.5.png
+  • res://assets/chips/stack_1.png
+  • res://assets/chips/stack_100.png
+  • res://assets/chips/stack_1000.png
+  • res://assets/chips/stack_10000.png
+  • res://assets/chips/stack_100000.png
+  • res://assets/chips/stack_25.png
+  • res://assets/chips/stack_25000.png
+  • res://assets/chips/stack_5.png
+  • res://assets/chips/stack_500.png
+  • res://assets/chips/stack_5000.png
+  • res://assets/chips/stack_50000.png
+  • res://assets/chips/stacks.png
+  • res://assets/sound/flip_card1.wav
+  • res://assets/sound/flip_card2.wav
+  • res://assets/sound/flip_card3.wav
+  • res://assets/sound/flip_card4.wav
+  • res://assets/sound/flip_card5.wav
+  • res://assets/sound/flip_card6.wav
+  • res://assets/sound/flip_card7.wav
+  • res://assets/ui/PairBanker.png
+  • res://assets/ui/PairPlayer.png
+  • res://assets/ui/PayoutToggleBanker.png
+  • res://assets/ui/PayoutTogglePlayer.png
+  • res://assets/ui/PayoutToggleTie.png
+  • res://assets/ui/Tie.png
+  • res://assets/ui/Tie_win.png
+  • res://assets/ui/buttons/complete_button.png
+  • res://assets/ui/buttons/complete_pressed_button.png
+  • res://assets/ui/buttons/confirm_button.png
+  • res://assets/ui/buttons/confirm_button_pressed.png
+  • res://assets/ui/buttons/start_button.png
+  • res://assets/ui/buttons/start_button_pressed.png
+  • res://assets/ui/chip_bet.png
+  • res://assets/ui/chip_bet_1.png
+  • res://claude/addons/claude_3.5_sonnet_chat_api/Claude symbol - Ivory.png
+  • res://icon.svg
+  • res://icons/generated-image (16).png
+  • res://icons/icon_144x144.png
+  • res://icons/icon_180x180.png
+  • res://icons/icon_512x512.png
+  • res://icons/виньетка/generated-image (20).png
+  • res://icons/виньетка/icon_144x144.png
+  • res://icons/виньетка/icon_180x180.png
+  • res://icons/виньетка/icon_512x512.png
+
+🗑️  ИТОГО неиспользуемых файлов: 273
+
+================================================================================
+✅ Анализ завершён!
+================================================================================

@@ -8,3 +8,10 @@ res://scripts/PayoutSurvivalInfo.gd
 res://scenes/PayoutScene.tscn
 res://scripts/SurvivalModeUI.gd
 res://scripts/GamePhaseManager.gd
+res://scripts/CardTextureManager.gd
+res://scripts/Localization.gd
+res://scripts/SaveManager.gd
+res://scripts/SettingsScene.gd
+res://scripts/autoload/EventBus.gd
+res://scenes/SettingsScene.tscn
+res://scripts/UIManager.gd

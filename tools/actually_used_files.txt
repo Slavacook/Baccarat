@@ -1,0 +1,120 @@
+# ДЕЙСТВИТЕЛЬНО ИСПОЛЬЗУЕМЫЕ ФАЙЛЫ
+# (статический анализ + динамические классы)
+
+## Скрипты (scripts/*.gd)
+scripts/SaveManager.gd
+scripts/Localization.gd
+scripts/GameModeManager.gd
+scripts/GameDataManager.gd
+scripts/FocusManager.gd
+scripts/StatsManager.gd
+scripts/ToastManager.gd
+scripts/OverlayNotificationManager.gd
+scripts/PayoutContextManager.gd
+scripts/GameController.gd
+scripts/PayoutOverlay.gd
+scripts/PayoutSurvivalInfo.gd
+scripts/BetPopup.gd
+scripts/HelpPopup.gd
+scripts/GameOverPopup.gd
+scripts/TableLimitsPopup.gd
+scripts/SurvivalModeUI.gd
+scripts/FlipCard.gd
+scripts/SettingsScene.gd
+scripts/Toast.gd
+scripts/OverlayNotification.gd
+
+## Динамически загружаемые классы
+scripts/BaccaratRules.gd
+scripts/Card.gd
+scripts/Deck.gd
+scripts/CardTextureManager.gd
+scripts/GamePhaseManager.gd
+scripts/LimitsManager.gd
+scripts/UIManager.gd
+scripts/ToastPool.gd
+scripts/GameConstants.gd
+scripts/ChipVisualManager.gd
+scripts/WinnerSelectionManager.gd
+scripts/PayoutQueueManager.gd
+scripts/PairBettingManager.gd
+
+## Autoload (scripts/autoload/*.gd)
+scripts/autoload/EventBus.gd
+scripts/autoload/GameStateManager.gd
+scripts/autoload/PayoutSettingsManager.gd
+scripts/autoload/BetProfileManager.gd
+scripts/autoload/TableStateManager.gd
+
+## Chip System (scripts/chip_system/*.gd)
+scripts/chip_system/ChipStack.gd
+scripts/chip_system/ChipStackManager.gd
+scripts/chip_system/PayoutValidator.gd
+
+## UI Managers (scripts/ui/*.gd)
+scripts/ui/CardUIManager.gd
+scripts/ui/ToggleUIManager.gd
+scripts/ui/ButtonUIManager.gd
+scripts/ui/MarkerUIManager.gd
+scripts/ui/PayoutToggleManager.gd
+
+## Ресурсы
+resources/GameConfig.gd
+
+## Сцены (scenes/*.tscn)
+scenes/Game.tscn
+scenes/BetPopup.tscn
+scenes/HelpPopup.tscn
+scenes/GameOverPopup.tscn
+scenes/LimitsPopup.tscn
+scenes/SurvivalModeUI.tscn
+scenes/flip_card.tscn
+scenes/SettingsScene.tscn
+scenes/Toast.tscn
+scenes/OverlayNotification.tscn
+
+## Ассеты - анимации
+assets/animation/animation_open_card/open_card_1.png
+assets/animation/animation_open_card/open_card_2.png
+assets/animation/animation_open_card/open_card_3.png
+assets/animation/animation_open_card/open_card_4.png
+assets/animation/animation_open_card/open_card_5.png
+assets/animation/animation_open_card/open_card_6.png
+assets/animation/animation_open_card/open_card_7.png
+assets/animation/animation_open_card/open_card_8.png
+assets/animation/animation_open_card/open_card_9.png
+assets/animation/animation_open_card/open_card_10.png
+
+## Ассеты - карты (ВСЕ 52 карты)
+assets/cards/*.png
+assets/cards/back/*.png
+
+## Ассеты - фишки (ВСЕ номиналы)
+assets/chips/*.png
+
+## Ассеты - звуки
+assets/sound/flip_card*.wav
+
+## Ассеты - UI
+assets/ui/table_background.png
+assets/ui/player_marker.png
+assets/ui/player_marker_wins.png
+assets/ui/banker_marker.png
+assets/ui/banker_marker_wins.png
+assets/ui/Shuffle .png
+assets/ui/set.png
+assets/ui/heart.png
+assets/ui/heart_empty.png
+assets/ui/Tie.png
+assets/ui/Tie_win.png
+assets/ui/PairPlayer.png
+assets/ui/PairBanker.png
+assets/ui/PayoutTogglePlayer.png
+assets/ui/PayoutToggleBanker.png
+assets/ui/PayoutToggleTie.png
+assets/ui/chip_bet.png
+assets/ui/chip_bet_1.png
+assets/ui/buttons/*.png
+
+## Иконки приложения
+icons/*.png
