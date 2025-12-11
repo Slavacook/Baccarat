@@ -1,4 +1,4 @@
-[gd_scene load_steps=18 format=3 uid="uid://cebo17nsn5lij"]
+[gd_scene load_steps=18 format=3 uid="uid://bs3k3o8x8kiw1"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_iwhjp"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="2_vsqai"]
