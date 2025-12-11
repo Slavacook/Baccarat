@@ -41,6 +41,10 @@ signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выж
 @onready var ru_button: Button = find_child("RuButton", true, false)
 @onready var en_button: Button = find_child("EnButton", true, false)
 
+# === РАЗДЕЛ 6: РУБАШКА КАРТ ===
+@onready var tiger_button: Button = find_child("TigerButton", true, false)
+@onready var leopard_button: Button = find_child("LeopardButton", true, false)
+
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 @onready var apply_button: Button = find_child("ApplyButton", true, false)
 @onready var cancel_button: Button = find_child("CancelButton", true, false)
@@ -52,6 +56,7 @@ signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выж
 var saved_survival_mode: bool
 var saved_game_mode: String
 var saved_language: String
+var saved_card_back_style: String
 var saved_bet_profile: int
 var saved_player_payout: bool
 var saved_banker_payout: bool
@@ -110,6 +115,12 @@ func _connect_signals():
 	if en_button:
 		en_button.pressed.connect(_on_en_pressed)
 
+	# Рубашка карт
+	if tiger_button:
+		tiger_button.pressed.connect(_on_tiger_pressed)
+	if leopard_button:
+		leopard_button.pressed.connect(_on_leopard_pressed)
+
 	# Управляющие кнопки
 	if apply_button:
 		apply_button.pressed.connect(_on_apply_pressed)
@@ -156,6 +167,7 @@ func _save_current_values():
 	saved_game_mode = GameModeManager.get_mode_string()
 
 	saved_language = Localization.get_lang()
+	saved_card_back_style = SaveManager.instance.load_card_back_style()
 	saved_bet_profile = BetProfileManager.get_profile()
 
 	saved_player_payout = PayoutSettingsManager.player_payout_enabled
@@ -194,6 +206,9 @@ func _load_current_values():
 	# Язык
 	_update_lang_buttons()
 
+	# Рубашка карт
+	_update_card_back_buttons()
+
 func _restore_saved_values():
 	"""Восстановить сохранённые значения (для кнопки "Отменить")"""
 	# Режим выживания - эмитим сигнал для GameController
@@ -204,6 +219,10 @@ func _restore_saved_values():
 
 	# Язык
 	Localization.set_lang(saved_language)
+
+	# Рубашка карт
+	SaveManager.instance.save_card_back_style(saved_card_back_style)
+	EventBus.card_back_style_changed.emit(saved_card_back_style)
 
 	# Размер ставок
 	BetProfileManager.set_profile(saved_bet_profile as BetProfileManager.BetProfile)
@@ -233,6 +252,12 @@ func _update_texts():
 
 	if survival_checkbox:
 		survival_checkbox.text = Localization.t("SETTINGS_SURVIVAL_CHECKBOX")
+
+	# Рубашка карт
+	if tiger_button:
+		tiger_button.text = Localization.t("SETTINGS_CARD_BACK_TIGER")
+	if leopard_button:
+		leopard_button.text = Localization.t("SETTINGS_CARD_BACK_LEOPARD")
 
 	# Размер ставок - обновляем опции
 	if bet_size_option:
@@ -269,6 +294,15 @@ func _update_lang_buttons():
 	var current_lang = Localization.get_lang()
 	ru_button.disabled = (current_lang == "ru")
 	en_button.disabled = (current_lang == "en")
+
+func _update_card_back_buttons():
+	"""Обновить состояние кнопок рубашки карт"""
+	if not tiger_button or not leopard_button:
+		return
+
+	var current_style = SaveManager.instance.load_card_back_style()
+	tiger_button.disabled = (current_style == "tiger")
+	leopard_button.disabled = (current_style == "leopard")
 
 func _setup_bet_size_options():
 	"""Настроить опции для OptionButton размера ставок"""
@@ -356,6 +390,21 @@ func _on_en_pressed():
 	_update_texts()
 	language_changed.emit("en")
 	print("🌍 Язык изменён: English")
+
+# === РУБАШКА КАРТ ===
+func _on_tiger_pressed():
+	"""Обработка нажатия кнопки Tiger"""
+	SaveManager.instance.save_card_back_style("tiger")
+	_update_card_back_buttons()
+	EventBus.card_back_style_changed.emit("tiger")
+	print("🎴 Рубашка карт изменена: Тигр")
+
+func _on_leopard_pressed():
+	"""Обработка нажатия кнопки Leopard"""
+	SaveManager.instance.save_card_back_style("leopard")
+	_update_card_back_buttons()
+	EventBus.card_back_style_changed.emit("leopard")
+	print("🎴 Рубашка карт изменена: Леопард")
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 func _on_apply_pressed():

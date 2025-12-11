@@ -44,7 +44,14 @@ func get_card_texture(suit: int, value: int) -> Texture2D:
 	return texture
 
 func get_back_texture() -> Texture2D:
-	return _load_cached(config.back_card_path)
+	# Загружаем выбранный стиль рубашки из настроек
+	var style = SaveManager.instance.load_card_back_style()
+	var path = "res://assets/cards/back/card_back.png"  # По умолчанию Tiger
+
+	if style == "leopard":
+		path = "res://assets/cards/back/card_back_2.png"
+
+	return _load_cached(path)
 
 func get_back_question_texture() -> Texture2D:
 	return _load_cached(config.back_question_path)

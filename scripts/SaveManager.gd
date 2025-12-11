@@ -112,6 +112,18 @@ func load_survival_mode() -> bool:
 	var settings = load_settings()
 	return settings.get("survival_mode", false)
 
+# ← Настройки рубашки карт
+func save_card_back_style(style: String):
+	"""Сохранить стиль рубашки карт: "tiger" или "leopard" """
+	var settings = load_settings()
+	settings["card_back_style"] = style
+	save_settings(settings)
+
+func load_card_back_style() -> String:
+	"""Загрузить стиль рубашки карт (по умолчанию "tiger")"""
+	var settings = load_settings()
+	return settings.get("card_back_style", "tiger")
+
 # ← Настройки выплат (переключатели ставок)
 func save_payout_settings(player: bool, banker: bool, tie: bool, player_pair: bool = true, banker_pair: bool = true):
 	var settings = load_settings()

@@ -144,6 +144,10 @@ signal language_changed(lang: String)
 @warning_ignore("unused_signal")
 signal survival_mode_changed(enabled: bool)
 
+## Рубашка карт изменена ("tiger" или "leopard")
+@warning_ignore("unused_signal")
+signal card_back_style_changed(style: String)
+
 ## Лимиты стола изменены
 @warning_ignore("unused_signal")
 signal table_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int, tie_max: int, tie_step: int)
