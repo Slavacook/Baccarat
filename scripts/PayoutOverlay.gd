@@ -15,7 +15,7 @@ extends CanvasLayer
 @onready var collected_amount_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel/CollectedAmountLabel
 @onready var payout_button: Button = $ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/PayoutButton
 @onready var hint_button = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/HintButton
-@onready var score_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/ScoreLabel
+@onready var survival_info: PayoutSurvivalInfo = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo
 @onready var main_panel = $ColorRect/MarginContainer/VBoxContainer/MainPanel
 @onready var chip_stacks_container = $ColorRect/MarginContainer/VBoxContainer/MainPanel/MainMargin/ChipStacksContainer
 @onready var fleet_panel = $ColorRect/MarginContainer/VBoxContainer/FleetPanel
@@ -382,13 +382,27 @@ func _update_chip_denominations():
 	chip_denominations = GameModeManager.get_chip_denominations()
 	print("PayoutPopupNew: Номиналы фишек обновлены: ", chip_denominations)
 
-# ← Форматирование числа
+# ← Обновление отображения survival info (жизни или очки)
 func _update_score_display():
-	# Обновляем отображение очков из SaveManager
-	# (Survival mode UI теперь в Game.tscn, не здесь)
-	score_label.visible = true
+	"""Обновить отображение жизней (survival mode) или очков (normal mode)"""
+	if not survival_info:
+		return
+
+	# Получаем данные из GameController через autoload
+	var game_controller = get_tree().root.get_node_or_null("Game")
+	if not game_controller:
+		push_warning("PayoutOverlay: GameController не найден в сцене")
+		return
+
+	var is_survival = game_controller.is_survival_mode
+	var current_lives = 7  # Значение по умолчанию
+	if is_survival and game_controller.survival_ui:
+		current_lives = game_controller.survival_ui.current_lives
+
 	var current_score = SaveManager.instance.score
-	score_label.text = "Очки: %d" % current_score
+
+	# Обновляем компонент
+	survival_info.update_display(is_survival, current_lives, current_score)
 
 func _format_amount(amount: float) -> String:
 	if amount == floor(amount):
@@ -467,6 +481,10 @@ func show_payout(winner: String, stake: float, payout: float):
 	Вызывается из GameController вместо scene transition
 	"""
 	setup_payout(winner, stake, payout)
+
+	# Обновляем отображение жизней/очков
+	_update_score_display()
+
 	show()  # Показать CanvasLayer
 
 	# Установить фокус на первую кнопку флота
