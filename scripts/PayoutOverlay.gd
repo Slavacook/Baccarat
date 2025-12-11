@@ -69,6 +69,7 @@ func _ready():
 
 	# Подписываемся на потерю жизни для обновления сердечек
 	EventBus.payout_wrong.connect(_on_payout_wrong_event)
+	EventBus.hint_used.connect(_on_hint_used_event)
 
 	# Получаем номиналы фишек
 	_update_chip_denominations()
@@ -510,6 +511,23 @@ func _on_payout_wrong_event(_collected: float, _expected: float):
 	_update_score_display()
 
 	print("✅ PayoutOverlay: сердечки обновлены после потери жизни")
+
+func _on_hint_used_event():
+	"""Обработчик события использования подсказки
+
+	Вызывается когда EventBus.hint_used эмитится.
+	Обновляем отображение сердечек после потери жизни за подсказку.
+	"""
+	print("💡 DEBUG: _on_hint_used_event вызван!")
+
+	# Небольшая задержка чтобы SurvivalUI успел обновить жизни
+	await get_tree().create_timer(0.1).timeout
+	print("🔍 DEBUG: Прошло 0.1 сек, вызываем _update_score_display()")
+
+	# Обновляем отображение сердечек/очков
+	_update_score_display()
+
+	print("✅ PayoutOverlay: сердечки обновлены после использования подсказки")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # OVERLAY УПРАВЛЕНИЕ
