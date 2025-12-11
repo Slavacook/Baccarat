@@ -391,10 +391,10 @@ func _update_score_display():
 	if not survival_info:
 		return
 
-	# Получаем данные из GameController через autoload
-	var game_controller = get_tree().root.get_node_or_null("Game")
+	# Получаем GameController (PayoutOverlay это child узел Game)
+	var game_controller = get_parent()
 	if not game_controller:
-		push_warning("PayoutOverlay: GameController не найден в сцене")
+		push_warning("PayoutOverlay: GameController (parent) не найден")
 		return
 
 	var is_survival = game_controller.is_survival_mode
@@ -406,6 +406,8 @@ func _update_score_display():
 
 	# Обновляем компонент
 	survival_info.update_display(is_survival, current_lives, current_score)
+
+	print("♥️  PayoutSurvivalInfo обновлен: survival=%s, lives=%d, score=%d" % [is_survival, current_lives, current_score])
 
 func _format_amount(amount: float) -> String:
 	if amount == floor(amount):

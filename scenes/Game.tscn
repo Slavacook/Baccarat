@@ -344,12 +344,12 @@ size_flags_horizontal = 3
 
 [node name="PayoutSurvivalInfo" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
-theme_override_constants/separation = 5
+theme_override_constants/separation = 3
 script = ExtResource("17_survival_info")
 
 [node name="LivesContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 1
 
 [node name="ScoreLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
 layout_mode = 2
