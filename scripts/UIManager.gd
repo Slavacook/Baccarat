@@ -22,6 +22,7 @@ signal tie_button_pressed()
 # СПЕЦИАЛИЗИРОВАННЫЕ МЕНЕДЖЕРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+var card_manager: CardTextureManager    # Менеджер текстур карт (для update_all_card_backs)
 var card_ui: CardUIManager              # Управление картами и анимациями
 var toggle_ui: ToggleUIManager          # Управление toggles третьих карт
 var button_ui: ButtonUIManager          # Управление кнопками
@@ -58,15 +59,18 @@ var banker_card3: TextureRect
 # КОНСТРУКТОР (Dependency Injection)
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _init(scene: Node, card_manager: CardTextureManager):
+func _init(scene: Node, card_manager_ref: CardTextureManager):
 	"""Инициализация UIManager и всех дочерних менеджеров
 
 	Создаёт специализированные менеджеры и пробрасывает их сигналы.
 
 	Args:
 		scene: Корневой узел сцены Game.tscn
-		card_manager: CardTextureManager для загрузки текстур карт
+		card_manager_ref: CardTextureManager для загрузки текстур карт
 	"""
+	# Сохраняем ссылку на CardTextureManager
+	card_manager = card_manager_ref
+
 	# ═══════════════════════════════════════════════════════════════════
 	# ШАГ 1: Создание специализированных менеджеров
 	# ═══════════════════════════════════════════════════════════════════
