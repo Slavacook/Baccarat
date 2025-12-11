@@ -270,19 +270,8 @@ func update_all_card_backs():
 	# Получаем новую текстуру рубашки из CardTextureManager
 	var new_back_texture = card_manager.get_back_texture()
 
-	# Обновляем карты игрока (если показывают рубашку)
-	if player_card1.texture == card_manager.get_back_texture() or \
-	   player_card1.texture == card_manager.get_back_question_texture() or \
-	   player_card1.texture == card_manager.get_back_exclamation_texture():
-		# Сохраняем тип рубашки (обычная/? /!)
-		if player_card1.texture == card_manager.get_back_question_texture():
-			player_card1.texture = card_manager.get_back_question_texture()
-		elif player_card1.texture == card_manager.get_back_exclamation_texture():
-			player_card1.texture = card_manager.get_back_exclamation_texture()
-		else:
-			player_card1.texture = new_back_texture
-
-	# Аналогично для всех остальных карт
+	# Обновляем ВСЕ карты через единый метод
+	_update_single_card_back(player_card1, new_back_texture)
 	_update_single_card_back(player_card2, new_back_texture)
 	_update_single_card_back(player_card3, new_back_texture)
 	_update_single_card_back(banker_card1, new_back_texture)
