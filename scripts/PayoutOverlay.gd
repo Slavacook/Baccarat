@@ -167,6 +167,9 @@ func _on_payout_pressed():
 		_show_success_animation(is_correct, collected_total, expected_payout)
 	else:
 		# ← Неправильная выплата
+		# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
+		EventBus.payout_wrong.emit(collected_total, expected_payout)
+
 		# Показываем анимацию ошибки (попап не закрывается)
 		_show_error_animation(collected_total)
 
