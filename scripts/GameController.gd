@@ -21,6 +21,7 @@ var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
 var payout_queue_manager: PayoutQueueManager
 var pair_betting_manager: PairBettingManager
+var bet_collection_manager: BetCollectionPhaseManager  # Менеджер фазы сбора/оплаты ставок
 
 # ═══════════════════════════════════════════════════════════════════════════
 # РЕЖИМ ВЫПЛАТЫ (переключатель для тестирования)
@@ -127,6 +128,16 @@ func _ready():
 	# ui_manager.winner_selected.connect(_on_winner_selected)  # ← ОТКЛЮЧЕНО: теперь через WinnerSelectionManager + кнопка "Карты"
 	ui_manager.help_button_pressed.connect(_on_help_button_pressed)
 	ui_manager.lang_button_pressed.connect(_on_lang_button_pressed)
+	
+	# ← Настраиваем менеджер фазы сбора/оплаты ставок
+	bet_collection_manager = BetCollectionPhaseManager.new()
+	# Передаем bet_collection_manager в phase_manager для валидации завершения
+	phase_manager.bet_collection_manager = bet_collection_manager
+	
+	# ← Настраиваем кнопки collect/pay
+	ui_manager.button_ui.setup_collect_pay_buttons(self)
+	ui_manager.button_ui.collect_button_toggled.connect(_on_collect_mode_toggled)
+	ui_manager.button_ui.pay_button_toggled.connect(_on_pay_mode_toggled)
 
 	# ← Проверяем возврат из PayoutScene ДО reset (чтобы не сбрасывать восстановленное состояние)
 	var is_payout_return = PayoutContextManager.has_context() and PayoutContextManager.get_context().get("manual_mode", false)
@@ -436,6 +447,12 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	# ВАЖНО: Обновляем ссылку в phase_manager
 	phase_manager.payout_queue_manager = payout_queue_manager
 	print("✅ Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
+	
+	# ← Настраиваем менеджер фазы сбора/оплаты с информацией о победителе
+	bet_collection_manager.setup(payout_queue_manager, actual_winner)
+	
+	# Сбрасываем кнопки collect/pay в исходное состояние
+	ui_manager.button_ui.reset_collect_pay_buttons()
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ДОБАВЛЯЕМ ВСЕ СТАВКИ (выигравшие и проигравшие)
@@ -535,10 +552,11 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 func _update_chip_visibility() -> void:
 	"""Обновить видимость и кликабельность фишек через ChipVisualManager
 
-	Логика:
-	- Проигравшие ставки → скрыть
+	Новая логика (с фазой сбора ставок):
 	- Оплаченные ставки → скрыть
-	- Выигравшие неоплаченные → оставить видимыми и кликабельными
+	- Собранные проигрышные ставки → скрыть
+	- Все остальные ставки (выигрышные, проигрышные, Tie push) → видимы и кликабельны
+	  (валидация клика в BetCollectionPhaseManager)
 	"""
 	if not payout_queue_manager or not chip_visual_manager:
 		return
@@ -549,13 +567,27 @@ func _update_chip_visibility() -> void:
 		var bet = payout_queue_manager.get_bet_by_type(bet_type)
 
 		if bet:
-			if not bet.won or bet.is_paid:
-				# Проигравшая или оплаченная → скрываем
+			# Проверяем, собрана ли проигрышная ставка
+			var is_collected = bet_collection_manager and bet_collection_manager.is_bet_collected(bet_type)
+			
+			if bet.is_paid or is_collected:
+				# Оплаченная или собранная → скрываем
 				chip_visual_manager.hide_chip(bet_type)
 			else:
-				# Выигравшая и неоплаченная → фишка уже видна, делаем кликабельной
+				# Все остальные → видимы и кликабельны
+				# (валидация клика происходит в BetCollectionPhaseManager)
+				chip_visual_manager.show_chip(bet_type)
 				chip_visual_manager.make_chip_clickable(bet_type, true)
-				print("💰 Фишка %s доступна для оплаты" % bet_type)
+				
+				# Логирование для отладки
+				var status = ""
+				if bet.won:
+					status = "выигрышная"
+				elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet_type):
+					status = "Tie push"
+				else:
+					status = "проигрышная"
+				print("💰 Фишка %s видна (%s)" % [bet_type, status])
 
 func _on_help_button_pressed():
 	ui_manager.help_popup.popup_centered()
@@ -572,6 +604,8 @@ func _on_lang_button_pressed():
 	if ui_manager.banker_third_toggle.visible:
 		var state = "!" if phase_manager.banker_third_selected else "?"
 		ui_manager.update_banker_third_card_ui(state)
+	# Обновление текста кнопок collect/pay
+	ui_manager.button_ui.update_collect_pay_buttons_text()
 
 func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 	if is_correct:
@@ -1190,30 +1224,89 @@ func _on_winner_toggled(winner: String, selected: bool):
 		if not winner_selection_manager.is_winner_selected():
 			ui_manager.enable_tie_button()
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ КНОПОК COLLECT/PAY
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_collect_mode_toggled(enabled: bool):
+	"""Обработчик toggle кнопки 'Забрать'"""
+	if bet_collection_manager:
+		if enabled:
+			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
+		else:
+			# Если режим сбора был активен, отключаем
+			if bet_collection_manager.is_collect_mode():
+				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
+
+func _on_pay_mode_toggled(enabled: bool):
+	"""Обработчик toggle кнопки 'Оплатить'"""
+	if bet_collection_manager:
+		if enabled:
+			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
+		else:
+			# Если режим оплаты был активен, отключаем
+			if bet_collection_manager.is_pay_mode():
+				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
+
 func _on_chip_clicked(bet_type: String):
 	print("🖱️  Клик на фишку: %s" % bet_type)
-	if not payout_queue_manager:
+	
+	# Проверяем что менеджеры инициализированы
+	if not payout_queue_manager or not bet_collection_manager:
 		return
-	var bet = payout_queue_manager.get_bet_by_type(bet_type)
-	if not bet:
-		ToastManager.instance.show_error("Нет ставки %s" % bet_type)
-		return
-	if not bet.won:
-		ToastManager.instance.show_error("Эта ставка не выиграла")
-		return
-	if bet.is_paid:
-		ToastManager.instance.show_info("Эта ставка уже оплачена")
-		return
-
+	
 	# ═══════════════════════════════════════════════════════════════════
-	# ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА ВЫПЛАТ
+	# ВАЛИДАЦИЯ КЛИКА ЧЕРЕЗ BetCollectionPhaseManager
 	# ═══════════════════════════════════════════════════════════════════
-	if USE_OVERLAY_PAYOUT:
-		# НОВЫЙ СПОСОБ: показать overlay поверх Game.tscn
-		_show_payout_overlay(bet_type, bet.stake, bet.payout)
-	else:
-		# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
-		_open_payout_scene(bet_type)
+	var validation = bet_collection_manager.validate_chip_click(bet_type)
+	
+	# Если режим не выбран - ничего не делаем
+	if validation.action == "none" and validation.can_proceed:
+		print("  ⏸️  Режим не выбран, клик игнорируется")
+		return
+	
+	# Если ошибка валидации - показываем сообщение и штрафуем
+	if not validation.can_proceed:
+		var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+		EventBus.show_toast_error.emit(error_message)
+		EventBus.action_error.emit(validation.error_type, error_message)
+		print("  ❌ Ошибка: %s" % validation.error_message)
+		return
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ВЫПОЛНЕНИЕ ДЕЙСТВИЯ
+	# ═══════════════════════════════════════════════════════════════════
+	
+	if validation.action == "collect":
+		# Собираем проигрышную ставку
+		bet_collection_manager.collect_bet(bet_type)
+		# Скрываем фишку
+		if chip_visual_manager:
+			chip_visual_manager.hide_chip(bet_type)
+		print("  ✅ Ставка %s собрана" % bet_type)
+		
+		# Если кнопка "Завершить" была broken - восстанавливаем
+		if ui_manager.button_ui.is_action_button_broken():
+			ui_manager.enable_action_button()
+			print("  🔓 Кнопка 'Завершить' восстановлена")
+		return
+	
+	if validation.action == "pay":
+		# Оплачиваем выигрышную ставку
+		var bet = payout_queue_manager.get_bet_by_type(bet_type)
+		if not bet:
+			return
+		
+		# ═══════════════════════════════════════════════════════════════════
+		# ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА ВЫПЛАТ
+		# ═══════════════════════════════════════════════════════════════════
+		if USE_OVERLAY_PAYOUT:
+			# НОВЫЙ СПОСОБ: показать overlay поверх Game.tscn
+			_show_payout_overlay(bet_type, bet.stake, bet.payout)
+		else:
+			# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
+			_open_payout_scene(bet_type)
+		return
 
 # ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
 

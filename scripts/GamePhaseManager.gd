@@ -12,6 +12,7 @@ var payout_queue_manager: PayoutQueueManager
 var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
 var pair_betting_manager: PairBettingManager
+var bet_collection_manager: BetCollectionPhaseManager = null  # Устанавливается из GameController
 
 # Состояние раунда
 var player_hand: Array[Card] = []
@@ -79,7 +80,14 @@ func reset(update_state: bool = true):
 		winner_selection_manager.reset()
 	# Очищаем TableStateManager (полное состояние стола)
 	TableStateManager.clear_state()
-	print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры и TableStateManager")
+	
+	# ← Сбрасываем BetCollectionPhaseManager и кнопки collect/pay
+	if bet_collection_manager:
+		bet_collection_manager.reset()
+	if ui and ui.button_ui:
+		ui.button_ui.reset_collect_pay_buttons()
+	
+	print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры, TableStateManager и режимы collect/pay")
 
 func deal_first_four():
 	print("🎮 deal_first_four() вызван")
@@ -224,15 +232,31 @@ func on_action_pressed():
 			return
 
 		# Кнопка в состоянии "complete" - победитель уже выбран, очередь сформирована
-		# Проверяем, есть ли неоплаченные выплаты
-		if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
-			var unpaid_count = payout_queue_manager.get_unpaid_count()
-			EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS"))
-			EventBus.action_error.emit("unpaid_bets", "")
-			# Дезактивируем кнопку "Завершить" пока есть неоплаченные ставки
-			ui.disable_action_button()
-			print("🔒 Кнопка 'Завершить' дезактивирована (неоплаченных ставок: %d)" % unpaid_count)
-			return
+		# ═══════════════════════════════════════════════════════════════════
+		# ВАЛИДАЦИЯ ЧЕРЕЗ BetCollectionPhaseManager (если доступен)
+		# ═══════════════════════════════════════════════════════════════════
+		if bet_collection_manager:
+			var completion_check = bet_collection_manager.can_complete_round()
+			if not completion_check.can:
+				# Показываем соответствующее сообщение об ошибке
+				var error_key = completion_check.error_key
+				EventBus.show_toast_error.emit(Localization.t(error_key))
+				EventBus.action_error.emit("incomplete_bets", error_key)
+				# Дезактивируем кнопку "Завершить"
+				ui.disable_action_button()
+				print("🔒 Кнопка 'Завершить' дезактивирована (причины: %s)" % str(completion_check.reasons))
+				return
+		else:
+			# Fallback: старая логика без bet_collection_manager
+			# Проверяем, есть ли неоплаченные выплаты
+			if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
+				var unpaid_count = payout_queue_manager.get_unpaid_count()
+				EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS"))
+				EventBus.action_error.emit("unpaid_bets", "")
+				# Дезактивируем кнопку "Завершить" пока есть неоплаченные ставки
+				ui.disable_action_button()
+				print("🔒 Кнопка 'Завершить' дезактивирована (неоплаченных ставок: %d)" % unpaid_count)
+				return
 
 		# Нет неоплаченных выплат (либо все оплачены, либо нет выигравших, либо нет ставок вообще)
 		# → завершаем раунд

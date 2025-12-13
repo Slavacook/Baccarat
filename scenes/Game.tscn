@@ -42,6 +42,40 @@ layer = 128
 
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
+[node name="CollectButton" type="Button" parent="TopUI"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = -25.0
+offset_bottom = 25.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.2, 0.8, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+toggle_mode = true
+text = "Забрать"
+
+[node name="PayButton" type="Button" parent="TopUI"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -100.0
+offset_top = 30.0
+offset_bottom = 80.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(0.2, 0.8, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+toggle_mode = true
+text = "Оплатить"
+
 [node name="Background" type="TextureRect" parent="."]
 offset_right = 1920.0
 offset_bottom = 1080.0

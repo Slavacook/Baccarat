@@ -13,6 +13,8 @@ signal action_button_pressed()
 signal help_button_pressed()
 signal lang_button_pressed()
 signal tie_button_pressed()
+signal collect_button_toggled(enabled: bool)
+signal pay_button_toggled(enabled: bool)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # UI УЗЛЫ КНОПОК
@@ -24,8 +26,16 @@ var tie_button: Button            # Кнопка "Игалите" (появля�
 var help_button: Button           # Кнопка помощи
 var lang_button: Button           # Кнопка смены языка (опционально)
 
+# Кнопки управления сбором/оплатой ставок
+var collect_button: Button        # Кнопка "Забрать" (toggle)
+var pay_button: Button            # Кнопка "Оплатить" (toggle)
+
 # Текущее состояние action button
 var current_button_state: String = "start"
+
+# Состояние кнопок collect/pay (взаимоисключающие toggle)
+var _collect_mode_active: bool = false
+var _pay_mode_active: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -246,3 +256,137 @@ func _on_broken_button_pressed():
 	"""Обработчик нажатия на broken кнопку"""
 	EventBus.show_toast_error.emit(Localization.t("PAY_FIRST"))
 	print("🔒 Попытка завершить при неоплаченных ставках: 'Сначала оплати!'")
+
+
+func is_action_button_broken() -> bool:
+	"""Проверить, находится ли кнопка действия в broken состоянии"""
+	if action_button_broken:
+		return action_button_broken.visible and not action_button.visible
+	return false
+
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ КНОПКАМИ COLLECT/PAY
+# ═══════════════════════════════════════════════════════════════════════════
+
+func setup_collect_pay_buttons(scene: Node) -> void:
+	"""Настроить кнопки сбора/оплаты ставок
+	
+	Args:
+		scene: Корневой узел сцены Game.tscn
+	"""
+	# Ищем кнопки в сцене
+	if scene.has_node("CollectButton"):
+		collect_button = scene.get_node("CollectButton")
+	else:
+		collect_button = scene.find_child("CollectButton", true, false)
+	
+	if scene.has_node("PayButton"):
+		pay_button = scene.get_node("PayButton")
+	else:
+		pay_button = scene.find_child("PayButton", true, false)
+	
+	# Настраиваем кнопки как toggle
+	if collect_button:
+		collect_button.toggle_mode = true
+		collect_button.toggled.connect(_on_collect_button_toggled)
+		collect_button.button_pressed = false
+		print("✅ ButtonUIManager: CollectButton найдена и настроена")
+	else:
+		print("⚠️  ButtonUIManager: CollectButton НЕ найдена в сцене!")
+	
+	if pay_button:
+		pay_button.toggle_mode = true
+		pay_button.toggled.connect(_on_pay_button_toggled)
+		pay_button.button_pressed = false
+		print("✅ ButtonUIManager: PayButton найдена и настроена")
+	else:
+		print("⚠️  ButtonUIManager: PayButton НЕ найдена в сцене!")
+
+
+func _on_collect_button_toggled(pressed: bool) -> void:
+	"""Обработчик toggle кнопки 'Забрать'"""
+	if pressed:
+		# При включении отключаем другую кнопку
+		_collect_mode_active = true
+		if pay_button and pay_button.button_pressed:
+			pay_button.set_pressed_no_signal(false)
+			_pay_mode_active = false
+		print("🔄 Режим COLLECT включен")
+	else:
+		_collect_mode_active = false
+		print("🔄 Режим COLLECT выключен")
+	
+	collect_button_toggled.emit(pressed)
+
+
+func _on_pay_button_toggled(pressed: bool) -> void:
+	"""Обработчик toggle кнопки 'Оплатить'"""
+	if pressed:
+		# При включении отключаем другую кнопку
+		_pay_mode_active = true
+		if collect_button and collect_button.button_pressed:
+			collect_button.set_pressed_no_signal(false)
+			_collect_mode_active = false
+		print("🔄 Режим PAY включен")
+	else:
+		_pay_mode_active = false
+		print("🔄 Режим PAY выключен")
+	
+	pay_button_toggled.emit(pressed)
+
+
+func get_collect_mode() -> bool:
+	"""Проверить, активен ли режим сбора"""
+	return _collect_mode_active
+
+
+func get_pay_mode() -> bool:
+	"""Проверить, активен ли режим оплаты"""
+	return _pay_mode_active
+
+
+func set_collect_mode(enabled: bool) -> void:
+	"""Установить состояние режима сбора
+	
+	При включении автоматически отключает режим оплаты.
+	"""
+	if collect_button:
+		collect_button.button_pressed = enabled
+		# Обработчик toggled вызовется автоматически
+
+
+func set_pay_mode(enabled: bool) -> void:
+	"""Установить состояние режима оплаты
+	
+	При включении автоматически отключает режим сбора.
+	"""
+	if pay_button:
+		pay_button.button_pressed = enabled
+		# Обработчик toggled вызовется автоматически
+
+
+func reset_collect_pay_buttons() -> void:
+	"""Сбросить обе кнопки (деактивировать)"""
+	if collect_button:
+		collect_button.set_pressed_no_signal(false)
+	if pay_button:
+		pay_button.set_pressed_no_signal(false)
+	_collect_mode_active = false
+	_pay_mode_active = false
+	print("🔄 Кнопки Collect/Pay сброшены")
+
+
+func get_collect_pay_state() -> Dictionary:
+	"""Получить состояние кнопок collect/pay"""
+	return {
+		"collect": _collect_mode_active,
+		"pay": _pay_mode_active
+	}
+
+
+func update_collect_pay_buttons_text() -> void:
+	"""Обновить текст кнопок collect/pay (при смене языка)"""
+	if collect_button:
+		collect_button.text = Localization.t("COLLECT_BUTTON")
+	if pay_button:
+		pay_button.text = Localization.t("PAY_BUTTON")

@@ -81,6 +81,15 @@ const DATA = {
 		"ERR_HINT_NO_SCORE": "Не хватает очков",
 		"HINT_USED_HEART": "-1 Сердце",
 		"HINT_USED_SCORE": "-%d очков",
+		
+		# === ФАЗА СБОРА/ОПЛАТЫ СТАВОК ===
+		"COLLECT_BUTTON": "Забрать",
+		"PAY_BUTTON": "Оплатить",
+		"ERR_COLLECT_WINNING": "Нельзя забрать выигрышную ставку!",
+		"ERR_PAY_BEFORE_COLLECT": "Сначала собери проигрышные ставки!",
+		"ERR_CANNOT_COLLECT_TIE_PUSH": "Нельзя трогать при Tie! Не выиграла, не проиграла",
+		"ERR_COMPLETE_BEFORE_COLLECT": "Сначала собери проигрышные ставки!",
+		"ERR_COMPLETE_BEFORE_PAY": "Сначала оплати выигрышные ставки!",
 
 		# === НАСТРОЙКИ (SETTINGS SCENE) ===
 		"SETTINGS_TITLE": "НАСТРОЙКИ",
@@ -178,6 +187,15 @@ const DATA = {
 		"ERR_HINT_NO_SCORE": "Not enough score",
 		"HINT_USED_HEART": "-1 Heart",
 		"HINT_USED_SCORE": "-%d points",
+		
+		# === BET COLLECTION/PAYMENT PHASE ===
+		"COLLECT_BUTTON": "Collect",
+		"PAY_BUTTON": "Pay",
+		"ERR_COLLECT_WINNING": "Cannot collect winning bet!",
+		"ERR_PAY_BEFORE_COLLECT": "Collect losing bets first!",
+		"ERR_CANNOT_COLLECT_TIE_PUSH": "Cannot touch on Tie! Not won, not lost",
+		"ERR_COMPLETE_BEFORE_COLLECT": "Collect losing bets first!",
+		"ERR_COMPLETE_BEFORE_PAY": "Pay winning bets first!",
 
 		# === SETTINGS (SETTINGS SCENE) ===
 		"SETTINGS_TITLE": "SETTINGS",
