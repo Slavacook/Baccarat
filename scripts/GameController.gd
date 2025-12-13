@@ -601,7 +601,7 @@ func _on_survival_game_over(_rounds: int):
 	game_over_popup.show_game_over(survival_rounds_completed)
 
 func _on_score_game_over():
-	print("🎮 GAME OVER! Очки упали ниже 0")
+	print("🎮 GAME OVER! Очки достигли 0")
 
 	# Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
@@ -614,6 +614,12 @@ func _on_score_game_over():
 
 	var final_score = SaveManager.instance.score
 	game_over_popup.show_game_over_score(final_score)
+	
+	# ← Сбрасываем очки на 10 после геймовера (в режиме без сердечек)
+	if not SaveManager.instance.load_survival_mode():
+		SaveManager.instance.score = 10
+		SaveManager.instance.save_data()
+		print("🔄 Очки сброшены на 10 после геймовера")
 
 func _on_restart_game():
 	survival_rounds_completed = 0

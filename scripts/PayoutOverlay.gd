@@ -509,8 +509,8 @@ func _show_hint_success_message():
 		# Режим выживания: показываем "-1 Сердце"
 		message = Localization.t("HINT_USED_HEART")
 	else:
-		# Обычный режим: показываем "-1 очков" (цена подсказки = 1 очко)
-		var hint_cost = 1
+		# Обычный режим: показываем "-5 очков" (цена подсказки = 5 очков)
+		var hint_cost = 5
 		message = Localization.t("HINT_USED_SCORE", [hint_cost])
 	
 	# Показываем сообщение зеленым цветом
@@ -580,7 +580,7 @@ func _check_hint_availability() -> Dictionary:
 	- error_key: String - ключ сообщения об ошибке (если can_use = false)
 	
 	В режиме выживания: нужно минимум 2 жизни (1 для использования, 1 чтобы не было геймовера)
-	В обычном режиме: нужно минимум 1 очко
+	В обычном режиме: нужно минимум 5 очков
 	"""
 	var game_controller = get_parent()
 	if not game_controller:
@@ -600,8 +600,8 @@ func _check_hint_availability() -> Dictionary:
 	else:
 		# Обычный режим: проверяем очки
 		var score = SaveManager.instance.score
-		# Нужно минимум 1 очко
-		if score < 1:
+		# Нужно минимум 5 очков
+		if score < 5:
 			return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
 		return {"can_use": true, "error_key": ""}
 

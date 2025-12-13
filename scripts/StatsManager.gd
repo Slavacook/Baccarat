@@ -82,18 +82,24 @@ func _on_payout_correct(_collected: float, _expected: float):
 
 func _on_payout_wrong(_collected: float, _expected: float):
 	SaveManager.instance.increment_error("payout_wrong")
-	# ← Очки снимаются в PayoutScene, здесь только счётчик
+	
+	# ← Если обычный режим (без сердечек, но с очками): -1 очко за ошибку
+	if not SaveManager.instance.load_survival_mode():
+		var game_over = SaveManager.instance.subtract_score(1)
+		if game_over:
+			print("🎮 GAME OVER! Очки упали ниже 0")
+	
 	update_stats()
 
 func _on_hint_used():
 	"""Обработчик использования подсказки
 	
 	В режиме выживания: жизни отнимаются в SurvivalModeUI
-	В обычном режиме: отнимаем 1 очко здесь
+	В обычном режиме: отнимаем 5 очков за подсказку
 	"""
-	# ← Если обычный режим: -1 очко за подсказку
+	# ← Если обычный режим: -5 очков за подсказку
 	if not SaveManager.instance.load_survival_mode():
-		var game_over = SaveManager.instance.subtract_score(1)
+		var game_over = SaveManager.instance.subtract_score(5)
 		if game_over:
 			print("🎮 GAME OVER! Очки упали ниже 0")
 	

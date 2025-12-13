@@ -3,7 +3,7 @@ extends Node
 
 static var instance: SaveManager
 
-signal score_game_over()  # ← Сигнал когда очки упали ниже 0
+signal score_game_over()  # ← Сигнал когда очки достигли 0
 
 const SAVE_PATH = "user://baccarat_stats.save"
 const SETTINGS_PATH = "user://baccarat_settings.save"
@@ -69,10 +69,15 @@ func add_score(points: int):
 
 func subtract_score(points: int) -> bool:
 	score -= points
+	
+	# ← Очки не могут уйти в минус - если меньше 0, устанавливаем 0
+	if score < 0:
+		score = 0
+	
 	save_data()
 
-	# ← Проверка Game Over (очки < 0)
-	if score < 0:
+	# ← Проверка Game Over (очки == 0)
+	if score == 0:
 		score_game_over.emit()
 		return true  # Game Over
 	return false  # Продолжаем игру
