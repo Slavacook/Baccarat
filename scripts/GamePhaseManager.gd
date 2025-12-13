@@ -304,6 +304,9 @@ func on_player_third_toggled(_selected: bool):
 		ui.update_player_third_card_ui("!")
 	else:
 		ui.update_player_third_card_ui("?")
+	# Дезактивируем маркер при нажатии на toggle третьей карты
+	if winner_selection_manager:
+		winner_selection_manager.deselect_winner()
 
 func on_banker_third_toggled(_selected: bool):
 	banker_third_selected = !banker_third_selected
@@ -311,6 +314,21 @@ func on_banker_third_toggled(_selected: bool):
 		ui.update_banker_third_card_ui("!")
 	else:
 		ui.update_banker_third_card_ui("?")
+	# Дезактивируем маркер при нажатии на toggle третьей карты
+	if winner_selection_manager:
+		winner_selection_manager.deselect_winner()
+
+func cancel_third_card_orders() -> void:
+	"""Отменить заказ всех третьих карт (игрока и банкира)"""
+	if player_third_selected:
+		player_third_selected = false
+		ui.update_player_third_card_ui("?")
+		print("❌ Отменён заказ третьей карты игрока")
+	
+	if banker_third_selected:
+		banker_third_selected = false
+		ui.update_banker_third_card_ui("?")
+		print("❌ Отменён заказ третьей карты банкира")
 
 
 func on_tie_button_pressed():

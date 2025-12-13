@@ -1172,6 +1172,9 @@ func _on_winner_toggled(winner: String, selected: bool):
 		print("🎯 Выбран: %s" % winner)
 		# Деактивируем кнопку Игалите когда выбран маркер Player или Banker
 		ui_manager.disable_tie_button()
+		# Отменяем заказ третьих карт при активации маркера
+		if phase_manager:
+			phase_manager.cancel_third_card_orders()
 	else:
 		print("🎯 Снят выбор: %s" % winner)
 		# Активируем кнопку Игалите если ни один маркер не выбран
