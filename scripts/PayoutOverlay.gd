@@ -52,6 +52,7 @@ var current_stake: float = 0.0      # Текущая ставка
 var current_winner: String = ""     # "Player", "Banker", "Tie"
 var expected_payout: float = 0.0    # Ожидаемая выплата
 var is_button_blocked: bool = false # Блокировка кнопки при ошибке
+var hint_purchased: bool = false   # Флаг покупки подсказки (для текущего окна выплат)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -182,21 +183,33 @@ func _on_payout_pressed():
 
 # ← Обработка кнопки подсказки
 func _on_hint_pressed():
-	# Проверяем, можно ли использовать подсказку
-	var hint_check = _check_hint_availability()
-	if not hint_check.can_use:
-		# Показываем сообщение об ошибке внутри окна выплат
-		_show_hint_error_message(Localization.t(hint_check.error_key))
-		print("❌ Нельзя использовать подсказку: %s" % hint_check.error_key)
-		return
+	# Если подсказка еще не куплена, проверяем доступность и покупаем
+	if not hint_purchased:
+		var hint_check = _check_hint_availability()
+		if not hint_check.can_use:
+			# Показываем сообщение об ошибке внутри окна выплат
+			_show_hint_error_message(Localization.t(hint_check.error_key))
+			print("❌ Нельзя использовать подсказку: %s" % hint_check.error_key)
+			return
+		
+		# Покупаем подсказку: отнимаем ресурсы
+		EventBus.hint_used.emit()
+		
+		# Показываем сообщение о покупке подсказки
+		_show_hint_success_message()
+		
+		# Меняем состояние и цвет кнопки
+		hint_purchased = true
+		_update_hint_button_style(true)  # Зеленая кнопка
+	
+	# Формируем выплату (покупка уже сделана или была куплена ранее)
+	_apply_hint()
+	
+	print("💡 Подсказка применена! Ожидаемая выплата: %s" % expected_payout)
 
-	# Эмитим событие использования подсказки
-	# (GameController обработает штраф - очки/жизни)
-	EventBus.hint_used.emit()
-
-	# Показываем сообщение об использовании подсказки
-	_show_hint_success_message()
-
+# ← Применить подсказку (сформировать выплату)
+func _apply_hint():
+	"""Применить подсказку - очистить стопки и добавить правильные фишки"""
 	# Очищаем текущие стопки
 	stack_manager.clear_all()
 
@@ -210,10 +223,9 @@ func _on_hint_pressed():
 
 		for i in range(count):
 			stack_manager.add_chip(denomination)
-
+	
 	# Отправляем сигнал
 	hint_used.emit()
-	print("💡 Подсказка использована! Ожидаемая выплата: %s" % expected_payout)
 
 # ← Обработчик изменения режима игры
 func _on_mode_changed(_mode: String):
@@ -290,9 +302,33 @@ func _setup_styles():
 	# === КНОПКА "?" (подсказка) ===
 	hint_button.text = "?"
 	hint_button.add_theme_font_size_override("font_size", 28)
+	
+	# Устанавливаем начальный стиль (красная кнопка - не куплена)
+	_update_hint_button_style(false)
 
+# ← Обновить стиль кнопки подсказки
+func _update_hint_button_style(purchased: bool):
+	"""Обновить стиль кнопки подсказки в зависимости от состояния покупки
+	
+	Args:
+		purchased: true если подсказка куплена (зеленая), false если не куплена (красная)
+	"""
+	if not hint_button:
+		return
+	
 	var hint_style_normal = StyleBoxFlat.new()
-	hint_style_normal.bg_color = Color(0.4, 0.3, 0.6)  # Фиолетовый
+	var hint_style_hover = StyleBoxFlat.new()
+	
+	if purchased:
+		# Зеленая кнопка (куплена)
+		hint_style_normal.bg_color = Color(0.2, 0.6, 0.3)  # Зелёный
+		hint_style_hover.bg_color = Color(0.3, 0.7, 0.4)   # Светло-зелёный
+	else:
+		# Красная кнопка (не куплена)
+		hint_style_normal.bg_color = Color(0.6, 0.2, 0.2)  # Красный
+		hint_style_hover.bg_color = Color(0.7, 0.3, 0.3)   # Светло-красный
+	
+	# Общие настройки для обоих стилей
 	hint_style_normal.border_width_left = 2
 	hint_style_normal.border_width_top = 2
 	hint_style_normal.border_width_right = 2
@@ -302,10 +338,7 @@ func _setup_styles():
 	hint_style_normal.corner_radius_top_right = 8
 	hint_style_normal.corner_radius_bottom_left = 8
 	hint_style_normal.corner_radius_bottom_right = 8
-	hint_button.add_theme_stylebox_override("normal", hint_style_normal)
-
-	var hint_style_hover = StyleBoxFlat.new()
-	hint_style_hover.bg_color = Color(0.5, 0.4, 0.7)
+	
 	hint_style_hover.border_width_left = 2
 	hint_style_hover.border_width_top = 2
 	hint_style_hover.border_width_right = 2
@@ -315,8 +348,9 @@ func _setup_styles():
 	hint_style_hover.corner_radius_top_right = 8
 	hint_style_hover.corner_radius_bottom_left = 8
 	hint_style_hover.corner_radius_bottom_right = 8
+	
+	hint_button.add_theme_stylebox_override("normal", hint_style_normal)
 	hint_button.add_theme_stylebox_override("hover", hint_style_hover)
-
 	hint_button.add_theme_color_override("font_color", Color(1, 1, 1))
 
 	# === ГЛАВНАЯ ПАНЕЛЬ (MainPanel - стопки фишек) ===
@@ -665,6 +699,10 @@ func show_payout(winner: String, stake: float, payout: float):
 	Вызывается из GameController вместо scene transition
 	"""
 	setup_payout(winner, stake, payout)
+
+	# Сбрасываем состояние подсказки для нового окна выплат
+	hint_purchased = false
+	_update_hint_button_style(false)  # Красная кнопка (не куплена)
 
 	# Обновляем отображение жизней/очков
 	_update_score_display()
