@@ -20,9 +20,12 @@ extends CanvasLayer
 @onready var chip_stacks_container = $ColorRect/MarginContainer/VBoxContainer/MainPanel/MainMargin/ChipStacksContainer
 @onready var fleet_panel = $ColorRect/MarginContainer/VBoxContainer/FleetPanel
 @onready var chip_fleet_container = $ColorRect/MarginContainer/VBoxContainer/FleetPanel/FleetMargin/FleetHBox/ChipFleetContainer
-# FeedbackContainer и FeedbackLabel опциональны (могут отсутствовать в Game.tscn)
-@onready var feedback_label = get_node_or_null("ColorRect/FeedbackContainer/FeedbackLabel")
-@onready var feedback_container = get_node_or_null("ColorRect/FeedbackContainer")
+# FeedbackContainer и FeedbackLabel для отображения оповещений "Верно!" и "Ошибка!"
+@onready var feedback_label = $ColorRect/FeedbackContainer/FeedbackLabel
+@onready var feedback_container = $ColorRect/FeedbackContainer
+# PNG изображения для оповещений (настроены в редакторе)
+@onready var success_image = $ColorRect/SuccessImage
+@onready var error_image = $ColorRect/ErrorImage
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
@@ -87,6 +90,14 @@ func _ready():
 	# Скрываем контейнер обратной связи по умолчанию (если есть)
 	if feedback_container:
 		feedback_container.visible = false
+	
+	# Скрываем PNG изображения оповещений по умолчанию
+	if success_image:
+		success_image.visible = false
+		success_image.modulate.a = 0.0  # Начинаем с прозрачного
+	if error_image:
+		error_image.visible = false
+		error_image.modulate.a = 0.0  # Начинаем с прозрачного
 
 	# Создаём кнопки номиналов
 	_create_chip_buttons()
@@ -172,7 +183,7 @@ func _on_payout_pressed():
 	if is_correct:
 		# ← Правильная выплата
 		# Показываем анимацию успеха, затем возвращаемся
-		_show_success_animation(is_correct, collected_total, expected_payout)
+		await _show_success_animation(is_correct, collected_total, expected_payout)
 	else:
 		# ← Неправильная выплата
 		# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
@@ -599,22 +610,15 @@ func _check_hint_availability() -> Dictionary:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _show_success_animation(is_correct: bool, collected: float, expected: float):
-	# Показываем локальный overlay внутри сцены (если есть)
-	if feedback_container and feedback_label:
-		feedback_container.visible = true
-		feedback_label.text = "Верно!"
-		feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
-		feedback_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.2))
-		feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		feedback_label.add_theme_constant_override("outline_size", 5)
-
-		await get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
-		feedback_container.visible = false
-		feedback_label.text = ""
-	else:
-		# Небольшая пауза даже без анимации
-		await get_tree().create_timer(0.5).timeout
-
+	# Показываем изображение "Верно!"
+	_show_success_image()
+	
+	# Ждем время показа
+	await get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
+	
+	# Скрываем изображение
+	_hide_success_image()
+	
 	# Возвращаемся к игре с результатом
 	_return_to_game(is_correct, collected, expected)
 
@@ -622,17 +626,11 @@ func _show_error_animation(_collected: float):
 	is_button_blocked = true
 	payout_button.disabled = true
 
-	# ← СРАЗУ очищаем фишки (до показа надписи), чтобы можно было начать вводить новую выплату
+	# ← СРАЗУ очищаем фишки, чтобы можно было начать вводить новую выплату
 	stack_manager.clear_all()
 
-	# Показываем локальный overlay внутри попапа (если есть)
-	if feedback_container and feedback_label:
-		feedback_container.visible = true
-		feedback_label.text = "Ошибка!"
-		feedback_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL * 2)
-		feedback_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))
-		feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-		feedback_label.add_theme_constant_override("outline_size", 5)
+	# Показываем изображение "Ошибка!"
+	_show_error_image()
 
 	# Анимация тряски кнопки
 	var tween = create_tween()
@@ -649,11 +647,78 @@ func _show_error_animation(_collected: float):
 	is_button_blocked = false
 	payout_button.disabled = false
 
-	if feedback_container and feedback_label:
-		feedback_container.visible = false
-		feedback_label.text = ""
+	# Скрываем изображение
+	_hide_error_image()
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПОКАЗ/СКРЫТИЕ PNG ИЗОБРАЖЕНИЙ ОПОВЕЩЕНИЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _show_success_image():
+	"""Показать изображение 'Верно!' с анимацией fade in"""
+	if not success_image:
+		return
+	
+	# Сбрасываем состояние перед показом
+	success_image.modulate = Color(1, 1, 1, 0.0)  # Начинаем с прозрачного
+	success_image.visible = true
+	
+	# Анимация fade in (без зума)
+	var tween = create_tween()
+	tween.tween_property(success_image, "modulate:a", 1.0, 0.3)
+
+func _hide_success_image():
+	"""Скрыть изображение 'Верно!' с анимацией fade out и движением вверх"""
+	if not success_image:
+		return
+	
+	# Сохраняем оригинальную позицию
+	var original_position = success_image.position
+	
+	# Анимация fade out с движением вверх
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(success_image, "modulate:a", 0.0, 0.2)
+	tween.tween_property(success_image, "position:y", original_position.y - 30.0, 0.2)
+	await tween.finished
+	
+	# Возвращаем позицию на место
+	success_image.position = original_position
+	success_image.visible = false
+
+func _show_error_image():
+	"""Показать изображение 'Ошибка!' с анимацией fade in"""
+	if not error_image:
+		return
+	
+	# Сбрасываем состояние перед показом
+	error_image.modulate = Color(1, 1, 1, 0.0)  # Начинаем с прозрачного
+	error_image.visible = true
+	
+	# Анимация fade in (без зума)
+	var tween = create_tween()
+	tween.tween_property(error_image, "modulate:a", 1.0, 0.3)
+
+func _hide_error_image():
+	"""Скрыть изображение 'Ошибка!' с анимацией fade out и движением вверх"""
+	if not error_image:
+		return
+	
+	# Сохраняем оригинальную позицию
+	var original_position = error_image.position
+	
+	# Анимация fade out с движением вверх
+	var tween = create_tween()
+	tween.set_parallel(true)
+	tween.tween_property(error_image, "modulate:a", 0.0, 0.2)
+	tween.tween_property(error_image, "position:y", original_position.y - 30.0, 0.2)
+	await tween.finished
+	
+	# Возвращаем позицию на место
+	error_image.position = original_position
+	error_image.visible = false
 
 func _on_payout_wrong_event(_collected: float, _expected: float):
 	"""Обработчик события неправильной выплаты
@@ -722,10 +787,19 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	"""Возврат к игре (overlay режим)
 
 	Эмитит сигнал payout_completed и скрывает overlay
+	ВАЖНО: Вызывается ПОСЛЕ того, как все анимации оповещений завершены
 	"""
+	# ВАЖНО: Убеждаемся, что FeedbackContainer уже скрыт перед эмитом сигнала
+	if feedback_container:
+		feedback_container.visible = false
+	
 	# Эмитим сигнал с результатом (включая тип ставки)
 	payout_completed.emit(current_winner, is_correct, collected, expected)
 
+	# Небольшая задержка перед скрытием overlay, чтобы убедиться, что все анимации завершены
+	await get_tree().process_frame
+	await get_tree().process_frame  # Дополнительный кадр для гарантии
+	
 	# Скрываем overlay
 	hide()
 

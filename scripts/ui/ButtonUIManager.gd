@@ -19,6 +19,7 @@ signal tie_button_pressed()
 # ═══════════════════════════════════════════════════════════════════════════
 
 var action_button: TextureButton  # Главная кнопка "Карты" / "Подтвердить" / "Завершить"
+var action_button_broken: TextureButton  # Кнопка с broken текстурой (подмена при неоплаченных ставках)
 var tie_button: Button            # Кнопка "Игалите" (появляется после раздачи)
 var help_button: Button           # Кнопка помощи
 var lang_button: Button           # Кнопка смены языка (опционально)
@@ -39,6 +40,44 @@ func _init(scene: Node):
 	# Получаем ссылки на UI узлы кнопок
 	action_button = scene.get_node("CardsButton")
 	help_button = scene.get_node("HelpButton")
+	
+	# Получаем ссылку на broken кнопку (проверяем в разных местах иерархии)
+	# Сначала проверяем в корневом узле
+	if scene.has_node("CardsButtonBroken"):
+		action_button_broken = scene.get_node("CardsButtonBroken")
+	elif scene.has_node("TopUI/CardsButtonBroken"):
+		action_button_broken = scene.get_node("TopUI/CardsButtonBroken")
+	else:
+		# Пробуем найти через поиск по имени
+		action_button_broken = scene.find_child("CardsButtonBroken", true, false)
+	
+	if action_button_broken:
+		# Если кнопки находятся в разных родительских узлах, перемещаем broken кнопку к основной
+		# НО НЕ меняем её позицию и размер - они настроены отдельно в сцене!
+		if action_button and action_button_broken.get_parent() != action_button.get_parent():
+			var broken_parent = action_button_broken.get_parent()
+			var target_parent = action_button.get_parent()
+			# Сохраняем текущие параметры перед перемещением
+			var saved_offset_left = action_button_broken.offset_left
+			var saved_offset_top = action_button_broken.offset_top
+			var saved_offset_right = action_button_broken.offset_right
+			var saved_offset_bottom = action_button_broken.offset_bottom
+			var saved_scale = action_button_broken.scale
+			# Перемещаем в тот же родительский узел
+			broken_parent.remove_child(action_button_broken)
+			target_parent.add_child(action_button_broken)
+			# Восстанавливаем сохраненные параметры (не синхронизируем с основной кнопкой!)
+			action_button_broken.offset_left = saved_offset_left
+			action_button_broken.offset_top = saved_offset_top
+			action_button_broken.offset_right = saved_offset_right
+			action_button_broken.offset_bottom = saved_offset_bottom
+			action_button_broken.scale = saved_scale
+			print("🔄 ButtonUIManager: CardsButtonBroken перемещена к тому же родителю что и CardsButton (параметры сохранены)")
+		# Подключаем обработчик нажатия на broken кнопку
+		action_button_broken.pressed.connect(_on_broken_button_pressed)
+		print("✅ ButtonUIManager: CardsButtonBroken найдена и подключена (путь: %s)" % action_button_broken.get_path())
+	else:
+		print("⚠️  ButtonUIManager: CardsButtonBroken НЕ найдена в сцене!")
 
 	# Tie button (появляется при раздаче, скрыта по умолчанию)
 	if scene.has_node("TieButton"):
@@ -130,12 +169,35 @@ func enable_action_button():
 	"""Включить action button (сделать кликабельной)"""
 	if action_button:
 		action_button.disabled = false
+		# Если кнопка в состоянии "complete", скрываем broken кнопку и показываем основную
+		if current_button_state == "complete":
+			if action_button_broken:
+				action_button_broken.visible = false
+			action_button.visible = true
+			print("🔓 Кнопка 'Завершить' активирована")
 
 
 func disable_action_button():
 	"""Отключить action button (сделать некликабельной)"""
-	if action_button:
+	if action_button and current_button_state == "complete":
 		action_button.disabled = true
+		# Скрываем основную кнопку и показываем broken версию
+		action_button.visible = false
+		if action_button_broken:
+			# НЕ меняем позицию и размер - они настроены отдельно в сцене!
+			# Только синхронизируем modulate для единообразия
+			action_button_broken.modulate = action_button.modulate
+			# Убеждаемся что кнопка активна и видна
+			action_button_broken.disabled = false
+			action_button_broken.visible = true
+			# Принудительно обновляем дерево сцены
+			action_button_broken.queue_redraw()
+			print("🔒 Кнопка 'Завершить' дезактивирована (подменена на broken версию)")
+			print("   Основная кнопка visible=%s, Broken кнопка visible=%s" % [action_button.visible, action_button_broken.visible])
+			print("   Broken кнопка позиция: offset_left=%s, offset_top=%s, scale=%s" % [action_button_broken.offset_left, action_button_broken.offset_top, action_button_broken.scale])
+			print("   Broken кнопка путь: %s" % action_button_broken.get_path())
+		else:
+			print("❌ ОШИБКА: action_button_broken == null! Кнопка не может быть подменена!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ LANG BUTTON
@@ -174,3 +236,13 @@ func disable_tie_button():
 	"""Деактивировать кнопку Игалите (когда выбран маркер Player или Banker)"""
 	if tie_button:
 		tie_button.disabled = true
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТКА BROKEN КНОПКИ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_broken_button_pressed():
+	"""Обработчик нажатия на broken кнопку"""
+	EventBus.show_toast_error.emit(Localization.t("PAY_FIRST"))
+	print("🔒 Попытка завершить при неоплаченных ставках: 'Сначала оплати!'")

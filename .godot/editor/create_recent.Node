@@ -1,3 +1,6 @@
+TextureRect
+Control
+TextureButton
 Label
 Button
 HBoxContainer
@@ -10,5 +13,3 @@ CheckBox
 MarginContainer
 PanelContainer
 CenterContainer
-Panel
-TextureButton

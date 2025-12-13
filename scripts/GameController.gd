@@ -160,6 +160,8 @@ func _ready():
 		# Восстанавливаем состояние кнопки
 		if ui_manager:
 			ui_manager.set_action_button_state(TableStateManager.action_button_state)
+			# Активируем кнопку при восстановлении (если есть неоплаченные ставки, она будет дезактивирована при попытке завершить)
+			ui_manager.enable_action_button()
 			print("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
 	else:
 		# При обычной загрузке - показываем фишки на основе настроек PayoutSettingsManager
@@ -968,6 +970,7 @@ func _setup_fixed_ui():
 		"StatsLabel",
 		"SettingsButton",
 		"CardsButton",
+		"CardsButtonBroken",
 		"TieButton"
 	]
 
@@ -1348,7 +1351,13 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 	# ЗАВЕРШЕНИЕ РАУНДА (если все выплаты оплачены И последняя правильная)
 	# ═══════════════════════════════════════════════════════════════════
 	if is_correct:
-		# Проверяем, остались ли неоплаченные выплаты
+		# После оплаты ставки всегда активируем кнопку "Завершить"
+		# Проверка неоплаченных ставок будет при нажатии на кнопку
+		if ui_manager:
+			ui_manager.enable_action_button()
+			print("  🔓 Кнопка 'Завершить' активирована после оплаты ставки")
+
+		# Проверяем, остались ли неоплаченные выплаты (только для логирования)
 		var has_unpaid = false
 		if payout_queue_manager:
 			for check_bet_type in ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]:
@@ -1360,10 +1369,8 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		if not has_unpaid:
 			# Все выплаты оплачены → эмитим событие подготовки стола
 			print("  ✅ Все выплаты оплачены! Стол готов к новой раздаче")
-
 			# Эмитим событие для разблокировки маркеров и подготовки стола
 			EventBus.table_prepared_for_new_game.emit()
-
 			# НЕ вызываем phase_manager.reset() в overlay режиме!
 			# Карты остаются на столе, пользователь нажимает "Завершить" для новой раздачи
 		else:

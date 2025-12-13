@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://bs3k3o8x8kiw1"]
+[gd_scene load_steps=15 format=3 uid="uid://bs3k3o8x8kiw1"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_iwhjp"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="2_vsqai"]
@@ -10,7 +10,6 @@
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="10_1g12a"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="11_dh6ev"]
 [ext_resource type="PackedScene" path="res://scenes/GameOverScene.tscn" id="12_r0u5q"]
-[ext_resource type="Texture2D" uid="uid://dcyp1p7e010hj" path="res://assets/ui/Shuffle .png" id="13_a5nln"]
 [ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="14_64t5t"]
 [ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="15_aflha"]
 [ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_p6km1"]
@@ -204,11 +203,6 @@ offset_right = 806.0
 offset_bottom = 21.0
 scale = Vector2(1.5, 1.5)
 text = "Правильно: 0 | Ошибок: 0"
-
-[node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(21, 465)
-scale = Vector2(1.24, 1.24)
-texture = ExtResource("13_a5nln")
 
 [node name="SettingsButton" type="Button" parent="."]
 offset_left = 1094.0

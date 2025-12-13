@@ -227,8 +227,11 @@ func on_action_pressed():
 		# Проверяем, есть ли неоплаченные выплаты
 		if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
 			var unpaid_count = payout_queue_manager.get_unpaid_count()
-			EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS", [unpaid_count]))
+			EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS"))
 			EventBus.action_error.emit("unpaid_bets", "")
+			# Дезактивируем кнопку "Завершить" пока есть неоплаченные ставки
+			ui.disable_action_button()
+			print("🔒 Кнопка 'Завершить' дезактивирована (неоплаченных ставок: %d)" % unpaid_count)
 			return
 
 		# Нет неоплаченных выплат (либо все оплачены, либо нет выигравших, либо нет ставок вообще)
@@ -359,6 +362,8 @@ func on_tie_button_pressed():
 
 	# Меняем кнопку на "complete"
 	ui.set_action_button_state("complete")
+	# Активируем кнопку при переходе в стадию выплат
+	ui.enable_action_button()
 
 	# Показываем toast
 	EventBus.show_toast_success.emit("Игалите")
@@ -664,6 +669,8 @@ func _validate_winner_selection() -> void:
 
 	# Меняем кнопку на "complete" (готовность к выплатам)
 	ui.set_action_button_state("complete")
+	# Активируем кнопку при переходе в стадию выплат
+	ui.enable_action_button()
 
 	# Показываем toast с результатом (кто выиграл и с какими картами)
 	var victory_msg = _format_victory_toast(actual_winner)
