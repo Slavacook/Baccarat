@@ -277,6 +277,14 @@ func on_action_pressed():
 		EventBus.camera_zoom_requested.emit("out")
 		print("  → ✅ Камера отзумлена на общий план")
 
+		# ← Начисляем +1 очко за успешное завершение игры (в режиме без сердечек)
+		if not SaveManager.instance.load_survival_mode():
+			SaveManager.instance.add_score(1)
+			# Обновляем отображение статистики
+			if StatsManager.instance:
+				StatsManager.instance.update_stats()
+			print("  → ✅ +1 очко за завершение игры")
+		
 		print("  → Вызываем reset(false) - сброс БЕЗ обновления состояния")
 		# Сброс раунда (карты, маркеры, TableStateManager)
 		reset(false)  # ← НЕ обновляем GameStateManager

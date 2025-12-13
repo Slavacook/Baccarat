@@ -77,7 +77,11 @@ func _on_action_error(type: String, _message: String):
 
 func _on_payout_correct(_collected: float, _expected: float):
 	SaveManager.instance.increment_correct()
-	# ← Очки начисляются в PayoutScene, здесь только счётчик
+	
+	# ← Если обычный режим (без сердечек, но с очками): +1 очко за верную выплату
+	if not SaveManager.instance.load_survival_mode():
+		SaveManager.instance.add_score(1)
+	
 	update_stats()
 
 func _on_payout_wrong(_collected: float, _expected: float):
