@@ -40,13 +40,13 @@ layer = 128
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
 [node name="Background" type="TextureRect" parent="."]
+visible = false
 offset_right = 1920.0
 offset_bottom = 1080.0
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_qbsmt")
 
 [node name="Background2" type="TextureRect" parent="."]
-visible = false
 offset_left = -1637.0001
 offset_top = -583.00006
 offset_right = 4763.0

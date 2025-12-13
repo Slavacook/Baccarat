@@ -615,7 +615,12 @@ func _validate_winner_selection() -> void:
 
 	if selected_winner != actual_winner:
 		# ❌ Неправильный выбор
-		EventBus.show_toast_error.emit(Localization.t("ERR_WRONG_WINNER", [actual_winner]))
+		var error_msg: String
+		if actual_winner == "Tie":
+			error_msg = "Ошибка! Неправильный выбор. Игалите"
+		else:
+			error_msg = Localization.t("ERR_WRONG_WINNER", [actual_winner])
+		EventBus.show_toast_error.emit(error_msg)
 		EventBus.action_error.emit("winner_wrong", "")
 		# Сбрасываем выбор маркера
 		winner_selection_manager.reset()

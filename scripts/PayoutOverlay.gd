@@ -384,10 +384,10 @@ func _set_result_header(winner: String):
 			result_label.text = Localization.t("WIN_TIE")
 			result_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.4))  # Зелёный
 		"PairPlayer":
-			result_label.text = Localization.t("PAIR_PLAYER_TITLE")  # "Пара Игрока 11:1"
+			result_label.text = Localization.t("PAIR_PLAYER_TITLE")  # "Пара Игрока"
 			result_label.add_theme_color_override("font_color", Color(0.2, 0.4, 0.9))  # Синий (как Player)
 		"PairBanker":
-			result_label.text = Localization.t("PAIR_BANKER_TITLE")  # "Пара Банкира 11:1"
+			result_label.text = Localization.t("PAIR_BANKER_TITLE")  # "Пара Банкира"
 			result_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))  # Красный (как Banker)
 
 # ← Обновить номиналы фишек из GameModeManager
