@@ -37,7 +37,6 @@ var payout_toggle_ui: PayoutToggleManager  # Управление переклю
 var stats_label: Label
 var help_popup: Popup
 var bet_chip: TextureButton
-var bet_popup: PopupPanel
 var tie_chip: TextureButton
 
 # ← Эти ссылки сохранены для внешнего доступа (GameController, GamePhaseManager)

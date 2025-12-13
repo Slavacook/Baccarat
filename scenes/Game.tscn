@@ -1,10 +1,9 @@
-[gd_scene load_steps=18 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=17 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
-[ext_resource type="PackedScene" uid="uid://b8ribk4n0q8w1" path="res://scenes/BetPopup.tscn" id="3_aug50"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
-[ext_resource type="PackedScene" path="res://scenes/GameOverPopup.tscn" id="4_gameover"]
+[ext_resource type="PackedScene" path="res://scenes/GameOverScene.tscn" id="4_gameover"]
 [ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="4_kiw3p"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="4_survival"]
 [ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="5_g4kob"]
@@ -46,8 +45,6 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_qbsmt")
-
-[node name="BetPopup" parent="." instance=ExtResource("3_aug50")]
 
 [node name="LimitsButton" type="Button" parent="."]
 visible = false
@@ -210,7 +207,7 @@ text = "?"
 
 [node name="HelpPopup" parent="." instance=ExtResource("4_78awf")]
 
-[node name="GameOverPopup" parent="." instance=ExtResource("4_gameover")]
+[node name="GameOverScene" parent="." instance=ExtResource("4_gameover")]
 
 [node name="StatsLabel" type="Label" parent="."]
 offset_left = 595.0

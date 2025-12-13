@@ -1,6 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://b8ribk4n0q8w1"]
+[gd_scene load_steps=2 format=3 uid="uid://dgvnbw1hp615"]
 
-[ext_resource type="Script" uid="uid://c60k5ekwpxfw7" path="res://scripts/BetPopup.gd" id="1_slkjq"]
+[ext_resource type="Script" path="res://scripts/BetPopup.gd" id="1_slkjq"]
 
 [node name="BetPopup" type="PopupPanel"]
 oversampling_override = 1.0

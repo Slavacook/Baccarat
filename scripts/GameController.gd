@@ -13,7 +13,7 @@ var limits_button: Button
 var settings_scene: CanvasLayer  # Новая сцена настроек (заменила SettingsPopup)
 var settings_button: Button
 var survival_ui: Control
-var game_over_popup: PopupPanel
+var game_over_popup: CanvasLayer
 var survival_rounds_completed: int = 0
 var is_survival_mode: bool = false
 var is_table_prepared_for_new_game: bool = false  # Флаг подготовки к новой игре (после оплаты всех фишек)
@@ -89,8 +89,7 @@ func _ready():
 	limits_manager.limits_changed.connect(_on_limits_changed)
 	survival_ui = get_node("TopUI/SurvivalModeUI")  # ← Обновили путь
 	survival_ui.game_over.connect(_on_survival_game_over)
-	game_over_popup = get_node("GameOverPopup")
-	game_over_popup.restart_game.connect(_on_restart_game)
+	game_over_popup = get_node("GameOverScene")
 
 	# ← Подписываемся на Game Over по очкам
 	SaveManager.instance.score_game_over.connect(_on_score_game_over)
@@ -606,18 +605,24 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 func _on_survival_game_over(_rounds: int):
 	print("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
 
+	# Закрываем окно выплат, если оно открыто
+	if payout_overlay and payout_overlay.visible:
+		payout_overlay.hide()
+		print("💰 PayoutOverlay закрыт при Game Over")
+
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
 	is_first_deal = true  # Следующая раздача будет первой (с зумом)
 
 	game_over_popup.show_game_over(survival_rounds_completed)
 
-	# Автоматический рестарт через 3 секунды
-	await get_tree().create_timer(3.0).timeout
-	_on_restart_game()
-
 func _on_score_game_over():
 	print("🎮 GAME OVER! Очки упали ниже 0")
+
+	# Закрываем окно выплат, если оно открыто
+	if payout_overlay and payout_overlay.visible:
+		payout_overlay.hide()
+		print("💰 PayoutOverlay закрыт при Game Over")
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
@@ -625,10 +630,6 @@ func _on_score_game_over():
 
 	var final_score = SaveManager.instance.score
 	game_over_popup.show_game_over_score(final_score)
-
-	# Автоматический рестарт через 3 секунды
-	await get_tree().create_timer(3.0).timeout
-	_on_restart_game()
 
 func _on_restart_game():
 	survival_rounds_completed = 0
