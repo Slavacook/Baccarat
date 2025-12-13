@@ -15,47 +15,50 @@ extends HBoxContainer
 # ═══════════════════════════════════════════════════════════════════════════
 
 const MAX_LIVES = 7
-const HEART_SIZE = 24  # ← Размер сердечек (уменьшен с 28 до 24)
-const HEART_SEPARATION = 1  # ← Расстояние между сердечками (минимальное)
+const HEART_SIZE = 24  # ← Размер одного сердечка
 
-var heart_nodes: Array[TextureRect] = []
+var single_heart: TextureRect  # ← Одно сердце
+var lives_count_label: Label   # ← Label с количеством жизней
 var heart_full: Texture2D
-var heart_empty: Texture2D
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _ready():
-	# Загружаем текстуры сердечек (используем те же что и в SurvivalModeUI)
+	# Загружаем текстуру сердечка
 	heart_full = preload("res://assets/ui/heart.png")
-	heart_empty = preload("res://assets/ui/heart_empty.png")
 
-	# Устанавливаем минимальное расстояние между сердечками
+	# Устанавливаем минимальное расстояние между элементами
 	if lives_container:
-		lives_container.add_theme_constant_override("separation", HEART_SEPARATION)
+		lives_container.add_theme_constant_override("separation", 4)
 
-	# Создаём 7 сердечек в LivesContainer
-	_create_hearts()
+	# Создаём одно сердце и Label с количеством жизней
+	_create_single_heart_display()
 
 	# Начальное состояние (скрыто до первого update)
 	lives_container.visible = false
 	score_label.visible = false
 
 # ═══════════════════════════════════════════════════════════════════════════
-# СОЗДАНИЕ СЕРДЕЧЕК
+# СОЗДАНИЕ ОТОБРАЖЕНИЯ ЖИЗНЕЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _create_hearts():
-	"""Создать 7 TextureRect сердечек"""
-	for i in range(MAX_LIVES):
-		var heart = TextureRect.new()
-		heart.texture = heart_full
-		heart.custom_minimum_size = Vector2(HEART_SIZE, HEART_SIZE)
-		heart.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
-		heart.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		lives_container.add_child(heart)
-		heart_nodes.append(heart)
+func _create_single_heart_display():
+	"""Создать одно сердце и Label с количеством жизней"""
+	# Создаём одно сердце
+	single_heart = TextureRect.new()
+	single_heart.texture = heart_full
+	single_heart.custom_minimum_size = Vector2(HEART_SIZE, HEART_SIZE)
+	single_heart.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	single_heart.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	lives_container.add_child(single_heart)
+
+	# Создаём Label с количеством жизней
+	lives_count_label = Label.new()
+	lives_count_label.text = "7"
+	lives_count_label.add_theme_font_size_override("font_size", 20)
+	lives_container.add_child(lives_count_label)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ
@@ -85,21 +88,23 @@ func update_display(is_survival_mode: bool, current_lives: int, score: int):
 		_update_score(score)
 
 func _update_hearts(current_lives: int):
-	"""Обновить визуальное состояние сердечек (как в SurvivalModeUI)
+	"""Обновить отображение: одно сердце и количество жизней
 
 	Args:
 		current_lives: Текущее количество жизней (0-7)
 	"""
 	var clamped_lives = clamp(current_lives, 0, MAX_LIVES)
-	print("  → _update_hearts: current_lives=%d, clamped=%d, heart_nodes.size=%d" % [current_lives, clamped_lives, heart_nodes.size()])
+	print("  → _update_hearts: current_lives=%d, clamped=%d" % [current_lives, clamped_lives])
 
-	for i in range(MAX_LIVES):
-		if i < clamped_lives:
-			heart_nodes[i].texture = heart_full  # Красное сердечко
-		else:
-			heart_nodes[i].texture = heart_empty  # Черное сердечко
+	# Обновляем Label с количеством жизней
+	if lives_count_label:
+		lives_count_label.text = str(clamped_lives)
 
-	print("  ✅ Сердечки обновлены: %d красных, %d черных" % [clamped_lives, MAX_LIVES - clamped_lives])
+	# Сердце всегда показываем (оно всегда видимо)
+	if single_heart:
+		single_heart.texture = heart_full
+
+	print("  ✅ Отображение жизней обновлено: ♥ %d" % clamped_lives)
 
 func _update_score(score: int):
 	"""Обновить счёт в обычном режиме
@@ -110,11 +115,11 @@ func _update_score(score: int):
 	score_label.text = "Очки: %d" % score
 
 # ═══════════════════════════════════════════════════════════════════════════
-# НАСТРОЙКА РАЗМЕРА СЕРДЕЧЕК
+# НАСТРОЙКА РАЗМЕРА СЕРДЕЧКА
 # ═══════════════════════════════════════════════════════════════════════════
 
 func set_heart_size(size: int):
-	"""Изменить размер сердечек
+	"""Изменить размер сердечка
 
 	Args:
 		size: Новый размер в пикселях
@@ -123,7 +128,7 @@ func set_heart_size(size: int):
 		Вызовите этот метод ПЕРЕД _ready() если хотите изменить размер.
 		Или вызовите после _ready() для динамического изменения.
 	"""
-	for heart in heart_nodes:
-		heart.custom_minimum_size = Vector2(size, size)
+	if single_heart:
+		single_heart.custom_minimum_size = Vector2(size, size)
 
-	print("♥️  Размер сердечек изменён на %d px" % size)
+	print("♥️  Размер сердечка изменён на %d px" % size)

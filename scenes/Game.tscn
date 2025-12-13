@@ -1,17 +1,16 @@
-[gd_scene load_steps=17 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=16 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
 [ext_resource type="PackedScene" path="res://scenes/GameOverScene.tscn" id="4_gameover"]
-[ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="4_kiw3p"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="4_survival"]
+[ext_resource type="Texture2D" uid="uid://ce5mbjlry1a3q" path="res://assets/ui/table_background_2.png" id="4_y5y3l"]
 [ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="5_g4kob"]
 [ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="6_qy1jj"]
 [ext_resource type="Texture2D" uid="uid://ychwh6o6frhy" path="res://assets/ui/banker_marker.png" id="7_3xj3m"]
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="7_sv1m6"]
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="8_mcffj"]
-[ext_resource type="Texture2D" uid="uid://dcyp1p7e010hj" path="res://assets/ui/Shuffle .png" id="14_7ua8r"]
 [ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_y5y3l"]
 [ext_resource type="Script" uid="uid://8fqkmr4r5o0l" path="res://scripts/PayoutSurvivalInfo.gd" id="17_survival_info"]
 [ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="18_45i86"]
@@ -46,16 +45,14 @@ offset_bottom = 1080.0
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_qbsmt")
 
-[node name="LimitsButton" type="Button" parent="."]
+[node name="Background2" type="TextureRect" parent="."]
 visible = false
-offset_left = 1018.0
-offset_top = 191.0
-offset_right = 1101.0
-offset_bottom = 222.0
-scale = Vector2(1.5, 1.5)
-text = "ЛИМИТЫ"
-
-[node name="LimitsPopup" parent="." instance=ExtResource("4_kiw3p")]
+offset_left = -1637.0001
+offset_top = -583.00006
+offset_right = 4763.0
+offset_bottom = 2105.0
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("4_y5y3l")
 
 [node name="PlayerZone" type="Node2D" parent="."]
 
@@ -217,11 +214,6 @@ offset_bottom = 21.0
 scale = Vector2(1.5, 1.5)
 text = "Правильно: 0 | Ошибок: 0"
 
-[node name="Sprite2D" type="Sprite2D" parent="."]
-position = Vector2(21, 465)
-scale = Vector2(1.24, 1.24)
-texture = ExtResource("14_7ua8r")
-
 [node name="SettingsButton" type="Button" parent="."]
 offset_left = 1094.0
 offset_top = 2.0000002
@@ -316,6 +308,10 @@ theme_override_constants/separation = 10
 layout_mode = 2
 text = "БАНКИР"
 
+[node name="Spacer" type="Control" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="StakeLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
 text = "Ставка: 200"
@@ -335,18 +331,14 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Spacer" type="Control" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-
 [node name="PayoutSurvivalInfo" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 0
 script = ExtResource("17_survival_info")
 
 [node name="LivesContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
 layout_mode = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="ScoreLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
 layout_mode = 2

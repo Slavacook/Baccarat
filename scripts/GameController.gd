@@ -8,8 +8,6 @@ var card_manager: CardTextureManager
 var ui_manager: UIManager
 var phase_manager: GamePhaseManager
 var limits_manager: LimitsManager
-var limits_popup: PopupPanel
-var limits_button: Button
 var settings_scene: CanvasLayer  # Новая сцена настроек (заменила SettingsPopup)
 var settings_button: Button
 var survival_ui: Control
@@ -82,11 +80,6 @@ func _ready():
 	ui_manager.set_flip_cards(flip_cards)  # <-- И эта строка!
 	StatsManager.instance.set_label(ui_manager.stats_label)
 	limits_manager = LimitsManager.new(config)
-	limits_popup = get_node("LimitsPopup")
-	limits_button = get_node("LimitsButton")
-	limits_button.pressed.connect(_on_limits_button_pressed)
-	limits_popup.limits_changed.connect(limits_manager.set_limits)
-	limits_manager.limits_changed.connect(_on_limits_changed)
 	survival_ui = get_node("TopUI/SurvivalModeUI")  # ← Обновили путь
 	survival_ui.game_over.connect(_on_survival_game_over)
 	game_over_popup = get_node("GameOverScene")
@@ -290,21 +283,6 @@ func open_two_third_cards(texture1: Texture2D, texture2: Texture2D):
 func reset_cards(back_texture: Texture2D):
 	show_all_backs(back_texture)
 
-func _on_limits_button_pressed():
-	limits_popup.show_current_limits(
-		limits_manager.min_bet,
-		limits_manager.max_bet,
-		limits_manager.step,
-		limits_manager.tie_min,
-		limits_manager.tie_max,
-		limits_manager.tie_step
-	)
-
-func _on_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int, tie_max: int, tie_step: int):
-	EventBus.show_toast_info.emit(
-		"Лимиты: %d–%d (шаг %d)\nTIE: %d–%d (шаг %d)" % 
-		[min_bet, max_bet, step, tie_min, tie_max, tie_step]
-	)
 
 func _on_winner_selected(chosen: String):
 	if not GameStateManager.is_action_valid(GameStateManager.Action.SELECT_WINNER):
@@ -985,7 +963,6 @@ func _setup_fixed_ui():
 		"HelpButton",
 		"StatsLabel",
 		"SettingsButton",
-		"LimitsButton",
 		"CardsButton",
 		"TieButton"
 	]

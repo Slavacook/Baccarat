@@ -1,9 +1,8 @@
-[gd_scene load_steps=17 format=3 uid="uid://bs3k3o8x8kiw1"]
+[gd_scene load_steps=16 format=3 uid="uid://bs3k3o8x8kiw1"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_iwhjp"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="2_vsqai"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="3_ipdf3"]
-[ext_resource type="PackedScene" uid="uid://c0oivkmtr8gao" path="res://scenes/LimitsPopup.tscn" id="5_3c4in"]
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="6_sh7wo"]
 [ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="7_pygfp"]
 [ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="8_0em12"]
@@ -45,17 +44,6 @@ offset_right = 1920.0
 offset_bottom = 1080.0
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("3_ipdf3")
-
-[node name="LimitsButton" type="Button" parent="."]
-visible = false
-offset_left = 1018.0
-offset_top = 191.0
-offset_right = 1101.0
-offset_bottom = 222.0
-scale = Vector2(1.5, 1.5)
-text = "ЛИМИТЫ"
-
-[node name="LimitsPopup" parent="." instance=ExtResource("5_3c4in")]
 
 [node name="PlayerZone" type="Node2D" parent="."]
 
@@ -316,6 +304,10 @@ theme_override_constants/separation = 10
 layout_mode = 2
 text = "БАНКИР"
 
+[node name="Spacer" type="Control" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="StakeLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
 text = "Ставка: 200"
@@ -335,18 +327,14 @@ text = "0"
 horizontal_alignment = 1
 vertical_alignment = 1
 
-[node name="Spacer" type="Control" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-
 [node name="PayoutSurvivalInfo" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox"]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 0
 script = ExtResource("17_gmy0e")
 
 [node name="LivesContainer" type="HBoxContainer" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
 layout_mode = 2
-theme_override_constants/separation = 1
+theme_override_constants/separation = 0
 
 [node name="ScoreLabel" type="Label" parent="PayoutOverlay/ColorRect/MarginContainer/VBoxContainer/HeaderHBox/PayoutSurvivalInfo"]
 layout_mode = 2
