@@ -75,6 +75,10 @@ const DATA = {
 		"ERR_WRONG_WINNER": "Ошибка! Неправильный выбор. Выиграл %s",
 		"VICTORY_TOAST": "Выигрывает %s: %d vs %d",
 		"PAYOUT_EMPTY_WARNING": "Ничего не забыл?",
+		"ERR_HINT_NO_HEARTS": "Не хватает сердец",
+		"ERR_HINT_NO_SCORE": "Не хватает очков",
+		"HINT_USED_HEART": "-1 Сердце",
+		"HINT_USED_SCORE": "-%d очков",
 
 		# === НАСТРОЙКИ (SETTINGS SCENE) ===
 		"SETTINGS_TITLE": "НАСТРОЙКИ",
@@ -164,6 +168,10 @@ const DATA = {
 		"ERR_WRONG_WINNER": "Error! Wrong choice. Winner is %s",
 		"VICTORY_TOAST": "%s Wins: %d vs %d",
 		"PAYOUT_EMPTY_WARNING": "Didn't forget anything?",
+		"ERR_HINT_NO_HEARTS": "Not enough hearts",
+		"ERR_HINT_NO_SCORE": "Not enough score",
+		"HINT_USED_HEART": "-1 Heart",
+		"HINT_USED_SCORE": "-%d points",
 
 		# === SETTINGS (SETTINGS SCENE) ===
 		"SETTINGS_TITLE": "SETTINGS",

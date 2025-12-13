@@ -182,9 +182,20 @@ func _on_payout_pressed():
 
 # ← Обработка кнопки подсказки
 func _on_hint_pressed():
+	# Проверяем, можно ли использовать подсказку
+	var hint_check = _check_hint_availability()
+	if not hint_check.can_use:
+		# Показываем сообщение об ошибке внутри окна выплат
+		_show_hint_error_message(Localization.t(hint_check.error_key))
+		print("❌ Нельзя использовать подсказку: %s" % hint_check.error_key)
+		return
+
 	# Эмитим событие использования подсказки
 	# (GameController обработает штраф - очки/жизни)
 	EventBus.hint_used.emit()
+
+	# Показываем сообщение об использовании подсказки
+	_show_hint_success_message()
 
 	# Очищаем текущие стопки
 	stack_manager.clear_all()
@@ -434,6 +445,121 @@ func _format_amount(amount: float) -> String:
 	else:
 		return str(amount)
 
+# ← Показать сообщение об ошибке подсказки
+func _show_hint_error_message(message: String):
+	"""Показать сообщение об ошибке при попытке использовать подсказку"""
+	_show_feedback_message(message, Color(0.9, 0.2, 0.2), 2.0)
+
+# ← Показать сообщение об успешном использовании подсказки
+func _show_hint_success_message():
+	"""Показать сообщение об успешном использовании подсказки"""
+	var game_controller = get_parent()
+	if not game_controller:
+		return
+	
+	var is_survival = game_controller.is_survival_mode
+	var message: String
+	
+	if is_survival:
+		# Режим выживания: показываем "-1 Сердце"
+		message = Localization.t("HINT_USED_HEART")
+	else:
+		# Обычный режим: показываем "-1 очков" (цена подсказки = 1 очко)
+		var hint_cost = 1
+		message = Localization.t("HINT_USED_SCORE", [hint_cost])
+	
+	# Показываем сообщение зеленым цветом
+	_show_feedback_message(message, Color(0.2, 0.9, 0.2), 2.0)
+
+# ← Универсальная функция для показа красивого сообщения
+func _show_feedback_message(message: String, color: Color, duration: float = 2.0):
+	"""Показать красивое сообщение с анимацией
+	
+	Args:
+		message: Текст сообщения
+		color: Цвет текста
+		duration: Длительность показа в секундах
+	"""
+	if not feedback_container or not feedback_label:
+		# Fallback на overlay-уведомление
+		if OverlayNotificationManager:
+			if color == Color(0.9, 0.2, 0.2):  # Красный = ошибка
+				OverlayNotificationManager.show_error(message, duration)
+			else:  # Зелёный = успех
+				OverlayNotificationManager.show_success(message, duration)
+		return
+	
+	# Настраиваем стиль сообщения
+	feedback_label.text = message
+	feedback_label.add_theme_font_size_override("font_size", 42)  # Увеличиваем в 1.5 раза (28 * 1.5)
+	feedback_label.add_theme_color_override("font_color", color)
+	feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
+	feedback_label.add_theme_constant_override("outline_size", 6)
+	
+	# Настраиваем позицию контейнера
+	# Начальная позиция: ниже (будет двигаться вверх)
+	var start_y = -100
+	var end_y = -180  # Конечная позиция выше
+	
+	# Начальное состояние: резко появляется (сразу видимая) и в начальной позиции
+	feedback_container.modulate.a = 1.0  # Резко появляется, без fade in
+	feedback_container.position.y = start_y
+	
+	# Показываем контейнер
+	feedback_container.visible = true
+	
+	# Создаём плавную анимацию (вся анимация 1 секунда)
+	var tween = create_tween()
+	tween.set_parallel(true)
+	
+	# Движение вверх на протяжении всей анимации (1 сек)
+	tween.tween_property(feedback_container, "position:y", end_y, 1.0).from(start_y)
+	
+	# Fade out: начинается с 0.0 сек, длится до 0.9 сек (0.9 секунды)
+	tween.tween_property(feedback_container, "modulate:a", 0.0, 0.9).from(1.0)
+	
+	# Скрываем после анимации
+	tween.set_parallel(false)
+	tween.tween_callback(func():
+		if is_instance_valid(feedback_container):
+			feedback_container.visible = false
+			feedback_label.text = ""
+	)
+
+# ← Проверка доступности подсказки
+func _check_hint_availability() -> Dictionary:
+	"""Проверяет, можно ли использовать подсказку
+	
+	Возвращает словарь с полями:
+	- can_use: bool - можно ли использовать
+	- error_key: String - ключ сообщения об ошибке (если can_use = false)
+	
+	В режиме выживания: нужно минимум 2 жизни (1 для использования, 1 чтобы не было геймовера)
+	В обычном режиме: нужно минимум 1 очко
+	"""
+	var game_controller = get_parent()
+	if not game_controller:
+		return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
+	
+	var is_survival = game_controller.is_survival_mode
+	
+	if is_survival:
+		# Режим выживания: проверяем жизни
+		if game_controller.survival_ui:
+			var lives = game_controller.survival_ui.current_lives
+			# Нужно минимум 2 жизни (1 для использования, 1 чтобы не было геймовера)
+			if lives < 2:
+				return {"can_use": false, "error_key": "ERR_HINT_NO_HEARTS"}
+			return {"can_use": true, "error_key": ""}
+		return {"can_use": false, "error_key": "ERR_HINT_NO_HEARTS"}
+	else:
+		# Обычный режим: проверяем очки
+		var score = SaveManager.instance.score
+		# Нужно минимум 1 очко
+		if score < 1:
+			return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
+		return {"can_use": true, "error_key": ""}
+
 # ═══════════════════════════════════════════════════════════════════════════
 # АНИМАЦИИ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -503,7 +629,7 @@ func _on_payout_wrong_event(_collected: float, _expected: float):
 	"""
 	print("🔔 DEBUG: _on_payout_wrong_event вызван! collected=%.1f, expected=%.1f" % [_collected, _expected])
 
-	# Небольшая задержка чтобы SurvivalUI успел обновить жизни
+	# Небольшая задержка чтобы SurvivalUI/StatsManager успел обновить жизни/очки
 	await get_tree().create_timer(0.1).timeout
 	print("🔍 DEBUG: Прошло 0.1 сек, вызываем _update_score_display()")
 
@@ -520,7 +646,7 @@ func _on_hint_used_event():
 	"""
 	print("💡 DEBUG: _on_hint_used_event вызван!")
 
-	# Небольшая задержка чтобы SurvivalUI успел обновить жизни
+	# Небольшая задержка чтобы SurvivalUI/StatsManager успел обновить жизни/очки
 	await get_tree().create_timer(0.1).timeout
 	print("🔍 DEBUG: Прошло 0.1 сек, вызываем _update_score_display()")
 

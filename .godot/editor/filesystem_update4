@@ -3,3 +3,5 @@ res://scripts/GamePhaseManager.gd
 res://scripts/Localization.gd
 res://scripts/PayoutOverlay.gd
 res://scenes/HelpPopup.tscn
+res://scripts/StatsManager.gd
+res://scenes/PayoutScene.tscn

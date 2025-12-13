@@ -18,6 +18,7 @@ func _ready():
 	EventBus.action_error.connect(_on_action_error)
 	EventBus.payout_correct.connect(_on_payout_correct)
 	EventBus.payout_wrong.connect(_on_payout_wrong)
+	EventBus.hint_used.connect(_on_hint_used)
 
 	print("📊 StatsManager готов! Подписан на EventBus.")
 
@@ -82,4 +83,18 @@ func _on_payout_correct(_collected: float, _expected: float):
 func _on_payout_wrong(_collected: float, _expected: float):
 	SaveManager.instance.increment_error("payout_wrong")
 	# ← Очки снимаются в PayoutScene, здесь только счётчик
+	update_stats()
+
+func _on_hint_used():
+	"""Обработчик использования подсказки
+	
+	В режиме выживания: жизни отнимаются в SurvivalModeUI
+	В обычном режиме: отнимаем 1 очко здесь
+	"""
+	# ← Если обычный режим: -1 очко за подсказку
+	if not SaveManager.instance.load_survival_mode():
+		var game_over = SaveManager.instance.subtract_score(1)
+		if game_over:
+			print("🎮 GAME OVER! Очки упали ниже 0")
+	
 	update_stats()
