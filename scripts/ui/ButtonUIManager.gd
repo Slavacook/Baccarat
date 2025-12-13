@@ -27,8 +27,8 @@ var help_button: Button           # Кнопка помощи
 var lang_button: Button           # Кнопка смены языка (опционально)
 
 # Кнопки управления сбором/оплатой ставок
-var collect_button: Button        # Кнопка "Забрать" (toggle)
-var pay_button: Button            # Кнопка "Оплатить" (toggle)
+var collect_button: TextureButton  # Кнопка "Забрать" (toggle)
+var pay_button: TextureButton      # Кнопка "Оплатить" (toggle)
 
 # Текущее состояние action button
 var current_button_state: String = "start"
@@ -274,23 +274,14 @@ func setup_collect_pay_buttons(scene: Node) -> void:
 	Args:
 		scene: Корневой узел сцены Game.tscn
 	"""
-	print("🔧 setup_collect_pay_buttons() вызван")
-	print("   scene: %s" % (scene.name if scene else "null"))
-	
 	# Ищем кнопки в TopUI (CanvasLayer)
 	var top_ui = scene.get_node_or_null("TopUI")
 	if top_ui:
-		print("   → TopUI найден: %s" % top_ui)
 		collect_button = top_ui.get_node_or_null("CollectButton")
 		pay_button = top_ui.get_node_or_null("PayButton")
-		print("   → collect_button: %s" % collect_button)
-		print("   → pay_button: %s" % pay_button)
 	else:
-		print("   → TopUI НЕ найден, ищем через find_child")
 		collect_button = scene.find_child("CollectButton", true, false)
 		pay_button = scene.find_child("PayButton", true, false)
-		print("   → collect_button (find_child): %s" % collect_button)
-		print("   → pay_button (find_child): %s" % pay_button)
 	
 	# Настраиваем кнопки как toggle
 	if collect_button:
@@ -298,18 +289,18 @@ func setup_collect_pay_buttons(scene: Node) -> void:
 		collect_button.toggled.connect(_on_collect_button_toggled)
 		collect_button.button_pressed = false
 		collect_button.visible = false  # Скрываем до определения победителя
-		print("✅ ButtonUIManager: CollectButton найдена и настроена (скрыта)")
+		print("✅ ButtonUIManager: CollectButton настроена")
 	else:
-		print("⚠️  ButtonUIManager: CollectButton НЕ найдена в сцене!")
+		print("⚠️  ButtonUIManager: CollectButton НЕ найдена!")
 	
 	if pay_button:
 		pay_button.toggle_mode = true
 		pay_button.toggled.connect(_on_pay_button_toggled)
 		pay_button.button_pressed = false
 		pay_button.visible = false  # Скрываем до определения победителя
-		print("✅ ButtonUIManager: PayButton найдена и настроена (скрыта)")
+		print("✅ ButtonUIManager: PayButton настроена")
 	else:
-		print("⚠️  ButtonUIManager: PayButton НЕ найдена в сцене!")
+		print("⚠️  ButtonUIManager: PayButton НЕ найдена!")
 
 
 func _on_collect_button_toggled(pressed: bool) -> void:
@@ -389,19 +380,10 @@ func reset_collect_pay_buttons() -> void:
 
 func show_collect_pay_buttons() -> void:
 	"""Показать кнопки сбора/оплаты (после определения победителя)"""
-	print("👁️ show_collect_pay_buttons() вызван")
-	print("   collect_button: %s" % (collect_button != null))
-	print("   pay_button: %s" % (pay_button != null))
 	if collect_button:
 		collect_button.visible = true
-		print("   → CollectButton.visible = true")
-	else:
-		print("   ⚠️ collect_button is null!")
 	if pay_button:
 		pay_button.visible = true
-		print("   → PayButton.visible = true")
-	else:
-		print("   ⚠️ pay_button is null!")
 	print("👁️ Кнопки Collect/Pay показаны")
 
 
@@ -423,8 +405,8 @@ func get_collect_pay_state() -> Dictionary:
 
 
 func update_collect_pay_buttons_text() -> void:
-	"""Обновить текст кнопок collect/pay (при смене языка)"""
-	if collect_button:
-		collect_button.text = Localization.t("COLLECT_BUTTON")
-	if pay_button:
-		pay_button.text = Localization.t("PAY_BUTTON")
+	"""Обновить текст кнопок collect/pay (при смене языка)
+	
+	Примечание: TextureButton не имеет текста, метод оставлен для совместимости
+	"""
+	pass  # TextureButton использует текстуры вместо текста

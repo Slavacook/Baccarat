@@ -699,12 +699,8 @@ func _validate_winner_selection() -> void:
 	ui.enable_action_button()
 	
 	# Показываем кнопки Collect/Pay после определения победителя
-	print("🎯 Пытаемся показать кнопки Collect/Pay...")
-	print("   ui.button_ui: %s" % (ui.button_ui != null))
 	if ui.button_ui:
 		ui.button_ui.show_collect_pay_buttons()
-	else:
-		print("   ⚠️ ui.button_ui is null!")
 
 	# Показываем toast с результатом (кто выиграл и с какими картами)
 	var victory_msg = _format_victory_toast(actual_winner)

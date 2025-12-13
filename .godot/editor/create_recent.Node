@@ -1,6 +1,6 @@
+TextureButton
 TextureRect
 Control
-TextureButton
 Label
 Button
 HBoxContainer
@@ -12,4 +12,3 @@ OptionButton
 CheckBox
 MarginContainer
 PanelContainer
-CenterContainer
