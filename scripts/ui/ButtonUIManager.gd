@@ -274,23 +274,31 @@ func setup_collect_pay_buttons(scene: Node) -> void:
 	Args:
 		scene: Корневой узел сцены Game.tscn
 	"""
-	# Ищем кнопки в сцене
-	if scene.has_node("CollectButton"):
-		collect_button = scene.get_node("CollectButton")
-	else:
-		collect_button = scene.find_child("CollectButton", true, false)
+	print("🔧 setup_collect_pay_buttons() вызван")
+	print("   scene: %s" % (scene.name if scene else "null"))
 	
-	if scene.has_node("PayButton"):
-		pay_button = scene.get_node("PayButton")
+	# Ищем кнопки в TopUI (CanvasLayer)
+	var top_ui = scene.get_node_or_null("TopUI")
+	if top_ui:
+		print("   → TopUI найден: %s" % top_ui)
+		collect_button = top_ui.get_node_or_null("CollectButton")
+		pay_button = top_ui.get_node_or_null("PayButton")
+		print("   → collect_button: %s" % collect_button)
+		print("   → pay_button: %s" % pay_button)
 	else:
+		print("   → TopUI НЕ найден, ищем через find_child")
+		collect_button = scene.find_child("CollectButton", true, false)
 		pay_button = scene.find_child("PayButton", true, false)
+		print("   → collect_button (find_child): %s" % collect_button)
+		print("   → pay_button (find_child): %s" % pay_button)
 	
 	# Настраиваем кнопки как toggle
 	if collect_button:
 		collect_button.toggle_mode = true
 		collect_button.toggled.connect(_on_collect_button_toggled)
 		collect_button.button_pressed = false
-		print("✅ ButtonUIManager: CollectButton найдена и настроена")
+		collect_button.visible = false  # Скрываем до определения победителя
+		print("✅ ButtonUIManager: CollectButton найдена и настроена (скрыта)")
 	else:
 		print("⚠️  ButtonUIManager: CollectButton НЕ найдена в сцене!")
 	
@@ -298,7 +306,8 @@ func setup_collect_pay_buttons(scene: Node) -> void:
 		pay_button.toggle_mode = true
 		pay_button.toggled.connect(_on_pay_button_toggled)
 		pay_button.button_pressed = false
-		print("✅ ButtonUIManager: PayButton найдена и настроена")
+		pay_button.visible = false  # Скрываем до определения победителя
+		print("✅ ButtonUIManager: PayButton найдена и настроена (скрыта)")
 	else:
 		print("⚠️  ButtonUIManager: PayButton НЕ найдена в сцене!")
 
@@ -366,14 +375,43 @@ func set_pay_mode(enabled: bool) -> void:
 
 
 func reset_collect_pay_buttons() -> void:
-	"""Сбросить обе кнопки (деактивировать)"""
+	"""Сбросить обе кнопки (деактивировать и скрыть)"""
 	if collect_button:
 		collect_button.set_pressed_no_signal(false)
+		collect_button.visible = false
 	if pay_button:
 		pay_button.set_pressed_no_signal(false)
+		pay_button.visible = false
 	_collect_mode_active = false
 	_pay_mode_active = false
-	print("🔄 Кнопки Collect/Pay сброшены")
+	print("🔄 Кнопки Collect/Pay сброшены и скрыты")
+
+
+func show_collect_pay_buttons() -> void:
+	"""Показать кнопки сбора/оплаты (после определения победителя)"""
+	print("👁️ show_collect_pay_buttons() вызван")
+	print("   collect_button: %s" % (collect_button != null))
+	print("   pay_button: %s" % (pay_button != null))
+	if collect_button:
+		collect_button.visible = true
+		print("   → CollectButton.visible = true")
+	else:
+		print("   ⚠️ collect_button is null!")
+	if pay_button:
+		pay_button.visible = true
+		print("   → PayButton.visible = true")
+	else:
+		print("   ⚠️ pay_button is null!")
+	print("👁️ Кнопки Collect/Pay показаны")
+
+
+func hide_collect_pay_buttons() -> void:
+	"""Скрыть кнопки сбора/оплаты"""
+	if collect_button:
+		collect_button.visible = false
+	if pay_button:
+		pay_button.visible = false
+	print("🙈 Кнопки Collect/Pay скрыты")
 
 
 func get_collect_pay_state() -> Dictionary:

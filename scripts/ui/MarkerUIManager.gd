@@ -39,33 +39,10 @@ func _init(scene: Node):
 	banker_marker = scene.get_node("BankerMarker")
 	# tie_marker удалён - теперь используется кнопка TieButton
 
-	# ПРИМЕЧАНИЕ:
-	# Подключение сигналов НЕ делается здесь, так как маркеры
-	# управляются через WinnerSelectionManager (GameController)
-	# Для совместимости сохранён метод connect_winner_button()
+	# Маркеры управляются через WinnerSelectionManager (GameController)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ПОДКЛЮЧЕНИЕ КНОПОК (DEPRECATED)
-# ═══════════════════════════════════════════════════════════════════════════
-
-@warning_ignore("unused_parameter")
-func connect_winner_button(button: Control, winner: String):
-	"""Подключить обработчик клика к маркеру (DEPRECATED)
-
-	ПРИМЕЧАНИЕ:
-		Этот метод сохранён для обратной совместимости, но не используется
-		в текущей версии. Маркеры управляются через WinnerSelectionManager.
-
-	Args:
-		button: UI узел маркера (PlayerMarker / BankerMarker / TieMarker)
-		winner: Строка победителя ("Player" / "Banker" / "Tie")
-	"""
-	# В текущей архитектуре это не используется
-	# WinnerSelectionManager обрабатывает клики сам
-	pass
-
-# ═══════════════════════════════════════════════════════════════════════════
-# ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ (для будущего расширения)
+# ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func get_player_marker() -> Control:

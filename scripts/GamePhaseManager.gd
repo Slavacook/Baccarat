@@ -1,10 +1,16 @@
 # res://scripts/GamePhaseManager.gd
-
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕНЕДЖЕР ФАЗ ИГРЫ
+# Управляет логикой раздачи карт, валидацией действий и переходами состояний
+# ═══════════════════════════════════════════════════════════════════════════
 @tool
 class_name GamePhaseManager
 extends RefCounted
 
-# Зависимости (Dependency Injection)
+# ═══════════════════════════════════════════════════════════════════════════
+# ЗАВИСИМОСТИ (Dependency Injection)
+# ═══════════════════════════════════════════════════════════════════════════
+
 var deck: Deck
 var card_manager: CardTextureManager
 var ui: UIManager
@@ -12,15 +18,16 @@ var payout_queue_manager: PayoutQueueManager
 var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
 var pair_betting_manager: PairBettingManager
-var bet_collection_manager: BetCollectionPhaseManager = null  # Устанавливается из GameController
+var bet_collection_manager: BetCollectionPhaseManager = null
 
-# Состояние раунда
+# ═══════════════════════════════════════════════════════════════════════════
+# СОСТОЯНИЕ РАУНДА
+# ═══════════════════════════════════════════════════════════════════════════
+
 var player_hand: Array[Card] = []
 var banker_hand: Array[Card] = []
 var player_third_selected: bool = false
 var banker_third_selected: bool = false
-
-# Флаги для камеры и состояния
 var is_first_deal: bool = true
 var is_table_prepared: bool = false
 
@@ -64,15 +71,14 @@ func reset(update_state: bool = true):
 	# Скрываем кнопку Игалите при сбросе
 	ui.hide_tie_button()
 
-	# ← ВАЖНО: Инвалидируем кэш GameStateManager даже при update_state=false
-	# чтобы при следующей раздаче состояние определялось правильно
+	# Инвалидируем кэш GameStateManager (важно даже при update_state=false)
 	GameStateManager._cache_hash = -1
 	print("🔄 Кэш GameStateManager инвалидирован")
 
 	if update_state:
 		_update_game_state_manager()
 
-	# ← Очищаем PayoutQueueManager и фишки для нового раунда
+	# Очищаем PayoutQueueManager и фишки для нового раунда
 	payout_queue_manager = null
 	if chip_visual_manager:
 		chip_visual_manager.hide_all_chips()
@@ -81,13 +87,17 @@ func reset(update_state: bool = true):
 	# Очищаем TableStateManager (полное состояние стола)
 	TableStateManager.clear_state()
 	
-	# ← Сбрасываем BetCollectionPhaseManager и кнопки collect/pay
+	# Сбрасываем BetCollectionPhaseManager и кнопки collect/pay
 	if bet_collection_manager:
 		bet_collection_manager.reset()
 	if ui and ui.button_ui:
 		ui.button_ui.reset_collect_pay_buttons()
 	
 	print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры, TableStateManager и режимы collect/pay")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РАЗДАЧА КАРТ
+# ═══════════════════════════════════════════════════════════════════════════
 
 func deal_first_four():
 	print("🎮 deal_first_four() вызван")
@@ -133,7 +143,7 @@ func deal_first_four():
 	ui.show_tie_button()
 	ui.enable_tie_button()
 
-	# ← Проверяем пары МОЛЧА (без оповещений)
+	# Проверяем пары (молча, без оповещений)
 	if pair_betting_manager:
 		pair_betting_manager.check_pairs(
 			player_hand[0], player_hand[1],
@@ -185,8 +195,7 @@ func on_action_pressed():
 	# Проверяем флаг подготовки
 	print("  → is_table_prepared = %s" % is_table_prepared)
 
-	# ← ВАЖНО: Проверяем флаг подготовки ДО определения состояния
-	# (после reset(false) руки пустые, и состояние определится как WAITING)
+	# ВАЖНО: Проверяем флаг подготовки ДО определения состояния
 	if is_table_prepared:
 		print("==================================================")
 		print("  → ✅ ФЛАГ УСТАНОВЛЕН → вызываем deal_first_four()")
@@ -207,11 +216,20 @@ func on_action_pressed():
 		_validate_banker_after_player()
 		return
 	
-	# ← НОВОЕ: Обработка состояния финала (состояние №6)
+	# Обработка состояния финала (состояние №6)
 	if state == GameStateManager.GameState.CHOOSE_WINNER:
 		# Проверяем, пытается ли игрок заказать карты в финале
 		if player_third_selected or banker_third_selected:
-			EventBus.show_toast_error.emit(Localization.t("ERR_NATURAL_NO_DRAW"))
+			# Проверяем, действительно ли это натуральная победа (первые две карты дают 8 или 9)
+			var player_first_two = BaccaratRules.hand_value([player_hand[0], player_hand[1]])
+			var banker_first_two = BaccaratRules.hand_value([banker_hand[0], banker_hand[1]])
+			var is_natural = player_first_two >= 8 or banker_first_two >= 8
+			
+			if is_natural:
+				EventBus.show_toast_error.emit(Localization.t("ERR_NATURAL_NO_DRAW"))
+			else:
+				EventBus.show_toast_error.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
+			
 			EventBus.action_error.emit("final_card_error", "")
 			# Сбрасываем галочки
 			player_third_selected = false
@@ -301,7 +319,7 @@ func on_action_pressed():
 		EventBus.camera_zoom_requested.emit("out")
 		print("  → ✅ Камера отзумлена на общий план")
 
-		# ← Начисляем +1 очко за успешное завершение игры (в режиме без сердечек)
+		# Начисляем +1 очко за успешное завершение игры (в режиме без сердечек)
 		if not SaveManager.instance.load_survival_mode():
 			SaveManager.instance.add_score(1)
 			# Обновляем отображение статистики
@@ -311,7 +329,7 @@ func on_action_pressed():
 		
 		print("  → Вызываем reset(false) - сброс БЕЗ обновления состояния")
 		# Сброс раунда (карты, маркеры, TableStateManager)
-		reset(false)  # ← НЕ обновляем GameStateManager
+		reset(false)  # НЕ обновляем GameStateManager
 		print("  → ✅ Сброс выполнен, карты показаны рубашками")
 
 		# Восстанавливаем видимость активных фишек для следующей игры
@@ -396,6 +414,10 @@ func on_tie_button_pressed():
 	ui.set_action_button_state("complete")
 	# Активируем кнопку при переходе в стадию выплат
 	ui.enable_action_button()
+	
+	# Показываем кнопки Collect/Pay после определения победителя
+	if ui.button_ui:
+		ui.button_ui.show_collect_pay_buttons()
 
 	# Показываем toast
 	EventBus.show_toast_success.emit("Игалите")
@@ -620,37 +642,9 @@ func _restore_active_bet_chips() -> void:
 
 	print("💰 Показаны фишки всех активных ставок")
 
-
-func _show_active_bet_chips() -> void:
-	"""Показать фишки всех активных ставок при раздаче"""
-	if not chip_visual_manager:
-		return
-
-	# Основные ставки
-	if PayoutSettingsManager.player_payout_enabled:
-		chip_visual_manager.show_chip("Player")
-		chip_visual_manager.make_chip_clickable("Player", false)  # Пока некликабельны
-
-	if PayoutSettingsManager.banker_payout_enabled:
-		chip_visual_manager.show_chip("Banker")
-		chip_visual_manager.make_chip_clickable("Banker", false)
-
-	if PayoutSettingsManager.tie_payout_enabled:
-		chip_visual_manager.show_chip("Tie")
-		chip_visual_manager.make_chip_clickable("Tie", false)
-
-	# Ставки на пары
-	if pair_betting_manager:
-		if pair_betting_manager.pair_player_bet_enabled:
-			chip_visual_manager.show_chip("PairPlayer")
-			chip_visual_manager.make_chip_clickable("PairPlayer", false)
-
-		if pair_betting_manager.pair_banker_bet_enabled:
-			chip_visual_manager.show_chip("PairBanker")
-			chip_visual_manager.make_chip_clickable("PairBanker", false)
-
-	print("💰 Показаны фишки всех активных ставок")
-
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ СОСТОЯНИЕМ
+# ═══════════════════════════════════════════════════════════════════════════
 
 func _update_game_state_manager():
 	var cards_hidden = player_hand.size() == 0 or banker_hand.size() == 0
@@ -703,6 +697,14 @@ func _validate_winner_selection() -> void:
 	ui.set_action_button_state("complete")
 	# Активируем кнопку при переходе в стадию выплат
 	ui.enable_action_button()
+	
+	# Показываем кнопки Collect/Pay после определения победителя
+	print("🎯 Пытаемся показать кнопки Collect/Pay...")
+	print("   ui.button_ui: %s" % (ui.button_ui != null))
+	if ui.button_ui:
+		ui.button_ui.show_collect_pay_buttons()
+	else:
+		print("   ⚠️ ui.button_ui is null!")
 
 	# Показываем toast с результатом (кто выиграл и с какими картами)
 	var victory_msg = _format_victory_toast(actual_winner)

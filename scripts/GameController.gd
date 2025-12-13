@@ -1,60 +1,59 @@
 # res://scripts/GameController.gd
+# ═══════════════════════════════════════════════════════════════════════════
+# ГЛАВНЫЙ КОНТРОЛЛЕР ИГРЫ
+# Роль: Координатор всех подсистем игры (Facade/Mediator pattern)
+# Отвечает за:
+#   - Инициализацию и связывание всех менеджеров
+#   - Обработку пользовательского ввода
+#   - Координацию между подсистемами через EventBus
+# ═══════════════════════════════════════════════════════════════════════════
 extends Node2D
 
+# ═══════════════════════════════════════════════════════════════════════════
+# КОНФИГУРАЦИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
 @export var config: GameConfig
+const USE_OVERLAY_PAYOUT = true  # true = overlay, false = scene transition
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОСНОВНЫЕ МЕНЕДЖЕРЫ
+# ═══════════════════════════════════════════════════════════════════════════
 
 var deck: Deck
 var card_manager: CardTextureManager
 var ui_manager: UIManager
 var phase_manager: GamePhaseManager
 var limits_manager: LimitsManager
-var settings_scene: CanvasLayer  # Новая сцена настроек (заменила SettingsPopup)
-var settings_button: Button
-var survival_ui: Control
-var game_over_popup: CanvasLayer
-var survival_rounds_completed: int = 0
-var is_survival_mode: bool = false
-var is_table_prepared_for_new_game: bool = false  # Флаг подготовки к новой игре (после оплаты всех фишек)
+var camera_manager: CameraManager
 
-# Новые менеджеры для фишек и выплат
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕНЕДЖЕРЫ ФИШЕК И ВЫПЛАТ
+# ═══════════════════════════════════════════════════════════════════════════
+
 var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
 var payout_queue_manager: PayoutQueueManager
 var pair_betting_manager: PairBettingManager
-var bet_collection_manager: BetCollectionPhaseManager  # Менеджер фазы сбора/оплаты ставок
-
-# ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ ВЫПЛАТЫ (переключатель для тестирования)
-# ═══════════════════════════════════════════════════════════════════════════
-
-# false = scene transition (старый способ)
-# true = overlay (новый способ)
-const USE_OVERLAY_PAYOUT = true
-
-# PayoutOverlay - CanvasLayer для выплат (новый способ)
+var bet_collection_manager: BetCollectionPhaseManager
 var payout_overlay: CanvasLayer = null
 
+# ═══════════════════════════════════════════════════════════════════════════
+# UI КОМПОНЕНТЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+var settings_scene: CanvasLayer
+var settings_button: Button
+var survival_ui: Control
+var game_over_popup: CanvasLayer
 
 # ═══════════════════════════════════════════════════════════════════════════
-# КАМЕРА
+# СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-var camera: Camera2D
-# Общий план (1:1, показывает весь стол)
-const CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)
-# Зум на карты (1.3:1, фокус на зоне раздачи)
-const CAMERA_ZOOM_CARDS = Vector2(1.4, 1.4)
-# Зум на фишки (1.3:1, фокус на зоне ставок - выше на 200px)
-const CAMERA_ZOOM_CHIPS = Vector2(1.9, 1.9)
-# Позиция камеры для общего плана (центр окна 1154x650)
-const CAMERA_POS_GENERAL = Vector2(577, 325)
-# Позиция камеры для зума на карты (центр зоны Player/Banker)
-const CAMERA_POS_CARDS = Vector2(595, 400)
-# Позиция камеры для зума на фишки (на 200px выше общего плана)
-const CAMERA_POS_CHIPS = Vector2(750, 200)
-# Длительность плавного перехода камеры (секунды)
-const CAMERA_TRANSITION_DURATION = 0.5
-var is_first_deal: bool = true                     # Флаг первой раздачи (для зума)
+var survival_rounds_completed: int = 0
+var is_survival_mode: bool = false
+var is_table_prepared_for_new_game: bool = false
 
 # Добавляем FlipCard ссылки
 # Массивы для ссылок на flip-анимации и карты:
@@ -81,7 +80,7 @@ func _ready():
 	ui_manager.set_flip_cards(flip_cards)  # <-- И эта строка!
 	StatsManager.instance.set_label(ui_manager.stats_label)
 	limits_manager = LimitsManager.new(config)
-	survival_ui = get_node("TopUI/SurvivalModeUI")  # ← Обновили путь
+	survival_ui = get_node("TopUI/SurvivalModeUI")
 	survival_ui.game_over.connect(_on_survival_game_over)
 	game_over_popup = get_node("GameOverScene")
 
@@ -125,7 +124,6 @@ func _ready():
 	ui_manager.player_third_toggled.connect(phase_manager.on_player_third_toggled)
 	ui_manager.banker_third_toggled.connect(phase_manager.on_banker_third_toggled)
 	ui_manager.tie_button_pressed.connect(phase_manager.on_tie_button_pressed)
-	# ui_manager.winner_selected.connect(_on_winner_selected)  # ← ОТКЛЮЧЕНО: теперь через WinnerSelectionManager + кнопка "Карты"
 	ui_manager.help_button_pressed.connect(_on_help_button_pressed)
 	ui_manager.lang_button_pressed.connect(_on_lang_button_pressed)
 	
@@ -174,6 +172,11 @@ func _ready():
 			# Активируем кнопку при восстановлении (если есть неоплаченные ставки, она будет дезактивирована при попытке завершить)
 			ui_manager.enable_action_button()
 			print("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
+			
+			# Показываем кнопки Collect/Pay если мы в фазе выплат (победитель уже определён)
+			if TableStateManager.action_button_state == "complete":
+				ui_manager.button_ui.show_collect_pay_buttons()
+				print("♻️  Показаны кнопки Collect/Pay")
 	else:
 		# При обычной загрузке - показываем фишки на основе настроек PayoutSettingsManager
 		if chip_visual_manager:
@@ -197,14 +200,12 @@ func _ready():
 	print("🎮 GameStateManager инициализирован")
 
 	# ← Подписки на новые события EventBus (для Dependency Injection рефакторинга)
-	EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested)
-	# life_loss_requested УДАЛЁН - теперь SurvivalModeUI сам слушает action_error
+	# camera_zoom_requested и first_deal_completed теперь в CameraManager
 	EventBus.manual_payout_requested.connect(_on_manual_payout_requested)
-	EventBus.first_deal_completed.connect(_on_first_deal_completed)
 	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
 	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
 	EventBus.card_back_style_changed.connect(_on_card_back_style_changed)
-	print("✅ Подписки на EventBus события установлены (camera, payouts, flags, settings, card backs)")
+	print("✅ Подписки на EventBus события установлены (payouts, flags, settings, card backs)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -269,9 +270,12 @@ func _unhandled_input(event: InputEvent):
 		get_node("PlayerMarker").emit_signal("pressed")
 		get_viewport().set_input_as_handled()
 
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ КАРТАМИ
+# ═══════════════════════════════════════════════════════════════════════════
+
 func set_flip_cards(cards):
 	flip_cards = cards
-
 
 func show_all_backs(back_texture: Texture2D):
 	for card in flip_cards:
@@ -357,13 +361,13 @@ func _on_winner_selected(chosen: String):
 
 		# 2. Добавляем пару игрока - если обнаружена И ставка была
 		if pair_betting_manager.player_pair_detected and pair_betting_manager.pair_player_bet_enabled:
-			var stake = limits_manager.generate_pair_bet()  # ← Используем generate_pair_bet()
+			var stake = limits_manager.generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer")
 			GameDataManager.add_to_payout_queue("PairPlayer", stake, payout, player_score, banker_score)
 
 		# 3. Добавляем пару банкира - если обнаружена И ставка была
 		if pair_betting_manager.banker_pair_detected and pair_betting_manager.pair_banker_bet_enabled:
-			var stake = limits_manager.generate_pair_bet()  # ← Используем generate_pair_bet()
+			var stake = limits_manager.generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker")
 			GameDataManager.add_to_payout_queue("PairBanker", stake, payout, player_score, banker_score)
 
@@ -410,8 +414,8 @@ func _format_result() -> String:
 		return "Натуральная %d против %d" % [p0 if p0 >= 8 else b0, b0 if p0 >= 8 else p0]
 	return "%d против %d" % [BaccaratRules.hand_value(phase_manager.banker_hand), BaccaratRules.hand_value(phase_manager.player_hand)]
 
-# ← Форматирование краткого тоста победы (например, "Выигрывает Банкир: 7 vs 5")
 func _format_victory_toast(winner: String) -> String:
+	"""Форматирование краткого тоста победы (например, 'Выигрывает Банкир: 7 vs 5')"""
 	var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
 	var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
 
@@ -451,8 +455,9 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	# ← Настраиваем менеджер фазы сбора/оплаты с информацией о победителе
 	bet_collection_manager.setup(payout_queue_manager, actual_winner)
 	
-	# Сбрасываем кнопки collect/pay в исходное состояние
-	ui_manager.button_ui.reset_collect_pay_buttons()
+	# Показываем кнопки collect/pay (они уже должны быть показаны из GamePhaseManager,
+	# но на всякий случай показываем снова)
+	ui_manager.button_ui.show_collect_pay_buttons()
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ДОБАВЛЯЕМ ВСЕ СТАВКИ (выигравшие и проигравшие)
@@ -536,8 +541,8 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 		actual_winner,
 		selected_winner,
 		payout_queue_manager.get_all_bets(),
-		camera.position if camera else Vector2.ZERO,
-		camera.zoom if camera else Vector2.ONE,
+		camera_manager.camera.position if camera_manager and camera_manager.camera else Vector2.ZERO,
+		camera_manager.camera.zoom if camera_manager and camera_manager.camera else Vector2.ONE,
 		GameModeManager.get_mode_string(),
 		survival_rounds_completed,
 		surv_lives,
@@ -576,7 +581,8 @@ func _update_chip_visibility() -> void:
 			else:
 				# Все остальные → видимы и кликабельны
 				# (валидация клика происходит в BetCollectionPhaseManager)
-				chip_visual_manager.show_chip(bet_type)
+				# Используем make_chip_visible чтобы не менять текстуру
+				chip_visual_manager.make_chip_visible(bet_type)
 				chip_visual_manager.make_chip_clickable(bet_type, true)
 				
 				# Логирование для отладки
@@ -588,6 +594,10 @@ func _update_chip_visibility() -> void:
 				else:
 					status = "проигрышная"
 				print("💰 Фишка %s видна (%s)" % [bet_type, status])
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ UI СОБЫТИЙ
+# ═══════════════════════════════════════════════════════════════════════════
 
 func _on_help_button_pressed():
 	ui_manager.help_popup.popup_centered()
@@ -620,6 +630,10 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 	if is_correct:
 		phase_manager.reset()
 
+# ═══════════════════════════════════════════════════════════════════════════
+# GAME OVER И РЕСТАРТ
+# ═══════════════════════════════════════════════════════════════════════════
+
 func _on_survival_game_over(_rounds: int):
 	print("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
 
@@ -630,7 +644,7 @@ func _on_survival_game_over(_rounds: int):
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
-	is_first_deal = true  # Следующая раздача будет первой (с зумом)
+	camera_manager.set_is_first_deal(true)  # Следующая раздача будет первой (с зумом)
 
 	game_over_popup.show_game_over(survival_rounds_completed)
 
@@ -644,7 +658,7 @@ func _on_score_game_over():
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
-	is_first_deal = true  # Следующая раздача будет первой (с зумом)
+	camera_manager.set_is_first_deal(true)  # Следующая раздача будет первой (с зумом)
 
 	var final_score = SaveManager.instance.score
 	game_over_popup.show_game_over_score(final_score)
@@ -657,7 +671,7 @@ func _on_score_game_over():
 
 func _on_restart_game():
 	survival_rounds_completed = 0
-	is_first_deal = true  # После рестарта первая раздача с зумом
+	camera_manager.set_is_first_deal(true)  # После рестарта первая раздача с зумом
 	StatsManager.instance.reset()
 	if is_survival_mode:
 		survival_ui.reset()
@@ -668,6 +682,10 @@ func _on_restart_game():
 		winner_selection_manager.unlock_markers()
 
 	phase_manager.reset()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# НАСТРОЙКИ
+# ═══════════════════════════════════════════════════════════════════════════
 
 func _on_settings_button_pressed():
 	print("🔘 Кнопка настроек нажата!")
@@ -737,8 +755,6 @@ func _load_survival_mode_setting():
 	else:
 		survival_ui.deactivate()
 		ui_manager.stats_label.visible = true
-
-# ← Метод _on_hint_used() удалён - логика подсказки теперь в PayoutScene
 
 func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
@@ -889,10 +905,10 @@ func _check_payout_return():
 				print("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
 
 			# 7. Восстанавливаем камеру (для выбора следующей выплаты)
-			if camera:
-				camera.position = CAMERA_POS_CHIPS
-				camera.zoom = CAMERA_ZOOM_CHIPS
-				is_first_deal = false
+			if camera_manager and camera_manager.camera:
+				camera_manager.camera.position = CameraManager.POS_CHIPS
+				camera_manager.camera.zoom = CameraManager.ZOOM_CHIPS
+				camera_manager.set_is_first_deal(false)
 				print("📷 Камера восстановлена: зум на фишки")
 
 			# Очищаем контексты
@@ -911,10 +927,10 @@ func _check_payout_return():
 		survival_ui.is_active = GameDataManager.is_survival_active
 
 		# Восстанавливаем приближенное состояние камеры (без анимации)
-		if camera:
-			camera.position = CAMERA_POS_CHIPS
-			camera.zoom = CAMERA_ZOOM_CHIPS
-			is_first_deal = false  # Уже не первая раздача
+		if camera_manager and camera_manager.camera:
+			camera_manager.camera.position = CameraManager.POS_CHIPS
+			camera_manager.camera.zoom = CameraManager.ZOOM_CHIPS
+			camera_manager.set_is_first_deal(false)  # Уже не первая раздача
 			print("📷 Камера восстановлена: приближенный план")
 
 		# Обновляем визуальное отображение сердечек
@@ -985,16 +1001,9 @@ func _check_payout_return():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _setup_camera():
-	# Создаём камеру
-	camera = Camera2D.new()
-	camera.enabled = true
-	add_child(camera)
-
-	# Начинаем с общего плана
-	camera.position = CAMERA_POS_GENERAL
-	camera.zoom = CAMERA_ZOOM_GENERAL
-
-	print("📷 Камера создана: общий план (zoom %.1f)" % CAMERA_ZOOM_GENERAL.x)
+	"""Инициализация CameraManager"""
+	camera_manager = CameraManager.new()
+	camera_manager.setup(self)
 
 
 func _setup_fixed_ui():
@@ -1032,56 +1041,24 @@ func _setup_fixed_ui():
 
 
 func camera_zoom_in():
-	"""Плавный зум на область карт"""
-	if not camera:
-		return
-
-	var tween = create_tween()
-	tween.set_parallel(true)  # Позиция и зум меняются одновременно
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_IN_OUT)
-
-	tween.tween_property(camera, "position", CAMERA_POS_CARDS, CAMERA_TRANSITION_DURATION)
-	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CARDS, CAMERA_TRANSITION_DURATION)
-
-	print("📷 Зум на карты (zoom %.1f)" % CAMERA_ZOOM_CARDS.x)
-
+	"""Плавный зум на область карт (делегирование к CameraManager)"""
+	if camera_manager:
+		camera_manager.zoom_in()
 
 func camera_zoom_out():
-	"""Возврат к общему плану"""
-	if not camera:
-		return
-
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_IN_OUT)
-
-	tween.tween_property(camera, "position", CAMERA_POS_GENERAL, CAMERA_TRANSITION_DURATION)
-	tween.tween_property(camera, "zoom", CAMERA_ZOOM_GENERAL, CAMERA_TRANSITION_DURATION)
-
-	print("📷 Общий план (zoom %.1f)" % CAMERA_ZOOM_GENERAL.x)
-
+	"""Возврат к общему плану (делегирование к CameraManager)"""
+	if camera_manager:
+		camera_manager.zoom_out()
 
 func camera_zoom_chips():
-	"""Плавный зум на область фишек (выше на 200px от общего плана)"""
-	if not camera:
-		return
-
-	var tween = create_tween()
-	tween.set_parallel(true)
-	tween.set_trans(Tween.TRANS_CUBIC)
-	tween.set_ease(Tween.EASE_IN_OUT)
-
-	tween.tween_property(camera, "position", CAMERA_POS_CHIPS, CAMERA_TRANSITION_DURATION)
-	tween.tween_property(camera, "zoom", CAMERA_ZOOM_CHIPS, CAMERA_TRANSITION_DURATION)
-
-	print("📷 Зум на фишки (zoom %.1f)" % CAMERA_ZOOM_CHIPS.x)
-
+	"""Плавный зум на область фишек (делегирование к CameraManager)"""
+	if camera_manager:
+		camera_manager.zoom_chips()
 
 func camera_zoom_cards():
-	"""Плавный зум на область карт (алиас для camera_zoom_in)"""
-	camera_zoom_in()
+	"""Плавный зум на область карт (делегирование к CameraManager)"""
+	if camera_manager:
+		camera_manager.zoom_cards()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1117,9 +1094,7 @@ func _setup_winner_selection_manager():
 
 func _setup_pair_betting_manager():
 	"""Инициализация PairBettingManager"""
-	# PayoutQueueManager создается динамически в _prepare_payouts_manual()
 	pair_betting_manager = PairBettingManager.new()
-	# ← Сигнал pair_detected больше не используется (молчаливая проверка)
 	print("✅ PairBettingManager инициализирован")
 
 
@@ -1210,6 +1185,10 @@ func _on_card_back_style_changed(style: String):
 
 	print("🎴 Стиль рубашки карт изменён: %s" % style)
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТКА СТАВОК И ФИШЕК
+# ═══════════════════════════════════════════════════════════════════════════
+
 func _on_winner_toggled(winner: String, selected: bool):
 	if selected:
 		print("🎯 Выбран: %s" % winner)
@@ -1223,10 +1202,6 @@ func _on_winner_toggled(winner: String, selected: bool):
 		# Активируем кнопку Игалите если ни один маркер не выбран
 		if not winner_selection_manager.is_winner_selected():
 			ui_manager.enable_tie_button()
-
-# ═══════════════════════════════════════════════════════════════════════════
-# ОБРАБОТЧИКИ КНОПОК COLLECT/PAY
-# ═══════════════════════════════════════════════════════════════════════════
 
 func _on_collect_mode_toggled(enabled: bool):
 	"""Обработчик toggle кнопки 'Забрать'"""
@@ -1308,8 +1283,6 @@ func _on_chip_clicked(bet_type: String):
 			_open_payout_scene(bet_type)
 		return
 
-# ← Метод удалён - пары проверяются молча (проверка внимательности дилера)
-
 func _open_payout_scene(bet_type: String):
 	"""Открыть PayoutScene для конкретной ставки
 
@@ -1335,7 +1308,7 @@ func _open_payout_scene(bet_type: String):
 	# Устанавливаем контекст для PayoutScene через старый PayoutContextManager (для совместимости)
 	PayoutContextManager.set_context({
 		"bet_type": bet_type,
-		"stake": bet_data.stake,  # ← Используем данные из TableStateManager
+		"stake": bet_data.stake,
 		"expected_payout": bet_data.payout,
 		"return_to_game": true,
 		"manual_mode": true
@@ -1510,26 +1483,9 @@ func _restore_cards_ui():
 # ОБРАБОТЧИКИ СОБЫТИЙ EVENTBUS (для Dependency Injection рефакторинга Фазы 1)
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _on_camera_zoom_requested(zoom_type: String):
-	"""Обработка запроса зума камеры от GamePhaseManager через EventBus"""
-	match zoom_type:
-		"in":
-			camera_zoom_in()
-		"out":
-			camera_zoom_out()
-		"chips":
-			camera_zoom_chips()
-		_:
-			push_error("GameController: неизвестный тип зума '%s'" % zoom_type)
-
 func _on_manual_payout_requested(winner: String):
 	"""Обработка запроса подготовки выплат от GamePhaseManager через EventBus"""
 	_prepare_payouts_manual(winner)
-
-func _on_first_deal_completed():
-	"""Обработка завершения первой раздачи (флаг is_first_deal сброшен)"""
-	is_first_deal = false
-	print("🎮 Первая раздача завершена (флаг is_first_deal сброшен)")
 
 func _on_table_prepared():
 	"""Обработка подготовки стола к новой игре"""
