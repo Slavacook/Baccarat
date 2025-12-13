@@ -430,6 +430,10 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 
 	# Создаем новый payout_queue_manager
 	payout_queue_manager = PayoutQueueManager.new()
+	
+	# ВАЖНО: Обновляем ссылку в phase_manager
+	phase_manager.payout_queue_manager = payout_queue_manager
+	print("✅ Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ДОБАВЛЯЕМ ВСЕ СТАВКИ (выигравшие и проигравшие)

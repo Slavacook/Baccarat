@@ -234,18 +234,33 @@ func on_action_pressed():
 		# Нет неоплаченных выплат (либо все оплачены, либо нет выигравших, либо нет ставок вообще)
 		# → завершаем раунд
 		print("==================================================")
-		if not payout_queue_manager or not payout_queue_manager.has_any_payouts():
+		print("🔍 DEBUG: Проверка завершения раунда")
+		if not payout_queue_manager:
+			print("  ❌ payout_queue_manager == null")
 			print("✅ НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-			EventBus.show_toast_info.emit("Нет активных ставок. Начинаем новый раунд.")
+			EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
+		elif not payout_queue_manager.has_any_payouts():
+			# Нет ставок вообще → показываем "Нет активных ставок"
+			print("  📊 Ставок в очереди: 0")
+			print("✅ НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
+			EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
 		elif not payout_queue_manager.has_unpaid_winnings():
-			if payout_queue_manager.has_any_winning_bets():
+			# Все выплаты оплачены (или не было выигрышных)
+			var total_bets = payout_queue_manager.bets.size()
+			var has_winning = payout_queue_manager.has_any_winning_bets()
+			print("  📊 Всего ставок: %d, Есть выигрышные: %s" % [total_bets, has_winning])
+			# ВАЖНО: Проверяем сначала, были ли выигрышные ставки (даже если оплачены)
+			if has_winning:
+				# Были выигрышные ставки и все оплачены → показываем "Все ставки выплачены"
 				print("✅ ВСЕ СТАВКИ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
 				EventBus.show_toast_info.emit(Localization.t("ALL_BETS_PAID"))
 			else:
+				# Были ставки, но все проиграли (нет выигрышных) → показываем "Ставки не сыграли"
 				print("✅ НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
 				EventBus.show_toast_info.emit(Localization.t("NO_WINNING_BETS"))
 		else:
-			print("✅ ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
+			# Есть неоплаченные выплаты (не должно попадать сюда, но на всякий случай)
+			print("⚠️  ЕСТЬ НЕОПЛАЧЕННЫЕ ВЫПЛАТЫ → НЕ ЗАВЕРШАЕМ РАУНД")
 		print("==================================================")
 		# Продолжаем к коду завершения раунда ниже
 
