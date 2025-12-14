@@ -2,18 +2,17 @@
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
-[ext_resource type="Texture2D" uid="uid://b3uxr8a75iqi6" path="res://assets/ui/buttons/take_button_2.png" id="3_attvq"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
-[ext_resource type="Texture2D" uid="uid://cbxxxmg8tlwr5" path="res://assets/ui/buttons/take_button.png" id="4_bneo8"]
+[ext_resource type="Texture2D" uid="uid://b0ddti5pm57ub" path="res://assets/ui/buttons/take_button_4.png" id="4_attvq"]
 [ext_resource type="PackedScene" path="res://scenes/GameOverScene.tscn" id="4_gameover"]
 [ext_resource type="PackedScene" uid="uid://rdncw6ifk1c2" path="res://scenes/SurvivalModeUI.tscn" id="4_survival"]
+[ext_resource type="Texture2D" uid="uid://cg6uotphiawnt" path="res://assets/ui/buttons/pay_button_4.png" id="5_bneo8"]
 [ext_resource type="Texture2D" uid="uid://c85dmnv0xhlrt" path="res://assets/ui/player_marker.png" id="5_g4kob"]
-[ext_resource type="Texture2D" uid="uid://bin84epcqo1jy" path="res://assets/ui/buttons/pay_button_2.png" id="5_ocgqw"]
-[ext_resource type="Texture2D" uid="uid://pvkojceuc5po" path="res://assets/ui/buttons/pay_button.png" id="6_jbgew"]
 [ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="6_qy1jj"]
 [ext_resource type="Texture2D" uid="uid://ychwh6o6frhy" path="res://assets/ui/banker_marker.png" id="7_3xj3m"]
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="7_sv1m6"]
 [ext_resource type="Texture2D" uid="uid://b6oj16k73oxel" path="res://assets/ui/tables/table_green_2.png" id="8_a85ww"]
+[ext_resource type="Texture2D" uid="uid://cdadbsgspc1fn" path="res://assets/ui/tables/table_green_3.png" id="8_attvq"]
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="8_mcffj"]
 [ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_y5y3l"]
 [ext_resource type="Texture2D" uid="uid://bscx53pxl4v6p" path="res://assets/ui/correct.png" id="17_kyk2p"]
@@ -22,6 +21,7 @@
 [ext_resource type="Texture2D" uid="uid://bi8p5atnji7jw" path="res://assets/ui/error.png" id="18_sv1m6"]
 [ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="21_a8wo8"]
 [ext_resource type="Texture2D" uid="uid://bvepwtmlt4ecj" path="res://assets/ui/buttons/complete_button_broken.png" id="22_broken"]
+[ext_resource type="Script" uid="uid://ctrkmnbi413ic" path="res://scripts/ui/PayButton.gd" id="23_paybutton"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -46,57 +46,71 @@ layer = 128
 
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
-[node name="CollectButton" type="TextureButton" parent="TopUI"]
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = 427.0
-offset_top = -211.99997
-offset_right = 1086.0
-offset_bottom = 530.0
-grow_horizontal = 2
-grow_vertical = 2
-scale = Vector2(0.2, 0.2)
-toggle_mode = true
-texture_normal = ExtResource("3_attvq")
-texture_pressed = ExtResource("4_bneo8")
-texture_hover = ExtResource("4_bneo8")
-
 [node name="PayButton" type="TextureButton" parent="TopUI"]
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = 429.99994
-offset_top = -46.0
-offset_right = 1090.0
-offset_bottom = 683.0
+offset_left = 435.90002
+offset_top = -71.600006
+offset_right = 1095.9001
+offset_bottom = 657.4
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(0.2, 0.2)
 size_flags_horizontal = 4
-toggle_mode = true
-texture_normal = ExtResource("5_ocgqw")
-texture_pressed = ExtResource("6_jbgew")
-texture_hover = ExtResource("6_jbgew")
+script = ExtResource("23_paybutton")
+
+[node name="TakeContainer" type="Control" parent="TopUI/PayButton"]
+anchors_preset = 0
+offset_left = -3.0
+offset_top = 10.0
+offset_right = 37.0
+offset_bottom = 50.0
+
+[node name="TakeTextureRect" type="TextureRect" parent="TopUI/PayButton/TakeContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("4_attvq")
+
+[node name="PayContainer" type="Control" parent="TopUI/PayButton"]
+anchors_preset = 0
+offset_left = -1.0
+offset_top = 1.0
+offset_right = 44.0
+offset_bottom = 41.0
+
+[node name="PayTextureRect" type="TextureRect" parent="TopUI/PayButton/PayContainer"]
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+texture = ExtResource("5_bneo8")
 
 [node name="Background" type="TextureRect" parent="."]
+visible = false
 offset_right = 1920.0
 offset_bottom = 1080.0
 scale = Vector2(0.6, 0.6)
 texture = ExtResource("1_qbsmt")
 
 [node name="Background2" type="TextureRect" parent="."]
-visible = false
-offset_left = -1637.0001
-offset_top = -583.00006
-offset_right = 4763.0
-offset_bottom = 2105.0
-scale = Vector2(0.7, 0.7)
+offset_left = -1708.0
+offset_top = -620.0
+offset_right = 4692.0
+offset_bottom = 2068.0
+scale = Vector2(0.72, 0.72)
 texture = ExtResource("8_a85ww")
+
+[node name="Background3" type="TextureRect" parent="."]
+modulate = Color(1, 1, 1, 0.5882353)
+offset_left = -1708.0
+offset_top = -620.0
+offset_right = 4692.0
+offset_bottom = 2068.0
+scale = Vector2(0.72, 0.72)
+texture = ExtResource("8_attvq")
 
 [node name="PlayerZone" type="Node2D" parent="."]
 
@@ -281,38 +295,38 @@ icon = ExtResource("18_45i86")
 
 [node name="ChipPlayer" type="TextureButton" parent="."]
 visible = false
-offset_left = 872.0
-offset_top = 70.0
-offset_right = 912.0
-offset_bottom = 110.0
+offset_left = 995.0
+offset_top = -25.0
+offset_right = 1035.0
+offset_bottom = 15.0
 
 [node name="ChipBanker" type="TextureButton" parent="."]
 visible = false
-offset_left = 864.0
-offset_top = 129.0
-offset_right = 904.0
-offset_bottom = 169.0
+offset_left = 954.0
+offset_top = 47.0
+offset_right = 994.0
+offset_bottom = 87.0
 
 [node name="ChipTie" type="TextureButton" parent="."]
 visible = false
-offset_left = 855.0
-offset_top = 193.0
-offset_right = 895.0
-offset_bottom = 233.0
+offset_left = 897.0
+offset_top = 129.0
+offset_right = 937.0
+offset_bottom = 169.0
 
 [node name="ChipPairPlayer" type="TextureButton" parent="."]
 visible = false
-offset_left = 799.0
-offset_top = 261.0
-offset_right = 839.0
-offset_bottom = 301.0
+offset_left = 817.0
+offset_top = 208.0
+offset_right = 857.0
+offset_bottom = 248.0
 
 [node name="ChipPairBanker" type="TextureButton" parent="."]
 visible = false
-offset_left = 643.0
-offset_top = 261.0
-offset_right = 683.0
-offset_bottom = 301.0
+offset_left = 677.0
+offset_top = 207.0
+offset_right = 717.0
+offset_bottom = 247.0
 
 [node name="TieButton" type="Button" parent="."]
 offset_left = 494.0

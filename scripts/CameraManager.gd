@@ -14,14 +14,14 @@ const ZOOM_GENERAL = Vector2(1.0, 1.0)
 # Зум на карты (1.4:1, фокус на зоне раздачи)
 const ZOOM_CARDS = Vector2(1.4, 1.4)
 # Зум на фишки (1.9:1, фокус на зоне ставок)
-const ZOOM_CHIPS = Vector2(1.9, 1.9)
+const ZOOM_CHIPS = Vector2(1.8, 1.8)
 
 # Позиция камеры для общего плана (центр окна 1154x650)
 const POS_GENERAL = Vector2(577, 325)
 # Позиция камеры для зума на карты (центр зоны Player/Banker)
 const POS_CARDS = Vector2(595, 400)
 # Позиция камеры для зума на фишки (на 200px выше общего плана)
-const POS_CHIPS = Vector2(750, 200)
+const POS_CHIPS = Vector2(850, 115)
 
 # Длительность плавного перехода камеры (секунды)
 const TRANSITION_DURATION = 0.5

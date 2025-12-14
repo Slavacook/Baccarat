@@ -273,6 +273,11 @@ func setup_collect_pay_buttons(scene: Node) -> void:
 	
 	Args:
 		scene: Корневой узел сцены Game.tscn
+	
+	Новая логика:
+		- Кнопки работают как переключатели (не toggle)
+		- При определении победителя показывается только CollectButton
+		- Нажатие на кнопку переключает на другую кнопку и режим
 	"""
 	# Ищем кнопки в TopUI (CanvasLayer)
 	var top_ui = scene.get_node_or_null("TopUI")
@@ -283,56 +288,97 @@ func setup_collect_pay_buttons(scene: Node) -> void:
 		collect_button = scene.find_child("CollectButton", true, false)
 		pay_button = scene.find_child("PayButton", true, false)
 	
-	# Настраиваем кнопки как toggle
+	# Настраиваем кнопки как обычные (не toggle)
 	if collect_button:
-		collect_button.toggle_mode = true
-		collect_button.toggled.connect(_on_collect_button_toggled)
-		collect_button.button_pressed = false
+		collect_button.toggle_mode = false
+		collect_button.pressed.connect(_on_collect_button_pressed)
 		collect_button.visible = false  # Скрываем до определения победителя
-		print("✅ ButtonUIManager: CollectButton настроена")
+		print("✅ ButtonUIManager: CollectButton настроена (режим переключения)")
 	else:
 		print("⚠️  ButtonUIManager: CollectButton НЕ найдена!")
 	
 	if pay_button:
-		pay_button.toggle_mode = true
-		pay_button.toggled.connect(_on_pay_button_toggled)
-		pay_button.button_pressed = false
-		pay_button.visible = false  # Скрываем до определения победителя
-		print("✅ ButtonUIManager: PayButton настроена")
+		# Проверяем, есть ли у PayButton свой скрипт (PayButton.gd)
+		if pay_button.has_method("set_state_take") and pay_button.has_method("set_state_pay"):
+			# PayButton имеет свой скрипт - подключаемся к его сигналу state_changed
+			# НЕ подключаем pressed, так как PayButton сам управляет переключением
+			if pay_button.has_signal("state_changed"):
+				pay_button.state_changed.connect(_on_pay_button_state_changed)
+			pay_button.visible = false  # Скрываем до определения победителя
+			print("✅ ButtonUIManager: PayButton настроена (с кастомным скриптом, слушаем state_changed)")
+		else:
+			# Старая логика для кнопки без скрипта
+			pay_button.toggle_mode = false
+			pay_button.pressed.connect(_on_pay_button_pressed)
+			pay_button.visible = false  # Скрываем до определения победителя
+			print("✅ ButtonUIManager: PayButton настроена (режим переключения)")
 	else:
 		print("⚠️  ButtonUIManager: PayButton НЕ найдена!")
 
 
-func _on_collect_button_toggled(pressed: bool) -> void:
-	"""Обработчик toggle кнопки 'Забрать'"""
-	if pressed:
-		# При включении отключаем другую кнопку
-		_collect_mode_active = true
-		if pay_button and pay_button.button_pressed:
-			pay_button.set_pressed_no_signal(false)
-			_pay_mode_active = false
-		print("🔄 Режим COLLECT включен")
-	else:
-		_collect_mode_active = false
-		print("🔄 Режим COLLECT выключен")
+func _on_collect_button_pressed() -> void:
+	"""Обработчик нажатия кнопки 'Забрать'
 	
-	collect_button_toggled.emit(pressed)
+	Переключает на режим 'Оплатить':
+	- Скрывает кнопку 'Забрать'
+	- Показывает кнопку 'Оплатить'
+	- Активирует режим PAY
+	"""
+	# Скрываем CollectButton, показываем PayButton
+	if collect_button:
+		collect_button.visible = false
+	if pay_button:
+		pay_button.visible = true
+	
+	# Переключаем режимы
+	_collect_mode_active = false
+	_pay_mode_active = true
+	
+	print("🔄 Переключение: COLLECT → PAY")
+	
+	# Эмитим сигналы для GameController
+	collect_button_toggled.emit(false)
+	pay_button_toggled.emit(true)
 
 
-func _on_pay_button_toggled(pressed: bool) -> void:
-	"""Обработчик toggle кнопки 'Оплатить'"""
-	if pressed:
-		# При включении отключаем другую кнопку
-		_pay_mode_active = true
-		if collect_button and collect_button.button_pressed:
-			collect_button.set_pressed_no_signal(false)
-			_collect_mode_active = false
-		print("🔄 Режим PAY включен")
-	else:
-		_pay_mode_active = false
-		print("🔄 Режим PAY выключен")
+func _on_pay_button_state_changed(is_pay_mode: bool) -> void:
+	"""Обработчик изменения состояния PayButton (сигнал от PayButton.gd)
 	
-	pay_button_toggled.emit(pressed)
+	Args:
+		is_pay_mode: true = режим PAY (Оплатить), false = режим COLLECT (Забрать)
+	"""
+	# Обновляем внутренние флаги
+	_pay_mode_active = is_pay_mode
+	_collect_mode_active = not is_pay_mode
+	
+	var mode_name = "PAY" if is_pay_mode else "COLLECT"
+	print("🔄 PayButton изменил состояние: режим %s" % mode_name)
+	
+	# Эмитим сигналы для GameController
+	pay_button_toggled.emit(is_pay_mode)
+	collect_button_toggled.emit(not is_pay_mode)
+
+
+func _on_pay_button_pressed() -> void:
+	"""Обработчик нажатия кнопки 'Оплатить' (старая логика для кнопки без скрипта)
+	
+	Используется только если PayButton не имеет кастомного скрипта.
+	"""
+	# Старая логика: скрываем PayButton, показываем CollectButton
+	if pay_button:
+		pay_button.visible = false
+	if collect_button:
+		collect_button.visible = true
+	
+	# Переключаем режимы
+	_pay_mode_active = false
+	_collect_mode_active = true
+	
+	print("🔄 Переключение: PAY → COLLECT (старая логика)")
+	
+	# Эмитим сигналы для GameController
+	pay_button_toggled.emit(false)
+	collect_button_toggled.emit(true)
 
 
 func get_collect_mode() -> bool:
@@ -349,29 +395,61 @@ func set_collect_mode(enabled: bool) -> void:
 	"""Установить состояние режима сбора
 	
 	При включении автоматически отключает режим оплаты.
+	Управляет видимостью кнопок в соответствии с новой логикой.
 	"""
-	if collect_button:
-		collect_button.button_pressed = enabled
-		# Обработчик toggled вызовется автоматически
+	if enabled:
+		# Проверяем, есть ли у PayButton кастомный скрипт
+		if pay_button and pay_button.has_method("set_state_take"):
+			# PayButton имеет свой скрипт - используем его
+			pay_button.visible = true
+			pay_button.set_state_take()
+		else:
+			# Старая логика: показываем CollectButton, скрываем PayButton
+			if collect_button:
+				collect_button.visible = true
+			if pay_button:
+				pay_button.visible = false
+		_collect_mode_active = true
+		_pay_mode_active = false
+		collect_button_toggled.emit(true)
+		pay_button_toggled.emit(false)
+	else:
+		_collect_mode_active = false
+		collect_button_toggled.emit(false)
 
 
 func set_pay_mode(enabled: bool) -> void:
 	"""Установить состояние режима оплаты
 	
 	При включении автоматически отключает режим сбора.
+	Управляет видимостью кнопок в соответствии с новой логикой.
 	"""
-	if pay_button:
-		pay_button.button_pressed = enabled
-		# Обработчик toggled вызовется автоматически
+	if enabled:
+		# Проверяем, есть ли у PayButton кастомный скрипт
+		if pay_button and pay_button.has_method("set_state_pay"):
+			# PayButton имеет свой скрипт - используем его
+			pay_button.visible = true
+			pay_button.set_state_pay()
+		else:
+			# Старая логика: показываем PayButton, скрываем CollectButton
+			if pay_button:
+				pay_button.visible = true
+			if collect_button:
+				collect_button.visible = false
+		_pay_mode_active = true
+		_collect_mode_active = false
+		pay_button_toggled.emit(true)
+		collect_button_toggled.emit(false)
+	else:
+		_pay_mode_active = false
+		pay_button_toggled.emit(false)
 
 
 func reset_collect_pay_buttons() -> void:
-	"""Сбросить обе кнопки (деактивировать и скрыть)"""
+	"""Сбросить обе кнопки (скрыть и деактивировать режимы)"""
 	if collect_button:
-		collect_button.set_pressed_no_signal(false)
 		collect_button.visible = false
 	if pay_button:
-		pay_button.set_pressed_no_signal(false)
 		pay_button.visible = false
 	_collect_mode_active = false
 	_pay_mode_active = false
@@ -379,12 +457,49 @@ func reset_collect_pay_buttons() -> void:
 
 
 func show_collect_pay_buttons() -> void:
-	"""Показать кнопки сбора/оплаты (после определения победителя)"""
-	if collect_button:
-		collect_button.visible = true
-	if pay_button:
+	"""Показать кнопку сбора и активировать режим COLLECT (после определения победителя)
+	
+	Новая логика:
+		- Если PayButton имеет свой скрипт - используем его
+		- Иначе показываем только CollectButton
+		- Режим COLLECT активирован по умолчанию
+	"""
+	# Проверяем, есть ли у PayButton кастомный скрипт
+	if pay_button and pay_button.has_method("set_state_take"):
+		# PayButton имеет свой скрипт - используем его
+		
+		# Убеждаемся, что кнопка инициализирована
+		if pay_button.has_method("ensure_initialized"):
+			pay_button.ensure_initialized()
+		
 		pay_button.visible = true
-	print("👁️ Кнопки Collect/Pay показаны")
+		pay_button.set_state_take()  # Устанавливаем состояние "Забрать"
+		
+		# Синхронизируем состояние (эмитим сигнал для обновления флагов)
+		if pay_button.has_method("sync_state"):
+			pay_button.sync_state()
+		else:
+			# Если метода нет, обновляем вручную
+			_collect_mode_active = true
+			_pay_mode_active = false
+			collect_button_toggled.emit(true)
+		
+		print("👁️ PayButton показана в состоянии 'Забрать', режим COLLECT активен")
+	else:
+		# Старая логика: показываем только CollectButton
+		if collect_button:
+			collect_button.visible = true
+		if pay_button:
+			pay_button.visible = false
+		
+		# Активируем режим COLLECT по умолчанию
+		_collect_mode_active = true
+		_pay_mode_active = false
+		
+		# Эмитим сигнал для GameController
+		collect_button_toggled.emit(true)
+		
+		print("👁️ Кнопка 'Забрать' показана, режим COLLECT активен")
 
 
 func hide_collect_pay_buttons() -> void:
