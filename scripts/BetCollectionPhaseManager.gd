@@ -21,6 +21,9 @@ enum CollectionMode {
 
 signal mode_changed(new_mode: CollectionMode)
 signal bet_collected(bet_type: String)
+# Новый сигнал с идентификатором конкретной фишки
+signal chip_collected(bet_type: String, position_index: int)
+signal chip_paid(bet_type: String, position_index: int)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -30,8 +33,11 @@ var current_mode: CollectionMode = CollectionMode.NONE
 var payout_queue_manager: PayoutQueueManager = null
 var actual_winner: String = ""  # Победитель раунда (для проверки Tie push)
 
-# Список собранных проигрышных ставок
+# Список собранных проигрышных ставок (для обратной совместимости)
 var collected_losing_bets: Array[String] = []
+
+# Словарь собранных ставок с position_index: {"Player_0": true, "Banker_2": true}
+var collected_bets_by_id: Dictionary = {}
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -47,6 +53,7 @@ func setup(queue_manager: PayoutQueueManager, winner: String) -> void:
 	payout_queue_manager = queue_manager
 	actual_winner = winner
 	collected_losing_bets.clear()
+	collected_bets_by_id.clear()
 	current_mode = CollectionMode.NONE
 	print("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % winner)
 
@@ -55,6 +62,7 @@ func reset() -> void:
 	payout_queue_manager = null
 	actual_winner = ""
 	collected_losing_bets.clear()
+	collected_bets_by_id.clear()
 	set_mode(CollectionMode.NONE)
 	print("🔄 BetCollectionPhaseManager: сброшен")
 
@@ -123,7 +131,7 @@ func is_tie_push_bet(bet_type: String) -> bool:
 # ВАЛИДАЦИЯ ДЕЙСТВИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func validate_chip_click(bet_type: String) -> Dictionary:
+func validate_chip_click(bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Валидация клика на фишку
 	
 	Returns:
@@ -141,9 +149,12 @@ func validate_chip_click(bet_type: String) -> Dictionary:
 	if current_mode == CollectionMode.NONE:
 		return _success_result("none")
 	
-	var bet = payout_queue_manager.get_bet_by_type(bet_type)
+	var bet = payout_queue_manager.get_bet_by_id(bet_type, position_index)
 	if not bet:
-		return _error_result("no_bet", "Ставка %s не найдена" % bet_type)
+		# Пробуем найти по типу (для обратной совместимости)
+		bet = payout_queue_manager.get_bet_by_type(bet_type)
+	if not bet:
+		return _error_result("no_bet", "Ставка %s[%d] не найдена" % [bet_type, position_index])
 	
 	# Проверка Tie push - применяется к обоим режимам
 	if is_tie_push_bet(bet_type):
@@ -151,15 +162,15 @@ func validate_chip_click(bet_type: String) -> Dictionary:
 	
 	# Валидация в режиме COLLECT
 	if current_mode == CollectionMode.COLLECT:
-		return _validate_collect(bet, bet_type)
+		return _validate_collect(bet, bet_type, position_index)
 	
 	# Валидация в режиме PAY
 	if current_mode == CollectionMode.PAY:
-		return _validate_pay(bet, bet_type)
+		return _validate_pay(bet, bet_type, position_index)
 	
 	return _error_result("unknown_mode", "Неизвестный режим")
 
-func _validate_collect(bet: PayoutQueueManager.BetData, bet_type: String) -> Dictionary:
+func _validate_collect(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Валидация попытки собрать ставку"""
 	
 	# Нельзя собирать выигрышные
@@ -167,12 +178,13 @@ func _validate_collect(bet: PayoutQueueManager.BetData, bet_type: String) -> Dic
 		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
 	
 	# Проверяем, не собрана ли уже
-	if bet_type in collected_losing_bets:
+	var bet_id = "%s_%d" % [bet_type, position_index]
+	if collected_bets_by_id.has(bet_id) or bet.is_collected:
 		return _error_result("already_collected", "Ставка уже собрана")
 	
 	return _success_result("collect")
 
-func _validate_pay(bet: PayoutQueueManager.BetData, _bet_type: String) -> Dictionary:
+func _validate_pay(bet: PayoutQueueManager.BetData, _bet_type: String, _position_index: int = 0) -> Dictionary:
 	"""Валидация попытки оплатить ставку"""
 	
 	# Нельзя оплачивать проигрышные
@@ -209,23 +221,57 @@ func _error_result(error_type: String, message: String) -> Dictionary:
 # ВЫПОЛНЕНИЕ ДЕЙСТВИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func collect_bet(bet_type: String) -> bool:
+func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	"""Собрать проигрышную ставку
 	
 	Returns:
 		true если ставка успешно собрана
 	"""
-	if bet_type in collected_losing_bets:
+	var bet_id = "%s_%d" % [bet_type, position_index]
+	
+	if collected_bets_by_id.has(bet_id):
 		return false
 	
-	collected_losing_bets.append(bet_type)
+	collected_bets_by_id[bet_id] = true
+	
+	# Для обратной совместимости - добавляем тип, если его ещё нет
+	if bet_type not in collected_losing_bets:
+		collected_losing_bets.append(bet_type)
+	
+	# Отмечаем в PayoutQueueManager
+	if payout_queue_manager:
+		payout_queue_manager.mark_as_collected(bet_type, position_index)
+	
 	bet_collected.emit(bet_type)
-	print("💰 BetCollectionPhaseManager: ставка %s собрана" % bet_type)
+	chip_collected.emit(bet_type, position_index)
+	print("💰 BetCollectionPhaseManager: ставка %s[%d] собрана" % [bet_type, position_index])
 	return true
 
-func is_bet_collected(bet_type: String) -> bool:
+
+func pay_bet(bet_type: String, position_index: int = 0) -> bool:
+	"""Оплатить выигрышную ставку
+	
+	Returns:
+		true если ставка успешно оплачена
+	"""
+	if not payout_queue_manager:
+		return false
+	
+	if payout_queue_manager.mark_as_paid(bet_type, position_index):
+		chip_paid.emit(bet_type, position_index)
+		print("💰 BetCollectionPhaseManager: ставка %s[%d] оплачена" % [bet_type, position_index])
+		return true
+	return false
+
+
+func is_bet_collected(bet_type: String, position_index: int = -1) -> bool:
 	"""Проверить, собрана ли ставка"""
-	return bet_type in collected_losing_bets
+	if position_index < 0:
+		# Для обратной совместимости
+		return bet_type in collected_losing_bets
+	
+	var bet_id = "%s_%d" % [bet_type, position_index]
+	return collected_bets_by_id.has(bet_id)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРОВЕРКА СОСТОЯНИЯ СТАВОК
@@ -237,10 +283,13 @@ func has_uncollected_losing_bets() -> bool:
 		return false
 	
 	for bet in payout_queue_manager.bets:
-		if not bet.won and bet.bet_type not in collected_losing_bets:
-			# Исключаем Tie push ставки
-			if not is_tie_push_bet(bet.bet_type):
-				return true
+		if not bet.won and not bet.is_collected:
+			# Проверяем по ID
+			var bet_id = "%s_%d" % [bet.bet_type, bet.position_index]
+			if not collected_bets_by_id.has(bet_id):
+				# Исключаем Tie push ставки
+				if not is_tie_push_bet(bet.bet_type):
+					return true
 	return false
 
 func get_uncollected_losing_count() -> int:
@@ -250,9 +299,11 @@ func get_uncollected_losing_count() -> int:
 	
 	var count = 0
 	for bet in payout_queue_manager.bets:
-		if not bet.won and bet.bet_type not in collected_losing_bets:
-			if not is_tie_push_bet(bet.bet_type):
-				count += 1
+		if not bet.won and not bet.is_collected:
+			var bet_id = "%s_%d" % [bet.bet_type, bet.position_index]
+			if not collected_bets_by_id.has(bet_id):
+				if not is_tie_push_bet(bet.bet_type):
+					count += 1
 	return count
 
 func has_unpaid_winnings() -> bool:
@@ -322,9 +373,9 @@ func print_status() -> void:
 	print("═══ BetCollectionPhaseManager Status ═══")
 	print("Режим: %s" % get_mode_name(current_mode))
 	print("Победитель: %s" % actual_winner)
-	print("Собрано проигрышных: %d" % collected_losing_bets.size())
-	for bet_type in collected_losing_bets:
-		print("  - %s" % bet_type)
+	print("Собрано проигрышных (по ID): %d" % collected_bets_by_id.size())
+	for bet_id in collected_bets_by_id.keys():
+		print("  - %s" % bet_id)
 	print("Не собрано проигрышных: %d" % get_uncollected_losing_count())
 	print("Не оплачено выигрышных: %d" % get_unpaid_winnings_count())
 	var completion = can_complete_round()

@@ -53,15 +53,16 @@ layer = 128
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
 [node name="PayButton" type="TextureButton" parent="TopUI"]
+visible = false
 anchors_preset = 8
 anchor_left = 0.5
 anchor_top = 0.5
 anchor_right = 0.5
 anchor_bottom = 0.5
-offset_left = 435.90002
-offset_top = -71.600006
-offset_right = 1095.9001
-offset_bottom = 657.4
+offset_left = 424.0
+offset_top = -324.0
+offset_right = 1084.0001
+offset_bottom = 405.0
 grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(0.2, 0.2)
@@ -98,10 +99,9 @@ texture = ExtResource("5_bneo8")
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
-offset_left = -21.999992
-offset_top = -234.0
-offset_right = 931.0
-offset_bottom = 790.0
+offset_top = 76.0
+offset_right = 649.0
+offset_bottom = 766.0
 grow_vertical = 2
 scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("28_left")
@@ -112,9 +112,9 @@ anchor_left = 1.0
 anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
-offset_left = -153.0
-offset_top = -234.0
-offset_right = 661.0
+offset_left = -128.0
+offset_top = 75.0
+offset_right = 528.0
 offset_bottom = 790.0
 grow_horizontal = 0
 grow_vertical = 2
@@ -295,9 +295,9 @@ texture_hover = ExtResource("8_mcffj")
 
 [node name="HelpButton" type="Button" parent="."]
 custom_minimum_size = Vector2(40, 40)
-offset_left = 969.0
+offset_left = 80.0
 offset_top = 6.0
-offset_right = 1018.0
+offset_right = 129.0
 offset_bottom = 48.0
 theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 0.35686275)
 theme_override_font_sizes/font_size = 24
@@ -316,9 +316,8 @@ scale = Vector2(1.5, 1.5)
 text = "Правильно: 0 | Ошибок: 0"
 
 [node name="SettingsButton" type="Button" parent="."]
-offset_left = 1094.0
-offset_top = 2.0000002
-offset_right = 1628.0
+offset_top = 2.0
+offset_right = 534.0
 offset_bottom = 522.0
 scale = Vector2(0.1, 0.1)
 size_flags_horizontal = 4
@@ -590,12 +589,6 @@ grow_horizontal = 2
 grow_vertical = 2
 scale = Vector2(0.15, 0.15)
 texture = ExtResource("18_sv1m6")
-
-[node name="Button" type="Button" parent="."]
-offset_left = 886.0
-offset_top = -10.0
-offset_right = 942.0
-offset_bottom = 32.0
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]

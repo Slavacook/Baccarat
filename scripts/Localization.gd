@@ -113,7 +113,8 @@ const DATA = {
 		"SETTINGS_POSITION_MODE": "Позиции ставок",
 		"POSITION_MODE_DEFAULT": "Обычный",
 		"POSITION_MODE_RANDOM": "Случайные",
-		"POSITION_MODE_MAX": "Максимум"
+		"POSITION_MODE_MAX": "Максимум",
+		"POSITION_MODE_REALISTIC": "Реалистичный"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural victory! Choose winner",
@@ -225,7 +226,8 @@ const DATA = {
 		"SETTINGS_POSITION_MODE": "Bet positions",
 		"POSITION_MODE_DEFAULT": "Default",
 		"POSITION_MODE_RANDOM": "Random",
-		"POSITION_MODE_MAX": "Maximum"
+		"POSITION_MODE_MAX": "Maximum",
+		"POSITION_MODE_REALISTIC": "Realistic"
 	}
 }
 

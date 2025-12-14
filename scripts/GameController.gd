@@ -180,21 +180,43 @@ func _ready():
 	else:
 		# При обычной загрузке - показываем фишки на основе настроек PayoutSettingsManager
 		if chip_visual_manager:
-			if PayoutSettingsManager.player_payout_enabled:
-				chip_visual_manager.show_chip("Player")
-			if PayoutSettingsManager.banker_payout_enabled:
-				chip_visual_manager.show_chip("Banker")
-			if PayoutSettingsManager.tie_payout_enabled:
-				chip_visual_manager.show_chip("Tie")
-			if PayoutSettingsManager.player_pair_payout_enabled:
-				chip_visual_manager.show_chip("PairPlayer")
-				if pair_betting_manager:
-					pair_betting_manager.toggle_pair_player_bet(true)
-			if PayoutSettingsManager.banker_pair_payout_enabled:
-				chip_visual_manager.show_chip("PairBanker")
-				if pair_betting_manager:
-					pair_betting_manager.toggle_pair_banker_bet(true)
-			print("✅ Фишки синхронизированы с настройками")
+			var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+			
+			if is_realistic:
+				# В REALISTIC режиме при старте показываем фишки через show_chips_realistic
+				# Количество будет сгенерировано случайно
+				if PayoutSettingsManager.player_payout_enabled:
+					chip_visual_manager.show_chips_realistic("Player")
+				if PayoutSettingsManager.banker_payout_enabled:
+					chip_visual_manager.show_chips_realistic("Banker")
+				if PayoutSettingsManager.tie_payout_enabled:
+					chip_visual_manager.show_chips_realistic("Tie")
+				if PayoutSettingsManager.player_pair_payout_enabled:
+					chip_visual_manager.show_chips_realistic("PairPlayer")
+					if pair_betting_manager:
+						pair_betting_manager.toggle_pair_player_bet(true)
+				if PayoutSettingsManager.banker_pair_payout_enabled:
+					chip_visual_manager.show_chips_realistic("PairBanker")
+					if pair_betting_manager:
+						pair_betting_manager.toggle_pair_banker_bet(true)
+				print("✅ Фишки синхронизированы (REALISTIC режим)")
+			else:
+				# Стандартный режим (DEFAULT, RANDOM, MAX)
+				if PayoutSettingsManager.player_payout_enabled:
+					chip_visual_manager.show_chip("Player")
+				if PayoutSettingsManager.banker_payout_enabled:
+					chip_visual_manager.show_chip("Banker")
+				if PayoutSettingsManager.tie_payout_enabled:
+					chip_visual_manager.show_chip("Tie")
+				if PayoutSettingsManager.player_pair_payout_enabled:
+					chip_visual_manager.show_chip("PairPlayer")
+					if pair_betting_manager:
+						pair_betting_manager.toggle_pair_player_bet(true)
+				if PayoutSettingsManager.banker_pair_payout_enabled:
+					chip_visual_manager.show_chip("PairBanker")
+					if pair_betting_manager:
+						pair_betting_manager.toggle_pair_banker_bet(true)
+				print("✅ Фишки синхронизированы с настройками")
 
 	GameStateManager.state_changed.connect(_on_game_state_changed)
 	print("🎮 GameStateManager инициализирован")
@@ -445,6 +467,7 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	- Выигравшие ставки (won=true, is_paid=false)
 	- Проигравшие ставки (won=false)
 
+	В REALISTIC режиме создает множественные ставки со случайным количеством.
 	Делает фишки выигравших ставок кликабельными.
 	"""
 	var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
@@ -465,16 +488,32 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	ui_manager.button_ui.show_collect_pay_buttons()
 
 	# ═══════════════════════════════════════════════════════════════════
-	# ДОБАВЛЯЕМ ВСЕ СТАВКИ (выигравшие и проигравшие)
+	# ПРОВЕРКА РЕЖИМА REALISTIC
 	# ═══════════════════════════════════════════════════════════════════
+	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+	
+	if is_realistic:
+		_prepare_payouts_realistic(actual_winner, player_score, banker_score)
+	else:
+		_prepare_payouts_standard(actual_winner, player_score, banker_score)
 
+	# Выводим статус очереди
+	payout_queue_manager.print_status()
+	
+	# Завершаем подготовку - обновляем видимость и сохраняем состояние
+	_finalize_payouts_manual(actual_winner)
+
+
+func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_score: int) -> void:
+	"""Стандартная подготовка выплат (DEFAULT, RANDOM, MAX режимы)"""
+	
 	# 1. Основные ставки (Player/Banker/Tie)
 	# Player
 	if PayoutSettingsManager.player_payout_enabled:
 		var won = (actual_winner == "Player")
 		var stake = limits_manager.generate_bet()
 		var payout = stake * 1.0 if won else 0.0
-		payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score)
+		payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score, 0)
 
 	# Banker
 	if PayoutSettingsManager.banker_payout_enabled:
@@ -491,14 +530,14 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 			print("🏦 Banker выиграл: stake=%.1f, commission=%.2f, payout=%.1f" % [stake, commission, payout])
 		else:
 			print("🏦 Banker проиграл: stake=%.1f, payout=0" % stake)
-		payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score)
+		payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score, 0)
 
 	# Tie
 	if PayoutSettingsManager.tie_payout_enabled:
 		var won = (actual_winner == "Tie")
 		var stake = limits_manager.generate_tie_bet()
 		var payout = stake * 8.0 if won else 0.0
-		payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score)
+		payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score, 0)
 
 	# 2. Ставки на пары
 	if pair_betting_manager:
@@ -507,20 +546,119 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 			var won = pair_betting_manager.player_pair_detected
 			var stake = limits_manager.generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer") if won else 0.0
-			payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score)
+			payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score, 0)
 
 		# Pair Banker
 		if pair_betting_manager.pair_banker_bet_enabled:
 			var won = pair_betting_manager.banker_pair_detected
 			var stake = limits_manager.generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker") if won else 0.0
-			payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score)
+			payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score, 0)
 	else:
-		push_warning("⚠️  pair_betting_manager is null в _prepare_payouts_manual")
+		push_warning("⚠️  pair_betting_manager is null в _prepare_payouts_standard")
 
-	# Выводим статус очереди
-	payout_queue_manager.print_status()
 
+func _prepare_payouts_realistic(actual_winner: String, player_score: int, banker_score: int) -> void:
+	"""Подготовка выплат в REALISTIC режиме со случайным количеством ставок"""
+	
+	print("🎲 REALISTIC режим: генерируем случайные ставки...")
+	
+	# Очищаем все активные фишки перед созданием новых
+	if chip_visual_manager:
+		chip_visual_manager.clear_all_active_chips()
+	
+	# Генерируем ставки для каждого типа
+	var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
+	
+	for bet_type in bet_types:
+		# Проверяем, включена ли ставка
+		var is_enabled = false
+		match bet_type:
+			"Player":
+				is_enabled = PayoutSettingsManager.player_payout_enabled
+			"Banker":
+				is_enabled = PayoutSettingsManager.banker_payout_enabled
+			"Tie":
+				is_enabled = PayoutSettingsManager.tie_payout_enabled
+			"PairPlayer":
+				is_enabled = pair_betting_manager and pair_betting_manager.pair_player_bet_enabled
+			"PairBanker":
+				is_enabled = pair_betting_manager and pair_betting_manager.pair_banker_bet_enabled
+		
+		if not is_enabled:
+			continue
+		
+		# Определяем выиграла ли ставка этого типа
+		var won = false
+		match bet_type:
+			"Player":
+				won = (actual_winner == "Player")
+			"Banker":
+				won = (actual_winner == "Banker")
+			"Tie":
+				won = (actual_winner == "Tie")
+			"PairPlayer":
+				won = pair_betting_manager.player_pair_detected if pair_betting_manager else false
+			"PairBanker":
+				won = pair_betting_manager.banker_pair_detected if pair_betting_manager else false
+		
+		# Создаём фишки в REALISTIC режиме
+		var created_chips = chip_visual_manager.show_chips_realistic(bet_type)
+		
+		# Для каждой созданной фишки добавляем ставку в очередь
+		for chip_instance in created_chips:
+			var stake = _generate_stake_for_bet_type(bet_type)
+			var payout = _calculate_payout_for_bet_type(bet_type, stake, won)
+			
+			payout_queue_manager.add_bet(
+				bet_type, 
+				stake, 
+				payout, 
+				won, 
+				player_score, 
+				banker_score, 
+				chip_instance.position_index
+			)
+		
+		print("  %s: создано %d ставок (won=%s)" % [bet_type, created_chips.size(), won])
+
+
+func _generate_stake_for_bet_type(bet_type: String) -> float:
+	"""Генерация размера ставки для типа"""
+	match bet_type:
+		"Tie":
+			return limits_manager.generate_tie_bet()
+		"PairPlayer", "PairBanker":
+			return limits_manager.generate_pair_bet()
+		_:  # Player, Banker
+			return limits_manager.generate_bet()
+
+
+func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -> float:
+	"""Расчёт выплаты для типа ставки"""
+	if not won:
+		return 0.0
+	
+	match bet_type:
+		"Player":
+			return stake * 1.0
+		"Banker":
+			var commission = GameModeManager.get_banker_commission()
+			if GameModeManager.get_mode_string() == "classic":
+				var banker_value = BaccaratRules.hand_value(phase_manager.banker_hand)
+				if banker_value == 6:
+					commission = 0.5
+			return stake * commission
+		"Tie":
+			return stake * 8.0
+		"PairPlayer", "PairBanker":
+			return pair_betting_manager.calculate_pair_payout(stake, bet_type) if pair_betting_manager else 0.0
+		_:
+			return 0.0
+
+
+func _finalize_payouts_manual(actual_winner: String) -> void:
+	"""Завершение подготовки выплат - обновление видимости и сохранение состояния"""
 	# ═══════════════════════════════════════════════════════════════════
 	# УПРАВЛЕНИЕ ФИШКАМИ (показать выигравшие, скрыть проигравшие)
 	# ═══════════════════════════════════════════════════════════════════
@@ -567,38 +705,63 @@ func _update_chip_visibility() -> void:
 	- Собранные проигрышные ставки → скрыть
 	- Все остальные ставки (выигрышные, проигрышные, Tie push) → видимы и кликабельны
 	  (валидация клика в BetCollectionPhaseManager)
+	
+	В REALISTIC режиме работает с множественными ставками одного типа.
 	"""
 	if not payout_queue_manager or not chip_visual_manager:
 		return
 
-	var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
-
-	for bet_type in bet_types:
-		var bet = payout_queue_manager.get_bet_by_type(bet_type)
-
-		if bet:
-			# Проверяем, собрана ли проигрышная ставка
-			var is_collected = bet_collection_manager and bet_collection_manager.is_bet_collected(bet_type)
+	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+	
+	if is_realistic:
+		# В REALISTIC режиме работаем с каждой ставкой индивидуально
+		for bet in payout_queue_manager.get_all_bets():
+			var is_collected = bet.is_collected or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet.bet_type, bet.position_index))
 			
 			if bet.is_paid or is_collected:
-				# Оплаченная или собранная → скрываем
-				chip_visual_manager.hide_chip(bet_type)
+				# Оплаченная или собранная → скрываем конкретную фишку
+				chip_visual_manager.hide_chip_instance(bet.bet_type, bet.position_index)
 			else:
 				# Все остальные → видимы и кликабельны
-				# (валидация клика происходит в BetCollectionPhaseManager)
-				# Используем make_chip_visible чтобы не менять текстуру
-				chip_visual_manager.make_chip_visible(bet_type)
-				chip_visual_manager.make_chip_clickable(bet_type, true)
-				
-				# Логирование для отладки
+				# В REALISTIC режиме фишки уже созданы через show_chips_realistic()
 				var status = ""
 				if bet.won:
 					status = "выигрышная"
-				elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet_type):
+				elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet.bet_type):
 					status = "Tie push"
 				else:
 					status = "проигрышная"
-				print("💰 Фишка %s видна (%s)" % [bet_type, status])
+				print("💰 Фишка %s[%d] видна (%s)" % [bet.bet_type, bet.position_index, status])
+	else:
+		# Стандартный режим - по одной фишке на тип
+		var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
+
+		for bet_type in bet_types:
+			var bet = payout_queue_manager.get_bet_by_type(bet_type)
+
+			if bet:
+				# Проверяем, собрана ли проигрышная ставка
+				var is_collected = bet.is_collected or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet_type))
+				
+				if bet.is_paid or is_collected:
+					# Оплаченная или собранная → скрываем
+					chip_visual_manager.hide_chip(bet_type)
+				else:
+					# Все остальные → видимы и кликабельны
+					# (валидация клика происходит в BetCollectionPhaseManager)
+					# Используем make_chip_visible чтобы не менять текстуру
+					chip_visual_manager.make_chip_visible(bet_type)
+					chip_visual_manager.make_chip_clickable(bet_type, true)
+					
+					# Логирование для отладки
+					var status = ""
+					if bet.won:
+						status = "выигрышная"
+					elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet_type):
+						status = "Tie push"
+					else:
+						status = "проигрышная"
+					print("💰 Фишка %s видна (%s)" % [bet_type, status])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ UI СОБЫТИЙ
@@ -1087,15 +1250,17 @@ func _setup_chip_visual_manager():
 	var chip_pair_player = get_node_or_null("ChipPairPlayer")
 	var chip_pair_banker = get_node_or_null("ChipPairBanker")
 	if chip_player and chip_banker and chip_tie:
-		# Передаём self как родительский узел для создания копий в MAX режиме
+		# Передаём self как родительский узел для создания копий в MAX/REALISTIC режиме
 		chip_visual_manager.setup(chip_player, chip_banker, chip_tie, chip_pair_player, chip_pair_banker, self)
 		chip_visual_manager.chip_clicked.connect(_on_chip_clicked)
+		# Подписка на сигнал индивидуальных фишек
+		chip_visual_manager.chip_instance_clicked.connect(_on_chip_instance_clicked)
 		
 		# Применяем сохранённый режим позиций
 		var mode = PayoutSettingsManager.get_position_mode()
 		chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
 		
-		var mode_names = ["DEFAULT", "RANDOM", "MAX"]
+		var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
 		print("✅ ChipVisualManager инициализирован (position_mode=%s)" % mode_names[mode])
 	else:
 		push_warning("⚠️  Узлы фишек не найдены в сцене")
@@ -1136,6 +1301,8 @@ func _setup_navigation_arrows():
 	# Подписываемся на EventBus для управления видимостью стрелок
 	if EventBus:
 		EventBus.navigation_arrows_visibility_changed.connect(_on_arrows_visibility_changed)
+		# Скрываем стрелки при старте - они появятся только после выбора победителя
+		EventBus.navigation_arrows_visibility_changed.emit(false)
 	
 	print("✅ Стрелки навигации инициализированы")
 
@@ -1241,11 +1408,21 @@ func _on_payout_setting_changed(bet_type: String, enabled: bool):
 	if not chip_visual_manager:
 		return
 
+	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+
 	# Управляем видимостью фишек
 	if enabled:
-		chip_visual_manager.show_chip(bet_type)
+		if is_realistic:
+			chip_visual_manager.show_chips_realistic(bet_type)
+		else:
+			chip_visual_manager.show_chip(bet_type)
 	else:
 		chip_visual_manager.hide_chip(bet_type)
+		# В REALISTIC режиме также очищаем активные фишки этого типа
+		if is_realistic:
+			var chips_to_remove = chip_visual_manager.get_active_chips_by_type(bet_type)
+			for chip in chips_to_remove:
+				chip_visual_manager.hide_chip_instance(bet_type, chip.position_index)
 
 	# Для пар - также обновляем PairBettingManager
 	if bet_type == "PairPlayer" and pair_betting_manager:
@@ -1274,7 +1451,7 @@ func _on_position_mode_changed(mode: int):
 	"""Обработка изменения режима позиций фишек из SettingsScene
 
 	Args:
-		mode: 0=DEFAULT, 1=RANDOM, 2=MAX
+		mode: 0=DEFAULT, 1=RANDOM, 2=MAX, 3=REALISTIC
 	"""
 	if not chip_visual_manager:
 		return
@@ -1282,7 +1459,7 @@ func _on_position_mode_changed(mode: int):
 	# Применяем новый режим
 	chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
 
-	var mode_names = ["DEFAULT", "RANDOM", "MAX"]
+	var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
 	print("🎲 Режим позиций фишек изменён: %s" % mode_names[mode])
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1324,7 +1501,14 @@ func _on_pay_mode_toggled(enabled: bool):
 				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
 
 func _on_chip_clicked(bet_type: String):
-	print("🖱️  Клик на фишку: %s" % bet_type)
+	"""Обработчик клика на фишку (старый интерфейс, для обратной совместимости)"""
+	# Вызываем новый обработчик с position_index = 0
+	_on_chip_instance_clicked(bet_type, 0)
+
+
+func _on_chip_instance_clicked(bet_type: String, position_index: int):
+	"""Обработчик клика на конкретную фишку (с position_index)"""
+	print("🖱️  Клик на фишку: %s[%d]" % [bet_type, position_index])
 	
 	# Проверяем что менеджеры инициализированы
 	if not payout_queue_manager or not bet_collection_manager:
@@ -1333,7 +1517,7 @@ func _on_chip_clicked(bet_type: String):
 	# ═══════════════════════════════════════════════════════════════════
 	# ВАЛИДАЦИЯ КЛИКА ЧЕРЕЗ BetCollectionPhaseManager
 	# ═══════════════════════════════════════════════════════════════════
-	var validation = bet_collection_manager.validate_chip_click(bet_type)
+	var validation = bet_collection_manager.validate_chip_click(bet_type, position_index)
 	
 	# Если режим не выбран - ничего не делаем
 	if validation.action == "none" and validation.can_proceed:
@@ -1354,11 +1538,15 @@ func _on_chip_clicked(bet_type: String):
 	
 	if validation.action == "collect":
 		# Собираем проигрышную ставку
-		bet_collection_manager.collect_bet(bet_type)
+		bet_collection_manager.collect_bet(bet_type, position_index)
 		# Скрываем фишку
 		if chip_visual_manager:
-			chip_visual_manager.hide_chip(bet_type)
-		print("  ✅ Ставка %s собрана" % bet_type)
+			var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+			if is_realistic:
+				chip_visual_manager.hide_chip_instance(bet_type, position_index)
+			else:
+				chip_visual_manager.hide_chip(bet_type)
+		print("  ✅ Ставка %s[%d] собрана" % [bet_type, position_index])
 		
 		# Если кнопка "Завершить" была broken - восстанавливаем
 		if ui_manager.button_ui.is_action_button_broken():
@@ -1368,7 +1556,10 @@ func _on_chip_clicked(bet_type: String):
 	
 	if validation.action == "pay":
 		# Оплачиваем выигрышную ставку
-		var bet = payout_queue_manager.get_bet_by_type(bet_type)
+		var bet = payout_queue_manager.get_bet_by_id(bet_type, position_index)
+		if not bet:
+			# Для обратной совместимости пробуем по типу
+			bet = payout_queue_manager.get_bet_by_type(bet_type)
 		if not bet:
 			return
 		
@@ -1377,11 +1568,32 @@ func _on_chip_clicked(bet_type: String):
 		# ═══════════════════════════════════════════════════════════════════
 		if USE_OVERLAY_PAYOUT:
 			# НОВЫЙ СПОСОБ: показать overlay поверх Game.tscn
-			_show_payout_overlay(bet_type, bet.stake, bet.payout)
+			_show_payout_overlay_instance(bet_type, position_index, bet.stake, bet.payout)
 		else:
 			# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
 			_open_payout_scene(bet_type)
 		return
+
+
+func _show_payout_overlay_instance(bet_type: String, position_index: int, stake: float, payout: float):
+	"""Показать PayoutOverlay для конкретной фишки
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции фишки
+		stake: Размер ставки
+		payout: Ожидаемая выплата
+	"""
+	if not payout_overlay:
+		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
+		return
+
+	print("💰 Показываем PayoutOverlay: %s[%d], stake=%.1f, payout=%.1f" % [bet_type, position_index, stake, payout])
+
+	# Сохраняем position_index для обработчика завершения
+	# (пока используем простой способ - храним в метаданных контекста)
+	payout_overlay.set_meta("current_position_index", position_index)
+	payout_overlay.show_payout(bet_type, stake, payout)
 
 func _open_payout_scene(bet_type: String):
 	"""Открыть PayoutScene для конкретной ставки
@@ -1483,24 +1695,37 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		collected: Собранная сумма
 		expected: Ожидаемая сумма
 	"""
-	print("💰 Завершена выплата в overlay режиме: bet_type=%s, correct=%s, collected=%.1f, expected=%.1f" % [bet_type, is_correct, collected, expected])
+	# Получаем position_index из метаданных (устанавливается в _show_payout_overlay_instance)
+	var position_index = 0
+	if payout_overlay and payout_overlay.has_meta("current_position_index"):
+		position_index = payout_overlay.get_meta("current_position_index")
+	
+	print("💰 Завершена выплата в overlay режиме: bet_type=%s[%d], correct=%s, collected=%.1f, expected=%.1f" % [bet_type, position_index, is_correct, collected, expected])
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ОБРАБОТКА РЕЗУЛЬТАТА (эмитим события как в старом режиме)
 	# ═══════════════════════════════════════════════════════════════════
 	if is_correct:
 		EventBus.payout_correct.emit(collected, expected)
-		print("  ✅ Правильная выплата %s: %.1f" % [bet_type, expected])
+		print("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
 
 		# Отмечаем ставку как оплаченную в PayoutQueueManager
 		if payout_queue_manager:
-			payout_queue_manager.mark_as_paid(bet_type)
-			print("  ✅ Ставка %s отмечена как оплаченная" % bet_type)
+			payout_queue_manager.mark_as_paid(bet_type, position_index)
+			print("  ✅ Ставка %s[%d] отмечена как оплаченная" % [bet_type, position_index])
+		
+		# Отмечаем в BetCollectionPhaseManager
+		if bet_collection_manager:
+			bet_collection_manager.pay_bet(bet_type, position_index)
 
 		# Скрываем фишку оплаченной ставки
 		if chip_visual_manager:
-			chip_visual_manager.hide_chip(bet_type)
-			print("  🎨 Фишка %s скрыта" % bet_type)
+			var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+			if is_realistic:
+				chip_visual_manager.hide_chip_instance(bet_type, position_index)
+			else:
+				chip_visual_manager.hide_chip(bet_type)
+			print("  🎨 Фишка %s[%d] скрыта" % [bet_type, position_index])
 
 		# Увеличиваем счетчик раундов в survival mode
 		if is_survival_mode:
@@ -1508,7 +1733,7 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 			print("  🎮 Survival: раунд %d завершен" % survival_rounds_completed)
 	else:
 		EventBus.payout_wrong.emit(collected, expected)
-		print("  ❌ Неправильная выплата %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
+		print("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [bet_type, position_index, collected, expected])
 
 		# Потеря жизни обрабатывается через EventBus в SurvivalUI
 		# (EventBus.payout_wrong → SurvivalUI.lose_life)
@@ -1529,20 +1754,13 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 			ui_manager.enable_action_button()
 			print("  🔓 Кнопка 'Завершить' активирована после оплаты ставки")
 
-		# Проверяем, остались ли неоплаченные выплаты (только для логирования)
-		var has_unpaid = false
-		if payout_queue_manager:
-			for check_bet_type in ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]:
-				var bet = payout_queue_manager.get_bet_by_type(check_bet_type)
-				if bet and bet.won and not bet.is_paid:
-					has_unpaid = true
-					break
+		# Проверяем, остались ли неоплаченные выплаты
+		var has_unpaid = payout_queue_manager.has_unpaid_winnings() if payout_queue_manager else false
 
 		if not has_unpaid:
 			# Все выплаты оплачены → эмитим событие подготовки стола
 			print("  ✅ Все выплаты оплачены! Стол готов к новой раздаче")
-			# Скрываем стрелки навигации (кнопки областей скроются при reset)
-			EventBus.navigation_arrows_visibility_changed.emit(false)
+			# НЕ скрываем стрелки здесь - они скроются при нажатии "Завершить"
 			# Эмитим событие для разблокировки маркеров и подготовки стола
 			EventBus.table_prepared_for_new_game.emit()
 			# НЕ вызываем phase_manager.reset() в overlay режиме!

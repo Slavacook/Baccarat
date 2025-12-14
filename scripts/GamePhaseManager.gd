@@ -82,6 +82,7 @@ func reset(update_state: bool = true):
 	payout_queue_manager = null
 	if chip_visual_manager:
 		chip_visual_manager.hide_all_chips()
+		chip_visual_manager.clear_all_active_chips()  # Важно для REALISTIC режима!
 	if winner_selection_manager:
 		winner_selection_manager.reset()
 	# Очищаем TableStateManager (полное состояние стола)

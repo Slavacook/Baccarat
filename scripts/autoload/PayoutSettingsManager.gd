@@ -21,8 +21,8 @@ var tie_payout_enabled: bool = true
 var player_pair_payout_enabled: bool = true
 var banker_pair_payout_enabled: bool = true
 
-# Режим позиций фишек: DEFAULT (основные), RANDOM (случайные), MAX (все позиции)
-enum PositionMode { DEFAULT, RANDOM, MAX }
+# Режим позиций фишек: DEFAULT (основные), RANDOM (случайные), MAX (все позиции), REALISTIC (случайное кол-во)
+enum PositionMode { DEFAULT, RANDOM, MAX, REALISTIC }
 var position_mode: PositionMode = PositionMode.DEFAULT
 
 # Для обратной совместимости
@@ -160,6 +160,10 @@ func is_random_positions_enabled() -> bool:
 # ← Проверить, включён ли MAX режим
 func is_max_mode_enabled() -> bool:
 	return position_mode == PositionMode.MAX
+
+# ← Проверить, включён ли REALISTIC режим
+func is_realistic_mode_enabled() -> bool:
+	return position_mode == PositionMode.REALISTIC
 
 # ← Переключить режим случайных позиций (для обратной совместимости)
 func toggle_random_positions(enabled: bool) -> void:

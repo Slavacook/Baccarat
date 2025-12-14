@@ -384,7 +384,7 @@ func _on_bet_pair_banker_toggled(pressed: bool):
 func _on_position_mode_selected(index: int):
 	"""Обработка выбора режима позиций фишек"""
 	PayoutSettingsManager.set_position_mode(index as PayoutSettingsManager.PositionMode)
-	var mode_names = ["DEFAULT", "RANDOM", "MAX"]
+	var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
 	print("🎲 Режим позиций: %s" % mode_names[index])
 
 
@@ -397,6 +397,7 @@ func _setup_position_mode_options():
 	position_mode_option.add_item(Localization.t("POSITION_MODE_DEFAULT"), 0)
 	position_mode_option.add_item(Localization.t("POSITION_MODE_RANDOM"), 1)
 	position_mode_option.add_item(Localization.t("POSITION_MODE_MAX"), 2)
+	position_mode_option.add_item(Localization.t("POSITION_MODE_REALISTIC"), 3)
 	position_mode_option.selected = PayoutSettingsManager.get_position_mode()
 
 # === РАЗМЕР СТАВОК ===

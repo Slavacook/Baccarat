@@ -53,7 +53,7 @@ const ALTERNATIVE_POSITIONS = {
 		Vector2(-150, -35),    # Альтернатива 3✅
 		Vector2(-450, 35),    # Альтернатива 3✅
 		Vector2(-670, 200),    # Альтернатива 4✅
-		Vector2(-800, 380),    # Альтернатива 4✅
+		Vector2(-750, 320),    # Альтернатива 4✅
 		Vector2(1790, 215),    # Альтернатива 5 ✅
 		Vector2(1860, 385),    # Альтернатива 6 ✅
 	],
@@ -97,6 +97,48 @@ const ALTERNATIVE_POSITIONS = {
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
+# КЛАСС CHIPINSTANCE - ДАННЫЕ ОБ ИНДИВИДУАЛЬНОЙ ФИШКЕ
+# ═══════════════════════════════════════════════════════════════════════════
+
+class ChipInstance:
+	var bet_type: String        # "Player", "Banker", etc.
+	var position_index: int     # Индекс позиции (0, 1, 2...)
+	var node: TextureButton     # UI узел
+	var stake: float            # Размер ставки
+	var is_collected: bool      # Собрана ли (для проигрышных)
+	var is_paid: bool           # Оплачена ли (для выигрышных)
+	var is_original: bool       # Основная фишка (из сцены) или копия
+	
+	func _init(type: String, idx: int, chip_node: TextureButton, is_orig: bool = false):
+		bet_type = type
+		position_index = idx
+		node = chip_node
+		stake = 0.0
+		is_collected = false
+		is_paid = false
+		is_original = is_orig
+	
+	func get_id() -> String:
+		"""Уникальный идентификатор фишки"""
+		return "%s_%d" % [bet_type, position_index]
+
+# ═══════════════════════════════════════════════════════════════════════════
+# КОНСТАНТЫ - ВЕРОЯТНОСТИ ДЛЯ REALISTIC РЕЖИМА
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Веса вероятностей (сумма = 100%)
+const PROBABILITY_WEIGHTS = [70.0, 20.2, 7.0, 2.0, 0.6, 0.2]
+
+# Диапазоны количества для типов с 12 позициями (Player, Banker)
+const RANGES_12 = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 10], [11, 12]]
+
+# Диапазоны количества для типов с 11 позициями (Banker)
+const RANGES_11 = [[0, 1], [2, 3], [4, 5], [6, 7], [8, 9], [10, 11]]
+
+# Диапазоны количества для типов с 6 позициями (Tie, Pairs)
+const RANGES_6 = [[0, 0], [1, 1], [2, 2], [3, 3], [4, 5], [6, 6]]
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -109,8 +151,8 @@ var current_textures: Dictionary = {}
 # Основные позиции фишек (сохраняются при setup из сцены)
 var default_positions: Dictionary = {}
 
-# Режим позиций: DEFAULT, RANDOM, MAX
-enum PositionMode { DEFAULT, RANDOM, MAX }
+# Режим позиций: DEFAULT, RANDOM, MAX, REALISTIC
+enum PositionMode { DEFAULT, RANDOM, MAX, REALISTIC }
 var current_mode: PositionMode = PositionMode.DEFAULT
 
 # Для обратной совместимости
@@ -118,15 +160,21 @@ var random_positions_enabled: bool:
 	get:
 		return current_mode == PositionMode.RANDOM
 
-# Дополнительные фишки для MAX режима (копии)
+# Дополнительные фишки для MAX режима (копии) - устаревшее, используется для совместимости
 # {"Player": [TextureButton, TextureButton, ...], ...}
 var extra_chips: Dictionary = {}
+
+# ВСЕ активные фишки (для MAX и REALISTIC режимов)
+# Список всех ChipInstance
+var active_chips: Array[ChipInstance] = []
 
 # Родительский узел для добавления копий фишек
 var scene_root: Node = null
 
 # Сигналы для обработки кликов
 signal chip_clicked(bet_type: String)
+# Новый сигнал с идентификатором конкретной фишки
+signal chip_instance_clicked(bet_type: String, position_index: int)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -207,7 +255,12 @@ func show_chip(bet_type: String) -> void:
 			_remove_extra_chips(bet_type)
 		PositionMode.MAX:
 			_reset_to_default_position(bet_type)
-			_create_extra_chips(bet_type, texture)
+			_create_extra_chips_max(bet_type, texture)
+		PositionMode.REALISTIC:
+			# В REALISTIC режиме используется show_chips_realistic()
+			# show_chip() просто показывает одну фишку на основной позиции
+			_reset_to_default_position(bet_type)
+			_remove_extra_chips(bet_type)
 
 	print("💰 ChipVisualManager: показана фишка %s (%s) mode=%s" % [bet_type, texture_path.get_file(), PositionMode.keys()[current_mode]])
 
@@ -355,21 +408,26 @@ func set_position_mode(mode: PositionMode) -> void:
 	current_mode = mode
 	print("🎲 ChipVisualManager: режим позиций = %s" % PositionMode.keys()[mode])
 	
+	# Очищаем активные фишки при смене режима
+	clear_all_active_chips()
+	
 	# Применяем изменения для всех видимых фишек
 	for bet_type in chip_nodes.keys():
 		if is_chip_visible(bet_type):
 			match mode:
 				PositionMode.DEFAULT:
 					_reset_to_default_position(bet_type)
-					_remove_extra_chips(bet_type)
 				PositionMode.RANDOM:
 					_apply_random_position(bet_type)
-					_remove_extra_chips(bet_type)
 				PositionMode.MAX:
 					_reset_to_default_position(bet_type)
 					var texture = chip_nodes[bet_type].texture_normal
 					if texture:
-						_create_extra_chips(bet_type, texture)
+						_create_extra_chips_max(bet_type, texture)
+				PositionMode.REALISTIC:
+					# В REALISTIC режиме фишки создаются через show_chips_realistic()
+					# При смене режима просто скрываем основную фишку
+					chip_nodes[bet_type].visible = false
 
 
 func _apply_random_position(bet_type: String) -> void:
@@ -437,7 +495,7 @@ func get_position_mode() -> PositionMode:
 # MAX РЕЖИМ - СОЗДАНИЕ И УДАЛЕНИЕ КОПИЙ ФИШЕК
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _create_extra_chips(bet_type: String, texture: Texture2D) -> void:
+func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 	"""Создать дополнительные фишки для всех альтернативных позиций (MAX режим)"""
 	if not scene_root:
 		push_warning("ChipVisualManager: scene_root не задан, не могу создать копии")
@@ -462,8 +520,8 @@ func _create_extra_chips(bet_type: String, texture: Texture2D) -> void:
 		new_chip.mouse_filter = Control.MOUSE_FILTER_STOP
 		new_chip.visible = true
 		
-		# Подключаем сигнал клика
-		new_chip.pressed.connect(_on_extra_chip_pressed.bind(bet_type))
+		# Подключаем сигнал клика с position_index
+		new_chip.pressed.connect(_on_extra_chip_pressed.bind(bet_type, i))
 		
 		scene_root.add_child(new_chip)
 		extra_chips[bet_type].append(new_chip)
@@ -490,10 +548,262 @@ func _remove_all_extra_chips() -> void:
 	print("📍 Все дополнительные фишки удалены")
 
 
-func _on_extra_chip_pressed(bet_type: String) -> void:
-	"""Обработка клика на дополнительную фишку"""
-	print("🖱️  ChipVisualManager: клик на копию фишки %s" % bet_type)
-	chip_clicked.emit(bet_type)
+func _on_extra_chip_pressed(bet_type: String, position_index: int = 0) -> void:
+	"""Обработка клика на дополнительную фишку (MAX режим)"""
+	print("🖱️  ChipVisualManager: клик на копию фишки %s[%d]" % [bet_type, position_index])
+	chip_instance_clicked.emit(bet_type, position_index)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# REALISTIC РЕЖИМ - ГЕНЕРАЦИЯ СЛУЧАЙНОГО КОЛИЧЕСТВА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _get_ranges_for_bet_type(bet_type: String) -> Array:
+	"""Получить диапазоны количества для типа ставки"""
+	var positions_count = ALTERNATIVE_POSITIONS.get(bet_type, []).size()
+	
+	if positions_count >= 12:
+		return RANGES_12
+	elif positions_count >= 11:
+		return RANGES_11
+	else:
+		return RANGES_6
+
+
+func _generate_random_count(bet_type: String) -> int:
+	"""Генерировать случайное количество ставок с весовым распределением"""
+	var ranges = _get_ranges_for_bet_type(bet_type)
+	
+	# Выбираем диапазон по весам
+	var roll = randf() * 100.0  # 0-100
+	var cumulative = 0.0
+	var selected_range_idx = 0
+	
+	for i in range(PROBABILITY_WEIGHTS.size()):
+		cumulative += PROBABILITY_WEIGHTS[i]
+		if roll < cumulative:
+			selected_range_idx = i
+			break
+	
+	# Получаем диапазон
+	var selected_range = ranges[selected_range_idx]
+	var min_count = selected_range[0]
+	var max_count = selected_range[1]
+	
+	# Ограничиваем максимальным количеством позиций
+	var positions_count = ALTERNATIVE_POSITIONS.get(bet_type, []).size()
+	max_count = mini(max_count, positions_count)
+	min_count = mini(min_count, max_count)
+	
+	# Случайное число в диапазоне
+	if min_count == max_count:
+		return min_count
+	return randi_range(min_count, max_count)
+
+
+func _select_random_positions(bet_type: String, count: int) -> Array[int]:
+	"""Выбрать случайные позиции для ставок"""
+	var positions = ALTERNATIVE_POSITIONS.get(bet_type, [])
+	if count <= 0 or positions.size() == 0:
+		return []
+	
+	# Создаём список всех индексов и перемешиваем
+	var indices: Array[int] = []
+	for i in range(positions.size()):
+		indices.append(i)
+	indices.shuffle()
+	
+	# Берём первые count индексов
+	var selected: Array[int] = []
+	for i in range(mini(count, indices.size())):
+		selected.append(indices[i])
+	
+	return selected
+
+
+func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[ChipInstance]:
+	"""Показать фишки в REALISTIC режиме со случайным количеством
+	
+	Args:
+		bet_type: Тип ставки
+		stakes: Массив размеров ставок (если пустой - генерируются автоматически)
+	
+	Returns:
+		Массив созданных ChipInstance
+	"""
+	if not chip_nodes.has(bet_type):
+		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
+		return []
+	
+	# Генерируем количество
+	var count = _generate_random_count(bet_type)
+	print("🎲 REALISTIC: %s = %d ставок" % [bet_type, count])
+	
+	if count == 0:
+		# Скрываем основную фишку
+		chip_nodes[bet_type].visible = false
+		return []
+	
+	# Выбираем позиции
+	var selected_positions = _select_random_positions(bet_type, count)
+	
+	# Создаём фишки
+	var created_chips: Array[ChipInstance] = []
+	var texture_path = _get_random_texture(bet_type)
+	var texture = load(texture_path)
+	
+	for i in range(selected_positions.size()):
+		var pos_idx = selected_positions[i]
+		var stake = stakes[i] if i < stakes.size() else 0.0
+		
+		var chip_instance: ChipInstance
+		
+		if i == 0:
+			# Первая фишка - используем основную из сцены
+			var original_chip = chip_nodes[bet_type]
+			original_chip.texture_normal = texture
+			original_chip.position = ALTERNATIVE_POSITIONS[bet_type][pos_idx]
+			original_chip.visible = true
+			
+			chip_instance = ChipInstance.new(bet_type, pos_idx, original_chip, true)
+			chip_instance.stake = stake
+			
+			# Отключаем старый обработчик если был подключен
+			if original_chip.pressed.is_connected(_on_chip_pressed):
+				original_chip.pressed.disconnect(_on_chip_pressed)
+			
+			# Подключаем сигнал с индексом
+			if not original_chip.pressed.is_connected(_on_chip_instance_pressed):
+				original_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, pos_idx))
+		else:
+			# Остальные - создаём копии
+			var new_chip = _create_chip_copy(bet_type, pos_idx, texture)
+			chip_instance = ChipInstance.new(bet_type, pos_idx, new_chip, false)
+			chip_instance.stake = stake
+		
+		active_chips.append(chip_instance)
+		created_chips.append(chip_instance)
+	
+	current_textures[bet_type] = texture_path
+	print("📍 REALISTIC: создано %d фишек %s на позициях %s" % [created_chips.size(), bet_type, selected_positions])
+	
+	return created_chips
+
+
+func _create_chip_copy(bet_type: String, position_index: int, texture: Texture2D) -> TextureButton:
+	"""Создать копию фишки"""
+	if not scene_root:
+		push_warning("ChipVisualManager: scene_root не задан")
+		return null
+	
+	var original_chip = chip_nodes[bet_type]
+	var positions = ALTERNATIVE_POSITIONS.get(bet_type, [])
+	
+	if position_index >= positions.size():
+		push_error("ChipVisualManager: индекс позиции %d вне диапазона для %s" % [position_index, bet_type])
+		return null
+	
+	var new_chip = TextureButton.new()
+	new_chip.texture_normal = texture
+	new_chip.position = positions[position_index]
+	new_chip.scale = original_chip.scale
+	new_chip.modulate = original_chip.modulate
+	new_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	new_chip.visible = true
+	
+	# Подключаем сигнал с индексом
+	new_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, position_index))
+	
+	scene_root.add_child(new_chip)
+	
+	# Добавляем в extra_chips для совместимости
+	if not extra_chips.has(bet_type):
+		extra_chips[bet_type] = []
+	extra_chips[bet_type].append(new_chip)
+	
+	return new_chip
+
+
+func _on_chip_instance_pressed(bet_type: String, position_index: int) -> void:
+	"""Обработка клика на конкретную фишку"""
+	print("🖱️  ChipVisualManager: клик на фишку %s[%d]" % [bet_type, position_index])
+	chip_instance_clicked.emit(bet_type, position_index)
+	# НЕ эмитим chip_clicked - это вызовет двойную обработку в GameController!
+
+
+func get_chip_instance(bet_type: String, position_index: int) -> ChipInstance:
+	"""Получить ChipInstance по типу и индексу"""
+	for chip in active_chips:
+		if chip.bet_type == bet_type and chip.position_index == position_index:
+			return chip
+	return null
+
+
+func get_active_chips_by_type(bet_type: String) -> Array[ChipInstance]:
+	"""Получить все активные фишки определённого типа"""
+	var result: Array[ChipInstance] = []
+	for chip in active_chips:
+		if chip.bet_type == bet_type:
+			result.append(chip)
+	return result
+
+
+func get_all_active_chips() -> Array[ChipInstance]:
+	"""Получить все активные фишки"""
+	return active_chips
+
+
+func hide_chip_instance(bet_type: String, position_index: int) -> bool:
+	"""Скрыть конкретную фишку по типу и индексу"""
+	var chip = get_chip_instance(bet_type, position_index)
+	if not chip:
+		print("⚠️  hide_chip_instance: фишка %s[%d] не найдена в active_chips" % [bet_type, position_index])
+		return false
+
+	if chip.node:
+		# Отключаем сигнал чтобы фишка не была кликабельной
+		if chip.node.pressed.is_connected(_on_chip_instance_pressed):
+			chip.node.pressed.disconnect(_on_chip_instance_pressed)
+		
+		chip.node.visible = false
+		
+		# Если это копия - удаляем узел полностью
+		if not chip.is_original:
+			chip.node.queue_free()
+			# Удаляем из extra_chips
+			if extra_chips.has(bet_type):
+				extra_chips[bet_type].erase(chip.node)
+
+	# Удаляем из active_chips
+	active_chips.erase(chip)
+
+	print("🚫 Скрыта фишка %s[%d]" % [bet_type, position_index])
+	return true
+
+
+func clear_all_active_chips() -> void:
+	"""Удалить все активные фишки"""
+	for chip in active_chips:
+		if chip.node:
+			# Отключаем сигнал _on_chip_instance_pressed
+			if chip.node.pressed.is_connected(_on_chip_instance_pressed):
+				chip.node.pressed.disconnect(_on_chip_instance_pressed)
+			
+			# Удаляем копии (не оригинальные)
+			if not chip.is_original:
+				chip.node.queue_free()
+	active_chips.clear()
+	_remove_all_extra_chips()
+	print("🗑️  Все активные фишки очищены")
+
+
+func get_active_chips_count_by_type(bet_type: String) -> int:
+	"""Количество активных фишек определённого типа"""
+	var count = 0
+	for chip in active_chips:
+		if chip.bet_type == bet_type:
+			count += 1
+	return count
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -503,9 +813,12 @@ func _on_extra_chip_pressed(bet_type: String) -> void:
 func print_status() -> void:
 	"""Вывести текущий статус фишек"""
 	print("═══ ChipVisualManager Status ═══")
+	print("Режим: %s" % PositionMode.keys()[current_mode])
+	print("Активных фишек: %d" % active_chips.size())
 	for bet_type in chip_nodes.keys():
 		var chip = chip_nodes[bet_type]
 		var status = "✅ Видна" if chip.visible else "❌ Скрыта"
 		var texture = current_textures.get(bet_type, "нет")
-		print("  %s: %s | Текстура: %s" % [bet_type, status, texture])
+		var active_count = get_active_chips_count_by_type(bet_type)
+		print("  %s: %s | Текстура: %s | Активных: %d" % [bet_type, status, texture, active_count])
 	print("═══════════════════════════════")
