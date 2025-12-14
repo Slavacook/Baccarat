@@ -2,6 +2,33 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## 🎯 Критические обновления (v5.9)
+
+**ВАЖНО**: Документация обновлена до актуального состояния кода! Ключевые изменения:
+
+1. **✅ Phase 2 Refactoring ЗАВЕРШЁН** - UIManager разделён на 5 специализированных менеджеров в `scripts/ui/`:
+   - CardUIManager, ToggleUIManager, ButtonUIManager, MarkerUIManager, PayoutToggleManager
+   - UIManager теперь фасад-агрегатор с Dependency Injection
+
+2. **📷 Система камеры** - новые режимы зума через EventBus:
+   - "in" (карты), "out" (общий план), "area_1/2/3" (области ставок)
+   - Стрелки навигации между областями
+
+3. **🃏 Колода** - теперь **8 колод × 52 = 416 карт** (как в настоящем казино)
+   - Автоматическое перемешивание при исчерпании
+
+4. **🎮 Режимы игры** - "junket" и "classic" (не Classic/Super6/EZ как было указано ранее)
+
+5. **📡 EventBus расширен** - теперь **38 сигналов** (было 28):
+   - Добавлены сигналы камеры (3)
+   - Расширены сигналы настроек (card_back_style, position_mode)
+   - Добавлены сигналы выплат (manual_payout_requested, payout_setting_changed)
+
+6. **🆕 Новые менеджеры**:
+   - BetCollectionPhaseManager - управление фазой сбора ставок
+   - TableStateManager - состояние стола
+   - CameraManager - управление камерой
+
 ## Обзор проекта
 
 **Баккара 5.9** - тренажёр для обучения правилам игры в баккара, разработанный на Godot 4.5. Проект помогает дилерам и крупье практиковать:
@@ -105,18 +132,19 @@ godot --export-release "Windows Desktop" build/Baccarat.exe
 
 ```gdscript
 # Основные компоненты
-- deck: Deck - колода карт (52 карты, перемешивается при создании)
+- deck: Deck - колода карт (8 колод × 52 = 416 карт, автоперетасовка при исчерпании)
 - card_manager: CardTextureManager - загрузка текстур карт из assets/cards/
 - ui_manager: UIManager - управление UI элементами и сигналами
 - phase_manager: GamePhaseManager - управление игровым процессом и валидация действий
 - limits_manager: LimitsManager - управление лимитами стола
-- camera: Camera2D - камера с зумом и плавными переходами
+- camera_manager: CameraManager - камера с зумом и плавными переходами (общий план, зум на карты, зум на области ставок)
 
 # Новые менеджеры (v5.9+)
 - chip_visual_manager: ChipVisualManager - визуализация фишек на столе
 - winner_selection_manager: WinnerSelectionManager - выбор победителя с подсветкой
 - payout_queue_manager: PayoutQueueManager - очередь выплат (Main/Pair)
 - pair_betting_manager: PairBettingManager - управление ставками на пары
+- bet_collection_manager: BetCollectionPhaseManager - управление фазой сбора ставок
 ```
 
 **Обязанности GameController**:
@@ -339,19 +367,32 @@ match current_state:
   - 3-6: зависит от третьей карты игрока (см. таблицу в методе)
 - `get_winner(player_hand, banker_hand) -> String` - возвращает "Player"/"Banker"/"Tie"
 
-### UI система: UIManager
+### UI система: UIManager (Phase 2 Refactoring - ЗАВЕРШЁН!)
 
-`scripts/UIManager.gd` - управляет всеми UI элементами через сигналы:
+`scripts/UIManager.gd` - фасад-агрегатор, делегирует работу специализированным менеджерам в `scripts/ui/`:
 
-**Сигналы**:
-- `action_button_pressed()` - кнопка "Раздать карты" / "Открыть"
-- `player_third_toggled(selected: bool)` - переключатель третьей карты игрока
-- `banker_third_toggled(selected: bool)` - переключатель третьей карты банкира
-- `winner_selected(winner: String)` - выбран победитель (Player/Banker/Tie)
-- `help_button_pressed()` - кнопка помощи
-- `lang_button_pressed()` - переключение языка
+**Специализированные менеджеры**:
+- **CardUIManager** (`ui/CardUIManager.gd`) - управление картами и анимациями раздачи
+- **ToggleUIManager** (`ui/ToggleUIManager.gd`) - переключатели ? / ! для третьих карт
+- **ButtonUIManager** (`ui/ButtonUIManager.gd`) - кнопки действий (Карты, Помощь, Язык, Tie)
+- **MarkerUIManager** (`ui/MarkerUIManager.gd`) - маркеры выбора победителя (Player/Banker/Tie)
+- **PayoutToggleManager** (`ui/PayoutToggleManager.gd`) - переключатели выплат (какие активны)
 
-**Важно**: UIManager получает ссылку на CardTextureManager для управления текстурами рубашек (?, !, обычная).
+**Сигналы (проброс от дочерних менеджеров)**:
+- `action_button_pressed()` - кнопка "Карты" (от ButtonUIManager)
+- `player_third_toggled(selected: bool)` - переключатель третьей игрока (от ToggleUIManager)
+- `banker_third_toggled(selected: bool)` - переключатель третьей банкира (от ToggleUIManager)
+- `winner_selected(winner: String)` - выбран победитель (от MarkerUIManager)
+- `help_button_pressed()` - кнопка помощи (от ButtonUIManager)
+- `lang_button_pressed()` - переключение языка (от ButtonUIManager)
+- `tie_button_pressed()` - кнопка Ничья (от ButtonUIManager)
+
+**Важно**: UIManager создаётся через Dependency Injection в GameController:
+```gdscript
+ui_manager = UIManager.new(self, card_manager)
+ui_manager.set_main_node(self)
+ui_manager.set_flip_cards(flip_cards)
+```
 
 ### Система выплат с фишками
 
@@ -414,7 +455,7 @@ match current_state:
    - `set_lang(lang: String)`, `get_lang() -> String`
 
 3. **GameModeManager** (`scripts/GameModeManager.gd`) - управление режимами игры:
-   - Classic / Super6 / EZ Baccarat
+   - "junket" (джанкет) / "classic" (классика)
    - Определяет правила выплат для каждого режима
 
 4. **GameStateManager** (`scripts/autoload/GameStateManager.gd`) - декларативная система состояний:
@@ -423,15 +464,16 @@ match current_state:
    - Валидация действий: `is_action_valid(action)`, `get_error_message(action)`
    - Блокировка настроек во время раздачи: `can_change_settings()`
 
-5. **EventBus** (`scripts/autoload/EventBus.gd`) - централизованная event-driven система:
-   - **🎮 Игровой процесс**: cards_dealt, player_third_drawn, banker_third_drawn, game_completed, round_reset
+5. **EventBus** (`scripts/autoload/EventBus.gd`) - централизованная event-driven система (38 сигналов):
+   - **🎮 Игровой процесс**: cards_dealt, player_third_drawn, banker_third_drawn, game_completed, round_reset, first_deal_completed, table_prepared_for_new_game
+   - **📷 Камера**: camera_zoom_requested, area_buttons_visibility_changed, navigation_arrows_visibility_changed
    - **✅ Правильные действия**: action_correct, winner_correct
    - **❌ Ошибки**: action_error
-   - **💰 Выплаты**: show_payout_popup, payout_correct, payout_wrong, hint_used
+   - **💰 Выплаты**: show_payout_popup, payout_correct, payout_wrong, hint_used, manual_payout_requested, payout_setting_changed
    - **📢 Toast**: show_toast_info, show_toast_success, show_toast_error
    - **🎬 Overlay**: show_overlay_success, show_overlay_error, show_overlay_info
-   - **⚙️ Настройки**: game_mode_changed, language_changed, survival_mode_changed, table_limits_changed
-   - **💔 Режим выживания**: life_lost, game_over, game_restarted
+   - **⚙️ Настройки**: game_mode_changed, language_changed, survival_mode_changed, card_back_style_changed, random_positions_changed, position_mode_changed, table_limits_changed
+   - **💔 Режим выживания**: life_loss_requested, life_lost, game_over, game_restarted
    - **📊 Состояния**: game_state_changed
 
 6. **StatsManager** (`scripts/StatsManager.gd`) - статистика (подписан на EventBus)
@@ -453,6 +495,8 @@ match current_state:
 12. **BetProfileManager** (`scripts/autoload/BetProfileManager.gd`) - профили ставок
 
 13. **PayoutContextManager** (`scripts/PayoutContextManager.gd`) - контекст текущей выплаты
+
+14. **TableStateManager** (`scripts/autoload/TableStateManager.gd`) - состояние стола (новые фичи v5.9)
 
 ### Карта зависимостей менеджеров
 
@@ -529,9 +573,9 @@ Autoload синглтоны (глобальные зависимости):
 
 **EventBus** - это сердце архитектуры! Все межкомпонентные коммуникации идут через него.
 
-#### 📡 Категории событий (28 сигналов):
+#### 📡 Категории событий (38 сигналов):
 
-**1. 🎮 Игровой процесс** (5 сигналов):
+**1. 🎮 Игровой процесс** (7 сигналов):
 ```gdscript
 signal cards_dealt(player_hand: Array[Card], banker_hand: Array[Card])
 # Когда: после deal_first_four()
@@ -551,9 +595,29 @@ signal game_completed()
 signal round_reset()
 # Когда: начало нового раунда
 # Кто слушает: все менеджеры для сброса состояния
+
+signal first_deal_completed()
+# Когда: первая раздача завершена (флаг is_first_deal сброшен)
+
+signal table_prepared_for_new_game()
+# Когда: стол подготовлен к новой игре (флаг is_table_prepared установлен)
 ```
 
-**2. ✅ Правильные действия** (2 сигнала):
+**2. 📷 Камера** (3 сигнала):
+```gdscript
+signal camera_zoom_requested(zoom_type: String)
+# zoom_type: "in" (карты), "out" (общий план), "area_1/2/3" (области ставок)
+#            "next_area", "prev_area" - переключение между областями
+# Кто слушает: CameraManager
+
+signal area_buttons_visibility_changed(visible: bool)
+# Показать/скрыть кнопки областей (для выбора области после определения победителя)
+
+signal navigation_arrows_visibility_changed(visible: bool)
+# Показать/скрыть стрелки навигации (при зуме на область)
+```
+
+**3. ✅ Правильные действия** (2 сигнала):
 ```gdscript
 signal action_correct(type: String)
 # type: "player_third", "banker_third", "both_third", "winner", "payout"
@@ -564,7 +628,7 @@ signal winner_correct(winner: String, player_hand: Array[Card], banker_hand: Arr
 # Кто слушает: PayoutQueueManager (подготовка выплат)
 ```
 
-**3. ❌ Ошибки** (1 сигнал):
+**4. ❌ Ошибки** (1 сигнал):
 ```gdscript
 signal action_error(type: String, message: String)
 # type: "player_wrong", "banker_wrong", "natural_draw", "both_wrong",
@@ -572,7 +636,7 @@ signal action_error(type: String, message: String)
 # Кто слушает: StatsManager, SurvivalUI (потеря жизни), Toast
 ```
 
-**4. 💰 Выплаты** (4 сигнала):
+**5. 💰 Выплаты** (6 сигналов):
 ```gdscript
 signal show_payout_popup(winner: String, stake: float, payout: float)
 # Кто слушает: PayoutQueueManager
@@ -585,10 +649,17 @@ signal payout_wrong(collected: float, expected: float)
 
 signal hint_used()
 # Когда: нажата кнопка "Подсказка" в PayoutPopup
-# Кто слушает: StatsManager (опционально: штраф)
+# Кто слушает: StatsManager (опционально: штраф -5 очков)
+
+signal manual_payout_requested(winner: String)
+# Запрос подготовки выплат вручную (из GamePhaseManager)
+
+signal payout_setting_changed(bet_type: String, enabled: bool)
+# bet_type: "Player", "Banker", "Tie", "PairPlayer", "PairBanker"
+# Изменена настройка выплаты (включена/выключена ставка)
 ```
 
-**5. 📢 Toast уведомления** (3 сигнала):
+**6. 📢 Toast уведомления** (3 сигнала):
 ```gdscript
 signal show_toast_info(message: String)
 signal show_toast_success(message: String)
@@ -596,7 +667,7 @@ signal show_toast_error(message: String)
 # Кто слушает: ToastManager → показывает маленькое уведомление
 ```
 
-**6. 🎬 Overlay уведомления** (3 сигнала):
+**7. 🎬 Overlay уведомления** (3 сигнала):
 ```gdscript
 signal show_overlay_success(message: String, duration: float)
 signal show_overlay_error(message: String, duration: float)
@@ -604,31 +675,44 @@ signal show_overlay_info(message: String, duration: float)
 # Кто слушает: OverlayNotificationManager → крупная надпись на экране
 ```
 
-**7. ⚙️ Настройки** (4 сигнала):
+**8. ⚙️ Настройки** (7 сигналов):
 ```gdscript
-signal game_mode_changed(new_mode: String)
-# new_mode: "Classic", "Super6", "EZ Baccarat"
+signal game_mode_changed(mode: String)
+# mode: "junket" (джанкет) или "classic" (классика)
 # Кто слушает: BetManager, PayoutCalculator
 
-signal language_changed(new_lang: String)
-# new_lang: "ru", "en"
+signal language_changed(lang: String)
+# lang: "ru" или "en"
 # Кто слушает: все UI элементы для обновления текстов
 
 signal survival_mode_changed(enabled: bool)
 # Кто слушает: SurvivalUI (показать/скрыть), GameController
 
-signal table_limits_changed(min: int, max: int, step: int)
+signal card_back_style_changed(style: String)
+# style: "tiger" / "leopard" - стиль рубашки карт
+
+signal random_positions_changed(enabled: bool)
+# Старое событие для обратной совместимости
+
+signal position_mode_changed(mode: int)
+# mode: DEFAULT=0, RANDOM=1, MAX=2
+# Управление позиционированием элементов на столе
+
+signal table_limits_changed(min: int, max: int, step: int, tie_min: int, tie_max: int, tie_step: int)
 # Кто слушает: LimitsManager, BetPopup
 ```
 
-**8. 💔 Режим выживания** (3 сигнала):
+**9. 💔 Режим выживания** (4 сигнала):
 ```gdscript
-signal life_lost(remaining_lives: int)
-# Когда: любая ошибка в survival mode
+signal life_loss_requested()
+# Запрос на потерю жизни (эмитится до фактической потери)
+
+signal life_lost()
+# Жизнь потеряна (эмитится после)
 # Кто слушает: SurvivalUI (обновление сердечек)
 
-signal game_over(rounds_completed: int)
-# Когда: 0 жизней
+signal game_over(rounds_survived: int)
+# Когда: 0 жизней или 0 очков
 # Кто слушает: GameOverPopup (показать экран)
 
 signal game_restarted()
@@ -636,7 +720,7 @@ signal game_restarted()
 # Кто слушает: GameController (сброс всего)
 ```
 
-**9. 📊 Состояния** (1 сигнал):
+**10. 📊 Состояния** (1 сигнал):
 ```gdscript
 signal game_state_changed(old_state: GameState, new_state: GameState)
 # Эмитится: GameStateManager.determine_state()
@@ -793,9 +877,10 @@ func get_point() -> int:
 ### Колода
 
 `scripts/Deck.gd`:
-- 52 карты, перемешивается в конструкторе
+- **8 колод × 52 = 416 карт** (как в настоящем казино)
+- `shuffle()` - перемешивание колоды
 - `draw() -> Card` - взять карту
-- Нет автоматического перемешивания при исчерпании (для тренажёра это норма)
+- **Автоматическое перемешивание** при исчерпании колоды (реалистичная симуляция)
 
 ### Toast система
 
@@ -883,21 +968,41 @@ func get_point() -> int:
 - **LangButton** - кнопка смены языка
 - **LimitsButton** - кнопка настройки лимитов
 
-## Система камеры
+## Система камеры: CameraManager
 
-`GameController` управляет Camera2D с плавными переходами:
+`scripts/CameraManager.gd` - управляет Camera2D с плавными переходами через EventBus:
+
+**Режимы зума** (через EventBus.camera_zoom_requested):
+- **"in"** - зум на карты (CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3))
+- **"out"** - общий план (CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0))
+- **"area_1/2/3"** - зум на области ставок (CAMERA_ZOOM_AREA = Vector2(2.0, 2.0))
+- **"next_area"** / **"prev_area"** - переключение между областями
 
 **Константы**:
 - `CAMERA_ZOOM_GENERAL = Vector2(1.0, 1.0)` - общий план (весь стол)
 - `CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3)` - зум на зону раздачи
+- `CAMERA_ZOOM_AREA = Vector2(2.0, 2.0)` - зум на область ставок
 - `CAMERA_POS_GENERAL = Vector2(577, 325)` - центр окна (1154x650)
 - `CAMERA_POS_CARDS = Vector2(595, 400)` - центр зоны Player/Banker
 - `CAMERA_TRANSITION_DURATION = 0.5` - длительность анимации (сек)
 
 **Поведение**:
-- При первой раздаче → зум на карты (CAMERA_ZOOM_CARDS)
-- При выборе победителя → общий план (CAMERA_ZOOM_GENERAL)
+- При первой раздаче → зум на карты через EventBus
+- При выборе победителя → общий план через EventBus
+- Поддержка навигации по областям стрелками (← →)
 - Все переходы анимированы через Tween
+
+**Интеграция**:
+```gdscript
+# В GamePhaseManager для зума на карты:
+EventBus.camera_zoom_requested.emit("in")
+
+# В GameController для возврата к общему плану:
+EventBus.camera_zoom_requested.emit("out")
+
+# Для зума на конкретную область:
+EventBus.camera_zoom_requested.emit("area_1")
+```
 
 ## Детальная структура проекта
 
@@ -1398,19 +1503,22 @@ func _ready():
    - ActionValidator (валидация через GameStateManager)
    ```
 
-2. **UIManager - God Object**
+2. ✅ **UIManager - God Object** → **РЕШЕНО в Phase 2!**
    ```
-   ПРОБЛЕМА:
-   - Управляет всеми UI элементами (30+ ссылок)
-   - Знает о деталях анимаций
+   БЫЛО:
+   - Управлял всеми UI элементами (30+ ссылок)
+   - Знал о деталях анимаций
    - Сигналы смешаны с логикой
 
-   РЕШЕНИЕ:
-   Разбить на специализированные менеджеры:
-   - CardUIManager (только карты)
-   - ToggleUIManager (toggles третьих карт)
-   - MarkerUIManager (маркеры победителя)
-   - ButtonUIManager (кнопки)
+   СТАЛО (v5.9):
+   - UIManager теперь фасад-агрегатор
+   - Делегирует работу в scripts/ui/:
+     • CardUIManager (карты и анимации)
+     • ToggleUIManager (toggles третьих карт)
+     • MarkerUIManager (маркеры победителя)
+     • ButtonUIManager (кнопки)
+     • PayoutToggleManager (переключатели выплат)
+   - Dependency Injection через конструктор
    ```
 
 3. **Зависимость от scene tree**
@@ -1448,20 +1556,21 @@ func _ready():
 
 ### 🛠️ Пошаговый план рефакторинга (если потребуется)
 
-#### Фаза 1: Разделение UIManager (низкий риск)
+#### ✅ Фаза 1: Разделение UIManager (низкий риск) → **ЗАВЕРШЕНО!**
 
-1. Создать `scripts/ui/` директорию
-2. Вынести компоненты:
+1. ✅ Создана `scripts/ui/` директория
+2. ✅ Вынесены компоненты:
    ```
-   CardUIManager.gd      - управление картами и анимациями
-   ToggleUIManager.gd    - toggles третьих карт
-   MarkerUIManager.gd    - маркеры победителя
-   ButtonUIManager.gd    - кнопки действий
+   CardUIManager.gd      - управление картами и анимациями ✅
+   ToggleUIManager.gd    - toggles третьих карт ✅
+   MarkerUIManager.gd    - маркеры победителя ✅
+   ButtonUIManager.gd    - кнопки действий ✅
+   PayoutToggleManager.gd - переключатели выплат ✅
    ```
-3. UIManager становится фасадом-агрегатором
-4. Каждый компонент эмитит события → UIManager собирает их
+3. ✅ UIManager стал фасадом-агрегатором
+4. ✅ Каждый компонент эмитит события → UIManager пробрасывает их
 
-**Тесты**: Проверить что все сигналы работают, анимации корректны.
+**Результат**: Phase 2 Refactoring завершён в v5.9! Все сигналы работают, анимации корректны.
 
 #### Фаза 2: Декомпозиция GamePhaseManager (средний риск)
 
@@ -1702,14 +1811,19 @@ static func hand_value(hand: Array[Card]) -> int:
 ### 📊 Метрики качества кода
 
 Текущее состояние проекта (v5.9):
-- ✅ **Модульность**: 9/10 (менеджеры хорошо разделены)
-- ⚠️ **Связанность**: 7/10 (GamePhaseManager, UIManager - God Objects)
-- ✅ **Тестируемость**: 8/10 (BaccaratRules легко тестируется)
-- ✅ **Расширяемость**: 9/10 (EventBus позволяет легко добавлять фичи)
-- ✅ **Читаемость**: 9/10 (хорошие комментарии, названия)
-- ✅ **Производительность**: 8/10 (кэширование, pooling)
+- ✅ **Модульность**: 9.5/10 (менеджеры отлично разделены, Phase 2 завершён!)
+- ✅ **Связанность**: 8.5/10 (UIManager рефакторен, остался только GamePhaseManager)
+- ✅ **Тестируемость**: 8/10 (BaccaratRules легко тестируется, DI внедрён в UIManager)
+- ✅ **Расширяемость**: 9/10 (EventBus с 38 сигналами, легко добавлять фичи)
+- ✅ **Читаемость**: 9/10 (отличные комментарии, понятная структура)
+- ✅ **Производительность**: 8.5/10 (кэширование, pooling, 8 колод)
+
+**Достижения v5.9**:
+- ✅ Phase 2 Refactoring завершён (UIManager разбит на 5 специализированных менеджеров)
+- ✅ Dependency Injection внедрён в UIManager
+- ✅ Система камеры с 3 режимами зума
 
 **Цели для будущего**:
-- Разбить God Objects (UIManager → специализированные менеджеры)
-- Ввести Dependency Injection для тестируемости
+- Декомпозиция GamePhaseManager (Phase 2: разбить на HandManager, PhaseCoordinator, ActionValidator)
 - Покрытие тестами 80%+ критичной логики
+- Введение абстрактных интерфейсов для мокирования в тестах

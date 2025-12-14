@@ -404,7 +404,7 @@ func set_random_mode(enabled: bool) -> void:
 
 func set_position_mode(mode: PositionMode) -> void:
 	"""Установить режим позиций фишек"""
-	var old_mode = current_mode
+	var _old_mode = current_mode
 	current_mode = mode
 	print("🎲 ChipVisualManager: режим позиций = %s" % PositionMode.keys()[mode])
 	

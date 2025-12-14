@@ -88,14 +88,14 @@ func _ready():
 	SaveManager.instance.score_game_over.connect(_on_score_game_over)
 
 	if has_node("SettingsScene"):
-		DebugLogger.log_init("SettingsScene найден в сцене!")
+		print("✅ SettingsScene найден в сцене!")
 		settings_scene = get_node("SettingsScene")
 		settings_scene.mode_changed.connect(_on_mode_changed)
 		settings_scene.language_changed.connect(_on_language_changed)
 		settings_scene.survival_mode_changed.connect(_on_survival_mode_changed)
-		DebugLogger.log_init("SettingsScene подключен к GameController")
+		print("✅ SettingsScene подключен к GameController")
 	else:
-		DebugLogger.log_error("SettingsScene НЕ НАЙДЕН в сцене Game.tscn!")
+		print("❌ SettingsScene НЕ НАЙДЕН в сцене Game.tscn!")
 
 	if has_node("SettingsButton"):
 		settings_button = get_node("SettingsButton")
@@ -150,7 +150,7 @@ func _ready():
 		if winner_selection_manager:
 			winner_selection_manager.unlock_markers()
 	else:
-		DebugLogger.log_restore(" Пропускаем GameStateManager.reset() при возврате из PayoutScene")
+		print("♻️  Пропускаем GameStateManager.reset() при возврате из PayoutScene")
 
 	ui_manager.help_popup.hide()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
@@ -158,25 +158,25 @@ func _ready():
 	if is_payout_return:
 		# При возврате - восстанавливаем полный snapshot стола из TableStateManager
 		_restore_chips_from_table_state()  # Восстанавливает ВСЕ фишки + PairBettingManager
-		DebugLogger.log_restore(" Восстановлено состояние из TableStateManager snapshot")
+		print("♻️  Восстановлено состояние из TableStateManager snapshot")
 
 		# Синхронизируем сердечки из GameDataManager обратно в survival_ui
 		if is_survival_mode and survival_ui:
 			var lives_from_payout = GameDataManager.survival_lives
 			survival_ui.set_lives(lives_from_payout)
-			DebugLogger.log("♻️  Синхронизированы сердечки: %d (из PayoutScene)" % lives_from_payout)
+			print("♻️  Синхронизированы сердечки: %d (из PayoutScene)" % lives_from_payout)
 
 		# Восстанавливаем состояние кнопки
 		if ui_manager:
 			ui_manager.set_action_button_state(TableStateManager.action_button_state)
 			# Активируем кнопку при восстановлении (если есть неоплаченные ставки, она будет дезактивирована при попытке завершить)
 			ui_manager.enable_action_button()
-			DebugLogger.log("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
+			print("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
 			
 			# Показываем кнопки Collect/Pay если мы в фазе выплат (победитель уже определён)
 			if TableStateManager.action_button_state == "complete":
 				ui_manager.button_ui.show_collect_pay_buttons()
-				DebugLogger.log_restore(" Показаны кнопки Collect/Pay")
+				print("♻️  Показаны кнопки Collect/Pay")
 	else:
 		# При обычной загрузке - показываем фишки на основе настроек PayoutSettingsManager
 		if chip_visual_manager:
@@ -199,7 +199,7 @@ func _ready():
 					chip_visual_manager.show_chips_realistic("PairBanker")
 					if pair_betting_manager:
 						pair_betting_manager.toggle_pair_banker_bet(true)
-				DebugLogger.log_init("Фишки синхронизированы (REALISTIC режим)")
+				print("✅ Фишки синхронизированы (REALISTIC режим)")
 			else:
 				# Стандартный режим (DEFAULT, RANDOM, MAX)
 				if PayoutSettingsManager.player_payout_enabled:
@@ -216,10 +216,10 @@ func _ready():
 					chip_visual_manager.show_chip("PairBanker")
 					if pair_betting_manager:
 						pair_betting_manager.toggle_pair_banker_bet(true)
-				DebugLogger.log_init("Фишки синхронизированы с настройками")
+				print("✅ Фишки синхронизированы с настройками")
 
 	GameStateManager.state_changed.connect(_on_game_state_changed)
-	DebugLogger.log_game_flow("GameStateManager инициализирован")
+	print("🎮 GameStateManager инициализирован")
 
 	# ← Подписки на новые события EventBus (для Dependency Injection рефакторинга)
 	# camera_zoom_requested и first_deal_completed теперь в CameraManager
@@ -228,7 +228,7 @@ func _ready():
 	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
 	EventBus.card_back_style_changed.connect(_on_card_back_style_changed)
 	EventBus.position_mode_changed.connect(_on_position_mode_changed)
-	DebugLogger.log_init("Подписки на EventBus события установлены (payouts, flags, settings, card backs, position mode)")
+	print("✅ Подписки на EventBus события установлены (payouts, flags, settings, card backs, position mode)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -262,10 +262,10 @@ func _ready():
 		payout_overlay = get_node("PayoutOverlay")
 		payout_overlay.payout_completed.connect(_on_payout_overlay_completed)
 		payout_overlay.hide()  # Убедиться что скрыт
-		DebugLogger.log_init("PayoutOverlay подключен к GameController (overlay режим)")
+		print("✅ PayoutOverlay подключен к GameController (overlay режим)")
 	else:
 		if USE_OVERLAY_PAYOUT:
-			DebugLogger.log_warning(" PayoutOverlay НЕ НАЙДЕН в Game.tscn (но USE_OVERLAY_PAYOUT=true)")
+			print("⚠️  PayoutOverlay НЕ НАЙДЕН в Game.tscn (но USE_OVERLAY_PAYOUT=true)")
 
 func _unhandled_input(event: InputEvent):
 	# Обработка прямых кнопок геймпада (работают параллельно с FocusManager)
@@ -338,7 +338,7 @@ func _on_winner_selected(chosen: String):
 			EventBus.action_error.emit("winner_early", error_msg)
 			# Жизнь отнимается автоматически через EventBus → SurvivalModeUI
 
-		DebugLogger.log("🚫 [НОВАЯ СИСТЕМА] %s" % error_msg)
+		print("🚫 [НОВАЯ СИСТЕМА] %s" % error_msg)
 		return
 
 	var actual = BaccaratRules.get_winner(phase_manager.player_hand, phase_manager.banker_hand)
@@ -478,7 +478,7 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	
 	# ВАЖНО: Обновляем ссылку в phase_manager
 	phase_manager.payout_queue_manager = payout_queue_manager
-	DebugLogger.log_init("Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
+	print("✅ Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
 	
 	# ← Настраиваем менеджер фазы сбора/оплаты с информацией о победителе (БЕЗ инициализации последовательностей)
 	bet_collection_manager.payout_queue_manager = payout_queue_manager
@@ -506,7 +506,7 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	
 	# ⚠️ ВАЖНО: Инициализируем последовательности ПОСЛЕ добавления всех ставок
 	bet_collection_manager.initialize_sequences()
-	DebugLogger.log("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % actual_winner)
+	print("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % actual_winner)
 	
 	# Завершаем подготовку - обновляем видимость и сохраняем состояние
 	_finalize_payouts_manual(actual_winner)
@@ -544,9 +544,9 @@ func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_
 				if banker_value == 6:
 					commission = 0.5
 			payout = stake * commission
-			DebugLogger.log("🏦 Banker выиграл: stake=%.1f, commission=%.2f, payout=%.1f" % [stake, commission, payout])
+			print("🏦 Banker выиграл: stake=%.1f, commission=%.2f, payout=%.1f" % [stake, commission, payout])
 		else:
-			DebugLogger.log("🏦 Banker проиграл: stake=%.1f, payout=0" % stake)
+			print("🏦 Banker проиграл: stake=%.1f, payout=0" % stake)
 		
 		if is_max_mode:
 			# В MAX режиме добавляем ставку для каждой позиции
@@ -606,7 +606,7 @@ func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_
 func _prepare_payouts_realistic(actual_winner: String, player_score: int, banker_score: int) -> void:
 	"""Подготовка выплат в REALISTIC режиме со случайным количеством ставок"""
 	
-	DebugLogger.log_bet("REALISTIC режим: генерируем случайные ставки...")
+	print("🎲 REALISTIC режим: генерируем случайные ставки...")
 	
 	# Очищаем все активные фишки перед созданием новых
 	if chip_visual_manager:
@@ -665,7 +665,7 @@ func _prepare_payouts_realistic(actual_winner: String, player_score: int, banker
 				chip_instance.position_index
 			)
 		
-		DebugLogger.log("  %s: создано %d ставок (won=%s)" % [bet_type, created_chips.size(), won])
+		print("  %s: создано %d ставок (won=%s)" % [bet_type, created_chips.size(), won])
 
 
 func _generate_stake_for_bet_type(bet_type: String) -> float:
@@ -776,7 +776,7 @@ func _update_chip_visibility() -> void:
 					status = "Tie push"
 				else:
 					status = "проигрышная"
-				DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.bet_type, bet.position_index, status])
+				print("💰 Фишка %s[%d] видна (%s)" % [bet.bet_type, bet.position_index, status])
 	else:
 		# Стандартный режим - по одной фишке на тип
 		var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
@@ -806,7 +806,7 @@ func _update_chip_visibility() -> void:
 						status = "Tie push"
 					else:
 						status = "проигрышная"
-					DebugLogger.log("💰 Фишка %s видна (%s)" % [bet_type, status])
+					print("💰 Фишка %s видна (%s)" % [bet_type, status])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ UI СОБЫТИЙ
@@ -833,12 +833,12 @@ func _on_lang_button_pressed():
 func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 	if is_correct:
 		EventBus.payout_correct.emit(collected, expected)
-		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
+		print("✅ Правильно! Выплата: %s" % expected)
 		if is_survival_mode:
 			survival_rounds_completed += 1
 	else:
 		EventBus.payout_wrong.emit(collected, expected)
-		DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
+		print("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
 		# ← Жизни отнимаются в PayoutScene, здесь ничего не делаем
 	if is_correct:
 		phase_manager.reset()
@@ -848,12 +848,12 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_survival_game_over(_rounds: int):
-	DebugLogger.log("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
+	print("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
 
 	# Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
 		payout_overlay.hide()
-		DebugLogger.log_payout("PayoutOverlay закрыт при Game Over")
+		print("💰 PayoutOverlay закрыт при Game Over")
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
@@ -862,12 +862,12 @@ func _on_survival_game_over(_rounds: int):
 	game_over_popup.show_game_over(survival_rounds_completed)
 
 func _on_score_game_over():
-	DebugLogger.log_game_flow("GAME OVER! Очки достигли 0")
+	print("🎮 GAME OVER! Очки достигли 0")
 
 	# Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
 		payout_overlay.hide()
-		DebugLogger.log_payout("PayoutOverlay закрыт при Game Over")
+		print("💰 PayoutOverlay закрыт при Game Over")
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
@@ -880,7 +880,7 @@ func _on_score_game_over():
 	if not SaveManager.instance.load_survival_mode():
 		SaveManager.instance.score = 10
 		SaveManager.instance.save_data()
-		DebugLogger.log("🔄 Очки сброшены на 10 после геймовера")
+		print("🔄 Очки сброшены на 10 после геймовера")
 
 func _on_restart_game():
 	survival_rounds_completed = 0
@@ -901,27 +901,27 @@ func _on_restart_game():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_settings_button_pressed():
-	DebugLogger.log("🔘 Кнопка настроек нажата!")
-	DebugLogger.log("  settings_scene существует: %s" % (settings_scene != null))
+	print("🔘 Кнопка настроек нажата!")
+	print("  settings_scene существует: ", settings_scene != null)
 
 	if settings_scene:
-		DebugLogger.log("  settings_scene.visible = %s" % settings_scene.visible)
+		print("  settings_scene.visible = ", settings_scene.visible)
 		if settings_scene.visible:
-			DebugLogger.log("  → Закрываем настройки")
+			print("  → Закрываем настройки")
 			settings_scene.close_settings()
 		else:
 			if not GameStateManager.can_change_settings():
 				var msg = GameStateManager.get_settings_lock_message()
 				EventBus.show_toast_error.emit(msg)
-				DebugLogger.log("🔒 [НОВАЯ СИСТЕМА] " + msg)
+				print("🔒 [НОВАЯ СИСТЕМА] " + msg)
 				return
-			DebugLogger.log("  → Открываем настройки")
+			print("  → Открываем настройки")
 			settings_scene.open_settings()
 	else:
-		DebugLogger.log("  ❌ ОШИБКА: settings_scene = null!")
+		print("  ❌ ОШИБКА: settings_scene = null!")
 
 func _on_mode_changed(mode: String):
-	DebugLogger.log("Режим игры изменён на: %s" % mode)
+	print("Режим игры изменён на: ", mode)
 	GameModeManager.set_mode(mode)
 	var cfg = GameModeManager.get_config()
 	# ← set_limits() сам вызовет limits_changed.emit() → _on_limits_changed()
@@ -948,11 +948,11 @@ func _on_survival_mode_changed(enabled: bool):
 	if enabled:
 		survival_ui.activate()
 		ui_manager.stats_label.visible = false
-		DebugLogger.log("Режим выживания включён")
+		print("Режим выживания включён")
 	else:
 		survival_ui.deactivate()
 		ui_manager.stats_label.visible = true
-		DebugLogger.log("Режим выживания выключен")
+		print("Режим выживания выключен")
 
 	# ← Обновляем отображение статистики (переключаемся между очками и правильно/ошибки)
 	StatsManager.instance.update_stats()
@@ -972,7 +972,7 @@ func _load_survival_mode_setting():
 func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
 	var new_name = GameStateManager.get_state_name(new_state)
-	DebugLogger.log("📊 [НОВАЯ СИСТЕМА] Состояние: %s → %s" % [old_name, new_name])
+	print("📊 [НОВАЯ СИСТЕМА] Состояние: %s → %s" % [old_name, new_name])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ
@@ -1024,7 +1024,7 @@ func _check_payout_return():
 		var is_manual = context.get("manual_mode", false)
 
 		if is_manual:
-			DebugLogger.log_restore(" Возврат из PayoutScene (ручной режим)")
+			print("♻️  Возврат из PayoutScene (ручной режим)")
 
 			# ═══════════════════════════════════════════════════════════════════
 			# ВОССТАНОВЛЕНИЕ ПОЛНОГО СОСТОЯНИЯ СТОЛА из TableStateManager
@@ -1039,7 +1039,7 @@ func _check_payout_return():
 			# 1. Восстанавливаем карты
 			phase_manager.player_hand = TableStateManager.player_hand.duplicate()
 			phase_manager.banker_hand = TableStateManager.banker_hand.duplicate()
-			DebugLogger.log("♻️  Восстановлены карты: Player=%d, Banker=%d" % [
+			print("♻️  Восстановлены карты: Player=%d, Banker=%d" % [
 				phase_manager.player_hand.size(),
 				phase_manager.banker_hand.size()
 			])
@@ -1057,20 +1057,20 @@ func _check_payout_return():
 				player_third_card,
 				banker_third_card
 			)
-			DebugLogger.log("♻️  GameStateManager обновлен: состояние = %s" % GameStateManager.get_current_state())
+			print("♻️  GameStateManager обновлен: состояние = %s" % GameStateManager.get_current_state())
 
 			# 3. Восстанавливаем маркер победителя
 			var saved_winner = TableStateManager.selected_winner
 			if saved_winner != "" and winner_selection_manager:
 				winner_selection_manager.select_winner(saved_winner)
-				DebugLogger.log("🎯 Восстановлен маркер: %s" % saved_winner)
+				print("🎯 Восстановлен маркер: %s" % saved_winner)
 
 			# 4. Восстанавливаем survival режим
 			survival_rounds_completed = TableStateManager.survival_rounds
 			if survival_ui:
 				survival_ui.is_active = TableStateManager.survival_active
 				survival_ui.set_lives(GameDataManager.survival_lives)  # ← ВАЖНО: GameDataManager, т.к. жизни могли измениться в PayoutScene!
-				DebugLogger.log("♻️  Survival режим восстановлен: жизней=%d, раундов (из GameDataManager)=%d" % [GameDataManager.survival_lives, survival_rounds_completed])
+				print("♻️  Survival режим восстановлен: жизней=%d, раундов (из GameDataManager)=%d" % [GameDataManager.survival_lives, survival_rounds_completed])
 
 			# 5. Восстанавливаем PayoutQueueManager из TableStateManager
 			payout_queue_manager = PayoutQueueManager.new()
@@ -1087,11 +1087,11 @@ func _check_payout_return():
 				if bet_state.is_paid:
 					payout_queue_manager.mark_as_paid(bet_state.bet_type)
 
-			DebugLogger.log("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
+			print("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
 
 			# ← КРИТИЧНО: Обновляем ссылку в phase_manager после восстановления!
 			phase_manager.payout_queue_manager = payout_queue_manager
-			DebugLogger.log_restore(" Ссылка phase_manager.payout_queue_manager обновлена")
+			print("♻️  Ссылка phase_manager.payout_queue_manager обновлена")
 
 			# Обновляем видимость фишек (показываем неоплаченные выигрыши)
 			_update_chip_visibility()
@@ -1103,7 +1103,7 @@ func _check_payout_return():
 
 			if is_correct:
 				EventBus.payout_correct.emit(collected, expected)
-				DebugLogger.log("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
+				print("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
 
 				# Отмечаем ставку как оплаченную в обоих менеджерах
 				payout_queue_manager.mark_as_paid(bet_type)
@@ -1112,10 +1112,10 @@ func _check_payout_return():
 				# Обновляем видимость фишек
 				_update_chip_visibility()
 
-				DebugLogger.log_init("Все выплаты оплачены! Можно начинать новый раунд")
+				print("✅ Все выплаты оплачены! Можно начинать новый раунд")
 			else:
 				EventBus.payout_wrong.emit(collected, expected)
-				DebugLogger.log("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
+				print("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
 
 			# 7. Восстанавливаем камеру на общий план и показываем кнопки областей
 			if camera_manager and camera_manager.camera:
@@ -1123,7 +1123,7 @@ func _check_payout_return():
 				camera_manager.camera.position = general_settings.position
 				camera_manager.camera.zoom = general_settings.zoom
 				camera_manager.set_is_first_deal(false)
-				DebugLogger.log("📷 Камера восстановлена: общий план")
+				print("📷 Камера восстановлена: общий план")
 			
 			# Показываем кнопки областей для выбора следующей области
 			EventBus.area_buttons_visibility_changed.emit(true)
@@ -1149,7 +1149,7 @@ func _check_payout_return():
 			camera_manager.camera.position = general_settings.position
 			camera_manager.camera.zoom = general_settings.zoom
 			camera_manager.set_is_first_deal(false)  # Уже не первая раздача
-			DebugLogger.log("📷 Камера восстановлена: общий план")
+			print("📷 Камера восстановлена: общий план")
 		
 		# Показываем кнопки областей
 		EventBus.area_buttons_visibility_changed.emit(true)
@@ -1161,13 +1161,13 @@ func _check_payout_return():
 		else:
 			survival_ui.hide()
 
-		DebugLogger.log("♻️  Состояние игры восстановлено: rounds=%d, lives=%d, active=%s" % [
+		print("♻️  Состояние игры восстановлено: rounds=%d, lives=%d, active=%s" % [
 			survival_rounds_completed, survival_ui.current_lives, survival_ui.is_active
 		])
 
 		# ← Проверка Game Over в режиме выживания
 		if survival_ui.is_active and survival_ui.current_lives <= 0:
-			DebugLogger.log_game_flow("GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
+			print("🎮 GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
 			_on_survival_game_over(survival_rounds_completed)
 			GameDataManager.clear()
 			return
@@ -1180,12 +1180,12 @@ func _check_payout_return():
 		# Обновляем статистику
 		if is_correct:
 			EventBus.payout_correct.emit(collected, expected)
-			DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
+			print("✅ Правильно! Выплата: %s" % expected)
 			if is_survival_mode:
 				survival_rounds_completed += 1
 		else:
 			EventBus.payout_wrong.emit(collected, expected)
-			DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
+			print("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
 
 		# ═══════════════════════════════════════════════════════════════════
 		# ПРОВЕРКА ОЧЕРЕДИ ВЫПЛАТ
@@ -1195,7 +1195,7 @@ func _check_payout_return():
 			# Есть ещё выплаты в очереди → берём следующую
 			var next_payout = GameDataManager.get_next_payout()
 
-			DebugLogger.log("🔄 Следующая выплата: %s (осталось %d)" % [next_payout.bet_type, GameDataManager.get_queue_size()])
+			print("🔄 Следующая выплата: %s (осталось %d)" % [next_payout.bet_type, GameDataManager.get_queue_size()])
 
 			# Сохраняем данные для PayoutScene
 			GameDataManager.set_payout_data(
@@ -1210,7 +1210,7 @@ func _check_payout_return():
 			get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
 		else:
 			# Очередь пуста → сбрасываем раунд
-			DebugLogger.log_init("Все выплаты обработаны, сброс раунда")
+			print("✅ Все выплаты обработаны, сброс раунда")
 			GameDataManager.clear()
 
 			# Сброс раунда только если последняя выплата была правильной
@@ -1231,7 +1231,7 @@ func _setup_fixed_ui():
 	"""Перемещает UI кнопки в TopUI CanvasLayer чтобы они не зумились"""
 	var top_ui = get_node("TopUI")
 	if not top_ui:
-		DebugLogger.log_warning("TopUI CanvasLayer не найден!")
+		print("⚠️ TopUI CanvasLayer не найден!")
 		return
 
 	# Список кнопок для перемещения
@@ -1254,11 +1254,11 @@ func _setup_fixed_ui():
 			top_ui.add_child(button)
 			# Восстанавливаем позицию
 			button.global_position = global_pos
-			DebugLogger.log("✅ %s перемещён в TopUI" % button_name)
+			print("✅ %s перемещён в TopUI" % button_name)
 		else:
-			DebugLogger.log("⚠️ %s не найден" % button_name)
+			print("⚠️ %s не найден" % button_name)
 
-	DebugLogger.log("📌 UI элементы закреплены (не зумятся с камерой)")
+	print("📌 UI элементы закреплены (не зумятся с камерой)")
 
 
 func camera_zoom_in():
@@ -1306,7 +1306,7 @@ func _setup_chip_visual_manager():
 		chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
 		
 		var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
-		DebugLogger.log("✅ ChipVisualManager инициализирован (position_mode=%s)" % mode_names[mode])
+		print("✅ ChipVisualManager инициализирован (position_mode=%s)" % mode_names[mode])
 	else:
 		push_warning("⚠️  Узлы фишек не найдены в сцене")
 
@@ -1318,20 +1318,20 @@ func _setup_winner_selection_manager():
 	if player_marker and banker_marker:
 		winner_selection_manager.setup(player_marker, banker_marker)
 		winner_selection_manager.winner_toggled.connect(_on_winner_toggled)
-		DebugLogger.log_init("WinnerSelectionManager инициализирован (Player, Banker)")
+		print("✅ WinnerSelectionManager инициализирован (Player, Banker)")
 	else:
 		push_warning("⚠️  Маркеры не найдены в сцене")
 
 func _setup_pair_betting_manager():
 	"""Инициализация PairBettingManager"""
 	pair_betting_manager = PairBettingManager.new()
-	DebugLogger.log_init("PairBettingManager инициализирован")
+	print("✅ PairBettingManager инициализирован")
 
 func _setup_area_buttons():
 	"""Инициализация кнопок областей ставок"""
 	# Кнопки областей уже настроены через скрипт AreaButton.gd
 	# Они подключаются к EventBus автоматически
-	DebugLogger.log_init("Кнопки областей инициализированы")
+	print("✅ Кнопки областей инициализированы")
 
 func _setup_navigation_arrows():
 	"""Инициализация стрелок навигации"""
@@ -1349,7 +1349,7 @@ func _setup_navigation_arrows():
 		# Скрываем стрелки при старте - они появятся только после выбора победителя
 		EventBus.navigation_arrows_visibility_changed.emit(false)
 	
-	DebugLogger.log_init("Стрелки навигации инициализированы")
+	print("✅ Стрелки навигации инициализированы")
 
 func _on_left_arrow_pressed():
 	"""Обработчик нажатия левой стрелки"""
@@ -1361,17 +1361,17 @@ func _on_right_arrow_pressed():
 	EventBus.camera_zoom_requested.emit("next_area")
 	_update_arrows_state()
 
-func _on_arrows_visibility_changed(should_show: bool):
+func _on_arrows_visibility_changed(is_visible: bool):
 	"""Обработчик изменения видимости стрелок"""
 	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
-
+	
 	if left_arrow:
-		left_arrow.visible = should_show
+		left_arrow.visible = is_visible
 	if right_arrow:
-		right_arrow.visible = should_show
-
-	if should_show:
+		right_arrow.visible = is_visible
+	
+	if is_visible:
 		_update_arrows_state()
 
 func _update_arrows_state():
@@ -1402,14 +1402,14 @@ func _restore_chips_from_table_state():
 	- Все фишки (выигравшие и проигравшие) с их текстурами
 	- Затем скрывает проигрышные и оплаченные
 	"""
-	DebugLogger.log_restore(" Восстановление фишек из TableStateManager snapshot...")
+	print("♻️  Восстановление фишек из TableStateManager snapshot...")
 
 	if not chip_visual_manager:
 		push_warning("⚠️  chip_visual_manager is null")
 		return
 
 	if not TableStateManager.has_saved_state():
-		DebugLogger.log_warning(" Нет сохраненного состояния в TableStateManager")
+		print("⚠️  Нет сохраненного состояния в TableStateManager")
 		return
 
 	# Восстанавливаем ВСЕ фишки из сохраненных ставок
@@ -1421,14 +1421,14 @@ func _restore_chips_from_table_state():
 			# Восстанавливаем конкретную текстуру
 			chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
 
-		DebugLogger.log("  → Восстановлена фишка %s (texture=%s)" % [bet.bet_type, bet.chip_texture.get_file() if not bet.chip_texture.is_empty() else "random"])
+		print("  → Восстановлена фишка %s (texture=%s)" % [bet.bet_type, bet.chip_texture.get_file() if not bet.chip_texture.is_empty() else "random"])
 
 	# Применяем логику скрытия проигрышных и оплаченных
 	for bet in TableStateManager.bets:
 		if not bet.won or bet.is_paid:
 			chip_visual_manager.hide_chip(bet.bet_type)
 			var reason = "проигрышная" if not bet.won else "оплаченная"
-			DebugLogger.log("  → Скрыта %s фишка %s" % [reason, bet.bet_type])
+			print("  → Скрыта %s фишка %s" % [reason, bet.bet_type])
 
 	# Синхронизируем PairBettingManager на основе восстановленных ставок
 	if pair_betting_manager:
@@ -1445,7 +1445,7 @@ func _restore_chips_from_table_state():
 		if has_pair_banker:
 			pair_betting_manager.toggle_pair_banker_bet(true)
 
-	DebugLogger.log("♻️  Восстановление фишек завершено (всего: %d)" % TableStateManager.bets.size())
+	print("♻️  Восстановление фишек завершено (всего: %d)" % TableStateManager.bets.size())
 
 
 func _on_payout_setting_changed(bet_type: String, enabled: bool):
@@ -1475,7 +1475,7 @@ func _on_payout_setting_changed(bet_type: String, enabled: bool):
 	elif bet_type == "PairBanker" and pair_betting_manager:
 		pair_betting_manager.toggle_pair_banker_bet(enabled)
 
-	DebugLogger.log("💰 Настройка выплаты изменена: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
+	print("💰 Настройка выплаты изменена: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
 
 func _on_card_back_style_changed(style: String):
 	"""Обработка изменения стиля рубашки карт из SettingsScene
@@ -1489,7 +1489,7 @@ func _on_card_back_style_changed(style: String):
 	# Обновляем все рубашки карт на столе
 	ui_manager.update_all_card_backs()
 
-	DebugLogger.log("🎴 Стиль рубашки карт изменён: %s" % style)
+	print("🎴 Стиль рубашки карт изменён: %s" % style)
 
 
 func _on_position_mode_changed(mode: int):
@@ -1505,7 +1505,7 @@ func _on_position_mode_changed(mode: int):
 	chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
 
 	var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
-	DebugLogger.log("🎲 Режим позиций фишек изменён: %s" % mode_names[mode])
+	print("🎲 Режим позиций фишек изменён: %s" % mode_names[mode])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА СТАВОК И ФИШЕК
@@ -1513,14 +1513,14 @@ func _on_position_mode_changed(mode: int):
 
 func _on_winner_toggled(winner: String, selected: bool):
 	if selected:
-		DebugLogger.log("🎯 Выбран: %s" % winner)
+		print("🎯 Выбран: %s" % winner)
 		# Деактивируем кнопку Игалите когда выбран маркер Player или Banker
 		ui_manager.disable_tie_button()
 		# Отменяем заказ третьих карт при активации маркера
 		if phase_manager:
 			phase_manager.cancel_third_card_orders()
 	else:
-		DebugLogger.log("🎯 Снят выбор: %s" % winner)
+		print("🎯 Снят выбор: %s" % winner)
 		# Активируем кнопку Игалите если ни один маркер не выбран
 		if not winner_selection_manager.is_winner_selected():
 			ui_manager.enable_tie_button()
@@ -1553,7 +1553,7 @@ func _on_chip_clicked(bet_type: String):
 
 func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	"""Обработчик клика на конкретную фишку (с position_index)"""
-	DebugLogger.log("🖱️  Клик на фишку: %s[%d]" % [bet_type, position_index])
+	print("🖱️  Клик на фишку: %s[%d]" % [bet_type, position_index])
 	
 	# Проверяем что менеджеры инициализированы
 	if not payout_queue_manager or not bet_collection_manager:
@@ -1566,7 +1566,7 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	
 	# Если режим не выбран - ничего не делаем
 	if validation.action == "none" and validation.can_proceed:
-		DebugLogger.log("  ⏸️  Режим не выбран, клик игнорируется")
+		print("  ⏸️  Режим не выбран, клик игнорируется")
 		return
 	
 	# Если ошибка валидации - показываем сообщение и штрафуем
@@ -1574,7 +1574,7 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 		var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
 		EventBus.show_toast_error.emit(error_message)
 		EventBus.action_error.emit(validation.error_type, error_message)
-		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+		print("  ❌ Ошибка: %s" % validation.error_message)
 		return
 	
 	# ═══════════════════════════════════════════════════════════════════
@@ -1591,12 +1591,12 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 				chip_visual_manager.hide_chip_instance(bet_type, position_index)
 			else:
 				chip_visual_manager.hide_chip(bet_type)
-		DebugLogger.log("  ✅ Ставка %s[%d] собрана" % [bet_type, position_index])
+		print("  ✅ Ставка %s[%d] собрана" % [bet_type, position_index])
 		
 		# Если кнопка "Завершить" была broken - восстанавливаем
 		if ui_manager.button_ui.is_action_button_broken():
 			ui_manager.enable_action_button()
-			DebugLogger.log("  🔓 Кнопка 'Завершить' восстановлена")
+			print("  🔓 Кнопка 'Завершить' восстановлена")
 		return
 	
 	if validation.action == "pay":
@@ -1633,7 +1633,7 @@ func _show_payout_overlay_instance(bet_type: String, position_index: int, stake:
 		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
 		return
 
-	DebugLogger.log("💰 Показываем PayoutOverlay: %s[%d], stake=%.1f, payout=%.1f" % [bet_type, position_index, stake, payout])
+	print("💰 Показываем PayoutOverlay: %s[%d], stake=%.1f, payout=%.1f" % [bet_type, position_index, stake, payout])
 
 	# Сохраняем position_index для обработчика завершения
 	# (пока используем простой способ - храним в метаданных контекста)
@@ -1654,13 +1654,13 @@ func _open_payout_scene(bet_type: String):
 		push_error("❌ _open_payout_scene: ставка %s не найдена в TableStateManager" % bet_type)
 		return
 
-	DebugLogger.log("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
+	print("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
 
 	# Устанавливаем данные в GameDataManager (PayoutScene читает данные оттуда)
 	GameDataManager.payout_winner = bet_type
 	GameDataManager.payout_stake = bet_data.stake
 	GameDataManager.payout_amount = bet_data.payout
-	DebugLogger.log("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
+	print("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
 
 	# Устанавливаем контекст для PayoutScene через старый PayoutContextManager (для совместимости)
 	PayoutContextManager.set_context({
@@ -1672,31 +1672,31 @@ func _open_payout_scene(bet_type: String):
 	})
 
 	# Передаем состояние режима выживания в GameDataManager
-	DebugLogger.log("🔍 DEBUG _open_payout_scene:")
-	DebugLogger.log("  → is_survival_mode = %s" % is_survival_mode)
-	DebugLogger.log("  → survival_ui exists = %s" % (survival_ui != null))
+	print("🔍 DEBUG _open_payout_scene:")
+	print("  → is_survival_mode = %s" % is_survival_mode)
+	print("  → survival_ui exists = %s" % (survival_ui != null))
 	if survival_ui:
-		DebugLogger.log("  → survival_ui.current_lives = %d" % survival_ui.current_lives)
-	DebugLogger.log("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.survival_lives)
+		print("  → survival_ui.current_lives = %d" % survival_ui.current_lives)
+	print("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.survival_lives)
 
 	var surv_lives = 7  # Значение по умолчанию
 	if is_survival_mode and survival_ui:
 		# Режим выживания активен - берем текущее количество жизней
 		surv_lives = survival_ui.current_lives
-		DebugLogger.log("  → Берем из survival_ui: %d" % surv_lives)
+		print("  → Берем из survival_ui: %d" % surv_lives)
 	elif is_survival_mode:
 		# Режим выживания активен, но survival_ui не инициализирован - берем из GameDataManager
 		surv_lives = GameDataManager.survival_lives
-		DebugLogger.log("  → Берем из GameDataManager: %d" % surv_lives)
+		print("  → Берем из GameDataManager: %d" % surv_lives)
 	else:
-		DebugLogger.log("  → Используем значение по умолчанию: %d" % surv_lives)
+		print("  → Используем значение по умолчанию: %d" % surv_lives)
 
 	GameDataManager.set_game_state(
 		survival_rounds_completed,
 		surv_lives,
 		is_survival_mode
 	)
-	DebugLogger.log("  → ✅ Установлено состояние игры: rounds=%d, lives=%d, survival=%s" % [survival_rounds_completed, surv_lives, is_survival_mode])
+	print("  → ✅ Установлено состояние игры: rounds=%d, lives=%d, survival=%s" % [survival_rounds_completed, surv_lives, is_survival_mode])
 
 	# Переходим к PayoutScene
 	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
@@ -1721,7 +1721,7 @@ func _show_payout_overlay(bet_type: String, stake: float, payout: float):
 		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
 		return
 
-	DebugLogger.log("💰 Показываем PayoutOverlay (overlay режим): %s, stake=%.1f, payout=%.1f" % [bet_type, stake, payout])
+	print("💰 Показываем PayoutOverlay (overlay режим): %s, stake=%.1f, payout=%.1f" % [bet_type, stake, payout])
 
 	# Вызываем метод show_payout() из PayoutOverlay.gd
 	# Overlay сам управляет UI, фишками и валидацией
@@ -1745,19 +1745,19 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 	if payout_overlay and payout_overlay.has_meta("current_position_index"):
 		position_index = payout_overlay.get_meta("current_position_index")
 	
-	DebugLogger.log("💰 Завершена выплата в overlay режиме: bet_type=%s[%d], correct=%s, collected=%.1f, expected=%.1f" % [bet_type, position_index, is_correct, collected, expected])
+	print("💰 Завершена выплата в overlay режиме: bet_type=%s[%d], correct=%s, collected=%.1f, expected=%.1f" % [bet_type, position_index, is_correct, collected, expected])
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ОБРАБОТКА РЕЗУЛЬТАТА (эмитим события как в старом режиме)
 	# ═══════════════════════════════════════════════════════════════════
 	if is_correct:
 		EventBus.payout_correct.emit(collected, expected)
-		DebugLogger.log("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
+		print("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
 
 		# Отмечаем ставку как оплаченную в PayoutQueueManager
 		if payout_queue_manager:
 			payout_queue_manager.mark_as_paid(bet_type, position_index)
-			DebugLogger.log("  ✅ Ставка %s[%d] отмечена как оплаченная" % [bet_type, position_index])
+			print("  ✅ Ставка %s[%d] отмечена как оплаченная" % [bet_type, position_index])
 		
 		# Отмечаем в BetCollectionPhaseManager
 		if bet_collection_manager:
@@ -1770,15 +1770,15 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 				chip_visual_manager.hide_chip_instance(bet_type, position_index)
 			else:
 				chip_visual_manager.hide_chip(bet_type)
-			DebugLogger.log("  🎨 Фишка %s[%d] скрыта" % [bet_type, position_index])
+			print("  🎨 Фишка %s[%d] скрыта" % [bet_type, position_index])
 
 		# Увеличиваем счетчик раундов в survival mode
 		if is_survival_mode:
 			survival_rounds_completed += 1
-			DebugLogger.log("  🎮 Survival: раунд %d завершен" % survival_rounds_completed)
+			print("  🎮 Survival: раунд %d завершен" % survival_rounds_completed)
 	else:
 		EventBus.payout_wrong.emit(collected, expected)
-		DebugLogger.log("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [bet_type, position_index, collected, expected])
+		print("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [bet_type, position_index, collected, expected])
 
 		# Потеря жизни обрабатывается через EventBus в SurvivalUI
 		# (EventBus.payout_wrong → SurvivalUI.lose_life)
@@ -1797,21 +1797,21 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		# Проверка неоплаченных ставок будет при нажатии на кнопку
 		if ui_manager:
 			ui_manager.enable_action_button()
-			DebugLogger.log("  🔓 Кнопка 'Завершить' активирована после оплаты ставки")
+			print("  🔓 Кнопка 'Завершить' активирована после оплаты ставки")
 
 		# Проверяем, остались ли неоплаченные выплаты
 		var has_unpaid = payout_queue_manager.has_unpaid_winnings() if payout_queue_manager else false
 
 		if not has_unpaid:
 			# Все выплаты оплачены → эмитим событие подготовки стола
-			DebugLogger.log("  ✅ Все выплаты оплачены! Стол готов к новой раздаче")
+			print("  ✅ Все выплаты оплачены! Стол готов к новой раздаче")
 			# НЕ скрываем стрелки здесь - они скроются при нажатии "Завершить"
 			# Эмитим событие для разблокировки маркеров и подготовки стола
 			EventBus.table_prepared_for_new_game.emit()
 			# НЕ вызываем phase_manager.reset() в overlay режиме!
 			# Карты остаются на столе, пользователь нажимает "Завершить" для новой раздачи
 		else:
-			DebugLogger.log("  ⏳ Есть еще неоплаченные выплаты, ждем клика на следующую фишку")
+			print("  ⏳ Есть еще неоплаченные выплаты, ждем клика на следующую фишку")
 
 
 func _restore_cards_ui():
@@ -1842,7 +1842,7 @@ func _restore_cards_ui():
 	ui_manager.player_third_toggle.visible = false
 	ui_manager.banker_third_toggle.visible = false
 
-	DebugLogger.log_restore(" Карты восстановлены на UI")
+	print("♻️  Карты восстановлены на UI")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ EVENTBUS (для Dependency Injection рефакторинга Фазы 1)
@@ -1860,4 +1860,4 @@ func _on_table_prepared():
 	if winner_selection_manager:
 		winner_selection_manager.unlock_markers()
 
-	DebugLogger.log_game_flow("Стол подготовлен к новой игре (флаг is_table_prepared установлен, маркеры разблокированы)")
+	print("🎮 Стол подготовлен к новой игре (флаг is_table_prepared установлен, маркеры разблокированы)")

@@ -118,17 +118,17 @@ func _update_score(score: int):
 # НАСТРОЙКА РАЗМЕРА СЕРДЕЧКА
 # ═══════════════════════════════════════════════════════════════════════════
 
-func set_heart_size(size: int):
+func set_heart_size(pixel_size: int):
 	"""Изменить размер сердечка
 
 	Args:
-		size: Новый размер в пикселях
+		pixel_size: Новый размер в пикселях
 
 	Примечание:
 		Вызовите этот метод ПЕРЕД _ready() если хотите изменить размер.
 		Или вызовите после _ready() для динамического изменения.
 	"""
 	if single_heart:
-		single_heart.custom_minimum_size = Vector2(size, size)
+		single_heart.custom_minimum_size = Vector2(pixel_size, pixel_size)
 
-	print("♥️  Размер сердечка изменён на %d px" % size)
+	print("♥️  Размер сердечка изменён на %d px" % pixel_size)

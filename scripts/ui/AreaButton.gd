@@ -62,9 +62,9 @@ func _on_pressed() -> void:
 	# Показываем стрелки навигации
 	EventBus.navigation_arrows_visibility_changed.emit(true)
 
-func _on_visibility_changed(is_visible: bool) -> void:
+func _on_visibility_changed(should_show: bool) -> void:
 	"""Обработка изменения видимости всех кнопок областей"""
-	visible = is_visible
-	if not is_visible:
+	visible = should_show
+	if not should_show:
 		# Сбрасываем прозрачность при скрытии
 		modulate.a = normal_alpha

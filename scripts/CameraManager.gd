@@ -148,8 +148,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 	
 	# Сигнал завершения после окончания анимации
 	tween.finished.connect(func(): zoom_completed.emit(zoom_type))
-	
-	var settings = config.get_settings_by_type(zoom_type)
+
+	var _settings = config.get_settings_by_type(zoom_type)
 	print("📷 CameraManager: %s (zoom %.1f, pos %s)" % [
 		_get_zoom_name(zoom_type), 
 		target_zoom.x,

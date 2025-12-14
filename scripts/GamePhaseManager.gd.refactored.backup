@@ -196,44 +196,168 @@ func _should_banker_draw() -> bool:
 func on_action_pressed():
 	DebugLogger.log_separator()
 	DebugLogger.log_game_flow("on_action_pressed() вызван")
+
+	# Проверяем флаг подготовки
 	DebugLogger.log("  → is_table_prepared = %s" % is_table_prepared)
 
-	# ═══════════════════════════════════════════════════════════════════
-	# GUARD CLAUSE 1: Подготовка к новой игре
-	# ═══════════════════════════════════════════════════════════════════
+	# ВАЖНО: Проверяем флаг подготовки ДО определения состояния
 	if is_table_prepared:
-		DebugLogger.log_separator("ФЛАГ УСТАНОВЛЕН → вызываем deal_first_four()")
+		DebugLogger.log_separator()
+		DebugLogger.log("  → ✅ ФЛАГ УСТАНОВЛЕН → вызываем deal_first_four()")
+		DebugLogger.log_separator()
 		deal_first_four()
 		return
+	else:
+		DebugLogger.log("  → Флаг НЕ установлен, продолжаем обычную логику")
 
-	DebugLogger.log("  → Флаг НЕ установлен, продолжаем обычную логику")
 	var state = GameStateManager.get_current_state()
 	DebugLogger.log("  → Текущее состояние: %s" % state)
 
-	# ═══════════════════════════════════════════════════════════════════
-	# GUARD CLAUSE 2: Начало игры
-	# ═══════════════════════════════════════════════════════════════════
 	if state == GameStateManager.GameState.WAITING:
 		deal_first_four()
 		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# GUARD CLAUSE 3: Валидация банкира после третьей игрока
-	# ═══════════════════════════════════════════════════════════════════
+	
 	if state == GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER:
 		_validate_banker_after_player()
 		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# CHOOSE_WINNER: Основная логика выбора победителя и завершения
-	# ═══════════════════════════════════════════════════════════════════
+	
+	# Обработка состояния финала (состояние №6)
 	if state == GameStateManager.GameState.CHOOSE_WINNER:
-		_handle_choose_winner_state()
+		# Проверяем, пытается ли игрок заказать карты в финале
+		if player_third_selected or banker_third_selected:
+			# Проверяем, действительно ли это натуральная победа (первые две карты дают 8 или 9)
+			var player_first_two = BaccaratRules.hand_value([player_hand[0], player_hand[1]])
+			var banker_first_two = BaccaratRules.hand_value([banker_hand[0], banker_hand[1]])
+			var is_natural = player_first_two >= 8 or banker_first_two >= 8
+			
+			if is_natural:
+				EventBus.show_toast_error.emit(Localization.t("ERR_NATURAL_NO_DRAW"))
+			else:
+				EventBus.show_toast_error.emit(Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER"))
+			
+			EventBus.action_error.emit("final_card_error", "")
+			# Сбрасываем галочки
+			player_third_selected = false
+			banker_third_selected = false
+			ui.update_player_third_card_ui("?")
+			ui.update_banker_third_card_ui("?")
+			return
+
+		# Проверяем состояние кнопки: если "complete" - значит победитель уже выбран
+		var button_state = ui.get_action_button_state()
+
+		# Если кнопка НЕ в состоянии "complete" - значит нужно выбрать победителя
+		if button_state != "complete":
+			# Первое нажатие - выбираем победителя
+			_validate_winner_selection()
+			# После успешной валидации кнопка станет "complete"
+			# Формируется очередь выплат через EventBus (асинхронно)
+			return
+
+		# Кнопка в состоянии "complete" - победитель уже выбран, очередь сформирована
+		# ═══════════════════════════════════════════════════════════════════
+		# ВАЛИДАЦИЯ ЧЕРЕЗ BetCollectionPhaseManager (если доступен)
+		# ═══════════════════════════════════════════════════════════════════
+		if bet_collection_manager:
+			var completion_check = bet_collection_manager.can_complete_round()
+			if not completion_check.can:
+				# Показываем соответствующее сообщение об ошибке
+				var error_key = completion_check.error_key
+				EventBus.show_toast_error.emit(Localization.t(error_key))
+				EventBus.action_error.emit("incomplete_bets", error_key)
+				# Дезактивируем кнопку "Завершить"
+				ui.disable_action_button()
+				DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (причины: %s)" % str(completion_check.reasons))
+				return
+		else:
+			# Fallback: старая логика без bet_collection_manager
+			# Проверяем, есть ли неоплаченные выплаты
+			if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
+				var unpaid_count = payout_queue_manager.get_unpaid_count()
+				EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS"))
+				EventBus.action_error.emit("unpaid_bets", "")
+				# Дезактивируем кнопку "Завершить" пока есть неоплаченные ставки
+				ui.disable_action_button()
+				DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (неоплаченных ставок: %d)" % unpaid_count)
+				return
+
+		# Нет неоплаченных выплат (либо все оплачены, либо нет выигравших, либо нет ставок вообще)
+		# → завершаем раунд
+		DebugLogger.log_separator()
+		DebugLogger.log("🔍 DEBUG: Проверка завершения раунда")
+		if not payout_queue_manager:
+			DebugLogger.log("  ❌ payout_queue_manager == null")
+			DebugLogger.log_init("НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
+			EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
+		elif not payout_queue_manager.has_any_payouts():
+			# Нет ставок вообще → показываем "Нет активных ставок"
+			DebugLogger.log("  📊 Ставок в очереди: 0")
+			DebugLogger.log_init("НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
+			EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
+		elif not payout_queue_manager.has_unpaid_winnings():
+			# Все выплаты оплачены (или не было выигрышных)
+			var total_bets = payout_queue_manager.bets.size()
+			var has_winning = payout_queue_manager.has_any_winning_bets()
+			DebugLogger.log("  📊 Всего ставок: %d, Есть выигрышные: %s" % [total_bets, has_winning])
+			# ВАЖНО: Проверяем сначала, были ли выигрышные ставки (даже если оплачены)
+			if has_winning:
+				# Были выигрышные ставки и все оплачены → показываем "Все ставки выплачены"
+				DebugLogger.log_init("ВСЕ СТАВКИ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
+				EventBus.show_toast_info.emit(Localization.t("ALL_BETS_PAID"))
+			else:
+				# Были ставки, но все проиграли (нет выигрышных) → показываем "Ставки не сыграли"
+				DebugLogger.log_init("НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
+				EventBus.show_toast_info.emit(Localization.t("NO_WINNING_BETS"))
+		else:
+			# Есть неоплаченные выплаты (не должно попадать сюда, но на всякий случай)
+			DebugLogger.log_warning(" ЕСТЬ НЕОПЛАЧЕННЫЕ ВЫПЛАТЫ → НЕ ЗАВЕРШАЕМ РАУНД")
+		DebugLogger.log_separator()
+		# Продолжаем к коду завершения раунда ниже
+
+		# Все выплаты оплачены (или нет выигравших) → подготовка к новой игре
+		DebugLogger.log_separator()
+		DebugLogger.log_init("ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
+		DebugLogger.log_separator()
+		DebugLogger.log("  → Выполняем camera_zoom_out()")
+
+		# Зумаут камеры на общий план
+		EventBus.camera_zoom_requested.emit("out")
+		DebugLogger.log("  → ✅ Камера отзумлена на общий план")
+		
+		# Скрываем кнопки областей и стрелки навигации
+		EventBus.area_buttons_visibility_changed.emit(false)
+		EventBus.navigation_arrows_visibility_changed.emit(false)
+		DebugLogger.log("  → ✅ Кнопки областей и стрелки скрыты")
+
+		# Начисляем +1 очко за успешное завершение игры (в режиме без сердечек)
+		if not SaveManager.instance.load_survival_mode():
+			SaveManager.instance.add_score(1)
+			# Обновляем отображение статистики
+			if StatsManager.instance:
+				StatsManager.instance.update_stats()
+			DebugLogger.log("  → ✅ +1 очко за завершение игры")
+		
+		DebugLogger.log("  → Вызываем reset(false) - сброс БЕЗ обновления состояния")
+		# Сброс раунда (карты, маркеры, TableStateManager)
+		reset(false)  # НЕ обновляем GameStateManager
+		DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
+
+		# Восстанавливаем видимость активных фишек для следующей игры
+		if chip_visual_manager:
+			_restore_active_bet_chips()
+			DebugLogger.log("  → ✅ Активные фишки восстановлены")
+
+		DebugLogger.log("  → Устанавливаем флаг is_table_prepared = true")
+		# Устанавливаем флаг подготовки к новой игре
+		is_table_prepared = true
+		DebugLogger.log("  → ✅ Флаг is_table_prepared установлен!")
+		DebugLogger.log("  → Следующее нажатие 'Карты' начнет новую раздачу")
+
+		DebugLogger.log_separator()
+		DebugLogger.log_init("ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
+		DebugLogger.log_separator()
 		return
 
-	# ═══════════════════════════════════════════════════════════════════
-	# FALLBACK: Валидация и раздача третьих карт
-	# ═══════════════════════════════════════════════════════════════════
 	_validate_and_execute_third_cards()
 
 
@@ -622,158 +746,3 @@ func _format_victory_toast(winner: String) -> String:
 		loser_score = player_score
 
 	return "Выиграл %s: %d vs %d" % [winner_text, winner_score, loser_score]
-
-# ═══════════════════════════════════════════════════════════════════════════
-# РЕФАКТОРЕННЫЕ HELPER МЕТОДЫ (из on_action_pressed)
-# ═══════════════════════════════════════════════════════════════════════════
-
-func _handle_choose_winner_state() -> void:
-	"""Обработка состояния CHOOSE_WINNER (выбор победителя и завершение раунда)
-
-	Рефакторенная версия с guard clauses для уменьшения вложенности.
-	Было: 6+ уровней вложенности, 134 строки
-	Стало: 2-3 уровня вложенности, разбито на методы
-	"""
-
-	# GUARD 1: Ошибочная попытка заказать карты в финале
-	if player_third_selected or banker_third_selected:
-		_handle_invalid_card_selection_in_final()
-		return
-
-	# GUARD 2: Первое нажатие - выбор победителя
-	var button_state = ui.get_action_button_state()
-	if button_state != "complete":
-		_validate_winner_selection()
-		return
-
-	# GUARD 3: Проверка завершения раунда (неоплаченные ставки)
-	if not _can_complete_round():
-		return  # Сообщение об ошибке показано в _can_complete_round()
-
-	# Все проверки пройдены → завершаем раунд
-	_complete_round_and_prepare_new_game()
-
-
-func _handle_invalid_card_selection_in_final() -> void:
-	"""Обработка ошибочной попытки заказать карты когда все карты открыты"""
-
-	var player_first_two = BaccaratRules.hand_value([player_hand[0], player_hand[1]])
-	var banker_first_two = BaccaratRules.hand_value([banker_hand[0], banker_hand[1]])
-	var is_natural = player_first_two >= 8 or banker_first_two >= 8
-
-	var error_message = Localization.t("ERR_NATURAL_NO_DRAW") if is_natural else Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER")
-	EventBus.show_toast_error.emit(error_message)
-	EventBus.action_error.emit("final_card_error", "")
-
-	# Сбрасываем галочки
-	player_third_selected = false
-	banker_third_selected = false
-	ui.update_player_third_card_ui("?")
-	ui.update_banker_third_card_ui("?")
-
-
-func _can_complete_round() -> bool:
-	"""Проверка возможности завершения раунда (нет неоплаченных ставок)
-
-	Returns:
-		true если раунд можно завершить, false если есть неоплаченные ставки
-	"""
-
-	# Проверка через BetCollectionPhaseManager (приоритет)
-	if bet_collection_manager:
-		var completion_check = bet_collection_manager.can_complete_round()
-		if not completion_check.can:
-			var error_key = completion_check.error_key
-			EventBus.show_toast_error.emit(Localization.t(error_key))
-			EventBus.action_error.emit("incomplete_bets", error_key)
-			ui.disable_action_button()
-			DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (причины: %s)" % str(completion_check.reasons))
-			return false
-		return true
-
-	# Fallback: старая логика без bet_collection_manager
-	if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
-		var unpaid_count = payout_queue_manager.get_unpaid_count()
-		EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS"))
-		EventBus.action_error.emit("unpaid_bets", "")
-		ui.disable_action_button()
-		DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (неоплаченных ставок: %d)" % unpaid_count)
-		return false
-
-	return true
-
-
-func _complete_round_and_prepare_new_game() -> void:
-	"""Завершение раунда и подготовка к новой игре
-
-	Выполняет:
-	1. Показ сообщения о завершении (зависит от результата ставок)
-	2. Зум камеры на общий план
-	3. Начисление очков
-	4. Сброс раунда
-	5. Восстановление фишек
-	6. Установка флага подготовки
-	"""
-
-	# Показываем сообщение о завершении
-	_show_round_completion_message()
-
-	DebugLogger.log_separator("ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
-
-	# Зумаут камеры на общий план
-	EventBus.camera_zoom_requested.emit("out")
-	EventBus.area_buttons_visibility_changed.emit(false)
-	EventBus.navigation_arrows_visibility_changed.emit(false)
-	DebugLogger.log("  → ✅ Камера отзумлена, кнопки областей скрыты")
-
-	# Начисляем +1 очко (только в режиме без сердечек)
-	if not SaveManager.instance.load_survival_mode():
-		SaveManager.instance.add_score(1)
-		if StatsManager.instance:
-			StatsManager.instance.update_stats()
-		DebugLogger.log("  → ✅ +1 очко за завершение игры")
-
-	# Сброс раунда БЕЗ обновления GameStateManager
-	reset(false)
-	DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
-
-	# Восстанавливаем видимость активных фишек
-	if chip_visual_manager:
-		_restore_active_bet_chips()
-		DebugLogger.log("  → ✅ Активные фишки восстановлены")
-
-	# Устанавливаем флаг подготовки к новой игре
-	is_table_prepared = true
-	DebugLogger.log_separator("ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
-
-
-func _show_round_completion_message() -> void:
-	"""Показ сообщения о завершении раунда (зависит от результата ставок)"""
-
-	DebugLogger.log_separator("Проверка завершения раунда")
-
-	# Нет payout_queue_manager
-	if not payout_queue_manager:
-		DebugLogger.log_init("НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
-		return
-
-	# Нет ставок вообще
-	if not payout_queue_manager.has_any_payouts():
-		DebugLogger.log_init("НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
-		return
-
-	# Есть ставки - проверяем результат
-	if payout_queue_manager.has_unpaid_winnings():
-		DebugLogger.log_warning("⚠️ ЕСТЬ НЕОПЛАЧЕННЫЕ ВЫПЛАТЫ → НЕ ЗАВЕРШАЕМ РАУНД")
-		return
-
-	# Все выплаты оплачены
-	var has_winning = payout_queue_manager.has_any_winning_bets()
-	if has_winning:
-		DebugLogger.log_init("ВСЕ СТАВКИ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("ALL_BETS_PAID"))
-	else:
-		DebugLogger.log_init("НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("NO_WINNING_BETS"))
