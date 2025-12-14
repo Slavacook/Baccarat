@@ -178,8 +178,9 @@ signal table_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int,
 signal life_loss_requested()
 
 ## Игрок потерял жизнь
+## Args: remaining_lives - оставшееся количество жизней
 @warning_ignore("unused_signal")
-signal life_lost()
+signal life_lost(remaining_lives: int)
 
 ## Игра окончена (game over)
 @warning_ignore("unused_signal")

@@ -85,3 +85,10 @@ const PAYOUT_TOGGLE_COLOR_PLAYER: Color = Color(0.2, 0.4, 0.9, 1.0)   # Сини
 const PAYOUT_TOGGLE_COLOR_BANKER: Color = Color(0.9, 0.2, 0.2, 1.0)   # Красный (Banker)
 const PAYOUT_TOGGLE_COLOR_TIE: Color = Color(0.2, 0.9, 0.4, 1.0)      # Зелёный (Tie)
 const PAYOUT_TOGGLE_DISABLED_ALPHA: float = 0.4                        # Прозрачность выключенного toggle
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПОДСКАЗКА (HINT SYSTEM)
+# ═══════════════════════════════════════════════════════════════════════════
+
+const MIN_LIVES_FOR_HINT: int = 2        # Минимум жизней для использования подсказки (survival mode)
+const HINT_COST_SCORE: int = 5           # Стоимость подсказки в очках (normal mode)

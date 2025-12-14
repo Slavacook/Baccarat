@@ -7,3 +7,6 @@ res://scripts/DebugLogger.gd
 res://scripts/CameraManager.gd
 res://scripts/PayoutSurvivalInfo.gd
 res://scripts/ui/AreaButton.gd
+res://scripts/SurvivalModeUI.gd
+res://scripts/autoload/EventBus.gd
+res://scripts/GameConstants.gd

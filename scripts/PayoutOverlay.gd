@@ -57,6 +57,10 @@ var expected_payout: float = 0.0    # Ожидаемая выплата
 var is_button_blocked: bool = false # Блокировка кнопки при ошибке
 var hint_purchased: bool = false   # Флаг покупки подсказки (для текущего окна выплат)
 
+# ← Состояние игры (передаётся через show_payout(), без get_parent())
+var is_survival_mode: bool = false  # Режим выживания
+var current_lives: int = 7          # Текущее количество жизней (для survival mode)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -74,6 +78,7 @@ func _ready():
 	# Подписываемся на потерю жизни для обновления сердечек
 	EventBus.payout_wrong.connect(_on_payout_wrong_event)
 	EventBus.hint_used.connect(_on_hint_used_event)
+	EventBus.life_lost.connect(_on_life_lost)
 
 	# Получаем номиналы фишек
 	_update_chip_denominations()
@@ -176,9 +181,9 @@ func _on_payout_pressed():
 	if is_button_blocked:
 		return
 
-	var collected_total = stack_manager.get_total()
+	var collected_total: float = stack_manager.get_total()
 
-	var is_correct = validator.validate(collected_total, expected_payout)
+	var is_correct: bool = validator.validate(collected_total, expected_payout)
 
 	if is_correct:
 		# ← Правильная выплата
@@ -196,7 +201,7 @@ func _on_payout_pressed():
 func _on_hint_pressed():
 	# Если подсказка еще не куплена, проверяем доступность и покупаем
 	if not hint_purchased:
-		var hint_check = _check_hint_availability()
+		var hint_check: Dictionary = _check_hint_availability()
 		if not hint_check.can_use:
 			# Показываем сообщение об ошибке внутри окна выплат
 			_show_hint_error_message(Localization.t(hint_check.error_key))
@@ -225,12 +230,12 @@ func _apply_hint():
 	stack_manager.clear_all()
 
 	# Рассчитываем оптимальное распределение фишек
-	var hint = validator.calculate_hint(expected_payout, chip_denominations)
+	var hint: Array = validator.calculate_hint(expected_payout, chip_denominations)
 
 	# Добавляем фишки согласно подсказке
 	for item in hint:
-		var denomination = item["denomination"]
-		var count = item["count"]
+		var denomination: float = item["denomination"]
+		var count: int = item["count"]
 
 		for i in range(count):
 			stack_manager.add_chip(denomination)
@@ -261,7 +266,7 @@ func _setup_styles():
 	stake_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))  # Золотистый
 
 	# === ПАНЕЛЬ СУММЫ (AmountPanel) ===
-	var amount_style = StyleBoxFlat.new()
+	var amount_style: StyleBoxFlat = StyleBoxFlat.new()
 	amount_style.bg_color = GameConstants.AMOUNT_PANEL_BG_COLOR
 	amount_style.border_width_left = 2
 	amount_style.border_width_top = 2
@@ -282,7 +287,7 @@ func _setup_styles():
 	payout_button.text = "Выплатить"
 	payout_button.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_PAYOUT_BUTTON)
 
-	var payout_style_normal = StyleBoxFlat.new()
+	var payout_style_normal: StyleBoxFlat = StyleBoxFlat.new()
 	payout_style_normal.bg_color = Color(0.15, 0.6, 0.3)  # Зелёная
 	payout_style_normal.border_width_left = 3
 	payout_style_normal.border_width_top = 3
@@ -295,7 +300,7 @@ func _setup_styles():
 	payout_style_normal.corner_radius_bottom_right = 8
 	payout_button.add_theme_stylebox_override("normal", payout_style_normal)
 
-	var payout_style_hover = StyleBoxFlat.new()
+	var payout_style_hover: StyleBoxFlat = StyleBoxFlat.new()
 	payout_style_hover.bg_color = Color(0.2, 0.7, 0.4)
 	payout_style_hover.border_width_left = 3
 	payout_style_hover.border_width_top = 3
@@ -326,9 +331,9 @@ func _update_hint_button_style(purchased: bool):
 	"""
 	if not hint_button:
 		return
-	
-	var hint_style_normal = StyleBoxFlat.new()
-	var hint_style_hover = StyleBoxFlat.new()
+
+	var hint_style_normal: StyleBoxFlat = StyleBoxFlat.new()
+	var hint_style_hover: StyleBoxFlat = StyleBoxFlat.new()
 	
 	if purchased:
 		# Зеленая кнопка (куплена)
@@ -365,7 +370,7 @@ func _update_hint_button_style(purchased: bool):
 	hint_button.add_theme_color_override("font_color", Color(1, 1, 1))
 
 	# === ГЛАВНАЯ ПАНЕЛЬ (MainPanel - стопки фишек) ===
-	var main_style = StyleBoxFlat.new()
+	var main_style: StyleBoxFlat = StyleBoxFlat.new()
 	main_style.bg_color = GameConstants.MAIN_PANEL_BG_COLOR
 	main_style.border_width_left = 2
 	main_style.border_width_top = 2
@@ -385,7 +390,7 @@ func _update_hint_button_style(purchased: bool):
 	chip_stacks_container.add_theme_constant_override("separation", 5)  # ← Уменьшили с 10 до 5
 
 	# === ПАНЕЛЬ ФЛОТА (FleetPanel - кнопки фишек) ===
-	var fleet_style = StyleBoxFlat.new()
+	var fleet_style: StyleBoxFlat = StyleBoxFlat.new()
 	fleet_style.bg_color = GameConstants.FLEET_PANEL_BG_COLOR
 	fleet_style.border_width_left = 2
 	fleet_style.border_width_top = 2
@@ -408,14 +413,14 @@ func _create_chip_buttons():
 		child.queue_free()
 
 	for denomination in chip_denominations:
-		var button = TextureButton.new()
+		var button: TextureButton = TextureButton.new()
 		button.custom_minimum_size = GameConstants.CHIP_BUTTON_SIZE
 		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
 
 		# Загружаем текстуру фишки
-		var denom_str = str(int(denomination)) if denomination >= 1 else str(denomination)
-		var chip_path = GameConstants.CHIP_TEXTURE_PATH_TEMPLATE % denom_str
-		var texture = load(chip_path)
+		var denom_str: String = str(int(denomination)) if denomination >= 1 else str(denomination)
+		var chip_path: String = GameConstants.CHIP_TEXTURE_PATH_TEMPLATE % denom_str
+		var texture: Texture2D = load(chip_path)
 		if texture:
 			button.texture_normal = texture
 		else:
@@ -462,27 +467,14 @@ func _update_score_display():
 
 	DebugLogger.log("🔍 DEBUG: survival_info существует")
 
-	# Получаем GameController (PayoutOverlay это child узел Game)
-	var game_controller = get_parent()
-	if not game_controller:
-		push_error("❌ GameController (parent) не найден")
-		return
-
-	DebugLogger.log("🔍 DEBUG: GameController найден")
-
-	var is_survival = game_controller.is_survival_mode
-	var current_lives = 7  # Значение по умолчанию
-	if is_survival and game_controller.survival_ui:
-		current_lives = game_controller.survival_ui.current_lives
-		DebugLogger.log("🔍 DEBUG: survival_ui.current_lives = %d" % current_lives)
-
-	var current_score = SaveManager.instance.score
-	DebugLogger.log("🔍 DEBUG: вызываем survival_info.update_display(%s, %d, %d)" % [is_survival, current_lives, current_score])
+	# Используем сохранённые переменные вместо get_parent()
+	var current_score: int = SaveManager.instance.score
+	DebugLogger.log("🔍 DEBUG: вызываем survival_info.update_display(%s, %d, %d)" % [is_survival_mode, current_lives, current_score])
 
 	# Обновляем компонент
-	survival_info.update_display(is_survival, current_lives, current_score)
+	survival_info.update_display(is_survival_mode, current_lives, current_score)
 
-	DebugLogger.log("✅ PayoutSurvivalInfo обновлен: survival=%s, lives=%d, score=%d" % [is_survival, current_lives, current_score])
+	DebugLogger.log("✅ PayoutSurvivalInfo обновлен: survival=%s, lives=%d, score=%d" % [is_survival_mode, current_lives, current_score])
 
 func _format_amount(amount: float) -> String:
 	if amount == floor(amount):
@@ -498,21 +490,16 @@ func _show_hint_error_message(message: String):
 # ← Показать сообщение об успешном использовании подсказки
 func _show_hint_success_message():
 	"""Показать сообщение об успешном использовании подсказки"""
-	var game_controller = get_parent()
-	if not game_controller:
-		return
-	
-	var is_survival = game_controller.is_survival_mode
+	# Используем сохранённую переменную вместо get_parent()
 	var message: String
-	
-	if is_survival:
+
+	if is_survival_mode:
 		# Режим выживания: показываем "-1 Сердце"
 		message = Localization.t("HINT_USED_HEART")
 	else:
-		# Обычный режим: показываем "-5 очков" (цена подсказки = 5 очков)
-		var hint_cost = 5
-		message = Localization.t("HINT_USED_SCORE", [hint_cost])
-	
+		# Обычный режим: показываем стоимость подсказки
+		message = Localization.t("HINT_USED_SCORE", [GameConstants.HINT_COST_SCORE])
+
 	# Показываем сообщение зеленым цветом
 	_show_feedback_message(message, Color(0.2, 0.9, 0.2), 2.0)
 
@@ -543,8 +530,8 @@ func _show_feedback_message(message: String, color: Color, duration: float = 2.0
 	
 	# Настраиваем позицию контейнера
 	# Начальная позиция: ниже (будет двигаться вверх)
-	var start_y = -100
-	var end_y = -180  # Конечная позиция выше
+	var start_y: float = -100.0
+	var end_y: float = -180.0  # Конечная позиция выше
 	
 	# Начальное состояние: резко появляется (сразу видимая) и в начальной позиции
 	feedback_container.modulate.a = 1.0  # Резко появляется, без fade in
@@ -552,9 +539,9 @@ func _show_feedback_message(message: String, color: Color, duration: float = 2.0
 	
 	# Показываем контейнер
 	feedback_container.visible = true
-	
+
 	# Создаём плавную анимацию (вся анимация 1 секунда)
-	var tween = create_tween()
+	var tween: Tween = create_tween()
 	tween.set_parallel(true)
 	
 	# Движение вверх на протяжении всей анимации (1 сек)
@@ -574,34 +561,26 @@ func _show_feedback_message(message: String, color: Color, duration: float = 2.0
 # ← Проверка доступности подсказки
 func _check_hint_availability() -> Dictionary:
 	"""Проверяет, можно ли использовать подсказку
-	
+
 	Возвращает словарь с полями:
 	- can_use: bool - можно ли использовать
 	- error_key: String - ключ сообщения об ошибке (если can_use = false)
-	
-	В режиме выживания: нужно минимум 2 жизни (1 для использования, 1 чтобы не было геймовера)
-	В обычном режиме: нужно минимум 5 очков
+
+	В режиме выживания: нужно минимум MIN_LIVES_FOR_HINT жизней
+	В обычном режиме: нужно минимум HINT_COST_SCORE очков
 	"""
-	var game_controller = get_parent()
-	if not game_controller:
-		return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
-	
-	var is_survival = game_controller.is_survival_mode
-	
-	if is_survival:
+	# Используем сохранённые переменные вместо get_parent()
+	if is_survival_mode:
 		# Режим выживания: проверяем жизни
-		if game_controller.survival_ui:
-			var lives = game_controller.survival_ui.current_lives
-			# Нужно минимум 2 жизни (1 для использования, 1 чтобы не было геймовера)
-			if lives < 2:
-				return {"can_use": false, "error_key": "ERR_HINT_NO_HEARTS"}
-			return {"can_use": true, "error_key": ""}
-		return {"can_use": false, "error_key": "ERR_HINT_NO_HEARTS"}
+		# Нужно минимум MIN_LIVES_FOR_HINT жизней (1 для использования, 1 чтобы не было геймовера)
+		if current_lives < GameConstants.MIN_LIVES_FOR_HINT:
+			return {"can_use": false, "error_key": "ERR_HINT_NO_HEARTS"}
+		return {"can_use": true, "error_key": ""}
 	else:
 		# Обычный режим: проверяем очки
-		var score = SaveManager.instance.score
-		# Нужно минимум 5 очков
-		if score < 5:
+		var score: int = SaveManager.instance.score
+		# Нужно минимум HINT_COST_SCORE очков
+		if score < GameConstants.HINT_COST_SCORE:
 			return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
 		return {"can_use": true, "error_key": ""}
 
@@ -633,10 +612,10 @@ func _show_error_animation(_collected: float):
 	_show_error_image()
 
 	# Анимация тряски кнопки
-	var tween = create_tween()
-	var original_pos = payout_button.position
-	var shake = GameConstants.SHAKE_OFFSET
-	var dur = GameConstants.SHAKE_DURATION
+	var tween: Tween = create_tween()
+	var original_pos: Vector2 = payout_button.position
+	var shake: float = GameConstants.SHAKE_OFFSET
+	var dur: float = GameConstants.SHAKE_DURATION
 	tween.tween_property(payout_button, "position:x", original_pos.x + shake, dur)
 	tween.tween_property(payout_button, "position:x", original_pos.x - shake, dur)
 	tween.tween_property(payout_button, "position:x", original_pos.x + shake, dur)
@@ -666,7 +645,7 @@ func _show_success_image():
 	success_image.visible = true
 	
 	# Анимация fade in (без зума)
-	var tween = create_tween()
+	var tween: Tween = create_tween()
 	tween.tween_property(success_image, "modulate:a", 1.0, 0.3)
 
 func _hide_success_image():
@@ -675,10 +654,10 @@ func _hide_success_image():
 		return
 	
 	# Сохраняем оригинальную позицию
-	var original_position = success_image.position
-	
+	var original_position: Vector2 = success_image.position
+
 	# Анимация fade out с движением вверх
-	var tween = create_tween()
+	var tween: Tween = create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(success_image, "modulate:a", 0.0, 0.2)
 	tween.tween_property(success_image, "position:y", original_position.y - 30.0, 0.2)
@@ -698,7 +677,7 @@ func _show_error_image():
 	error_image.visible = true
 	
 	# Анимация fade in (без зума)
-	var tween = create_tween()
+	var tween: Tween = create_tween()
 	tween.tween_property(error_image, "modulate:a", 1.0, 0.3)
 
 func _hide_error_image():
@@ -707,10 +686,10 @@ func _hide_error_image():
 		return
 	
 	# Сохраняем оригинальную позицию
-	var original_position = error_image.position
-	
+	var original_position: Vector2 = error_image.position
+
 	# Анимация fade out с движением вверх
-	var tween = create_tween()
+	var tween: Tween = create_tween()
 	tween.set_parallel(true)
 	tween.tween_property(error_image, "modulate:a", 0.0, 0.2)
 	tween.tween_property(error_image, "position:y", original_position.y - 30.0, 0.2)
@@ -754,15 +733,45 @@ func _on_hint_used_event():
 
 	DebugLogger.log_init("PayoutOverlay: сердечки обновлены после использования подсказки")
 
+func _on_life_lost(remaining_lives: int):
+	"""Обработчик события потери жизни
+
+	Вызывается когда EventBus.life_lost эмитится.
+	Обновляем локальную переменную current_lives и отображение.
+
+	Args:
+		remaining_lives: Оставшееся количество жизней
+	"""
+	DebugLogger.log("💔 DEBUG: _on_life_lost вызван! remaining_lives=%d" % remaining_lives)
+
+	# Обновляем локальную переменную
+	current_lives = remaining_lives
+
+	# Обновляем отображение
+	_update_score_display()
+
+	DebugLogger.log_init("PayoutOverlay: current_lives обновлён до %d" % current_lives)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # OVERLAY УПРАВЛЕНИЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func show_payout(winner: String, stake: float, payout: float):
+func show_payout(winner: String, stake: float, payout: float, is_survival: bool, lives: int):
 	"""Показать overlay с параметрами выплаты
 
 	Вызывается из GameController вместо scene transition
+
+	Args:
+		winner: Победитель ("Player"/"Banker"/"Tie"/"PairPlayer"/"PairBanker")
+		stake: Размер ставки
+		payout: Ожидаемая выплата
+		is_survival: Режим выживания активен
+		lives: Текущее количество жизней (для survival mode)
 	"""
+	# Сохраняем состояние игры (вместо get_parent())
+	is_survival_mode = is_survival
+	current_lives = lives
+
 	setup_payout(winner, stake, payout)
 
 	# Сбрасываем состояние подсказки для нового окна выплат

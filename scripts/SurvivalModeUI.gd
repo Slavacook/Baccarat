@@ -63,6 +63,9 @@ func lose_life():
 	current_lives -= 1
 	print("Жизнь потеряна! Осталось: ", current_lives)
 
+	# Эмитим событие с оставшимся количеством жизней
+	EventBus.life_lost.emit(current_lives)
+
 	_update_hearts()
 	_play_damage_animation()
 

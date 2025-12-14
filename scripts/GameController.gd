@@ -1836,7 +1836,10 @@ func _show_payout_overlay_instance(bet_type: String, position_index: int, stake:
 	# Сохраняем position_index для обработчика завершения
 	# (пока используем простой способ - храним в метаданных контекста)
 	payout_overlay.set_meta("current_position_index", position_index)
-	payout_overlay.show_payout(bet_type, stake, payout)
+
+	# Передаём состояние игры через параметры (вместо get_parent())
+	var lives = survival_ui.current_lives if survival_ui else 7
+	payout_overlay.show_payout(bet_type, stake, payout, is_survival_mode, lives)
 
 func _open_payout_scene(bet_type: String):
 	"""Открыть PayoutScene для конкретной ставки
@@ -1923,7 +1926,10 @@ func _show_payout_overlay(bet_type: String, stake: float, payout: float):
 
 	# Вызываем метод show_payout() из PayoutOverlay.gd
 	# Overlay сам управляет UI, фишками и валидацией
-	payout_overlay.show_payout(bet_type, stake, payout)
+
+	# Передаём состояние игры через параметры (вместо get_parent())
+	var lives = survival_ui.current_lives if survival_ui else 7
+	payout_overlay.show_payout(bet_type, stake, payout, is_survival_mode, lives)
 
 
 func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected: float, expected: float):
