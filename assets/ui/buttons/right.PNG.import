@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bin84epcqo1jy"
-path="res://.godot/imported/pay_button_2.png-a0a568b37baa3e1e592b51956c23af0c.ctex"
+uid="uid://deffdpgc1k68v"
+path="res://.godot/imported/right.PNG-3c1daa904729bc62896df024fe00be15.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/buttons/pay_button_2.png"
-dest_files=["res://.godot/imported/pay_button_2.png-a0a568b37baa3e1e592b51956c23af0c.ctex"]
+source_file="res://assets/ui/buttons/right.PNG"
+dest_files=["res://.godot/imported/right.PNG-3c1daa904729bc62896df024fe00be15.ctex"]
 
 [params]
 

@@ -906,8 +906,9 @@ func _check_payout_return():
 
 			# 7. Восстанавливаем камеру (для выбора следующей выплаты)
 			if camera_manager and camera_manager.camera:
-				camera_manager.camera.position = CameraManager.POS_CHIPS
-				camera_manager.camera.zoom = CameraManager.ZOOM_CHIPS
+				var chips_settings = camera_manager.get_config().get_chips_settings()
+				camera_manager.camera.position = chips_settings.position
+				camera_manager.camera.zoom = chips_settings.zoom
 				camera_manager.set_is_first_deal(false)
 				print("📷 Камера восстановлена: зум на фишки")
 
@@ -928,8 +929,9 @@ func _check_payout_return():
 
 		# Восстанавливаем приближенное состояние камеры (без анимации)
 		if camera_manager and camera_manager.camera:
-			camera_manager.camera.position = CameraManager.POS_CHIPS
-			camera_manager.camera.zoom = CameraManager.ZOOM_CHIPS
+			var chips_settings = camera_manager.get_config().get_chips_settings()
+			camera_manager.camera.position = chips_settings.position
+			camera_manager.camera.zoom = chips_settings.zoom
 			camera_manager.set_is_first_deal(false)  # Уже не первая раздача
 			print("📷 Камера восстановлена: приближенный план")
 

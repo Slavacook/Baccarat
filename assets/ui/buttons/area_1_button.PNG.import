@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b7pa3rwk67ojo"
-path="res://.godot/imported/take_button_redy.png-0670c18f6d43a61ac22b9bb24786bc9f.ctex"
+uid="uid://f7fhlbo4np5f"
+path="res://.godot/imported/area_1_button.PNG-079ecd78135fffc63a4593dd606dee1b.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/buttons/take_button_redy.png"
-dest_files=["res://.godot/imported/take_button_redy.png-0670c18f6d43a61ac22b9bb24786bc9f.ctex"]
+source_file="res://assets/ui/buttons/area_1_button.PNG"
+dest_files=["res://.godot/imported/area_1_button.PNG-079ecd78135fffc63a4593dd606dee1b.ctex"]
 
 [params]
 

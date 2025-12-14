@@ -322,10 +322,9 @@ offset_right = 857.0
 offset_bottom = 248.0
 
 [node name="ChipPairBanker" type="TextureButton" parent="."]
-visible = false
-offset_left = 677.0
+offset_left = 656.0
 offset_top = 207.0
-offset_right = 717.0
+offset_right = 696.0
 offset_bottom = 247.0
 
 [node name="TieButton" type="Button" parent="."]
