@@ -510,6 +510,16 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 	var positions = ALTERNATIVE_POSITIONS[bet_type]
 	var original_chip = chip_nodes[bet_type]
 	
+	# Подключаем оригинальную фишку к правильному обработчику с position_index = 0
+	if original_chip.pressed.is_connected(_on_chip_pressed):
+		original_chip.pressed.disconnect(_on_chip_pressed)
+	if not original_chip.pressed.is_connected(_on_chip_instance_pressed):
+		original_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, 0))
+	
+	# Устанавливаем оригинальную фишку на позицию 0
+	if positions.size() > 0:
+		original_chip.position = positions[0]
+	
 	# Создаём копии для всех позиций КРОМЕ первой (основной, где уже стоит оригинал)
 	for i in range(1, positions.size()):
 		var new_chip = TextureButton.new()

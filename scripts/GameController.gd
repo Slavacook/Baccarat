@@ -480,8 +480,12 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	phase_manager.payout_queue_manager = payout_queue_manager
 	print("✅ Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
 	
-	# ← Настраиваем менеджер фазы сбора/оплаты с информацией о победителе
-	bet_collection_manager.setup(payout_queue_manager, actual_winner)
+	# ← Настраиваем менеджер фазы сбора/оплаты с информацией о победителе (БЕЗ инициализации последовательностей)
+	bet_collection_manager.payout_queue_manager = payout_queue_manager
+	bet_collection_manager.actual_winner = actual_winner
+	bet_collection_manager.collected_losing_bets.clear()
+	bet_collection_manager.collected_bets_by_id.clear()
+	bet_collection_manager.current_mode = BetCollectionPhaseManager.CollectionMode.NONE
 	
 	# Показываем кнопки collect/pay (они уже должны быть показаны из GamePhaseManager,
 	# но на всякий случай показываем снова)
@@ -500,6 +504,10 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	# Выводим статус очереди
 	payout_queue_manager.print_status()
 	
+	# ⚠️ ВАЖНО: Инициализируем последовательности ПОСЛЕ добавления всех ставок
+	bet_collection_manager.initialize_sequences()
+	print("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % actual_winner)
+	
 	# Завершаем подготовку - обновляем видимость и сохраняем состояние
 	_finalize_payouts_manual(actual_winner)
 
@@ -507,13 +515,22 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_score: int) -> void:
 	"""Стандартная подготовка выплат (DEFAULT, RANDOM, MAX режимы)"""
 	
+	var is_max_mode = PayoutSettingsManager.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
+	
 	# 1. Основные ставки (Player/Banker/Tie)
 	# Player
 	if PayoutSettingsManager.player_payout_enabled:
 		var won = (actual_winner == "Player")
 		var stake = limits_manager.generate_bet()
 		var payout = stake * 1.0 if won else 0.0
-		payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score, 0)
+		
+		if is_max_mode:
+			# В MAX режиме добавляем ставку для каждой позиции
+			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("Player", [])
+			for pos_idx in range(positions.size()):
+				payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score, pos_idx)
+		else:
+			payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score, 0)
 
 	# Banker
 	if PayoutSettingsManager.banker_payout_enabled:
@@ -530,14 +547,28 @@ func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_
 			print("🏦 Banker выиграл: stake=%.1f, commission=%.2f, payout=%.1f" % [stake, commission, payout])
 		else:
 			print("🏦 Banker проиграл: stake=%.1f, payout=0" % stake)
-		payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score, 0)
+		
+		if is_max_mode:
+			# В MAX режиме добавляем ставку для каждой позиции
+			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("Banker", [])
+			for pos_idx in range(positions.size()):
+				payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score, pos_idx)
+		else:
+			payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score, 0)
 
 	# Tie
 	if PayoutSettingsManager.tie_payout_enabled:
 		var won = (actual_winner == "Tie")
 		var stake = limits_manager.generate_tie_bet()
 		var payout = stake * 8.0 if won else 0.0
-		payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score, 0)
+		
+		if is_max_mode:
+			# В MAX режиме добавляем ставку для каждой позиции
+			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("Tie", [])
+			for pos_idx in range(positions.size()):
+				payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score, pos_idx)
+		else:
+			payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score, 0)
 
 	# 2. Ставки на пары
 	if pair_betting_manager:
@@ -546,14 +577,28 @@ func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_
 			var won = pair_betting_manager.player_pair_detected
 			var stake = limits_manager.generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer") if won else 0.0
-			payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score, 0)
+			
+			if is_max_mode:
+				# В MAX режиме добавляем ставку для каждой позиции
+				var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("PairPlayer", [])
+				for pos_idx in range(positions.size()):
+					payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score, pos_idx)
+			else:
+				payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score, 0)
 
 		# Pair Banker
 		if pair_betting_manager.pair_banker_bet_enabled:
 			var won = pair_betting_manager.banker_pair_detected
 			var stake = limits_manager.generate_pair_bet()
 			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker") if won else 0.0
-			payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score, 0)
+			
+			if is_max_mode:
+				# В MAX режиме добавляем ставку для каждой позиции
+				var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("PairBanker", [])
+				for pos_idx in range(positions.size()):
+					payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score, pos_idx)
+			else:
+				payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score, 0)
 	else:
 		push_warning("⚠️  pair_betting_manager is null в _prepare_payouts_standard")
 

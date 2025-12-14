@@ -90,6 +90,12 @@ const DATA = {
 		"ERR_CANNOT_COLLECT_TIE_PUSH": "Нельзя трогать при Tie! Не выиграла, не проиграла",
 		"ERR_COMPLETE_BEFORE_COLLECT": "Сначала собери проигрышные ставки!",
 		"ERR_COMPLETE_BEFORE_PAY": "Сначала оплати выигрышные ставки!",
+		"ERR_WRONG_COLLECT_ORDER": "Неправильный порядок сбора ставок!",
+		"ERR_WRONG_PAY_ORDER": "Неправильный порядок оплаты ставок!",
+		"ERR_COLLECT_MAIN_FIRST": "Сначала собери все проигрышные ставки на основные",
+		"ERR_COLLECT_TIE_FIRST": "Сначала собери все проигрышные ставки на игалите",
+		"ERR_PAY_MAIN_FIRST": "Сначала оплати все выигрышные ставки на основные",
+		"ERR_PAY_TIE_FIRST": "Сначала оплати все выигрышные ставки на игалите",
 
 		# === НАСТРОЙКИ (SETTINGS SCENE) ===
 		"SETTINGS_TITLE": "НАСТРОЙКИ",
@@ -203,6 +209,12 @@ const DATA = {
 		"ERR_CANNOT_COLLECT_TIE_PUSH": "Cannot touch on Tie! Not won, not lost",
 		"ERR_COMPLETE_BEFORE_COLLECT": "Collect losing bets first!",
 		"ERR_COMPLETE_BEFORE_PAY": "Pay winning bets first!",
+		"ERR_WRONG_COLLECT_ORDER": "Wrong collection order!",
+		"ERR_WRONG_PAY_ORDER": "Wrong payment order!",
+		"ERR_COLLECT_MAIN_FIRST": "Collect all losing main bets first",
+		"ERR_COLLECT_TIE_FIRST": "Collect all losing tie bets first",
+		"ERR_PAY_MAIN_FIRST": "Pay all winning main bets first",
+		"ERR_PAY_TIE_FIRST": "Pay all winning tie bets first",
 
 		# === SETTINGS (SETTINGS SCENE) ===
 		"SETTINGS_TITLE": "SETTINGS",
