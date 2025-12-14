@@ -205,7 +205,8 @@ func _ready():
 	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
 	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
 	EventBus.card_back_style_changed.connect(_on_card_back_style_changed)
-	print("✅ Подписки на EventBus события установлены (payouts, flags, settings, card backs)")
+	EventBus.position_mode_changed.connect(_on_position_mode_changed)
+	print("✅ Подписки на EventBus события установлены (payouts, flags, settings, card backs, position mode)")
 
 	var cfg = GameModeManager.get_config()
 	# ← Инициализация без toast
@@ -1086,9 +1087,16 @@ func _setup_chip_visual_manager():
 	var chip_pair_player = get_node_or_null("ChipPairPlayer")
 	var chip_pair_banker = get_node_or_null("ChipPairBanker")
 	if chip_player and chip_banker and chip_tie:
-		chip_visual_manager.setup(chip_player, chip_banker, chip_tie, chip_pair_player, chip_pair_banker)
+		# Передаём self как родительский узел для создания копий в MAX режиме
+		chip_visual_manager.setup(chip_player, chip_banker, chip_tie, chip_pair_player, chip_pair_banker, self)
 		chip_visual_manager.chip_clicked.connect(_on_chip_clicked)
-		print("✅ ChipVisualManager инициализирован")
+		
+		# Применяем сохранённый режим позиций
+		var mode = PayoutSettingsManager.get_position_mode()
+		chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
+		
+		var mode_names = ["DEFAULT", "RANDOM", "MAX"]
+		print("✅ ChipVisualManager инициализирован (position_mode=%s)" % mode_names[mode])
 	else:
 		push_warning("⚠️  Узлы фишек не найдены в сцене")
 
@@ -1260,6 +1268,22 @@ func _on_card_back_style_changed(style: String):
 	ui_manager.update_all_card_backs()
 
 	print("🎴 Стиль рубашки карт изменён: %s" % style)
+
+
+func _on_position_mode_changed(mode: int):
+	"""Обработка изменения режима позиций фишек из SettingsScene
+
+	Args:
+		mode: 0=DEFAULT, 1=RANDOM, 2=MAX
+	"""
+	if not chip_visual_manager:
+		return
+
+	# Применяем новый режим
+	chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
+
+	var mode_names = ["DEFAULT", "RANDOM", "MAX"]
+	print("🎲 Режим позиций фишек изменён: %s" % mode_names[mode])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА СТАВОК И ФИШЕК

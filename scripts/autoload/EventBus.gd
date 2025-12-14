@@ -157,6 +157,14 @@ signal survival_mode_changed(enabled: bool)
 @warning_ignore("unused_signal")
 signal card_back_style_changed(style: String)
 
+## Режим случайных позиций фишек изменён (вкл/выкл) - для обратной совместимости
+@warning_ignore("unused_signal")
+signal random_positions_changed(enabled: bool)
+
+## Режим позиций фишек изменён (DEFAULT=0, RANDOM=1, MAX=2)
+@warning_ignore("unused_signal")
+signal position_mode_changed(mode: int)
+
 ## Лимиты стола изменены
 @warning_ignore("unused_signal")
 signal table_limits_changed(min_bet: int, max_bet: int, step: int, tie_min: int, tie_max: int, tie_step: int)

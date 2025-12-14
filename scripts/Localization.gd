@@ -107,7 +107,13 @@ const DATA = {
 		"SETTINGS_BUTTON_APPLY": "Применить",
 		"SETTINGS_BUTTON_CANCEL": "Отменить",
 		"MODE_INFO_JUNKET": "Основные ставки: 2000-200000, шаг 500\nTie: 100-900, шаг 25\nПары: 100-900, шаг 25\nКомиссия банкира: 95%",
-		"MODE_INFO_CLASSIC": "Основные ставки: 50-3000, шаг 1\nTie: 25-300, шаг 1\nПары: 25-200, шаг 1\nКомиссия банкира: 50%"
+		"MODE_INFO_CLASSIC": "Основные ставки: 50-3000, шаг 1\nTie: 25-300, шаг 1\nПары: 25-200, шаг 1\nКомиссия банкира: 50%",
+		
+		# === РЕЖИМ ПОЗИЦИЙ ФИШЕК ===
+		"SETTINGS_POSITION_MODE": "Позиции ставок",
+		"POSITION_MODE_DEFAULT": "Обычный",
+		"POSITION_MODE_RANDOM": "Случайные",
+		"POSITION_MODE_MAX": "Максимум"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural victory! Choose winner",
@@ -213,7 +219,13 @@ const DATA = {
 		"SETTINGS_BUTTON_APPLY": "Apply",
 		"SETTINGS_BUTTON_CANCEL": "Cancel",
 		"MODE_INFO_JUNKET": "Main bets: 2000-200000, step 500\nTie: 100-900, step 25\nPairs: 100-900, step 25\nBanker commission: 95%",
-		"MODE_INFO_CLASSIC": "Main bets: 50-3000, step 1\nTie: 25-300, step 1\nPairs: 25-200, step 1\nBanker commission: 50%"
+		"MODE_INFO_CLASSIC": "Main bets: 50-3000, step 1\nTie: 25-300, step 1\nPairs: 25-200, step 1\nBanker commission: 50%",
+		
+		# === CHIP POSITION MODE ===
+		"SETTINGS_POSITION_MODE": "Bet positions",
+		"POSITION_MODE_DEFAULT": "Default",
+		"POSITION_MODE_RANDOM": "Random",
+		"POSITION_MODE_MAX": "Maximum"
 	}
 }
 

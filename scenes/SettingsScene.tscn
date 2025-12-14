@@ -172,6 +172,21 @@ text = "Пара Банкира"
 [node name="BetPairBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
 layout_mode = 2
 
+[node name="HSeparator5" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="PositionModeRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
+[node name="PositionModeLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/PositionModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Позиции"
+
+[node name="PositionModeOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/PositionModeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
 layout_mode = 2
 size_flags_horizontal = 3

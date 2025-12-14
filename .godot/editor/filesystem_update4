@@ -1,2 +1,8 @@
 res://scenes/Game.tscn
-res://resources/CameraConfig.gd
+res://scripts/ChipVisualManager.gd
+res://scripts/GameController.gd
+res://scripts/Localization.gd
+res://scripts/SaveManager.gd
+res://scripts/SettingsScene.gd
+res://scripts/autoload/EventBus.gd
+res://scripts/autoload/PayoutSettingsManager.gd

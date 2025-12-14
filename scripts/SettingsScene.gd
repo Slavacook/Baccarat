@@ -33,6 +33,7 @@ signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выж
 @onready var bet_tie_checkbox: CheckBox = find_child("BetTieCheckbox", true, false)
 @onready var bet_pair_player_checkbox: CheckBox = find_child("BetPairPlayerCheckbox", true, false)
 @onready var bet_pair_banker_checkbox: CheckBox = find_child("BetPairBankerCheckbox", true, false)
+@onready var position_mode_option: OptionButton = find_child("PositionModeOption", true, false)
 
 # === РАЗДЕЛ 4: РАЗМЕР СТАВОК ===
 @onready var bet_size_option: OptionButton = find_child("BetSizeOption", true, false)
@@ -63,6 +64,7 @@ var saved_banker_payout: bool
 var saved_tie_payout: bool
 var saved_player_pair_payout: bool
 var saved_banker_pair_payout: bool
+var saved_position_mode: int
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -104,6 +106,9 @@ func _connect_signals():
 		bet_pair_player_checkbox.toggled.connect(_on_bet_pair_player_toggled)
 	if bet_pair_banker_checkbox:
 		bet_pair_banker_checkbox.toggled.connect(_on_bet_pair_banker_toggled)
+	if position_mode_option:
+		_setup_position_mode_options()
+		position_mode_option.item_selected.connect(_on_position_mode_selected)
 
 	# Размер ставок
 	if bet_size_option:
@@ -175,6 +180,7 @@ func _save_current_values():
 	saved_tie_payout = PayoutSettingsManager.tie_payout_enabled
 	saved_player_pair_payout = PayoutSettingsManager.player_pair_payout_enabled
 	saved_banker_pair_payout = PayoutSettingsManager.banker_pair_payout_enabled
+	saved_position_mode = PayoutSettingsManager.get_position_mode()
 
 func _load_current_values():
 	"""Загрузить текущие значения из менеджеров в UI"""
@@ -198,6 +204,8 @@ func _load_current_values():
 		bet_pair_player_checkbox.button_pressed = PayoutSettingsManager.player_pair_payout_enabled
 	if bet_pair_banker_checkbox:
 		bet_pair_banker_checkbox.button_pressed = PayoutSettingsManager.banker_pair_payout_enabled
+	if position_mode_option:
+		position_mode_option.selected = PayoutSettingsManager.get_position_mode()
 
 	# Размер ставок
 	if bet_size_option:
@@ -233,6 +241,7 @@ func _restore_saved_values():
 	PayoutSettingsManager.toggle_tie(saved_tie_payout)
 	PayoutSettingsManager.toggle_player_pair(saved_player_pair_payout)
 	PayoutSettingsManager.toggle_banker_pair(saved_banker_pair_payout)
+	PayoutSettingsManager.set_position_mode(saved_position_mode as PayoutSettingsManager.PositionMode)
 
 	print("↩️  Настройки восстановлены")
 
@@ -262,6 +271,10 @@ func _update_texts():
 	# Размер ставок - обновляем опции
 	if bet_size_option:
 		_setup_bet_size_options()
+	
+	# Режим позиций - обновляем опции
+	if position_mode_option:
+		_setup_position_mode_options()
 
 func _update_mode_buttons(mode: String):
 	"""Обновить состояние кнопок режима игры"""
@@ -367,6 +380,24 @@ func _on_bet_pair_banker_toggled(pressed: bool):
 	"""Обработка переключения пары банкира"""
 	PayoutSettingsManager.toggle_banker_pair(pressed)
 	EventBus.payout_setting_changed.emit("PairBanker", pressed)
+
+func _on_position_mode_selected(index: int):
+	"""Обработка выбора режима позиций фишек"""
+	PayoutSettingsManager.set_position_mode(index as PayoutSettingsManager.PositionMode)
+	var mode_names = ["DEFAULT", "RANDOM", "MAX"]
+	print("🎲 Режим позиций: %s" % mode_names[index])
+
+
+func _setup_position_mode_options():
+	"""Настроить опции для OptionButton режима позиций"""
+	if not position_mode_option:
+		return
+	
+	position_mode_option.clear()
+	position_mode_option.add_item(Localization.t("POSITION_MODE_DEFAULT"), 0)
+	position_mode_option.add_item(Localization.t("POSITION_MODE_RANDOM"), 1)
+	position_mode_option.add_item(Localization.t("POSITION_MODE_MAX"), 2)
+	position_mode_option.selected = PayoutSettingsManager.get_position_mode()
 
 # === РАЗМЕР СТАВОК ===
 func _on_bet_size_selected(index: int):

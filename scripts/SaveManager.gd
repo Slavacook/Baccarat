@@ -158,3 +158,27 @@ func save_bet_profile(profile: int):
 func load_bet_profile() -> int:
 	var settings = load_settings()
 	return settings.get("bet_profile", 1)  # По умолчанию MEDIUM (1)
+
+# ← Настройки режима позиций фишек (0=DEFAULT, 1=RANDOM, 2=MAX)
+func save_position_mode(mode: int):
+	"""Сохранить режим позиций фишек"""
+	var settings = load_settings()
+	settings["position_mode"] = mode
+	save_settings(settings)
+
+func load_position_mode() -> int:
+	"""Загрузить режим позиций фишек (по умолчанию 0 = DEFAULT)"""
+	var settings = load_settings()
+	# Миграция: если есть старый флаг random_positions_enabled
+	if settings.has("random_positions_enabled") and settings.get("random_positions_enabled", false):
+		return 1  # RANDOM
+	return settings.get("position_mode", 0)
+
+# Для обратной совместимости
+func save_random_positions_mode(enabled: bool):
+	"""Сохранить режим случайных позиций фишек (deprecated, используй save_position_mode)"""
+	save_position_mode(1 if enabled else 0)
+
+func load_random_positions_mode() -> bool:
+	"""Загрузить режим случайных позиций фишек (deprecated)"""
+	return load_position_mode() == 1
