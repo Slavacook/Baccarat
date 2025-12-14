@@ -223,6 +223,10 @@ func _ready():
 
 	# Перемещаем UI кнопки в TopUI для защиты от зума камеры
 	_setup_fixed_ui()
+	
+	# Настройка кнопок областей и стрелок навигации
+	_setup_area_buttons()
+	_setup_navigation_arrows()
 
 	# Настройка клавиатурной навигации
 	_setup_keyboard_navigation()
@@ -904,13 +908,16 @@ func _check_payout_return():
 				EventBus.payout_wrong.emit(collected, expected)
 				print("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [bet_type, collected, expected])
 
-			# 7. Восстанавливаем камеру (для выбора следующей выплаты)
+			# 7. Восстанавливаем камеру на общий план и показываем кнопки областей
 			if camera_manager and camera_manager.camera:
-				var chips_settings = camera_manager.get_config().get_chips_settings()
-				camera_manager.camera.position = chips_settings.position
-				camera_manager.camera.zoom = chips_settings.zoom
+				var general_settings = camera_manager.get_config().get_general_settings()
+				camera_manager.camera.position = general_settings.position
+				camera_manager.camera.zoom = general_settings.zoom
 				camera_manager.set_is_first_deal(false)
-				print("📷 Камера восстановлена: зум на фишки")
+				print("📷 Камера восстановлена: общий план")
+			
+			# Показываем кнопки областей для выбора следующей области
+			EventBus.area_buttons_visibility_changed.emit(true)
 
 			# Очищаем контексты
 			PayoutContextManager.clear_context()
@@ -927,13 +934,16 @@ func _check_payout_return():
 		survival_ui.current_lives = GameDataManager.survival_lives
 		survival_ui.is_active = GameDataManager.is_survival_active
 
-		# Восстанавливаем приближенное состояние камеры (без анимации)
+		# Восстанавливаем камеру на общий план (без анимации)
 		if camera_manager and camera_manager.camera:
-			var chips_settings = camera_manager.get_config().get_chips_settings()
-			camera_manager.camera.position = chips_settings.position
-			camera_manager.camera.zoom = chips_settings.zoom
+			var general_settings = camera_manager.get_config().get_general_settings()
+			camera_manager.camera.position = general_settings.position
+			camera_manager.camera.zoom = general_settings.zoom
 			camera_manager.set_is_first_deal(false)  # Уже не первая раздача
-			print("📷 Камера восстановлена: приближенный план")
+			print("📷 Камера восстановлена: общий план")
+		
+		# Показываем кнопки областей
+		EventBus.area_buttons_visibility_changed.emit(true)
 
 		# Обновляем визуальное отображение сердечек
 		if survival_ui.is_active:
@@ -1052,15 +1062,15 @@ func camera_zoom_out():
 	if camera_manager:
 		camera_manager.zoom_out()
 
-func camera_zoom_chips():
-	"""Плавный зум на область фишек (делегирование к CameraManager)"""
-	if camera_manager:
-		camera_manager.zoom_chips()
-
 func camera_zoom_cards():
 	"""Плавный зум на область карт (делегирование к CameraManager)"""
 	if camera_manager:
 		camera_manager.zoom_cards()
+
+func camera_zoom_area(area_index: int):
+	"""Плавный зум на область ставок (делегирование к CameraManager)"""
+	if camera_manager:
+		camera_manager.zoom_area(area_index)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1098,6 +1108,70 @@ func _setup_pair_betting_manager():
 	"""Инициализация PairBettingManager"""
 	pair_betting_manager = PairBettingManager.new()
 	print("✅ PairBettingManager инициализирован")
+
+func _setup_area_buttons():
+	"""Инициализация кнопок областей ставок"""
+	# Кнопки областей уже настроены через скрипт AreaButton.gd
+	# Они подключаются к EventBus автоматически
+	print("✅ Кнопки областей инициализированы")
+
+func _setup_navigation_arrows():
+	"""Инициализация стрелок навигации"""
+	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
+	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
+	
+	if left_arrow:
+		left_arrow.pressed.connect(_on_left_arrow_pressed)
+	if right_arrow:
+		right_arrow.pressed.connect(_on_right_arrow_pressed)
+	
+	# Подписываемся на EventBus для управления видимостью стрелок
+	if EventBus:
+		EventBus.navigation_arrows_visibility_changed.connect(_on_arrows_visibility_changed)
+	
+	print("✅ Стрелки навигации инициализированы")
+
+func _on_left_arrow_pressed():
+	"""Обработчик нажатия левой стрелки"""
+	EventBus.camera_zoom_requested.emit("prev_area")
+	_update_arrows_state()
+
+func _on_right_arrow_pressed():
+	"""Обработчик нажатия правой стрелки"""
+	EventBus.camera_zoom_requested.emit("next_area")
+	_update_arrows_state()
+
+func _on_arrows_visibility_changed(is_visible: bool):
+	"""Обработчик изменения видимости стрелок"""
+	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
+	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
+	
+	if left_arrow:
+		left_arrow.visible = is_visible
+	if right_arrow:
+		right_arrow.visible = is_visible
+	
+	if is_visible:
+		_update_arrows_state()
+
+func _update_arrows_state():
+	"""Обновить состояние стрелок (активность) в зависимости от текущей области"""
+	if not camera_manager:
+		return
+	
+	var current_area = camera_manager.get_current_area()
+	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
+	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
+	
+	# Левая стрелка недоступна на области 1
+	if left_arrow:
+		left_arrow.disabled = (current_area <= 1)
+		left_arrow.modulate.a = 0.3 if current_area <= 1 else 1.0
+	
+	# Правая стрелка недоступна на области 3
+	if right_arrow:
+		right_arrow.disabled = (current_area >= 3)
+		right_arrow.modulate.a = 0.3 if current_area >= 3 else 1.0
 
 
 
@@ -1443,6 +1517,8 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		if not has_unpaid:
 			# Все выплаты оплачены → эмитим событие подготовки стола
 			print("  ✅ Все выплаты оплачены! Стол готов к новой раздаче")
+			# Скрываем стрелки навигации (кнопки областей скроются при reset)
+			EventBus.navigation_arrows_visibility_changed.emit(false)
 			# Эмитим событие для разблокировки маркеров и подготовки стола
 			EventBus.table_prepared_for_new_game.emit()
 			# НЕ вызываем phase_manager.reset() в overlay режиме!

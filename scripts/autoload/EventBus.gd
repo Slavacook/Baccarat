@@ -40,9 +40,18 @@ signal table_prepared_for_new_game()
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Запрос на зум камеры (от GamePhaseManager)
-## zoom_type: "in" (карты), "out" (общий план), "chips" (фишки)
+## zoom_type: "in" (карты), "out" (общий план), "area_1/2/3" (области ставок)
+## "next_area", "prev_area" - переключение между областями
 @warning_ignore("unused_signal")
 signal camera_zoom_requested(zoom_type: String)
+
+## Показать/скрыть кнопки областей (для выбора области после определения победителя)
+@warning_ignore("unused_signal")
+signal area_buttons_visibility_changed(visible: bool)
+
+## Показать/скрыть стрелки навигации (при зуме на область)
+@warning_ignore("unused_signal")
+signal navigation_arrows_visibility_changed(visible: bool)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ✅ ПРАВИЛЬНЫЕ ДЕЙСТВИЯ

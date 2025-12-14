@@ -93,6 +93,10 @@ func reset(update_state: bool = true):
 	if ui and ui.button_ui:
 		ui.button_ui.reset_collect_pay_buttons()
 	
+	# Скрываем кнопки областей и стрелки навигации
+	EventBus.area_buttons_visibility_changed.emit(false)
+	EventBus.navigation_arrows_visibility_changed.emit(false)
+	
 	print("🔄 Сброс раунда: очищены выплаты, фишки, маркеры, TableStateManager и режимы collect/pay")
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -318,6 +322,11 @@ func on_action_pressed():
 		# Зумаут камеры на общий план
 		EventBus.camera_zoom_requested.emit("out")
 		print("  → ✅ Камера отзумлена на общий план")
+		
+		# Скрываем кнопки областей и стрелки навигации
+		EventBus.area_buttons_visibility_changed.emit(false)
+		EventBus.navigation_arrows_visibility_changed.emit(false)
+		print("  → ✅ Кнопки областей и стрелки скрыты")
 
 		# Начисляем +1 очко за успешное завершение игры (в режиме без сердечек)
 		if not SaveManager.instance.load_survival_mode():
@@ -422,8 +431,9 @@ func on_tie_button_pressed():
 	# Показываем toast
 	EventBus.show_toast_success.emit("Игалите")
 
-	# Зум камеры на фишки
-	EventBus.camera_zoom_requested.emit("chips")
+	# Возвращаем камеру на общий план и показываем кнопки областей
+	EventBus.camera_zoom_requested.emit("out")
+	EventBus.area_buttons_visibility_changed.emit(true)
 
 	# Формируем очередь выплат
 	EventBus.manual_payout_requested.emit("Tie")
@@ -706,8 +716,9 @@ func _validate_winner_selection() -> void:
 	var victory_msg = _format_victory_toast(actual_winner)
 	EventBus.show_toast_success.emit(victory_msg)
 
-	# Зум камеры на фишки после валидации победителя
-	EventBus.camera_zoom_requested.emit("chips")
+	# Возвращаем камеру на общий план и показываем кнопки областей
+	EventBus.camera_zoom_requested.emit("out")
+	EventBus.area_buttons_visibility_changed.emit(true)
 
 	# Вызываем метод формирования очереди выплат через EventBus
 	EventBus.manual_payout_requested.emit(actual_winner)

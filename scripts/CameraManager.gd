@@ -29,6 +29,7 @@ signal zoom_completed(zoom_type: String)
 var camera: Camera2D = null
 var scene: Node = null  # Родительская сцена для создания tween
 var is_first_deal: bool = true
+var current_area: int = 0  # Текущая активная область (0 = нет, 1-3 = область)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -79,22 +80,48 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 
 func zoom_in() -> void:
 	"""Плавный зум на область карт"""
+	current_area = 0
 	var settings = config.get_cards_settings()
 	_animate_to(settings.position, settings.zoom, "in")
 
 func zoom_out() -> void:
 	"""Возврат к общему плану"""
+	current_area = 0
 	var settings = config.get_general_settings()
 	_animate_to(settings.position, settings.zoom, "out")
-
-func zoom_chips() -> void:
-	"""Плавный зум на область фишек"""
-	var settings = config.get_chips_settings()
-	_animate_to(settings.position, settings.zoom, "chips")
 
 func zoom_cards() -> void:
 	"""Плавный зум на область карт (алиас для zoom_in)"""
 	zoom_in()
+
+func zoom_area(area_index: int) -> void:
+	"""Плавный зум на указанную область (1, 2 или 3)"""
+	if area_index < 1 or area_index > 3:
+		push_error("CameraManager: неверный индекс области %d" % area_index)
+		return
+	current_area = area_index
+	var settings = config.get_area_settings(area_index)
+	_animate_to(settings.position, settings.zoom, "area_%d" % area_index)
+
+func zoom_next_area() -> void:
+	"""Переключиться на следующую область (вправо)"""
+	if current_area == 0:
+		zoom_area(1)
+	elif current_area < 3:
+		zoom_area(current_area + 1)
+	# Если current_area == 3, остаемся на месте
+
+func zoom_prev_area() -> void:
+	"""Переключиться на предыдущую область (влево)"""
+	if current_area == 0:
+		zoom_area(3)
+	elif current_area > 1:
+		zoom_area(current_area - 1)
+	# Если current_area == 1, остаемся на месте
+
+func get_current_area() -> int:
+	"""Получить текущую активную область (0 = нет, 1-3 = область)"""
+	return current_area
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ
@@ -152,8 +179,12 @@ func _get_zoom_name(zoom_type: String) -> String:
 			return "Зум на карты"
 		"out":
 			return "Общий план"
-		"chips":
-			return "Зум на фишки"
+		"area_1":
+			return "Область 1 (левая)"
+		"area_2":
+			return "Область 2 (центр)"
+		"area_3":
+			return "Область 3 (правая)"
 		_:
 			return "Неизвестный зум"
 
@@ -168,10 +199,18 @@ func _on_zoom_requested(zoom_type: String) -> void:
 			zoom_in()
 		"out":
 			zoom_out()
-		"chips":
-			zoom_chips()
 		"cards":
 			zoom_cards()
+		"area_1":
+			zoom_area(1)
+		"area_2":
+			zoom_area(2)
+		"area_3":
+			zoom_area(3)
+		"next_area":
+			zoom_next_area()
+		"prev_area":
+			zoom_prev_area()
 		_:
 			push_error("CameraManager: неизвестный тип зума '%s'" % zoom_type)
 
