@@ -23,6 +23,7 @@ const USE_OVERLAY_PAYOUT = true  # true = overlay, false = scene transition
 var deck: Deck
 var card_manager: CardTextureManager
 var ui_manager: UIManager
+var hand_manager: HandManager
 var phase_manager: GamePhaseManager
 var limits_manager: LimitsManager
 var camera_manager: CameraManager
@@ -71,262 +72,40 @@ var is_table_prepared_for_new_game: bool = false
 
 func _ready():
 	"""Инициализация GameController
-	
-	Рефакторенная версия с Extract Method паттерном.
-	Было: 198 строк монолитной инициализации
-	Стало: ~35 строк координатор + 10 helper методов
+
+	Рефакторенная версия с GameInitializer (Extract Class паттерн).
+	Было: 198 строк монолитной инициализации в _ready()
+	Стало: Делегирование в GameInitializer.initialize()
 	"""
-	_initialize_core_managers()
-	_setup_settings_and_mode()
-	_setup_phase_manager()
-	_connect_ui_signals()
-	_setup_bet_collection()
-	
-	var is_payout_return = _handle_payout_scene_return_or_reset()
-	_initialize_chips_visibility(is_payout_return)
-	_setup_event_subscriptions()
-	_finalize_setup()
-	
-	# Проверяем возврат из PayoutScene
-	_check_payout_return()
+	# Инициализация через GameInitializer (все ~200 строк вынесены в отдельный класс)
+	var initialized: Dictionary = GameInitializer.initialize(self)
+
+	# Распаковка результатов в member variables
+	deck = initialized["deck"]
+	config = initialized["config"]
+	card_manager = initialized["card_manager"]
+	ui_manager = initialized["ui_manager"]
+	hand_manager = initialized["hand_manager"]
+	limits_manager = initialized["limits_manager"]
+	survival_ui = initialized["survival_ui"]
+	game_over_popup = initialized["game_over_popup"]
+	settings_scene = initialized.get("settings_scene")
+	settings_button = initialized.get("settings_button")
+	phase_manager = initialized["phase_manager"]
+	bet_collection_manager = initialized["bet_collection_manager"]
+	chip_visual_manager = initialized["chip_visual_manager"]
+	winner_selection_manager = initialized["winner_selection_manager"]
+	pair_betting_manager = initialized["pair_betting_manager"]
+	payout_queue_manager = initialized["payout_queue_manager"]
+	camera_manager = initialized["camera_manager"]
+	payout_overlay = initialized.get("payout_overlay")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ИНИЦИАЛИЗАЦИЯ - HELPER МЕТОДЫ
+# ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd (Task 2.1)
 # ═══════════════════════════════════════════════════════════════════════════
-
-func _initialize_core_managers() -> void:
-	"""Инициализация базовых менеджеров и компонентов"""
-	Localization.set_lang("ru")
-	deck = Deck.new()
-	if not config:
-		config = GameConfig.new()
-	card_manager = CardTextureManager.new(config)
-	ui_manager = UIManager.new(self, card_manager)
-	ui_manager.set_main_node(self)
-	ui_manager.set_flip_cards(flip_cards)
-	StatsManager.instance.set_label(ui_manager.stats_label)
-	limits_manager = LimitsManager.new(config)
-	survival_ui = get_node("TopUI/SurvivalModeUI")
-	survival_ui.game_over.connect(_on_survival_game_over)
-	game_over_popup = get_node("GameOverScene")
-	
-	# Подписываемся на Game Over по очкам
-	SaveManager.instance.score_game_over.connect(_on_score_game_over)
-
-
-func _setup_settings_and_mode() -> void:
-	"""Настройка SettingsScene и загрузка режима игры"""
-	# Настройка SettingsScene
-	if has_node("SettingsScene"):
-		DebugLogger.log_init("SettingsScene найден в сцене!")
-		settings_scene = get_node("SettingsScene")
-		settings_scene.mode_changed.connect(_on_mode_changed)
-		settings_scene.language_changed.connect(_on_language_changed)
-		settings_scene.survival_mode_changed.connect(_on_survival_mode_changed)
-		DebugLogger.log_init("SettingsScene подключен к GameController")
-	else:
-		DebugLogger.log_error("SettingsScene НЕ НАЙДЕН в сцене Game.tscn!")
-	
-	# Настройка кнопки настроек
-	if has_node("SettingsButton"):
-		settings_button = get_node("SettingsButton")
-		settings_button.pressed.connect(_on_settings_button_pressed)
-	
-	# Загрузка режима игры
-	GameModeManager.load_saved_mode()
-	_load_survival_mode_setting()
-
-
-func _setup_phase_manager() -> void:
-	"""Создание GamePhaseManager и вспомогательных менеджеров (Dependency Injection)"""
-	# Создаем все менеджеры ПЕРЕД phase_manager
-	_setup_chip_visual_manager()
-	_setup_winner_selection_manager()
-	_setup_pair_betting_manager()
-	
-	# Создаем phase_manager с передачей всех зависимостей
-	phase_manager = GamePhaseManager.new(
-		deck,
-		card_manager,
-		ui_manager,
-		payout_queue_manager,
-		chip_visual_manager,
-		winner_selection_manager,
-		pair_betting_manager
-	)
-
-
-func _connect_ui_signals() -> void:
-	"""Подключение сигналов UIManager к обработчикам"""
-	ui_manager.action_button_pressed.connect(phase_manager.on_action_pressed)
-	ui_manager.player_third_toggled.connect(phase_manager.on_player_third_toggled)
-	ui_manager.banker_third_toggled.connect(phase_manager.on_banker_third_toggled)
-	ui_manager.tie_button_pressed.connect(phase_manager.on_tie_button_pressed)
-	ui_manager.help_button_pressed.connect(_on_help_button_pressed)
-	ui_manager.lang_button_pressed.connect(_on_lang_button_pressed)
-
-
-func _setup_bet_collection() -> void:
-	"""Настройка менеджера фазы сбора/оплаты ставок"""
-	bet_collection_manager = BetCollectionPhaseManager.new()
-	phase_manager.bet_collection_manager = bet_collection_manager
-	
-	# Настраиваем кнопки collect/pay
-	ui_manager.button_ui.setup_collect_pay_buttons(self)
-	ui_manager.button_ui.collect_button_toggled.connect(_on_collect_mode_toggled)
-	ui_manager.button_ui.pay_button_toggled.connect(_on_pay_mode_toggled)
-
-
-func _handle_payout_scene_return_or_reset() -> bool:
-	"""Обработка возврата из PayoutScene или стандартный reset
-	
-	Returns:
-		true если возвращаемся из PayoutScene, false если обычная загрузка
-	"""
-	var is_payout_return = PayoutContextManager.has_context() and PayoutContextManager.get_context().get("manual_mode", false)
-	
-	if not is_payout_return:
-		# Только если НЕ возвращаемся из PayoutScene - делаем reset
-		phase_manager.reset()
-		GameStateManager.reset()
-		
-		# Разблокируем маркеры для начала новой игры
-		if winner_selection_manager:
-			winner_selection_manager.unlock_markers()
-	else:
-		DebugLogger.log_restore("⏮ Пропускаем GameStateManager.reset() при возврате из PayoutScene")
-	
-	ui_manager.help_popup.hide()
-	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-	
-	return is_payout_return
-
-
-func _initialize_chips_visibility(is_payout_return: bool) -> void:
-	"""Инициализация видимости фишек (восстановление или стандартная)
-	
-	Args:
-		is_payout_return: true если возвращаемся из PayoutScene
-	"""
-	if is_payout_return:
-		# При возврате - восстанавливаем полный snapshot стола
-		_restore_chips_from_table_state()
-		DebugLogger.log_restore("⏮ Восстановлено состояние из TableStateManager snapshot")
-		
-		# Синхронизируем сердечки из GameDataManager
-		if is_survival_mode and survival_ui:
-			var lives_from_payout = GameDataManager.survival_lives
-			survival_ui.set_lives(lives_from_payout)
-			DebugLogger.log("♻️  Синхронизированы сердечки: %d (из PayoutScene)" % lives_from_payout)
-		
-		# Восстанавливаем состояние кнопки
-		if ui_manager:
-			ui_manager.set_action_button_state(TableStateManager.action_button_state)
-			ui_manager.enable_action_button()
-			DebugLogger.log("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
-			
-			# Показываем кнопки Collect/Pay если мы в фазе выплат
-			if TableStateManager.action_button_state == "complete":
-				ui_manager.button_ui.show_collect_pay_buttons()
-				DebugLogger.log_restore("⏮ Показаны кнопки Collect/Pay")
-	else:
-		# При обычной загрузке - показываем фишки на основе настроек
-		_show_chips_by_settings()
-
-
-func _show_chips_by_settings() -> void:
-	"""Показ фишек на основе настроек PayoutSettingsManager"""
-	if not chip_visual_manager:
-		return
-	
-	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
-	
-	if is_realistic:
-		# REALISTIC режим - случайное количество фишек
-		if PayoutSettingsManager.player_payout_enabled:
-			chip_visual_manager.show_chips_realistic("Player")
-		if PayoutSettingsManager.banker_payout_enabled:
-			chip_visual_manager.show_chips_realistic("Banker")
-		if PayoutSettingsManager.tie_payout_enabled:
-			chip_visual_manager.show_chips_realistic("Tie")
-		if PayoutSettingsManager.player_pair_payout_enabled:
-			chip_visual_manager.show_chips_realistic("PairPlayer")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_player_bet(true)
-		if PayoutSettingsManager.banker_pair_payout_enabled:
-			chip_visual_manager.show_chips_realistic("PairBanker")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log_init("Фишки синхронизированы (REALISTIC режим)")
-	else:
-		# Стандартный режим (DEFAULT, RANDOM, MAX)
-		if PayoutSettingsManager.player_payout_enabled:
-			chip_visual_manager.show_chip("Player")
-		if PayoutSettingsManager.banker_payout_enabled:
-			chip_visual_manager.show_chip("Banker")
-		if PayoutSettingsManager.tie_payout_enabled:
-			chip_visual_manager.show_chip("Tie")
-		if PayoutSettingsManager.player_pair_payout_enabled:
-			chip_visual_manager.show_chip("PairPlayer")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_player_bet(true)
-		if PayoutSettingsManager.banker_pair_payout_enabled:
-			chip_visual_manager.show_chip("PairBanker")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log_init("Фишки синхронизированы с настройками")
-
-
-func _setup_event_subscriptions() -> void:
-	"""Подписка на события EventBus"""
-	GameStateManager.state_changed.connect(_on_game_state_changed)
-	DebugLogger.log_game_flow("GameStateManager инициализирован")
-	
-	# Подписки на новые события EventBus
-	EventBus.manual_payout_requested.connect(_on_manual_payout_requested)
-	EventBus.table_prepared_for_new_game.connect(_on_table_prepared)
-	EventBus.payout_setting_changed.connect(_on_payout_setting_changed)
-	EventBus.card_back_style_changed.connect(_on_card_back_style_changed)
-	EventBus.position_mode_changed.connect(_on_position_mode_changed)
-	DebugLogger.log_init("Подписки на EventBus события установлены (payouts, flags, settings, card backs, position mode)")
-
-
-func _finalize_setup() -> void:
-	"""Финальная настройка: limits, stats, camera, UI, keyboard, overlay"""
-	# Установка лимитов
-	var cfg = GameModeManager.get_config()
-	limits_manager.set_limits(
-		cfg["main_min"], cfg["main_max"], cfg["main_step"],
-		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
-		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"],
-		false  # не показываем toast при инициализации
-	)
-	
-	StatsManager.instance.update_stats()
-	
-	# Настройка камеры
-	_setup_camera()
-	
-	# Перемещаем UI кнопки в TopUI для защиты от зума камеры
-	_setup_fixed_ui()
-	
-	# Настройка кнопок областей и стрелок навигации
-	_setup_area_buttons()
-	_setup_navigation_arrows()
-	
-	# Настройка клавиатурной навигации
-	_setup_keyboard_navigation()
-	
-	# Подключаем PayoutOverlay (новый способ выплат)
-	if has_node("PayoutOverlay"):
-		payout_overlay = get_node("PayoutOverlay")
-		payout_overlay.payout_completed.connect(_on_payout_overlay_completed)
-		payout_overlay.hide()
-		DebugLogger.log_init("PayoutOverlay подключен к GameController (overlay режим)")
-	else:
-		if USE_OVERLAY_PAYOUT:
-			DebugLogger.log_warning("⚠️ PayoutOverlay НЕ НАЙДЕН в Game.tscn (но USE_OVERLAY_PAYOUT=true)")
+# Все helper методы инициализации перенесены в GameInitializer.initialize()
+# Удалено ~235 строк дублирующего кода
 
 
 
@@ -402,7 +181,7 @@ func _on_winner_selected(chosen: String):
 	if not _is_winner_selection_valid():
 		return
 	
-	var actual = BaccaratRules.get_winner(phase_manager.player_hand, phase_manager.banker_hand)
+	var actual = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	
 	# Guard 2: Неправильный выбор победителя
 	if chosen != actual:
@@ -472,8 +251,8 @@ func _create_payout_queue(actual: String) -> void:
 	Args:
 		actual: Фактический победитель (Player/Banker/Tie)
 	"""
-	var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
-	var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
+	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
+	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 	
 	# Очищаем очередь перед созданием новой
 	GameDataManager.clear_payout_queue()
@@ -506,7 +285,7 @@ func _add_main_bet_to_queue(actual: String, player_score: int, banker_score: int
 		stake = limits_manager.generate_bet()
 		var commission = GameModeManager.get_banker_commission()
 		if GameModeManager.get_mode_string() == "classic":
-			var banker_value = BaccaratRules.hand_value(phase_manager.banker_hand)
+			var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 			if banker_value == 6:
 				commission = 0.5
 		payout = stake * commission
@@ -570,16 +349,16 @@ func _process_payout_queue_or_reset() -> void:
 
 
 func _format_result() -> String:
-	var p0 = BaccaratRules.hand_value([phase_manager.player_hand[0], phase_manager.player_hand[1]])
-	var b0 = BaccaratRules.hand_value([phase_manager.banker_hand[0], phase_manager.banker_hand[1]])
+	var p0 = BaccaratRules.hand_value([hand_manager.get_player_hand_ref()[0], hand_manager.get_player_hand_ref()[1]])
+	var b0 = BaccaratRules.hand_value([hand_manager.get_banker_hand_ref()[0], hand_manager.get_banker_hand_ref()[1]])
 	if p0 >= 8 or b0 >= 8:
 		return "Натуральная %d против %d" % [p0 if p0 >= 8 else b0, b0 if p0 >= 8 else p0]
-	return "%d против %d" % [BaccaratRules.hand_value(phase_manager.banker_hand), BaccaratRules.hand_value(phase_manager.player_hand)]
+	return "%d против %d" % [BaccaratRules.hand_value(hand_manager.get_banker_hand_ref()), BaccaratRules.hand_value(hand_manager.get_player_hand_ref())]
 
 func _format_victory_toast(winner: String) -> String:
 	"""Форматирование краткого тоста победы (например, 'Выигрывает Банкир: 7 vs 5')"""
-	var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
-	var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
+	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
+	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 
 	match winner:
 		"Banker":
@@ -605,8 +384,8 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	В REALISTIC режиме создает множественные ставки со случайным количеством.
 	Делает фишки выигравших ставок кликабельными.
 	"""
-	var player_score = BaccaratRules.hand_value(phase_manager.player_hand)
-	var banker_score = BaccaratRules.hand_value(phase_manager.banker_hand)
+	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
+	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 
 	# Создаем новый payout_queue_manager
 	payout_queue_manager = PayoutQueueManager.new()
@@ -675,7 +454,7 @@ func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_
 		if won:
 			var commission = GameModeManager.get_banker_commission()
 			if GameModeManager.get_mode_string() == "classic":
-				var banker_value = BaccaratRules.hand_value(phase_manager.banker_hand)
+				var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 				if banker_value == 6:
 					commission = 0.5
 			payout = stake * commission
@@ -825,7 +604,7 @@ func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -
 		"Banker":
 			var commission = GameModeManager.get_banker_commission()
 			if GameModeManager.get_mode_string() == "classic":
-				var banker_value = BaccaratRules.hand_value(phase_manager.banker_hand)
+				var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 				if banker_value == 6:
 					commission = 0.5
 			return stake * commission
@@ -859,8 +638,8 @@ func _finalize_payouts_manual(actual_winner: String) -> void:
 	var chip_textures = chip_visual_manager.current_textures if chip_visual_manager else {}
 
 	TableStateManager.save_table_state(
-		phase_manager.player_hand,
-		phase_manager.banker_hand,
+		hand_manager.get_player_hand_ref(),
+		hand_manager.get_banker_hand_ref(),
 		actual_winner,
 		selected_winner,
 		payout_queue_manager.get_all_bets(),
@@ -1097,12 +876,15 @@ func _load_survival_mode_setting():
 	is_survival_mode = enabled
 	if settings_scene:
 		settings_scene.set_survival_mode(enabled)
-	if enabled:
-		survival_ui.activate()
-		ui_manager.stats_label.visible = false
-	else:
-		survival_ui.deactivate()
-		ui_manager.stats_label.visible = true
+	if survival_ui:  # ← Проверяем, что survival_ui инициализирован
+		if enabled:
+			survival_ui.activate()
+			if ui_manager:
+				ui_manager.stats_label.visible = false
+		else:
+			survival_ui.deactivate()
+			if ui_manager:
+				ui_manager.stats_label.visible = true
 
 func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
@@ -1112,57 +894,6 @@ func _on_game_state_changed(old_state: int, new_state: int):
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
-
-func _setup_keyboard_navigation():
-	# Добавляем рамку в сцену
-	FocusManager.attach_highlight_to_scene(self)
-
-	# Уровень 1 (нижний): Кнопка "Карты"
-	var level1_elements = [
-		ui_manager.action_button
-	]
-
-	# Уровень 2: ? банкиру, ? игроку
-	var level2_elements = [
-		ui_manager.banker_third_toggle,
-		ui_manager.player_third_toggle
-	]
-
-	# Уровень 3: Banker, Player (Tie теперь кнопка, не маркер)
-	var level3_elements = [
-		get_node("BankerMarker"),
-		get_node("PlayerMarker")
-	]
-
-	# Уровень 4 (верхний): Подсказка, Настройки
-	var level4_elements = [
-		ui_manager.help_button
-	]
-	# Кнопка настроек теперь в TopUI после _setup_fixed_ui()
-	if has_node("TopUI/SettingsButton"):
-		level4_elements.append(get_node("TopUI/SettingsButton"))
-
-	# Регистрируем уровни (is_payout=false для Game)
-	FocusManager.register_level(1, level1_elements, false)
-	FocusManager.register_level(2, level2_elements, false)
-	FocusManager.register_level(3, level3_elements, false)
-	FocusManager.register_level(4, level4_elements, false)
-
-func _check_payout_return():
-	"""Проверка возврата из PayoutScene (ручной или автоматический режим)"""
-	
-	# Guard Clause 1: Ручной режим через PayoutContextManager
-	if PayoutContextManager.has_context():
-		var context = PayoutContextManager.get_context()
-		if context.get("manual_mode", false):
-			_handle_manual_mode_payout_return(context)
-			return
-	
-	# Guard Clause 2: Автоматический режим через GameDataManager
-	if GameDataManager.payout_winner != "":
-		_handle_automatic_mode_payout_return()
-		return
-
 
 # ═══════════════════════════════════════════════════════════════════════════
 # РУЧНОЙ РЕЖИМ - HELPER МЕТОДЫ
@@ -1194,24 +925,26 @@ func _handle_manual_mode_payout_return(context: Dictionary) -> void:
 
 func _restore_table_state() -> void:
 	"""Восстановление карт, UI карт и GameStateManager"""
-	# 1. Восстанавливаем карты
-	phase_manager.player_hand = TableStateManager.player_hand.duplicate()
-	phase_manager.banker_hand = TableStateManager.banker_hand.duplicate()
+	# 1. Восстанавливаем карты через HandManager
+	hand_manager.restore_from_arrays(
+		TableStateManager.player_hand,
+		TableStateManager.banker_hand
+	)
 	DebugLogger.log("♻️  Восстановлены карты: Player=%d, Banker=%d" % [
-		phase_manager.player_hand.size(),
-		phase_manager.banker_hand.size()
+		hand_manager.get_player_size(),
+		hand_manager.get_banker_size()
 	])
-	
+
 	# 2. Показываем карты на UI
 	_restore_cards_ui()
-	
+
 	# 3. Обновляем GameStateManager с восстановленными картами
-	var player_third_card = phase_manager.player_hand[2] if phase_manager.player_hand.size() >= 3 else null
-	var banker_third_card = phase_manager.banker_hand[2] if phase_manager.banker_hand.size() >= 3 else null
+	var player_third_card = hand_manager.get_player_third_card()
+	var banker_third_card = hand_manager.get_banker_third_card()
 	GameStateManager.determine_and_update_state(
 		false,  # cards_hidden = false (карты открыты)
-		phase_manager.player_hand,
-		phase_manager.banker_hand,
+		hand_manager.get_player_hand_ref(),
+		hand_manager.get_banker_hand_ref(),
 		player_third_card,
 		banker_third_card
 	)
@@ -1419,46 +1152,6 @@ func _handle_payout_queue() -> void:
 
 
 
-func _setup_camera():
-	"""Инициализация CameraManager"""
-	camera_manager = CameraManager.new()
-	camera_manager.setup(self)
-
-
-func _setup_fixed_ui():
-	"""Перемещает UI кнопки в TopUI CanvasLayer чтобы они не зумились"""
-	var top_ui = get_node("TopUI")
-	if not top_ui:
-		DebugLogger.log_warning("TopUI CanvasLayer не найден!")
-		return
-
-	# Список кнопок для перемещения
-	var buttons_to_move = [
-		"HelpButton",
-		"StatsLabel",
-		"SettingsButton",
-		"CardsButton",
-		"CardsButtonBroken",
-		"TieButton"
-	]
-
-	for button_name in buttons_to_move:
-		if has_node(button_name):
-			var button = get_node(button_name)
-			# Сохраняем глобальную позицию
-			var global_pos = button.global_position
-			# Перемещаем в TopUI
-			remove_child(button)
-			top_ui.add_child(button)
-			# Восстанавливаем позицию
-			button.global_position = global_pos
-			DebugLogger.log("✅ %s перемещён в TopUI" % button_name)
-		else:
-			DebugLogger.log("⚠️ %s не найден" % button_name)
-
-	DebugLogger.log("📌 UI элементы закреплены (не зумятся с камерой)")
-
-
 func camera_zoom_in():
 	"""Плавный зум на область карт (делегирование к CameraManager)"""
 	if camera_manager:
@@ -1479,75 +1172,6 @@ func camera_zoom_area(area_index: int):
 	if camera_manager:
 		camera_manager.zoom_area(area_index)
 
-
-# ═══════════════════════════════════════════════════════════════════════════
-# НОВЫЕ МЕНЕДЖЕРЫ - ИНИЦИАЛИЗАЦИЯ
-# ═══════════════════════════════════════════════════════════════════════════
-
-func _setup_chip_visual_manager():
-	"""Инициализация ChipVisualManager"""
-	chip_visual_manager = ChipVisualManager.new()
-	var chip_player = get_node_or_null("ChipPlayer")
-	var chip_banker = get_node_or_null("ChipBanker")
-	var chip_tie = get_node_or_null("ChipTie")
-	var chip_pair_player = get_node_or_null("ChipPairPlayer")
-	var chip_pair_banker = get_node_or_null("ChipPairBanker")
-	if chip_player and chip_banker and chip_tie:
-		# Передаём self как родительский узел для создания копий в MAX/REALISTIC режиме
-		chip_visual_manager.setup(chip_player, chip_banker, chip_tie, chip_pair_player, chip_pair_banker, self)
-		chip_visual_manager.chip_clicked.connect(_on_chip_clicked)
-		# Подписка на сигнал индивидуальных фишек
-		chip_visual_manager.chip_instance_clicked.connect(_on_chip_instance_clicked)
-		
-		# Применяем сохранённый режим позиций
-		var mode = PayoutSettingsManager.get_position_mode()
-		chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
-		
-		var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
-		DebugLogger.log("✅ ChipVisualManager инициализирован (position_mode=%s)" % mode_names[mode])
-	else:
-		push_warning("⚠️  Узлы фишек не найдены в сцене")
-
-func _setup_winner_selection_manager():
-	"""Инициализация WinnerSelectionManager"""
-	winner_selection_manager = WinnerSelectionManager.new()
-	var player_marker = get_node_or_null("PlayerMarker")
-	var banker_marker = get_node_or_null("BankerMarker")
-	if player_marker and banker_marker:
-		winner_selection_manager.setup(player_marker, banker_marker)
-		winner_selection_manager.winner_toggled.connect(_on_winner_toggled)
-		DebugLogger.log_init("WinnerSelectionManager инициализирован (Player, Banker)")
-	else:
-		push_warning("⚠️  Маркеры не найдены в сцене")
-
-func _setup_pair_betting_manager():
-	"""Инициализация PairBettingManager"""
-	pair_betting_manager = PairBettingManager.new()
-	DebugLogger.log_init("PairBettingManager инициализирован")
-
-func _setup_area_buttons():
-	"""Инициализация кнопок областей ставок"""
-	# Кнопки областей уже настроены через скрипт AreaButton.gd
-	# Они подключаются к EventBus автоматически
-	DebugLogger.log_init("Кнопки областей инициализированы")
-
-func _setup_navigation_arrows():
-	"""Инициализация стрелок навигации"""
-	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
-	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
-	
-	if left_arrow:
-		left_arrow.pressed.connect(_on_left_arrow_pressed)
-	if right_arrow:
-		right_arrow.pressed.connect(_on_right_arrow_pressed)
-	
-	# Подписываемся на EventBus для управления видимостью стрелок
-	if EventBus:
-		EventBus.navigation_arrows_visibility_changed.connect(_on_arrows_visibility_changed)
-		# Скрываем стрелки при старте - они появятся только после выбора победителя
-		EventBus.navigation_arrows_visibility_changed.emit(false)
-	
-	DebugLogger.log_init("Стрелки навигации инициализированы")
 
 func _on_left_arrow_pressed():
 	"""Обработчик нажатия левой стрелки"""
@@ -1591,59 +1215,6 @@ func _update_arrows_state():
 		right_arrow.disabled = (current_area >= 3)
 		right_arrow.modulate.a = 0.3 if current_area >= 3 else 1.0
 
-
-
-func _restore_chips_from_table_state():
-	"""Восстановить ВСЕ фишки из TableStateManager при возврате из PayoutScene
-
-	Восстанавливает полный snapshot стола:
-	- Все фишки (выигравшие и проигравшие) с их текстурами
-	- Затем скрывает проигрышные и оплаченные
-	"""
-	DebugLogger.log_restore(" Восстановление фишек из TableStateManager snapshot...")
-
-	if not chip_visual_manager:
-		push_warning("⚠️  chip_visual_manager is null")
-		return
-
-	if not TableStateManager.has_saved_state():
-		DebugLogger.log_warning(" Нет сохраненного состояния в TableStateManager")
-		return
-
-	# Восстанавливаем ВСЕ фишки из сохраненных ставок
-	for bet in TableStateManager.bets:
-		if bet.chip_texture.is_empty():
-			# Нет сохраненной текстуры - используем случайную
-			chip_visual_manager.show_chip(bet.bet_type)
-		else:
-			# Восстанавливаем конкретную текстуру
-			chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
-
-		DebugLogger.log("  → Восстановлена фишка %s (texture=%s)" % [bet.bet_type, bet.chip_texture.get_file() if not bet.chip_texture.is_empty() else "random"])
-
-	# Применяем логику скрытия проигрышных и оплаченных
-	for bet in TableStateManager.bets:
-		if not bet.won or bet.is_paid:
-			chip_visual_manager.hide_chip(bet.bet_type)
-			var reason = "проигрышная" if not bet.won else "оплаченная"
-			DebugLogger.log("  → Скрыта %s фишка %s" % [reason, bet.bet_type])
-
-	# Синхронизируем PairBettingManager на основе восстановленных ставок
-	if pair_betting_manager:
-		var has_pair_player = false
-		var has_pair_banker = false
-		for bet in TableStateManager.bets:
-			if bet.bet_type == "PairPlayer":
-				has_pair_player = true
-			elif bet.bet_type == "PairBanker":
-				has_pair_banker = true
-
-		if has_pair_player:
-			pair_betting_manager.toggle_pair_player_bet(true)
-		if has_pair_banker:
-			pair_betting_manager.toggle_pair_banker_bet(true)
-
-	DebugLogger.log("♻️  Восстановление фишек завершено (всего: %d)" % TableStateManager.bets.size())
 
 
 func _on_payout_setting_changed(bet_type: String, enabled: bool):
@@ -2021,25 +1592,25 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 func _restore_cards_ui():
 	"""Восстановить карты на UI после возврата из PayoutScene"""
 	# Показываем первые две карты игрока
-	if phase_manager.player_hand.size() >= 1:
-		ui_manager.player_card1.texture = phase_manager.player_hand[0].get_texture(card_manager)
+	if hand_manager.get_player_hand_ref().size() >= 1:
+		ui_manager.player_card1.texture = hand_manager.get_player_hand_ref()[0].get_texture(card_manager)
 		ui_manager.player_card1.visible = true
-	if phase_manager.player_hand.size() >= 2:
-		ui_manager.player_card2.texture = phase_manager.player_hand[1].get_texture(card_manager)
+	if hand_manager.get_player_hand_ref().size() >= 2:
+		ui_manager.player_card2.texture = hand_manager.get_player_hand_ref()[1].get_texture(card_manager)
 		ui_manager.player_card2.visible = true
-	if phase_manager.player_hand.size() >= 3:
-		ui_manager.player_card3.texture = phase_manager.player_hand[2].get_texture(card_manager)
+	if hand_manager.get_player_hand_ref().size() >= 3:
+		ui_manager.player_card3.texture = hand_manager.get_player_hand_ref()[2].get_texture(card_manager)
 		ui_manager.player_card3.visible = true
 
 	# Показываем первые две карты банкира
-	if phase_manager.banker_hand.size() >= 1:
-		ui_manager.banker_card1.texture = phase_manager.banker_hand[0].get_texture(card_manager)
+	if hand_manager.get_banker_hand_ref().size() >= 1:
+		ui_manager.banker_card1.texture = hand_manager.get_banker_hand_ref()[0].get_texture(card_manager)
 		ui_manager.banker_card1.visible = true
-	if phase_manager.banker_hand.size() >= 2:
-		ui_manager.banker_card2.texture = phase_manager.banker_hand[1].get_texture(card_manager)
+	if hand_manager.get_banker_hand_ref().size() >= 2:
+		ui_manager.banker_card2.texture = hand_manager.get_banker_hand_ref()[1].get_texture(card_manager)
 		ui_manager.banker_card2.visible = true
-	if phase_manager.banker_hand.size() >= 3:
-		ui_manager.banker_card3.texture = phase_manager.banker_hand[2].get_texture(card_manager)
+	if hand_manager.get_banker_hand_ref().size() >= 3:
+		ui_manager.banker_card3.texture = hand_manager.get_banker_hand_ref()[2].get_texture(card_manager)
 		ui_manager.banker_card3.visible = true
 
 	# Скрываем toggles третьих карт (карты уже открыты)

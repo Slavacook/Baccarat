@@ -14,6 +14,7 @@ extends RefCounted
 var deck: Deck
 var card_manager: CardTextureManager
 var ui: UIManager
+var hand_manager: HandManager
 var payout_queue_manager: PayoutQueueManager
 var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
@@ -24,8 +25,10 @@ var bet_collection_manager: BetCollectionPhaseManager = null
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
 
-var player_hand: Array[Card] = []
-var banker_hand: Array[Card] = []
+# ← УДАЛЕНО: player_hand и banker_hand теперь в HandManager (Task 2.2)
+# var player_hand: Array[Card] = []
+# var banker_hand: Array[Card] = []
+
 var player_third_selected: bool = false
 var banker_third_selected: bool = false
 var is_first_deal: bool = true
@@ -35,6 +38,7 @@ func _init(
 	deck_ref: Deck,
 	card_manager_ref: CardTextureManager,
 	ui_ref: UIManager,
+	hand_mgr: HandManager,
 	payout_queue_mgr: PayoutQueueManager,
 	chip_visual_mgr: ChipVisualManager,
 	winner_selection_mgr: WinnerSelectionManager,
@@ -43,6 +47,7 @@ func _init(
 	deck = deck_ref
 	card_manager = card_manager_ref
 	ui = ui_ref
+	hand_manager = hand_mgr
 	payout_queue_manager = payout_queue_mgr
 	chip_visual_manager = chip_visual_mgr
 	winner_selection_manager = winner_selection_mgr
@@ -57,8 +62,7 @@ func reset(update_state: bool = true):
 	Args:
 		update_state: Обновлять ли GameStateManager (false при подготовке к новой игре)
 	"""
-	player_hand.clear()
-	banker_hand.clear()
+	hand_manager.reset()
 	player_third_selected = false
 	banker_third_selected = false
 	ui.reset_ui()
@@ -135,13 +139,12 @@ func deal_first_four():
 	else:
 		DebugLogger.log("  → ⚠️ Условие зума НЕ выполнено, зум не произойдет")
 
-	player_hand = [deck.draw(), deck.draw()]
-	banker_hand = [deck.draw(), deck.draw()]
+	hand_manager.deal_first_four(deck)
 	player_third_selected = false
 	banker_third_selected = false
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
-	ui.show_first_four_cards(player_hand, banker_hand)
+	ui.show_first_four_cards(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	ui.set_action_button_state("confirm")
 
 	# Показываем кнопку Игалите (активна только когда маркеры не выбраны)
@@ -151,8 +154,10 @@ func deal_first_four():
 	# Проверяем пары (молча, без оповещений)
 	if pair_betting_manager:
 		pair_betting_manager.check_pairs(
-			player_hand[0], player_hand[1],
-			banker_hand[0], banker_hand[1]
+			hand_manager.get_player_card(0),
+			hand_manager.get_player_card(1),
+			hand_manager.get_banker_card(0),
+			hand_manager.get_banker_card(1)
 		)
 		DebugLogger.log("🃏 Проверка пар: Player=%s, Banker=%s" % [
 			pair_betting_manager.player_pair_detected,
@@ -164,16 +169,18 @@ func deal_first_four():
 	_update_game_state_manager()
 
 func draw_player_third():
-	player_hand.append(deck.draw())
-	ui.update_player_third_card_ui("card", player_hand[2])  # Скрываем ДО анимации!
-	ui.show_player_third_card(player_hand[2])
+	var card: Card = deck.draw()
+	hand_manager.add_player_card(card)
+	ui.update_player_third_card_ui("card", card)  # Скрываем ДО анимации!
+	ui.show_player_third_card(card)
 	player_third_selected = false
 	_update_game_state_manager()
 
 func draw_banker_third():
-	banker_hand.append(deck.draw())
-	ui.update_banker_third_card_ui("card", banker_hand[2])  # Скрываем ДО анимации!
-	ui.show_banker_third_card(banker_hand[2])
+	var card: Card = deck.draw()
+	hand_manager.add_banker_card(card)
+	ui.update_banker_third_card_ui("card", card)  # Скрываем ДО анимации!
+	ui.show_banker_third_card(card)
 	banker_third_selected = false
 	_update_game_state_manager()
 
@@ -188,9 +195,9 @@ func complete_game():
 
 func _should_banker_draw() -> bool:
 	return BaccaratRules.banker_should_draw(
-		[banker_hand[0], banker_hand[1]],
-		player_hand.size() >= 3,
-		player_hand[2] if player_hand.size() >= 3 else null
+		[hand_manager.get_banker_card(0), hand_manager.get_banker_card(1)],
+		hand_manager.has_player_third_card(),
+		hand_manager.get_player_third_card()
 	)
 
 func on_action_pressed():
@@ -284,7 +291,7 @@ func on_tie_button_pressed():
 		return
 
 	# Определяем реального победителя
-	var actual_winner = BaccaratRules.get_winner(player_hand, banker_hand)
+	var actual_winner = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 
 	if actual_winner != "Tie":
 		# ❌ Ошибка! Нет ничьей
@@ -323,8 +330,8 @@ func on_tie_button_pressed():
 # ========================================
 
 func _validate_and_execute_third_cards() -> void:
-	var ps: int = BaccaratRules.hand_value([player_hand[0], player_hand[1]])
-	var bs: int = BaccaratRules.hand_value([banker_hand[0], banker_hand[1]])
+	var ps: int = hand_manager.get_player_initial_score()
+	var bs: int = hand_manager.get_banker_initial_score()
 
 	# Проверка натуральных или особых комбинаций (8-9, 6v6, 7v7)
 	if BaccaratRules.has_natural_or_no_third(ps, bs):
@@ -473,7 +480,7 @@ func _handle_banker_after_player():
 		complete_game()
 
 func _validate_banker_after_player():
-	var bs: int = BaccaratRules.hand_value([banker_hand[0], banker_hand[1]])
+	var bs: int = hand_manager.get_banker_initial_score()
 	var banker_draw: bool = _should_banker_draw()
 	if banker_draw:
 		if not banker_third_selected:
@@ -534,13 +541,13 @@ func _restore_active_bet_chips() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _update_game_state_manager():
-	var cards_hidden = player_hand.size() == 0 or banker_hand.size() == 0
-	var player_third_card = player_hand[2] if player_hand.size() > 2 else null
-	var banker_third_card = banker_hand[2] if banker_hand.size() > 2 else null
+	var cards_hidden = hand_manager.are_hands_empty()
+	var player_third_card = hand_manager.get_player_third_card()
+	var banker_third_card = hand_manager.get_banker_third_card()
 	GameStateManager.determine_and_update_state(
 		cards_hidden,
-		player_hand,
-		banker_hand,
+		hand_manager.get_player_hand_ref(),
+		hand_manager.get_banker_hand_ref(),
 		player_third_card,
 		banker_third_card
 	)
@@ -562,7 +569,7 @@ func _validate_winner_selection() -> void:
 		return
 
 	# Проверяем правильность
-	var actual_winner = BaccaratRules.get_winner(player_hand, banker_hand)
+	var actual_winner = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 
 	if selected_winner != actual_winner:
 		# ❌ Неправильный выбор
@@ -602,8 +609,8 @@ func _validate_winner_selection() -> void:
 
 func _format_victory_toast(winner: String) -> String:
 	"""Форматирование сообщения победы"""
-	var player_score = BaccaratRules.hand_value(player_hand)
-	var banker_score = BaccaratRules.hand_value(banker_hand)
+	var player_score = hand_manager.get_player_score()
+	var banker_score = hand_manager.get_banker_score()
 
 	if winner == "Tie":
 		return "Игалите"
@@ -657,8 +664,8 @@ func _handle_choose_winner_state() -> void:
 func _handle_invalid_card_selection_in_final() -> void:
 	"""Обработка ошибочной попытки заказать карты когда все карты открыты"""
 
-	var player_first_two = BaccaratRules.hand_value([player_hand[0], player_hand[1]])
-	var banker_first_two = BaccaratRules.hand_value([banker_hand[0], banker_hand[1]])
+	var player_first_two = hand_manager.get_player_initial_score()
+	var banker_first_two = hand_manager.get_banker_initial_score()
 	var is_natural = player_first_two >= 8 or banker_first_two >= 8
 
 	var error_message = Localization.t("ERR_NATURAL_NO_DRAW") if is_natural else Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER")
