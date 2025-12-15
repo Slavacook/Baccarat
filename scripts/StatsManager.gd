@@ -39,11 +39,11 @@ func update_stats():
 	var is_survival = SaveManager.instance.load_survival_mode()
 
 	if is_survival:
-		# Режим выживания: показываем правильно/ошибки
-		var total_errors = data.errors.values().reduce(func(a, b): return a + b, 0) if data.errors.size() > 0 else 0
-		stats_label.text = "Правильно: %d | Ошибок: %d" % [data.correct, total_errors]
+		# Режим выживания: скрываем stats_label (есть сердечки в SurvivalModeUI)
+		stats_label.visible = false
 	else:
 		# Обычный режим: показываем очки
+		stats_label.visible = true
 		stats_label.text = "Очки: %d" % data.score
 
 # ← Сбросить статистику
@@ -56,17 +56,13 @@ func reset():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_action_correct(_type: String):
-	SaveManager.instance.increment_correct()
-
 	# ← Если обычный режим: +1 очко за правильное действие
 	if not SaveManager.instance.load_survival_mode():
 		SaveManager.instance.add_score(1)
 
 	update_stats()
 
-func _on_action_error(type: String, _message: String):
-	SaveManager.instance.increment_error(type)
-
+func _on_action_error(_type: String, _message: String):
 	# ← Если обычный режим: -1 очко за ошибку
 	if not SaveManager.instance.load_survival_mode():
 		var game_over = SaveManager.instance.subtract_score(1)
@@ -76,23 +72,19 @@ func _on_action_error(type: String, _message: String):
 	update_stats()
 
 func _on_payout_correct(_collected: float, _expected: float):
-	SaveManager.instance.increment_correct()
-	
 	# ← Если обычный режим (без сердечек, но с очками): +1 очко за верную выплату
 	if not SaveManager.instance.load_survival_mode():
 		SaveManager.instance.add_score(1)
-	
+
 	update_stats()
 
 func _on_payout_wrong(_collected: float, _expected: float):
-	SaveManager.instance.increment_error("payout_wrong")
-	
 	# ← Если обычный режим (без сердечек, но с очками): -1 очко за ошибку
 	if not SaveManager.instance.load_survival_mode():
 		var game_over = SaveManager.instance.subtract_score(1)
 		if game_over:
 			print("🎮 GAME OVER! Очки упали ниже 0")
-	
+
 	update_stats()
 
 func _on_hint_used():

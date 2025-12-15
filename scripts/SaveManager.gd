@@ -8,9 +8,6 @@ signal score_game_over()  # ← Сигнал когда очки достигл�
 const SAVE_PATH = "user://baccarat_stats.save"
 const SETTINGS_PATH = "user://baccarat_settings.save"
 
-var total: int = 0
-var correct: int = 0
-var errors: Dictionary = {}
 var score: int = 10  # ← Очки (начальное значение 10)
 
 func _init():
@@ -25,7 +22,7 @@ func _ready():
 func save_data():
 	var file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if file:
-		file.store_var({"total": total, "correct": correct, "errors": errors, "score": score})
+		file.store_var({"score": score})
 		file.close()
 
 func load_data():
@@ -35,30 +32,12 @@ func load_data():
 			var data = file.get_var()
 			file.close()
 			if data is Dictionary:
-				total = data.get("total", 0)
-				correct = data.get("correct", 0)
-				errors = data.get("errors", {})
 				score = data.get("score", 10)  # ← По умолчанию 10 очков
 
 func get_data() -> Dictionary:
-	return {"total": total, "correct": correct, "errors": errors, "score": score}
-
-func increment_total():
-	total += 1
-	save_data()
-
-func increment_correct():
-	correct += 1
-	save_data()
-
-func increment_error(type: String):
-	errors[type] = errors.get(type, 0) + 1
-	save_data()
+	return {"score": score}
 
 func reset_stats():
-	total = 0
-	correct = 0
-	errors = {}
 	score = 10  # ← Начальный счёт при сбросе
 	save_data()
 
@@ -97,7 +76,11 @@ func load_settings() -> Dictionary:
 			file.close()
 			if data is Dictionary:
 				return data
-	return {"game_mode": "junket", "survival_mode": false}  # По умолчанию
+	return {
+		"game_mode": "junket",
+		"survival_mode": true,
+		"language": "ru"  # По умолчанию русский
+	}
 
 func save_game_mode(mode: String):
 	var settings = load_settings()
@@ -115,7 +98,19 @@ func save_survival_mode(enabled: bool):
 
 func load_survival_mode() -> bool:
 	var settings = load_settings()
-	return settings.get("survival_mode", false)
+	return settings.get("survival_mode", true)  # По умолчанию survival mode
+
+# ← Настройки языка
+func save_language(lang: String):
+	"""Сохранить язык: "ru" или "en" """
+	var settings = load_settings()
+	settings["language"] = lang
+	save_settings(settings)
+
+func load_language() -> String:
+	"""Загрузить язык (по умолчанию "ru")"""
+	var settings = load_settings()
+	return settings.get("language", "ru")
 
 # ← Настройки рубашки карт
 func save_card_back_style(style: String):
@@ -159,7 +154,7 @@ func load_bet_profile() -> int:
 	var settings = load_settings()
 	return settings.get("bet_profile", 1)  # По умолчанию MEDIUM (1)
 
-# ← Настройки режима позиций фишек (0=DEFAULT, 1=RANDOM, 2=MAX)
+# ← Настройки режима позиций фишек (0=DEFAULT, 1=RANDOM, 2=MAX, 3=REALISTIC)
 func save_position_mode(mode: int):
 	"""Сохранить режим позиций фишек"""
 	var settings = load_settings()
@@ -167,12 +162,27 @@ func save_position_mode(mode: int):
 	save_settings(settings)
 
 func load_position_mode() -> int:
-	"""Загрузить режим позиций фишек (по умолчанию 0 = DEFAULT)"""
+	"""Загрузить режим позиций фишек (по умолчанию 3 = REALISTIC)"""
 	var settings = load_settings()
+
+	# Миграция v5.9+: если сохранен RANDOM (1), переключаем на REALISTIC (3)
+	var saved_mode = settings.get("position_mode", -1)
+	if saved_mode == 1:  # Был RANDOM
+		print("🔄 Миграция: RANDOM (1) → REALISTIC (3)")
+		save_position_mode(3)  # Сохраняем новое значение
+		return 3
+
 	# Миграция: если есть старый флаг random_positions_enabled
 	if settings.has("random_positions_enabled") and settings.get("random_positions_enabled", false):
-		return 1  # RANDOM
-	return settings.get("position_mode", 0)
+		print("🔄 Миграция: random_positions_enabled → REALISTIC (3)")
+		save_position_mode(3)
+		return 3
+
+	# Если ничего не сохранено - возвращаем REALISTIC (3)
+	if saved_mode == -1:
+		return 3
+
+	return saved_mode  # Возвращаем сохраненное значение (0, 2 или 3)
 
 # Для обратной совместимости
 func save_random_positions_mode(enabled: bool):

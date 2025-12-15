@@ -77,7 +77,9 @@ static func initialize(controller: Node2D) -> Dictionary:
 
 static func _initialize_core_managers(controller: Node2D, result: Dictionary) -> void:
 	"""Инициализация базовых менеджеров и компонентов"""
-	Localization.set_lang("ru")
+	# Загружаем сохраненный язык
+	var saved_lang = SaveManager.load_language()
+	Localization.set_lang(saved_lang)
 
 	result["deck"] = Deck.new()
 	result["config"] = controller.config if controller.config else GameConfig.new()
@@ -123,6 +125,11 @@ static func _setup_settings_and_mode(controller: Node2D, result: Dictionary) -> 
 
 	# Загрузка режима игры
 	GameModeManager.load_saved_mode()
+
+	# ← ВАЖНО: Присваиваем необходимые поля ДО вызова _load_survival_mode_setting()
+	controller.survival_ui = result["survival_ui"]
+	controller.ui_manager = result["ui_manager"]
+	controller.settings_scene = result.get("settings_scene")
 	controller._load_survival_mode_setting()
 
 

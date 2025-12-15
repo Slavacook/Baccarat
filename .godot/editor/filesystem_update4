@@ -11,3 +11,6 @@ res://scripts/SurvivalModeUI.gd
 res://scripts/autoload/EventBus.gd
 res://scripts/GameConstants.gd
 res://scripts/GameInitializer.gd
+res://scripts/SaveManager.gd
+res://scripts/StatsManager.gd
+res://scripts/SettingsScene.gd

@@ -410,6 +410,7 @@ func _on_bet_size_selected(index: int):
 func _on_ru_pressed():
 	"""Обработка нажатия кнопки RU"""
 	Localization.set_lang("ru")
+	SaveManager.instance.save_language("ru")  # Сохраняем выбор языка
 	_update_lang_buttons()
 	_update_texts()
 	language_changed.emit("ru")
@@ -418,6 +419,7 @@ func _on_ru_pressed():
 func _on_en_pressed():
 	"""Обработка нажатия кнопки EN"""
 	Localization.set_lang("en")
+	SaveManager.instance.save_language("en")  # Сохраняем выбор языка
 	_update_lang_buttons()
 	_update_texts()
 	language_changed.emit("en")

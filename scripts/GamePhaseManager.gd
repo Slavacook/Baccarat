@@ -269,12 +269,12 @@ func cancel_third_card_orders() -> void:
 	if player_third_selected:
 		player_third_selected = false
 		ui.update_player_third_card_ui("?")
-		DebugLogger.log_error("Отменён заказ третьей карты игрока")
-	
+		DebugLogger.log("🔄 Отменён заказ третьей карты игрока")
+
 	if banker_third_selected:
 		banker_third_selected = false
 		ui.update_banker_third_card_ui("?")
-		DebugLogger.log_error("Отменён заказ третьей карты банкира")
+		DebugLogger.log("🔄 Отменён заказ третьей карты банкира")
 
 
 func on_tie_button_pressed():
