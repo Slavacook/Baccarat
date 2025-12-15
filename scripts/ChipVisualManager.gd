@@ -227,13 +227,29 @@ func _save_default_positions() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_chip(bet_type: String) -> void:
-	"""Показать фишку с рандомной текстурой и позицией (зависит от режима)"""
+	"""Показать фишку с текстурой и позицией (зависит от режима)
+	
+	В MAX режиме: все фишки на всех позициях без рандома (тестовый режим)
+	В остальных режимах: случайная текстура и позиция
+	"""
 	if not chip_nodes.has(bet_type):
 		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
 		return
 
 	var chip = chip_nodes[bet_type]
-	var texture_path = _get_random_texture(bet_type)
+	
+	# В MAX режиме используем первую текстуру (без рандома), в остальных - случайную
+	var texture_path: String
+	if current_mode == PositionMode.MAX:
+		# MAX режим: первая текстура (без рандома)
+		if CHIP_TEXTURES.has(bet_type) and CHIP_TEXTURES[bet_type].size() > 0:
+			texture_path = CHIP_TEXTURES[bet_type][0]
+		else:
+			push_error("ChipVisualManager: нет текстур для типа '%s'" % bet_type)
+			return
+	else:
+		# Остальные режимы: случайная текстура
+		texture_path = _get_random_texture(bet_type)
 
 	# Загружаем текстуру
 	var texture = load(texture_path)
@@ -496,7 +512,11 @@ func get_position_mode() -> PositionMode:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
-	"""Создать дополнительные фишки для всех альтернативных позиций (MAX режим)"""
+	"""Создать фишки для всех альтернативных позиций (MAX режим)
+	
+	Создаёт ChipInstance для всех позиций и добавляет их в active_chips,
+	чтобы hide_chip_instance работал правильно.
+	"""
 	if not scene_root:
 		push_warning("ChipVisualManager: scene_root не задан, не могу создать копии")
 		return
@@ -504,7 +524,17 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 	if not ALTERNATIVE_POSITIONS.has(bet_type):
 		return
 	
-	# Сначала удаляем старые копии
+	# Удаляем старые ChipInstance этого типа из active_chips
+	var chips_to_remove = []
+	for chip in active_chips:
+		if chip.bet_type == bet_type:
+			chips_to_remove.append(chip)
+	for chip in chips_to_remove:
+		if chip.node and not chip.is_original:
+			chip.node.queue_free()
+		active_chips.erase(chip)
+	
+	# Удаляем старые копии из extra_chips
 	_remove_extra_chips(bet_type)
 	
 	var positions = ALTERNATIVE_POSITIONS[bet_type]
@@ -519,8 +549,13 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 	# Устанавливаем оригинальную фишку на позицию 0
 	if positions.size() > 0:
 		original_chip.position = positions[0]
+		original_chip.visible = true
 	
-	# Создаём копии для всех позиций КРОМЕ первой (основной, где уже стоит оригинал)
+	# Создаём ChipInstance для оригинальной фишки (position_index = 0)
+	var original_instance = ChipInstance.new(bet_type, 0, original_chip, true)
+	active_chips.append(original_instance)
+	
+	# Создаём ChipInstance для всех остальных позиций
 	for i in range(1, positions.size()):
 		var new_chip = TextureButton.new()
 		new_chip.texture_normal = texture
@@ -531,16 +566,35 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 		new_chip.visible = true
 		
 		# Подключаем сигнал клика с position_index
-		new_chip.pressed.connect(_on_extra_chip_pressed.bind(bet_type, i))
+		new_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, i))
 		
 		scene_root.add_child(new_chip)
+		
+		# Добавляем в extra_chips для совместимости
+		if not extra_chips.has(bet_type):
+			extra_chips[bet_type] = []
 		extra_chips[bet_type].append(new_chip)
+		
+		# Создаём ChipInstance и добавляем в active_chips
+		var chip_instance = ChipInstance.new(bet_type, i, new_chip, false)
+		active_chips.append(chip_instance)
 	
-	print("📍 MAX: создано %d копий фишки %s" % [extra_chips[bet_type].size(), bet_type])
+	print("📍 MAX: создано %d фишек %s (всего позиций: %d)" % [positions.size(), bet_type, positions.size()])
 
 
 func _remove_extra_chips(bet_type: String) -> void:
 	"""Удалить дополнительные фишки для типа ставки"""
+	# Удаляем ChipInstance из active_chips
+	var chips_to_remove = []
+	for chip in active_chips:
+		if chip.bet_type == bet_type and not chip.is_original:
+			chips_to_remove.append(chip)
+	for chip in chips_to_remove:
+		if chip.node:
+			chip.node.queue_free()
+		active_chips.erase(chip)
+	
+	# Удаляем узлы из extra_chips
 	if not extra_chips.has(bet_type):
 		return
 	

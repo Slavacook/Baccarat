@@ -569,8 +569,8 @@ func _check_hint_availability() -> Dictionary:
 	else:
 		# Обычный режим: проверяем очки
 		var score: int = SaveManager.instance.score
-		# Нужно минимум HINT_COST_SCORE очков
-		if score < GameConstants.HINT_COST_SCORE:
+		# Нужно минимум 6 очков (меньше 6 = недоступна, при 5 очках = геймовер)
+		if score < 6:
 			return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
 		return {"can_use": true, "error_key": ""}
 

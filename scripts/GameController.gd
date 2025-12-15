@@ -1269,8 +1269,20 @@ func _on_payout_setting_changed(bet_type: String, enabled: bool):
 		return
 
 	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
+	var is_max_mode = PayoutSettingsManager.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
 
-	# Управляем видимостью фишек
+	# В MAX режиме игнорируем изменения настроек - все фишки всегда видны
+	if is_max_mode:
+		chip_visual_manager.show_chip(bet_type)
+		# Для пар - также обновляем PairBettingManager
+		if bet_type == "PairPlayer" and pair_betting_manager:
+			pair_betting_manager.toggle_pair_player_bet(true)
+		elif bet_type == "PairBanker" and pair_betting_manager:
+			pair_betting_manager.toggle_pair_banker_bet(true)
+		DebugLogger.log("💰 MAX режим: фишка %s показана (настройки игнорируются)" % bet_type)
+		return
+
+	# Управляем видимостью фишек (для остальных режимов)
 	if enabled:
 		if is_realistic:
 			chip_visual_manager.show_chips_realistic(bet_type)
@@ -1321,6 +1333,18 @@ func _on_position_mode_changed(mode: int):
 
 	var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
 	DebugLogger.log("🎲 Режим позиций фишек изменён: %s" % mode_names[mode])
+	
+	# В MAX режиме показываем ВСЕ фишки независимо от настроек (тестовый режим)
+	if mode == 2:  # MAX режим
+		chip_visual_manager.show_chip("Player")
+		chip_visual_manager.show_chip("Banker")
+		chip_visual_manager.show_chip("Tie")
+		chip_visual_manager.show_chip("PairPlayer")
+		chip_visual_manager.show_chip("PairBanker")
+		if pair_betting_manager:
+			pair_betting_manager.toggle_pair_player_bet(true)
+			pair_betting_manager.toggle_pair_banker_bet(true)
+		DebugLogger.log("🎲 MAX режим: показаны все фишки на всех позициях")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА СТАВОК И ФИШЕК
@@ -1419,6 +1443,13 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	
 	# Если ошибка валидации - показываем сообщение и штрафуем
 	if not validation.can_proceed:
+		# "already_collected" - это не ошибка игрока, а техническая ситуация (двойной клик)
+		# Просто игнорируем без тоста и без отнятия жизни
+		if validation.error_type == "already_collected":
+			DebugLogger.log("  ⏸️  Ставка %s[%d] уже собрана, клик игнорируется" % [bet_type, position_index])
+			return
+		
+		# Для остальных ошибок - показываем тост и отнимаем жизнь
 		var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
 		EventBus.show_toast_error.emit(error_message)
 		EventBus.action_error.emit(validation.error_type, error_message)
@@ -1432,13 +1463,9 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	if validation.action == "collect":
 		# Собираем проигрышную ставку
 		bet_collection_manager.collect_bet(bet_type, position_index)
-		# Скрываем фишку
+		# Скрываем конкретную фишку по position_index (работает для всех режимов)
 		if chip_visual_manager:
-			var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
-			if is_realistic:
-				chip_visual_manager.hide_chip_instance(bet_type, position_index)
-			else:
-				chip_visual_manager.hide_chip(bet_type)
+			chip_visual_manager.hide_chip_instance(bet_type, position_index)
 		DebugLogger.log("  ✅ Ставка %s[%d] собрана" % [bet_type, position_index])
 		
 		# Если кнопка "Завершить" была broken - восстанавливаем
@@ -1617,13 +1644,9 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		if bet_collection_manager:
 			bet_collection_manager.pay_bet(bet_type, position_index)
 
-		# Скрываем фишку оплаченной ставки
+		# Скрываем конкретную фишку по position_index (работает для всех режимов)
 		if chip_visual_manager:
-			var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
-			if is_realistic:
-				chip_visual_manager.hide_chip_instance(bet_type, position_index)
-			else:
-				chip_visual_manager.hide_chip(bet_type)
+			chip_visual_manager.hide_chip_instance(bet_type, position_index)
 			DebugLogger.log("  🎨 Фишка %s[%d] скрыта" % [bet_type, position_index])
 
 		# Увеличиваем счетчик раундов в survival mode

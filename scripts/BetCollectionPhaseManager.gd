@@ -47,6 +47,9 @@ var payment_sequence: Dictionary = {}     # {"main": [...], "tie": [...], "pairs
 var collection_progress: Dictionary = {"main": 0, "tie": 0, "pairs": 0}
 var payment_progress: Dictionary = {"main": 0, "tie": 0, "pairs": 0}
 
+# Кэш для номеров позиций в линиях (для производительности)
+var _line_position_cache: Dictionary = {}
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -84,6 +87,7 @@ func reset() -> void:
 	payment_sequence.clear()
 	collection_progress = {"main": 0, "tie": 0, "pairs": 0}
 	payment_progress = {"main": 0, "tie": 0, "pairs": 0}
+	_line_position_cache.clear()  # Очищаем кэш номеров позиций
 	set_mode(CollectionMode.NONE)
 	print("🔄 BetCollectionPhaseManager: сброшен")
 
@@ -151,6 +155,118 @@ func is_tie_push_bet(bet_type: String) -> bool:
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ ПОСЛЕДОВАТЕЛЬНОСТЯМИ И ПОРЯДКОМ
 # ═══════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════
+# НУМЕРАЦИЯ ПОЗИЦИЙ В ЛИНИЯХ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func get_line_position_number(bet_type: String, position_index: int) -> int:
+	"""Получить номер позиции в линии (1 = самый правый, N = самый левый)
+	
+	Для всех типов ставок нумерация одинаковая: справа налево.
+	Исключение: Tie при сборе использует обратный порядок (см. _get_sorted_tie_bets)
+	
+	Args:
+		bet_type: Тип ставки ("Player", "Banker", "Tie", "PairPlayer", "PairBanker")
+		position_index: Индекс позиции в массиве ALTERNATIVE_POSITIONS
+		
+	Returns:
+		Номер позиции в линии (1 = самый правый, N = самый левый)
+	"""
+	var key = "%s_%d" % [bet_type, position_index]
+	
+	# Проверяем кэш
+	if _line_position_cache.has(key):
+		return _line_position_cache[key]
+	
+	var number = 0
+	
+	# Для пар: объединяем PairPlayer и PairBanker
+	if bet_type in ["PairPlayer", "PairBanker"]:
+		number = _get_pairs_line_number(bet_type, position_index)
+	else:
+		# Для остальных: используем обычную логику
+		number = _get_standard_line_number(bet_type, position_index)
+	
+	# Сохраняем в кэш
+	_line_position_cache[key] = number
+	return number
+
+func _get_standard_line_number(bet_type: String, position_index: int) -> int:
+	"""Получить номер позиции для стандартного типа (не пары)
+	
+	Args:
+		bet_type: Тип ставки ("Player", "Banker", "Tie")
+		position_index: Индекс позиции
+		
+	Returns:
+		Номер позиции (1 = самый правый)
+	"""
+	if not ChipVisualManager.ALTERNATIVE_POSITIONS.has(bet_type):
+		return 0
+	
+	var positions = ChipVisualManager.ALTERNATIVE_POSITIONS[bet_type]
+	if position_index < 0 or position_index >= positions.size():
+		return 0
+	
+	# Сортируем все позиции по X (справа налево: больший X = меньший номер)
+	var sorted_positions = []
+	for i in range(positions.size()):
+		sorted_positions.append({"index": i, "x": positions[i].x})
+	
+	sorted_positions.sort_custom(func(a, b): return a.x > b.x)  # Убывание X
+	
+	# Находим номер нашей позиции (1 = самый правый)
+	for i in range(sorted_positions.size()):
+		if sorted_positions[i].index == position_index:
+			return i + 1  # Нумерация с 1
+	
+	return 0
+
+func _get_pairs_line_number(bet_type: String, position_index: int) -> int:
+	"""Получить номер позиции в объединённой линии пар
+	
+	Объединяет PairPlayer и PairBanker в одну линию, сортирует по X справа налево.
+	
+	Args:
+		bet_type: "PairPlayer" или "PairBanker"
+		position_index: Индекс позиции
+		
+	Returns:
+		Номер позиции в объединённой линии (1 = самый правый)
+	"""
+	var all_pairs_positions = []
+	
+	# Собираем все позиции PairPlayer
+	if ChipVisualManager.ALTERNATIVE_POSITIONS.has("PairPlayer"):
+		var positions = ChipVisualManager.ALTERNATIVE_POSITIONS["PairPlayer"]
+		for i in range(positions.size()):
+			all_pairs_positions.append({
+				"bet_type": "PairPlayer",
+				"index": i,
+				"x": positions[i].x
+			})
+	
+	# Собираем все позиции PairBanker
+	if ChipVisualManager.ALTERNATIVE_POSITIONS.has("PairBanker"):
+		var positions = ChipVisualManager.ALTERNATIVE_POSITIONS["PairBanker"]
+		for i in range(positions.size()):
+			all_pairs_positions.append({
+				"bet_type": "PairBanker",
+				"index": i,
+				"x": positions[i].x
+			})
+	
+	# Сортируем по X (справа налево: больший X = меньший номер)
+	all_pairs_positions.sort_custom(func(a, b): return a.x > b.x)
+	
+	# Находим номер нашей позиции (1 = самый правый)
+	for i in range(all_pairs_positions.size()):
+		if all_pairs_positions[i].bet_type == bet_type and \
+		   all_pairs_positions[i].index == position_index:
+			return i + 1  # Нумерация с 1
+	
+	return 0
 
 func _get_bet_group(bet_type: String) -> String:
 	"""Определить группу ставки
@@ -226,22 +342,19 @@ func _get_sorted_main_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 		if bet.bet_type in types_to_include and bet.won == winning:
 			bets.append(bet)
 	
-	# Сортируем справа налево (по X координате по убыванию)
+	# Сортируем справа налево по номеру позиции (номер 1, 2, 3...)
 	bets.sort_custom(func(a, b): 
-		var pos_a = _get_position_coordinates(a.bet_type, a.position_index)
-		var pos_b = _get_position_coordinates(b.bet_type, b.position_index)
-		# Сначала по X (убывание), потом по Y для стабильности
-		if pos_a.x != pos_b.x:
-			return pos_a.x > pos_b.x
-		return pos_a.y < pos_b.y
+		var num_a = get_line_position_number(a.bet_type, a.position_index)
+		var num_b = get_line_position_number(b.bet_type, b.position_index)
+		return num_a < num_b  # Меньший номер = правее = идёт первым
 	)
 	
 	return bets
 
 func _get_sorted_tie_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 	"""Получить отсортированные Tie ставки
-	- Для сбора (winning=false): слева направо (по X координате по возрастанию)
-	- Для оплаты (winning=true): справа налево (по X координате по убыванию)
+	- Для сбора (winning=false): слева направо (обратный порядок номеров)
+	- Для оплаты (winning=true): справа налево (прямой порядок номеров)
 	"""
 	if not payout_queue_manager:
 		return []
@@ -252,30 +365,29 @@ func _get_sorted_tie_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 		if bet.bet_type == "Tie" and bet.won == winning:
 			bets.append(bet)
 	
-	# Для сбора - слева направо (по возрастанию X), для оплаты - справа налево (по убыванию X)
+	# Используем нумерацию позиций (1 = самый правый)
 	if winning:
-		# Оплата: справа налево (по убыванию X)
+		# Оплата: справа налево (номер 1, 2, 3...)
 		bets.sort_custom(func(a, b):
-			var pos_a = _get_position_coordinates(a.bet_type, a.position_index)
-			var pos_b = _get_position_coordinates(b.bet_type, b.position_index)
-			if pos_a.x != pos_b.x:
-				return pos_a.x > pos_b.x
-			return pos_a.y < pos_b.y
+			var num_a = get_line_position_number(a.bet_type, a.position_index)
+			var num_b = get_line_position_number(b.bet_type, b.position_index)
+			return num_a < num_b  # Меньший номер = правее = идёт первым
 		)
 	else:
-		# Сбор: слева направо (по возрастанию X)
+		# Сбор: слева направо (номер 3, 2, 1...)
 		bets.sort_custom(func(a, b):
-			var pos_a = _get_position_coordinates(a.bet_type, a.position_index)
-			var pos_b = _get_position_coordinates(b.bet_type, b.position_index)
-			if pos_a.x != pos_b.x:
-				return pos_a.x < pos_b.x
-			return pos_a.y < pos_b.y
+			var num_a = get_line_position_number(a.bet_type, a.position_index)
+			var num_b = get_line_position_number(b.bet_type, b.position_index)
+			return num_a > num_b  # Больший номер = левее = идёт первым
 		)
 	
 	return bets
 
 func _get_sorted_pair_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
-	"""Получить отсортированные пары (PairPlayer + PairBanker вместе) справа налево"""
+	"""Получить отсортированные пары (PairPlayer + PairBanker вместе) справа налево
+	
+	Пары объединены в одну линию и сортируются по номеру позиции (1 = самый правый)
+	"""
 	if not payout_queue_manager:
 		return []
 	
@@ -285,13 +397,11 @@ func _get_sorted_pair_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 		if (bet.bet_type == "PairPlayer" or bet.bet_type == "PairBanker") and bet.won == winning:
 			bets.append(bet)
 	
-	# Сортируем справа налево (по X координате по убыванию)
+	# Сортируем справа налево по номеру позиции (номер 1, 2, 3...)
 	bets.sort_custom(func(a, b):
-		var pos_a = _get_position_coordinates(a.bet_type, a.position_index)
-		var pos_b = _get_position_coordinates(b.bet_type, b.position_index)
-		if pos_a.x != pos_b.x:
-			return pos_a.x > pos_b.x
-		return pos_a.y < pos_b.y
+		var num_a = get_line_position_number(a.bet_type, a.position_index)
+		var num_b = get_line_position_number(b.bet_type, b.position_index)
+		return num_a < num_b  # Меньший номер = правее = идёт первым
 	)
 	
 	return bets
@@ -311,6 +421,15 @@ func _initialize_collection_sequence() -> void:
 		collection_sequence["tie"].size(),
 		collection_sequence["pairs"].size()
 	])
+	
+	# Отладочный вывод порядка пар (если есть)
+	if collection_sequence["pairs"].size() > 0:
+		print("  📍 Порядок пар (справа налево):")
+		for i in range(collection_sequence["pairs"].size()):
+			var bet = collection_sequence["pairs"][i]
+			var pos_num = get_line_position_number(bet.bet_type, bet.position_index)
+			var pos = _get_position_coordinates(bet.bet_type, bet.position_index)
+			print("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos_num, pos.x, pos.y])
 
 func _initialize_payment_sequence() -> void:
 	"""Инициализировать последовательности для оплаты выигрышных ставок"""
@@ -333,8 +452,18 @@ func _initialize_payment_sequence() -> void:
 		print("  📍 Порядок основных ставок (справа налево):")
 		for i in range(payment_sequence["main"].size()):
 			var bet = payment_sequence["main"][i]
+			var pos_num = get_line_position_number(bet.bet_type, bet.position_index)
 			var pos = _get_position_coordinates(bet.bet_type, bet.position_index)
-			print("    %d. %s[%d] на позиции (%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos.x, pos.y])
+			print("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos_num, pos.x, pos.y])
+	
+	# Отладочный вывод порядка пар (если есть)
+	if payment_sequence["pairs"].size() > 0:
+		print("  📍 Порядок пар (справа налево):")
+		for i in range(payment_sequence["pairs"].size()):
+			var bet = payment_sequence["pairs"][i]
+			var pos_num = get_line_position_number(bet.bet_type, bet.position_index)
+			var pos = _get_position_coordinates(bet.bet_type, bet.position_index)
+			print("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos_num, pos.x, pos.y])
 
 func _get_expected_next_bet(group: String, is_collecting: bool) -> PayoutQueueManager.BetData:
 	"""Получить следующую ожидаемую ставку в группе

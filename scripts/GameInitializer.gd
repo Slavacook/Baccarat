@@ -306,6 +306,7 @@ static func _show_chips_by_settings(_controller: Node2D, result: Dictionary) -> 
 
 	var pair_betting_manager: PairBettingManager = result.get("pair_betting_manager")
 	var is_realistic: bool = PayoutSettingsManager.is_realistic_mode_enabled()
+	var is_max_mode: bool = PayoutSettingsManager.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
 
 	if is_realistic:
 		# REALISTIC режим - случайное количество фишек
@@ -324,8 +325,19 @@ static func _show_chips_by_settings(_controller: Node2D, result: Dictionary) -> 
 			if pair_betting_manager:
 				pair_betting_manager.toggle_pair_banker_bet(true)
 		DebugLogger.log_init("Фишки синхронизированы (REALISTIC режим)")
+	elif is_max_mode:
+		# MAX режим - ВСЕ фишки на всех позициях (тестовый режим, игнорируем настройки)
+		chip_visual_manager.show_chip("Player")
+		chip_visual_manager.show_chip("Banker")
+		chip_visual_manager.show_chip("Tie")
+		chip_visual_manager.show_chip("PairPlayer")
+		chip_visual_manager.show_chip("PairBanker")
+		if pair_betting_manager:
+			pair_betting_manager.toggle_pair_player_bet(true)
+			pair_betting_manager.toggle_pair_banker_bet(true)
+		DebugLogger.log_init("Фишки показаны (MAX режим - все фишки на всех позициях)")
 	else:
-		# Стандартный режим (DEFAULT, RANDOM, MAX)
+		# Стандартный режим (DEFAULT, RANDOM) - только включенные в настройках
 		if PayoutSettingsManager.player_payout_enabled:
 			chip_visual_manager.show_chip("Player")
 		if PayoutSettingsManager.banker_payout_enabled:
