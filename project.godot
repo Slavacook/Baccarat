@@ -42,7 +42,7 @@ project/assembly_name="Baccara"
 
 [editor_plugins]
 
-enabled=PackedStringArray("res://addons/gut/plugin.cfg")
+enabled=PackedStringArray()
 
 [rendering]
 
