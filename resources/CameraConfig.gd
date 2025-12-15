@@ -50,7 +50,7 @@ var area_2_description: String = "Центральная область став
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 3 (правая часть стола)
-var area_3_position: Vector2 = Vector2(1500, 220)
+var area_3_position: Vector2 = Vector2(1450, 220)
 # Масштаб камеры для области 3
 var area_3_zoom: Vector2 = Vector2(1.0, 1.0)
 var area_3_description: String = "Правая область ставок"

@@ -166,9 +166,20 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 	if player_marker and banker_marker:
 		winner_selection_manager.setup(player_marker, banker_marker)
 		winner_selection_manager.winner_toggled.connect(controller._on_winner_toggled)
+		# Отключаем фокус для маркеров, чтобы они не реагировали на пробел
+		player_marker.focus_mode = Control.FOCUS_NONE
+		banker_marker.focus_mode = Control.FOCUS_NONE
 		DebugLogger.log_init("WinnerSelectionManager инициализирован (Player, Banker)")
-	else:
-		push_warning("⚠️  Маркеры не найдены в сцене")
+	
+	# Отключаем фокус для кнопки "Карты", чтобы она не реагировала на пробел
+	var ui_manager: UIManager = result.get("ui_manager")
+	if ui_manager and ui_manager.button_ui:
+		if ui_manager.button_ui.action_button:
+			ui_manager.button_ui.action_button.focus_mode = Control.FOCUS_NONE
+			DebugLogger.log_init("CardsButton: фокус отключен (не реагирует на пробел)")
+		if ui_manager.button_ui.action_button_broken:
+			ui_manager.button_ui.action_button_broken.focus_mode = Control.FOCUS_NONE
+			DebugLogger.log_init("CardsButtonBroken: фокус отключен (не реагирует на пробел)")
 
 	result["winner_selection_manager"] = winner_selection_manager
 

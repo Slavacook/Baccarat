@@ -34,7 +34,12 @@ KeyboardNavigationController="*res://scripts/KeyboardNavigationController.gd"
 
 [display]
 
-window/stretch/mode="viewport"
+window/size/viewport_width=1154
+window/size/viewport_height=650
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+window/size/width=1154
+window/size/height=650
 
 [dotnet]
 

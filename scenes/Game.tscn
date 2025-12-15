@@ -101,9 +101,9 @@ texture = ExtResource("5_bneo8")
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
-offset_top = 76.0
+offset_top = -124.0
 offset_right = 649.0
-offset_bottom = 766.0
+offset_bottom = 566.0
 grow_vertical = 2
 scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("28_left")
@@ -115,9 +115,9 @@ anchor_top = 0.5
 anchor_right = 1.0
 anchor_bottom = 0.5
 offset_left = -128.0
-offset_top = 75.0
+offset_top = -125.0
 offset_right = 528.0
-offset_bottom = 790.0
+offset_bottom = 590.0
 grow_horizontal = 0
 grow_vertical = 2
 scale = Vector2(0.2, 0.2)
@@ -659,6 +659,4 @@ texture = ExtResource("18_sv1m6")
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]
 [connection signal="pressed" from="CardsButton" to="." method="_on_cards_button_pressed"]
-[connection signal="pressed" from="PlayerMarker" to="." method="_on_player_marker_pressed"]
-[connection signal="pressed" from="BankerMarker" to="." method="_on_banker_marker_pressed"]
 [connection signal="pressed" from="HelpButton" to="." method="_on_help_button_pressed"]
