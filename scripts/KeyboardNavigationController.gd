@@ -22,6 +22,13 @@ func _ready() -> void:
 
 	print("⌨️ KeyboardNavigationController инициализирован")
 
+func _get_camera_manager() -> CameraManager:
+	"""Получить camera_manager через GameController"""
+	var game = get_node_or_null("/root/Game")
+	if game and game.has_method("get") and game.get("camera_manager"):
+		return game.camera_manager
+	return null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА ВВОДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -33,34 +40,54 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# Проверяем нажатия клавиш стрелок и A/D/W/S
 	if event is InputEventKey and event.pressed and not event.echo:
+		var camera_mgr = _get_camera_manager()
+		if not camera_mgr:
+			return  # camera_manager недоступен, пропускаем
+		
 		match event.keycode:
 			KEY_LEFT, KEY_A:
-				# Переключение на предыдущую область
-				EventBus.camera_zoom_requested.emit("prev_area")
+				# Вычисляем конкретную область по направлению
+				var target_area = camera_mgr.get_target_area_by_direction("left")
+				if target_area > 0:
+					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+				else:
+					EventBus.camera_zoom_requested.emit("in")
 				get_viewport().set_input_as_handled()
 				var key_name = "Left" if event.keycode == KEY_LEFT else "A"
-				print("⌨️ Клавиша %s → prev_area" % key_name)
+				print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
 
 			KEY_RIGHT, KEY_D:
-				# Переключение на следующую область
-				EventBus.camera_zoom_requested.emit("next_area")
+				# Вычисляем конкретную область по направлению
+				var target_area = camera_mgr.get_target_area_by_direction("right")
+				if target_area > 0:
+					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+				else:
+					EventBus.camera_zoom_requested.emit("in")
 				get_viewport().set_input_as_handled()
 				var key_name = "Right" if event.keycode == KEY_RIGHT else "D"
-				print("⌨️ Клавиша %s → next_area" % key_name)
+				print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
 
 			KEY_UP, KEY_W:
-				# Вертикальная навигация вверх (карты → area_2)
-				EventBus.camera_zoom_requested.emit("up")
+				# Вычисляем конкретную область по направлению
+				var target_area = camera_mgr.get_target_area_by_direction("up")
+				if target_area > 0:
+					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+				else:
+					EventBus.camera_zoom_requested.emit("in")
 				get_viewport().set_input_as_handled()
 				var key_name = "Up" if event.keycode == KEY_UP else "W"
-				print("⌨️ Клавиша %s → up" % key_name)
+				print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
 
 			KEY_DOWN, KEY_S:
-				# Вертикальная навигация вниз (area → карты)
-				EventBus.camera_zoom_requested.emit("down")
+				# Вычисляем конкретную область по направлению
+				var target_area = camera_mgr.get_target_area_by_direction("down")
+				if target_area > 0:
+					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+				else:
+					EventBus.camera_zoom_requested.emit("in")
 				get_viewport().set_input_as_handled()
 				var key_name = "Down" if event.keycode == KEY_DOWN else "S"
-				print("⌨️ Клавиша %s → down" % key_name)
+				print("⌨️ Клавиша %s → in (карты)" % key_name)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ

@@ -202,7 +202,6 @@ texture_normal = ExtResource("26_area2")
 [node name="AreaHighlight3" type="TextureButton" parent="."]
 visible = false
 modulate = Color(1, 1, 1, 0)
-z_index = 100
 offset_left = 690.0
 offset_top = -254.0
 offset_right = 2823.0

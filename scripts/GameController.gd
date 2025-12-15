@@ -100,6 +100,15 @@ func _ready():
 	camera_manager = initialized["camera_manager"]
 	payout_overlay = initialized.get("payout_overlay")
 
+	# Подсветка областей: подписываемся на завершение зума камеры
+	if camera_manager:
+		camera_manager.zoom_completed.connect(_on_camera_zoom_completed)
+		_update_area_highlights(0)  # скрыть все подсветки на старте
+
+	# Реакция на запрос зума: подсвечиваем целевую область сразу при нажатии
+	if EventBus:
+		EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested)
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd (Task 2.1)
@@ -1143,22 +1152,46 @@ func camera_zoom_area(area_index: int):
 
 func _on_left_arrow_pressed():
 	"""Обработчик нажатия левой стрелки"""
-	EventBus.camera_zoom_requested.emit("prev_area")
+	if not camera_manager:
+		return
+	var target_area = camera_manager.get_target_area_by_direction("left")
+	if target_area > 0:
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+	else:
+		EventBus.camera_zoom_requested.emit("in")
 	_update_arrows_state()
 
 func _on_right_arrow_pressed():
 	"""Обработчик нажатия правой стрелки"""
-	EventBus.camera_zoom_requested.emit("next_area")
+	if not camera_manager:
+		return
+	var target_area = camera_manager.get_target_area_by_direction("right")
+	if target_area > 0:
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+	else:
+		EventBus.camera_zoom_requested.emit("in")
 	_update_arrows_state()
 
 func _on_up_arrow_pressed():
 	"""Обработчик нажатия стрелки вверх"""
-	EventBus.camera_zoom_requested.emit("up")
+	if not camera_manager:
+		return
+	var target_area = camera_manager.get_target_area_by_direction("up")
+	if target_area > 0:
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+	else:
+		EventBus.camera_zoom_requested.emit("in")
 	_update_arrows_state()
 
 func _on_down_arrow_pressed():
 	"""Обработчик нажатия стрелки вниз"""
-	EventBus.camera_zoom_requested.emit("down")
+	if not camera_manager:
+		return
+	var target_area = camera_manager.get_target_area_by_direction("down")
+	if target_area > 0:
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+	else:
+		EventBus.camera_zoom_requested.emit("in")
 	_update_arrows_state()
 
 func _on_arrows_visibility_changed(should_show: bool):
@@ -1180,37 +1213,51 @@ func _on_arrows_visibility_changed(should_show: bool):
 	if should_show:
 		_update_arrows_state()
 
-func _update_arrows_state():
-	"""Обновить состояние стрелок (активность) в зависимости от текущей области"""
+func _update_arrows_state(target_area: int = -1):
+	"""Обновить состояние стрелок (активность) в зависимости от текущей области
+	
+	Args:
+		target_area: Целевая область для мгновенного обновления (если -1, используется текущая)
+	"""
 	if not camera_manager:
 		return
 	
-	var current_area = camera_manager.get_current_area()
-	var last_zoom_type = camera_manager.get_last_zoom_type() if camera_manager.has_method("get_last_zoom_type") else ""
+	# Используем целевую область если передана, иначе текущую
+	var current_area = target_area if target_area >= 0 else camera_manager.get_current_area()
 	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
 	var up_arrow = get_node_or_null("TopUI/UpArrowButton")
 	var down_arrow = get_node_or_null("TopUI/DownArrowButton")
 	
-	# Левая стрелка недоступна на области 1
-	if left_arrow:
-		left_arrow.disabled = (current_area <= 1)
-		left_arrow.modulate.a = 0.3 if current_area <= 1 else 1.0
+	# Используем get_target_area_by_direction_from для определения доступности стрелок
+	# Стрелка активна, если целевая область отличается от текущей (есть переход)
+	# Стрелка неактивна, если целевая область равна текущей (нет перехода)
 	
-	# Правая стрелка недоступна на области 3
+	# Левая стрелка
+	if left_arrow:
+		var target_left = camera_manager.get_target_area_by_direction_from(current_area, "left")
+		var can_go_left = (target_left != current_area)
+		left_arrow.disabled = not can_go_left
+		left_arrow.modulate.a = 0.3 if not can_go_left else 1.0
+	
+	# Правая стрелка
 	if right_arrow:
-		right_arrow.disabled = (current_area >= 3)
-		right_arrow.modulate.a = 0.3 if current_area >= 3 else 1.0
-
-	# Вверх доступен на картах или общем плане
+		var target_right = camera_manager.get_target_area_by_direction_from(current_area, "right")
+		var can_go_right = (target_right != current_area)
+		right_arrow.disabled = not can_go_right
+		right_arrow.modulate.a = 0.3 if not can_go_right else 1.0
+	
+	# Стрелка вверх
 	if up_arrow:
-		var can_go_up = (last_zoom_type == "in" or last_zoom_type == "cards" or last_zoom_type == "out")
+		var target_up = camera_manager.get_target_area_by_direction_from(current_area, "up")
+		var can_go_up = (target_up != current_area)
 		up_arrow.disabled = not can_go_up
 		up_arrow.modulate.a = 0.3 if not can_go_up else 1.0
-
-	# Вниз доступен только в областях ставок
+	
+	# Стрелка вниз
 	if down_arrow:
-		var can_go_down = (current_area >= 1 and current_area <= 3)
+		var target_down = camera_manager.get_target_area_by_direction_from(current_area, "down")
+		var can_go_down = (target_down != current_area)
 		down_arrow.disabled = not can_go_down
 		down_arrow.modulate.a = 0.3 if not can_go_down else 1.0
 
@@ -1292,6 +1339,39 @@ func _on_winner_toggled(winner: String, selected: bool):
 		# Активируем кнопку Игалите если ни один маркер не выбран
 		if not winner_selection_manager.is_winner_selected():
 			ui_manager.enable_tie_button()
+
+
+func _on_camera_zoom_completed(_zoom_type: String) -> void:
+	"""Обработка завершения зума камеры (синхронизация подсветки при необходимости)"""
+	# Подсветка уже обновлена мгновенно в _on_camera_zoom_requested
+	# Обновляем состояние стрелок после завершения зума (current_area точно обновлён)
+	_update_arrows_state()
+
+
+func _update_area_highlights(area_idx: int) -> void:
+	"""Показать подсветку выбранной области (1-3), 0 — скрыть все"""
+	for i in range(1, 4):
+		var node_path = "AreaHighlight%d" % i
+		var hl = get_node_or_null(node_path)
+		if hl:
+			var active = (i == area_idx)
+			hl.visible = active
+			hl.modulate.a = 1.0 if active else 0.0
+
+
+func _on_camera_zoom_requested(zoom_type: String) -> void:
+	"""Мгновенно подсвечиваем целевую область по запросу зума (до завершения анимации)"""
+	var target_area := camera_manager.predict_target_area(zoom_type)
+	_update_area_highlights(target_area)
+	
+	# Мгновенно обновляем состояние стрелок на основе целевой области
+	# (так же быстро, как меняется подсветка зон)
+	_update_arrows_state(target_area)
+	
+	# Скрываем кнопки областей если переходим в область через стрелки/клавиши
+	# (они уже не нужны, так как зона выбрана)
+	if zoom_type.begins_with("area_"):
+		EventBus.area_buttons_visibility_changed.emit(false)
 
 func _on_collect_mode_toggled(enabled: bool):
 	"""Обработчик toggle кнопки 'Забрать'"""

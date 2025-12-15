@@ -31,6 +31,7 @@ var scene: Node = null  # Родительская сцена для созда�
 var is_first_deal: bool = true
 var current_area: int = 0  # Текущая активная область (0 = нет, 1-3 = область)
 var last_zoom_type: String = "out"  # Последний тип зума (для вертикальной навигации)
+var current_tween: Tween = null  # Текущий активный tween (для предотвращения конфликтов)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -107,37 +108,128 @@ func zoom_area(area_index: int) -> void:
 
 func zoom_next_area() -> void:
 	"""Переключиться на следующую область (вправо)"""
-	if current_area == 0:
-		# На картах: вправо → крайняя правая (area 3)
-		zoom_area(3)
-	elif current_area < 3:
-		zoom_area(current_area + 1)
-	# Если current_area == 3, остаемся на месте
+	var target = get_target_area_by_direction("right")
+	if target > 0 and target != current_area:
+		zoom_area(target)
 
 func zoom_prev_area() -> void:
 	"""Переключиться на предыдущую область (влево)"""
-	if current_area == 0:
-		# На картах: влево → крайняя левая (area 1)
-		zoom_area(1)
-	elif current_area > 1:
-		zoom_area(current_area - 1)
-	# Если current_area == 1, остаемся на месте
+	var target = get_target_area_by_direction("left")
+	if target > 0 and target != current_area:
+		zoom_area(target)
 
 func zoom_up() -> void:
 	"""Вертикальная навигация вверх: с карт/общего плана → area_2"""
-	if last_zoom_type == "in" or last_zoom_type == "cards" or last_zoom_type == "out":
-		zoom_area(2)
-	# Из областей остаёмся на месте
+	var target = get_target_area_by_direction("up")
+	if target > 0 and target != current_area:
+		zoom_area(target)
 
 func zoom_down() -> void:
 	"""Вертикальная навигация вниз: из областей → карты"""
-	if current_area >= 1 and current_area <= 3:
+	var target = get_target_area_by_direction("down")
+	if target == 0 and current_area > 0:
 		zoom_in()
-	# На картах/общем плане остаёмся на месте
 
 func get_current_area() -> int:
 	"""Получить текущую активную область (0 = нет, 1-3 = область)"""
 	return current_area
+
+func get_target_area_by_direction(direction: String) -> int:
+	"""Определить целевую область по направлению из текущего состояния
+	
+	Единая точка истины для всех переходов камеры.
+	
+	Args:
+		direction: "left", "right", "up", "down"
+	
+	Returns:
+		Целевая область (1-3) или 0 для карт/общего плана
+	"""
+	match direction:
+		"left":
+			match current_area:
+				0: return 1  # карты → area_1
+				1: return 1  # area_1 → остаётся (нет перехода)
+				2: return 1  # area_2 → area_1
+				3: return 2  # area_3 → area_2
+		"right":
+			match current_area:
+				0: return 3  # карты → area_3
+				1: return 2  # area_1 → area_2
+				2: return 3  # area_2 → area_3
+				3: return 3  # area_3 → остаётся (нет перехода)
+		"up":
+			match current_area:
+				0: return 2  # карты → area_2
+				1, 2, 3: return current_area  # из областей → остаётся
+		"down":
+			match current_area:
+				0: return 0  # карты → остаётся
+				1, 2, 3: return 0  # из областей → карты
+		_:
+			return 0
+	return 0
+
+func get_target_area_by_direction_from(area: int, direction: String) -> int:
+	"""Определить целевую область по направлению из указанной области
+	
+	Аналогично get_target_area_by_direction(), но принимает область как параметр.
+	Используется для предсказания состояния стрелок на основе целевой области.
+	
+	Args:
+		area: Исходная область (0 = карты, 1-3 = области ставок)
+		direction: "left", "right", "up", "down"
+	
+	Returns:
+		Целевая область (1-3) или 0 для карт/общего плана
+	"""
+	match direction:
+		"left":
+			match area:
+				0: return 1  # карты → area_1
+				1: return 1  # area_1 → остаётся (нет перехода)
+				2: return 1  # area_2 → area_1
+				3: return 2  # area_3 → area_2
+		"right":
+			match area:
+				0: return 3  # карты → area_3
+				1: return 2  # area_1 → area_2
+				2: return 3  # area_2 → area_3
+				3: return 3  # area_3 → остаётся (нет перехода)
+		"up":
+			match area:
+				0: return 2  # карты → area_2
+				1, 2, 3: return area  # из областей → остаётся
+		"down":
+			match area:
+				0: return 0  # карты → остаётся
+				1, 2, 3: return 0  # из областей → карты
+		_:
+			return 0
+	return 0
+
+func predict_target_area(zoom_type: String) -> int:
+	"""Предсказать целевую область (1-3) по zoom_type, 0 — если карты/общий план
+	
+	Использует get_target_area_by_direction() для единообразия логики.
+	"""
+	match zoom_type:
+		"area_1":
+			return 1
+		"area_2":
+			return 2
+		"area_3":
+			return 3
+		"next_area":
+			return get_target_area_by_direction("right")
+		"prev_area":
+			return get_target_area_by_direction("left")
+		"up":
+			return get_target_area_by_direction("up")
+		"down":
+			return get_target_area_by_direction("down")
+		_:
+			return 0  # любые in/out/cards — без подсветки
 
 func is_on_cards() -> bool:
 	"""Проверка, находится ли камера на картах"""
@@ -160,10 +252,16 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 	if not camera or not scene or not config:
 		return
 	
+	# Останавливаем предыдущую анимацию если она ещё идёт (защита от быстрых нажатий)
+	if current_tween and current_tween.is_valid():
+		current_tween.kill()
+		current_tween = null
+	
 	last_zoom_type = zoom_type
 	zoom_started.emit(zoom_type)
 	
 	var tween = scene.create_tween()
+	current_tween = tween  # Сохраняем ссылку для возможности остановки
 	tween.set_parallel(true)  # Позиция и зум меняются одновременно
 	
 	# Используем тип анимации из конфигурации
@@ -176,7 +274,10 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 	tween.tween_property(camera, "zoom", target_zoom, config.transition_duration)
 	
 	# Сигнал завершения после окончания анимации
-	tween.finished.connect(func(): zoom_completed.emit(zoom_type))
+	tween.finished.connect(func(): 
+		current_tween = null  # Очищаем ссылку после завершения
+		zoom_completed.emit(zoom_type)
+	)
 
 	var _settings = config.get_settings_by_type(zoom_type)
 	print("📷 CameraManager: %s (zoom %.1f, pos %s)" % [
