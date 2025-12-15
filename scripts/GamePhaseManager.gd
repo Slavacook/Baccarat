@@ -318,6 +318,7 @@ func on_tie_button_pressed():
 	# Возвращаем камеру на общий план и показываем кнопки областей
 	EventBus.camera_zoom_requested.emit("out")
 	EventBus.area_buttons_visibility_changed.emit(true)
+	EventBus.navigation_arrows_visibility_changed.emit(true)  # сразу показываем стрелки после правильной Игалите
 
 	# Формируем очередь выплат
 	EventBus.manual_payout_requested.emit("Tie")
@@ -603,6 +604,7 @@ func _validate_winner_selection() -> void:
 	# Возвращаем камеру на общий план и показываем кнопки областей
 	EventBus.camera_zoom_requested.emit("out")
 	EventBus.area_buttons_visibility_changed.emit(true)
+	EventBus.navigation_arrows_visibility_changed.emit(true)  # сразу показываем стрелки после правильного выбора
 
 	# Вызываем метод формирования очереди выплат через EventBus
 	EventBus.manual_payout_requested.emit(actual_winner)

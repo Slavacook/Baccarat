@@ -1151,15 +1151,31 @@ func _on_right_arrow_pressed():
 	EventBus.camera_zoom_requested.emit("next_area")
 	_update_arrows_state()
 
+func _on_up_arrow_pressed():
+	"""Обработчик нажатия стрелки вверх"""
+	EventBus.camera_zoom_requested.emit("up")
+	_update_arrows_state()
+
+func _on_down_arrow_pressed():
+	"""Обработчик нажатия стрелки вниз"""
+	EventBus.camera_zoom_requested.emit("down")
+	_update_arrows_state()
+
 func _on_arrows_visibility_changed(should_show: bool):
 	"""Обработчик изменения видимости стрелок"""
 	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
+	var up_arrow = get_node_or_null("TopUI/UpArrowButton")
+	var down_arrow = get_node_or_null("TopUI/DownArrowButton")
 
 	if left_arrow:
 		left_arrow.visible = should_show
 	if right_arrow:
 		right_arrow.visible = should_show
+	if up_arrow:
+		up_arrow.visible = should_show
+	if down_arrow:
+		down_arrow.visible = should_show
 
 	if should_show:
 		_update_arrows_state()
@@ -1170,8 +1186,11 @@ func _update_arrows_state():
 		return
 	
 	var current_area = camera_manager.get_current_area()
+	var last_zoom_type = camera_manager.get_last_zoom_type() if camera_manager.has_method("get_last_zoom_type") else ""
 	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
+	var up_arrow = get_node_or_null("TopUI/UpArrowButton")
+	var down_arrow = get_node_or_null("TopUI/DownArrowButton")
 	
 	# Левая стрелка недоступна на области 1
 	if left_arrow:
@@ -1182,6 +1201,18 @@ func _update_arrows_state():
 	if right_arrow:
 		right_arrow.disabled = (current_area >= 3)
 		right_arrow.modulate.a = 0.3 if current_area >= 3 else 1.0
+
+	# Вверх доступен на картах или общем плане
+	if up_arrow:
+		var can_go_up = (last_zoom_type == "in" or last_zoom_type == "cards" or last_zoom_type == "out")
+		up_arrow.disabled = not can_go_up
+		up_arrow.modulate.a = 0.3 if not can_go_up else 1.0
+
+	# Вниз доступен только в областях ставок
+	if down_arrow:
+		var can_go_down = (current_area >= 1 and current_area <= 3)
+		down_arrow.disabled = not can_go_down
+		down_arrow.modulate.a = 0.3 if not can_go_down else 1.0
 
 
 

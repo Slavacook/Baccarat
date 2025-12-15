@@ -1,6 +1,6 @@
 # res://scripts/KeyboardNavigationController.gd
 # Контроллер клавиатурного управления стрелками навигации камеры
-# Обрабатывает нажатия клавиш Left/Right/A/D для переключения между областями ставок
+# Обрабатывает нажатия клавиш Left/Right/A/D/Up/Down/W/S для переключения между областями ставок
 
 extends Node
 
@@ -31,7 +31,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_navigation_active:
 		return
 
-	# Проверяем нажатия клавиш стрелок и A/D
+	# Проверяем нажатия клавиш стрелок и A/D/W/S
 	if event is InputEventKey and event.pressed and not event.echo:
 		match event.keycode:
 			KEY_LEFT, KEY_A:
@@ -48,6 +48,20 @@ func _unhandled_input(event: InputEvent) -> void:
 				var key_name = "Right" if event.keycode == KEY_RIGHT else "D"
 				print("⌨️ Клавиша %s → next_area" % key_name)
 
+			KEY_UP, KEY_W:
+				# Вертикальная навигация вверх (карты → area_2)
+				EventBus.camera_zoom_requested.emit("up")
+				get_viewport().set_input_as_handled()
+				var key_name = "Up" if event.keycode == KEY_UP else "W"
+				print("⌨️ Клавиша %s → up" % key_name)
+
+			KEY_DOWN, KEY_S:
+				# Вертикальная навигация вниз (area → карты)
+				EventBus.camera_zoom_requested.emit("down")
+				get_viewport().set_input_as_handled()
+				var key_name = "Down" if event.keycode == KEY_DOWN else "S"
+				print("⌨️ Клавиша %s → down" % key_name)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -61,6 +75,6 @@ func _on_navigation_visibility_changed(visible: bool) -> void:
 	is_navigation_active = visible
 
 	if visible:
-		print("⌨️ Навигация активирована (стрелки Left/Right или клавиши A/D)")
+		print("⌨️ Навигация активирована (стрелки ←→↑↓ или клавиши WASD)")
 	else:
 		print("⌨️ Навигация деактивирована")

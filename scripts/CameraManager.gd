@@ -30,6 +30,7 @@ var camera: Camera2D = null
 var scene: Node = null  # Родительская сцена для создания tween
 var is_first_deal: bool = true
 var current_area: int = 0  # Текущая активная область (0 = нет, 1-3 = область)
+var last_zoom_type: String = "out"  # Последний тип зума (для вертикальной навигации)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -66,6 +67,7 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	var general_settings = config.get_general_settings()
 	camera.position = general_settings.position
 	camera.zoom = general_settings.zoom
+	last_zoom_type = "out"
 	
 	# Подписываемся на EventBus
 	if EventBus:
@@ -106,7 +108,8 @@ func zoom_area(area_index: int) -> void:
 func zoom_next_area() -> void:
 	"""Переключиться на следующую область (вправо)"""
 	if current_area == 0:
-		zoom_area(1)
+		# На картах: вправо → крайняя правая (area 3)
+		zoom_area(3)
 	elif current_area < 3:
 		zoom_area(current_area + 1)
 	# Если current_area == 3, остаемся на месте
@@ -114,14 +117,39 @@ func zoom_next_area() -> void:
 func zoom_prev_area() -> void:
 	"""Переключиться на предыдущую область (влево)"""
 	if current_area == 0:
-		zoom_area(3)
+		# На картах: влево → крайняя левая (area 1)
+		zoom_area(1)
 	elif current_area > 1:
 		zoom_area(current_area - 1)
 	# Если current_area == 1, остаемся на месте
 
+func zoom_up() -> void:
+	"""Вертикальная навигация вверх: с карт/общего плана → area_2"""
+	if last_zoom_type == "in" or last_zoom_type == "cards" or last_zoom_type == "out":
+		zoom_area(2)
+	# Из областей остаёмся на месте
+
+func zoom_down() -> void:
+	"""Вертикальная навигация вниз: из областей → карты"""
+	if current_area >= 1 and current_area <= 3:
+		zoom_in()
+	# На картах/общем плане остаёмся на месте
+
 func get_current_area() -> int:
 	"""Получить текущую активную область (0 = нет, 1-3 = область)"""
 	return current_area
+
+func is_on_cards() -> bool:
+	"""Проверка, находится ли камера на картах"""
+	return last_zoom_type == "in" or last_zoom_type == "cards"
+
+func is_on_area() -> bool:
+	"""Проверка, находится ли камера на области ставок"""
+	return current_area >= 1 and current_area <= 3
+
+func get_last_zoom_type() -> String:
+	"""Получить последний тип зума"""
+	return last_zoom_type
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ
@@ -132,6 +160,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 	if not camera or not scene or not config:
 		return
 	
+	last_zoom_type = zoom_type
 	zoom_started.emit(zoom_type)
 	
 	var tween = scene.create_tween()
@@ -185,6 +214,10 @@ func _get_zoom_name(zoom_type: String) -> String:
 			return "Область 2 (центр)"
 		"area_3":
 			return "Область 3 (правая)"
+		"up":
+			return "Навигация вверх"
+		"down":
+			return "Навигация вниз"
 		_:
 			return "Неизвестный зум"
 
@@ -211,6 +244,10 @@ func _on_zoom_requested(zoom_type: String) -> void:
 			zoom_next_area()
 		"prev_area":
 			zoom_prev_area()
+		"up":
+			zoom_up()
+		"down":
+			zoom_down()
 		_:
 			push_error("CameraManager: неизвестный тип зума '%s'" % zoom_type)
 

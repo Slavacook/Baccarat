@@ -454,11 +454,17 @@ static func _setup_navigation_arrows(controller: Node2D) -> void:
 	"""Инициализация стрелок навигации"""
 	var left_arrow: Node = controller.get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow: Node = controller.get_node_or_null("TopUI/RightArrowButton")
+	var up_arrow: Node = controller.get_node_or_null("TopUI/UpArrowButton")
+	var down_arrow: Node = controller.get_node_or_null("TopUI/DownArrowButton")
 
 	if left_arrow:
 		left_arrow.pressed.connect(controller._on_left_arrow_pressed)
 	if right_arrow:
 		right_arrow.pressed.connect(controller._on_right_arrow_pressed)
+	if up_arrow and up_arrow.has_signal("pressed"):
+		up_arrow.pressed.connect(controller._on_up_arrow_pressed)
+	if down_arrow and down_arrow.has_signal("pressed"):
+		down_arrow.pressed.connect(controller._on_down_arrow_pressed)
 
 	# Подписываемся на EventBus для управления видимостью стрелок
 	if EventBus:

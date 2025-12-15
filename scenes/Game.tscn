@@ -1,4 +1,4 @@
-[gd_scene load_steps=29 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=31 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -13,7 +13,9 @@
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="7_sv1m6"]
 [ext_resource type="Texture2D" uid="uid://b6oj16k73oxel" path="res://assets/ui/tables/table_green_2.png" id="8_a85ww"]
 [ext_resource type="Texture2D" uid="uid://cdadbsgspc1fn" path="res://assets/ui/tables/table_green_3.png" id="8_attvq"]
+[ext_resource type="Texture2D" uid="uid://bec6luc7qioix" path="res://assets/ui/buttons/down.png" id="8_i4jil"]
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="8_mcffj"]
+[ext_resource type="Texture2D" uid="uid://b6qdiipueuwjh" path="res://assets/ui/buttons/up.png" id="9_jai3c"]
 [ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_y5y3l"]
 [ext_resource type="Texture2D" uid="uid://bscx53pxl4v6p" path="res://assets/ui/correct.png" id="17_kyk2p"]
 [ext_resource type="Script" uid="uid://8fqkmr4r5o0l" path="res://scripts/PayoutSurvivalInfo.gd" id="17_survival_info"]
@@ -121,6 +123,36 @@ grow_vertical = 2
 scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("29_right")
 
+[node name="DownArrowButton" type="TextureButton" parent="TopUI"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -637.0
+offset_top = 191.0
+offset_right = 44.0
+offset_bottom = 906.0
+grow_horizontal = 0
+grow_vertical = 2
+scale = Vector2(0.2, 0.2)
+texture_normal = ExtResource("8_i4jil")
+
+[node name="UpArrowButton" type="TextureButton" parent="TopUI"]
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -637.0
+offset_top = -324.0
+offset_right = 50.0
+offset_bottom = 391.0
+grow_horizontal = 0
+grow_vertical = 2
+scale = Vector2(0.2, 0.2)
+texture_normal = ExtResource("9_jai3c")
+
 [node name="Background" type="TextureRect" parent="."]
 visible = false
 offset_right = 1920.0
@@ -144,6 +176,40 @@ offset_right = 4692.0
 offset_bottom = 2068.0
 scale = Vector2(0.72, 0.72)
 texture = ExtResource("8_attvq")
+
+[node name="AreaHighlight1" type="TextureButton" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0)
+offset_left = -1118.0
+offset_top = -210.0
+offset_right = 1055.0
+offset_bottom = 1094.0
+scale = Vector2(0.72, 0.72)
+mouse_filter = 2
+texture_normal = ExtResource("25_area1")
+
+[node name="AreaHighlight2" type="TextureButton" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0)
+offset_left = -164.0
+offset_top = -225.0
+offset_right = 1854.0
+offset_bottom = 681.0
+scale = Vector2(0.72, 0.72)
+mouse_filter = 2
+texture_normal = ExtResource("26_area2")
+
+[node name="AreaHighlight3" type="TextureButton" parent="."]
+visible = false
+modulate = Color(1, 1, 1, 0)
+z_index = 100
+offset_left = 690.0
+offset_top = -254.0
+offset_right = 2823.0
+offset_bottom = 1126.0
+scale = Vector2(0.72, 0.72)
+mouse_filter = 2
+texture_normal = ExtResource("27_area3")
 
 [node name="PlayerZone" type="Node2D" parent="."]
 
@@ -390,6 +456,7 @@ script = ExtResource("24_area_btn")
 area_index = 2
 
 [node name="Area3Button" type="TextureButton" parent="."]
+visible = false
 modulate = Color(1, 1, 1, 0)
 offset_left = 690.0
 offset_top = -254.0

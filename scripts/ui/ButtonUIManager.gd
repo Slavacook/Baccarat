@@ -239,6 +239,7 @@ func hide_tie_button():
 func enable_tie_button():
 	"""Активировать кнопку Игалите (когда маркеры Player/Banker не выбраны)"""
 	if tie_button:
+		tie_button.visible = true   # при активации возвращаем на экран
 		tie_button.disabled = false
 
 
@@ -246,6 +247,7 @@ func disable_tie_button():
 	"""Деактивировать кнопку Игалите (когда выбран маркер Player или Banker)"""
 	if tie_button:
 		tie_button.disabled = true
+		tie_button.visible = false  # скрываем полностью, а не просто делаем полупрозрачной
 
 
 # ═══════════════════════════════════════════════════════════════════════════

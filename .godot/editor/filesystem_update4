@@ -1,2 +1,7 @@
 res://scenes/Game.tscn
 res://scripts/KeyboardNavigationController.gd
+res://scripts/CameraManager.gd
+res://scripts/GameController.gd
+res://scripts/GameInitializer.gd
+res://scripts/ui/ButtonUIManager.gd
+res://scripts/GamePhaseManager.gd
