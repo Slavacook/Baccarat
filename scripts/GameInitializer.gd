@@ -397,9 +397,6 @@ static func _finalize_setup(controller: Node2D, result: Dictionary) -> void:
 	_setup_area_buttons()
 	_setup_navigation_arrows(controller)
 
-	# Настройка клавиатурной навигации
-	_setup_keyboard_navigation(controller, result)
-
 	# Подключаем PayoutOverlay
 	if controller.has_node("PayoutOverlay"):
 		var payout_overlay: CanvasLayer = controller.get_node("PayoutOverlay")
@@ -470,45 +467,6 @@ static func _setup_navigation_arrows(controller: Node2D) -> void:
 		EventBus.navigation_arrows_visibility_changed.emit(false)
 
 	DebugLogger.log_init("Стрелки навигации инициализированы")
-
-
-static func _setup_keyboard_navigation(controller: Node2D, result: Dictionary) -> void:
-	"""Настройка клавиатурной навигации"""
-	# Добавляем рамку в сцену
-	FocusManager.attach_highlight_to_scene(controller)
-
-	var ui_manager: UIManager = result["ui_manager"]
-
-	# Уровень 1 (нижний): Кнопка "Карты"
-	var level1_elements: Array = [
-		ui_manager.action_button
-	]
-
-	# Уровень 2: ? банкиру, ? игроку
-	var level2_elements: Array = [
-		ui_manager.banker_third_toggle,
-		ui_manager.player_third_toggle
-	]
-
-	# Уровень 3: Banker, Player (Tie теперь кнопка, не маркер)
-	var level3_elements: Array = [
-		controller.get_node("BankerMarker"),
-		controller.get_node("PlayerMarker")
-	]
-
-	# Уровень 4 (верхний): Подсказка, Настройки
-	var level4_elements: Array = [
-		ui_manager.help_button
-	]
-	# Кнопка настроек теперь в TopUI после _setup_fixed_ui()
-	if controller.has_node("TopUI/SettingsButton"):
-		level4_elements.append(controller.get_node("TopUI/SettingsButton"))
-
-	# Регистрируем уровни (is_payout=false для Game)
-	FocusManager.register_level(1, level1_elements, false)
-	FocusManager.register_level(2, level2_elements, false)
-	FocusManager.register_level(3, level3_elements, false)
-	FocusManager.register_level(4, level4_elements, false)
 
 
 static func _check_payout_return(controller: Node2D, _result: Dictionary) -> void:

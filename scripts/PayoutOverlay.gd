@@ -114,18 +114,8 @@ func _ready():
 	# Данные передаются через show_payout() из GameController
 	# (НЕ загружаем из GameDataManager - overlay режим)
 
-	# Настройка клавиатурной навигации
-	_setup_keyboard_navigation()
-
 	# Обновляем отображение очков
 	_update_score_display()
-
-func _unhandled_input(event: InputEvent):
-	# Контекстная кнопка: CardsButton → Выплатить
-	if event.is_action_pressed("CardsButton"):
-		FocusManager.deactivate()
-		payout_button.emit_signal("pressed")
-		get_viewport().set_input_as_handled()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -817,60 +807,3 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
-
-func _setup_keyboard_navigation():
-	# Добавляем рамку в сцену
-	FocusManager.attach_highlight_to_scene(self)
-
-	# Уровень 1 (нижний): Флот фишек
-	var level1_elements = []
-	for child in chip_fleet_container.get_children():
-		if child is TextureButton:
-			level1_elements.append(child)
-
-	# Уровень 2: Стопки фишек (будут добавляться динамически)
-	var level2_elements = []
-	# Проходим по слотам и берем контейнеры стопок (если есть)
-	for slot in chip_stacks_container.get_children():
-		if slot is VBoxContainer and slot.get_child_count() > 0:
-			var stack_container = slot.get_child(0)
-			if stack_container is PanelContainer:
-				level2_elements.append(stack_container)
-
-	# Уровень 3 (верхний): Выплатить, Подсказка
-	var level3_elements = [
-		payout_button,
-		hint_button
-	]
-
-	# Регистрируем уровни (is_payout=true для PayoutScene)
-	FocusManager.register_level(1, level1_elements, true)
-	FocusManager.register_level(2, level2_elements, true)
-	FocusManager.register_level(3, level3_elements, true)
-
-	# Подписываемся на добавление/удаление стопок
-	stack_manager.stack_added.connect(_on_stack_added_for_navigation)
-	stack_manager.stack_removed.connect(_on_stack_removed_for_navigation)
-
-
-func _on_stack_added_for_navigation(_stack: ChipStack, _index: int):
-	# Обновляем уровень 2 при добавлении стопки
-	_update_navigation_level2()
-
-
-func _on_stack_removed_for_navigation(_stack: ChipStack, _index: int):
-	# Обновляем уровень 2 при удалении стопки
-	_update_navigation_level2()
-
-
-func _update_navigation_level2():
-	# Обновляем список стопок для навигации
-	var level2_elements = []
-	# Проходим по слотам (VBoxContainer) и берем контейнеры стопок (PanelContainer)
-	for slot in chip_stacks_container.get_children():
-		if slot is VBoxContainer and slot.get_child_count() > 0:
-			# В каждом слоте может быть стопка (stack.container)
-			var stack_container = slot.get_child(0)
-			if stack_container is PanelContainer:
-				level2_elements.append(stack_container)
-	FocusManager.register_level(2, level2_elements, true)
