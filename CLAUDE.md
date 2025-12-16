@@ -40,6 +40,36 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Игра полностью локализована (русский/английский), работает с джойпадом, имеет систему статистики, настраиваемые лимиты стола и визуальную систему выплат с фишками.
 
+## Quick Reference (Быстрый старт)
+
+### Первый запуск
+```bash
+# 1. Открыть проект в Godot 4.5+
+godot --editor --path .
+
+# 2. Запустить игру напрямую (без редактора)
+godot --path . scenes/Game.tscn
+
+# 3. Запустить тесты
+godot --path . --headless --script addons/gut/gut_cmdln.gd
+```
+
+### Ключевые файлы для начала работы
+| Файл | Что делает | Когда редактировать |
+|------|-----------|-------------------|
+| `scripts/GameController.gd` | Главный оркестратор | Добавление новых менеджеров, инициализация |
+| `scripts/BaccaratRules.gd` | Правила игры | Изменение логики баккара |
+| `scripts/autoload/EventBus.gd` | Все события (38 сигналов) | Добавление новых событий |
+| `scripts/Localization.gd` | Переводы ru/en | Добавление текстов |
+| `scripts/ui/` | UI менеджеры (Phase 2) | Работа с интерфейсом |
+
+### Типичные задачи
+- **Изменить правила баккара** → `scripts/BaccaratRules.gd`
+- **Добавить новое событие** → `scripts/autoload/EventBus.gd` + подписчики
+- **Изменить UI** → `scripts/ui/*UIManager.gd`
+- **Добавить перевод** → `scripts/Localization.gd`
+- **Изменить выплаты** → `scripts/chip_system/PayoutValidator.gd`
+
 ## Команды разработки
 
 **Запуск проекта**:
@@ -1827,3 +1857,324 @@ static func hand_value(hand: Array[Card]) -> int:
 - Декомпозиция GamePhaseManager (Phase 2: разбить на HandManager, PhaseCoordinator, ActionValidator)
 - Покрытие тестами 80%+ критичной логики
 - Введение абстрактных интерфейсов для мокирования в тестах
+
+---
+
+## Типичные сценарии разработки
+
+### Сценарий 1: Добавить новый тип ставки (например, "Lucky 6")
+
+**Шаг 1: Обновить EventBus** (если нужны новые события):
+```gdscript
+# scripts/autoload/EventBus.gd
+signal lucky_six_detected(value: int)
+```
+
+**Шаг 2: Создать логику проверки**:
+```gdscript
+# В GamePhaseManager или новом менеджере
+func check_lucky_six(player_hand, banker_hand):
+    # Логика проверки Lucky 6
+    if условие:
+        EventBus.lucky_six_detected.emit(value)
+```
+
+**Шаг 3: Добавить расчёт выплаты**:
+```gdscript
+# В PayoutCalculator или PayoutValidator
+func calculate_lucky_six_payout(stake: float) -> float:
+    return stake * 12.0  # Коэффициент Lucky 6
+```
+
+**Шаг 4: Добавить переводы**:
+```gdscript
+# scripts/Localization.gd
+"LUCKY_SIX_WIN": {
+    "ru": "Lucky 6 выиграла!",
+    "en": "Lucky 6 won!"
+}
+```
+
+**Шаг 5: Обновить UI** (если нужно):
+- Добавить маркер/кнопку в `scenes/Game.tscn`
+- Обновить `scripts/ui/MarkerUIManager.gd` или создать новый менеджер
+
+**Шаг 6: Написать тесты**:
+```gdscript
+# tests/test_lucky_six.gd
+extends GutTest
+
+func test_lucky_six_detection():
+    var player = [Card.new("hearts", "6"), ...]
+    assert_true(BaccaratRules.is_lucky_six(player))
+```
+
+---
+
+### Сценарий 2: Изменить анимацию раздачи карт
+
+**Шаг 1: Найти код анимации**:
+```bash
+# Поиск анимаций
+grep -r "create_tween" scripts/ui/CardUIManager.gd
+```
+
+**Шаг 2: Редактировать CardUIManager**:
+```gdscript
+# scripts/ui/CardUIManager.gd
+func show_first_four_cards(...):
+    var tween = get_tree().create_tween()
+    tween.set_parallel(true)
+
+    # ИЗМЕНИТЬ ЗАДЕРЖКУ ЗДЕСЬ
+    tween.tween_property(card1, "position", ..., 0.5).set_delay(0.2)
+    # ...
+```
+
+**Шаг 3: Тестировать**:
+```bash
+godot --path . scenes/Game.tscn
+```
+
+---
+
+### Сценарий 3: Добавить новый язык (например, китайский)
+
+**Шаг 1: Обновить Localization.gd**:
+```gdscript
+# scripts/Localization.gd
+var current_lang = "ru"  # "ru", "en", "zh"
+
+var translations = {
+    "ACTION_BUTTON_CARDS": {
+        "ru": "Карты",
+        "en": "Cards",
+        "zh": "卡片"  # ДОБАВИТЬ для всех 50+ ключей
+    },
+    # ...
+}
+```
+
+**Шаг 2: Обновить UI кнопки языка**:
+```gdscript
+# scripts/ui/ButtonUIManager.gd или LanguageSwitcher
+func _on_lang_button_pressed():
+    var langs = ["ru", "en", "zh"]  # ДОБАВИТЬ
+    # Цикл переключения
+```
+
+**Шаг 3: Протестировать все экраны**:
+- Game scene
+- PayoutPopup
+- HelpPopup
+- SettingsPopup
+- GameOverPopup
+
+---
+
+### Сценарий 4: Добавить новый менеджер
+
+**Шаг 1: Создать файл**:
+```bash
+touch scripts/MyNewManager.gd
+```
+
+**Шаг 2: Определить интерфейс**:
+```gdscript
+class_name MyNewManager extends RefCounted
+
+signal my_signal(data)
+
+func _init(dependencies):
+    # Dependency Injection
+    pass
+
+func process():
+    EventBus.my_signal.emit()
+```
+
+**Шаг 3: Зарегистрировать в GameController**:
+```gdscript
+# scripts/GameController.gd
+var my_manager: MyNewManager
+
+func _ready():
+    my_manager = MyNewManager.new(dependencies)
+    # Подписаться на сигналы
+```
+
+**Шаг 4: Обновить CLAUDE.md** - добавить описание нового менеджера!
+
+---
+
+### Сценарий 5: Отладка ошибки в логике баккара
+
+**Шаг 1: Найти место ошибки**:
+```bash
+# Поиск по ключевым словам
+grep -r "banker_should_draw" scripts/
+grep -r "determine_state" scripts/
+```
+
+**Шаг 2: Добавить логирование**:
+```gdscript
+# В GameStateManager или GamePhaseManager
+print("[DEBUG] Player: %d, Banker: %d, State: %s" % [p_val, b_val, state])
+EventBus.show_toast_info.emit("DEBUG: " + str(state))
+```
+
+**Шаг 3: Проверить тесты**:
+```bash
+godot --path . --headless --script addons/gut/gut_cmdln.gd -gtest=tests/test_baccarat_rules.gd
+```
+
+**Шаг 4: Исправить и протестировать**:
+- Изменить `BaccaratRules.gd`
+- Запустить тесты снова
+- Ручное тестирование в игре
+
+---
+
+## Troubleshooting (Решение проблем)
+
+### Проблема: Тесты GUT не запускаются
+
+**Симптомы**: `godot --headless --script addons/gut/gut_cmdln.gd` выдаёт ошибку
+
+**Решение**:
+1. Проверить, что GUT установлен: `ls -la addons/gut/`
+2. Проверить версию Godot: `godot --version` (нужна 4.5+)
+3. Попробовать запустить из редактора: нижняя панель → GUT → Run All
+
+---
+
+### Проблема: EventBus.emit() не работает
+
+**Симптомы**: События эмитятся, но подписчики не вызываются
+
+**Решение**:
+1. Проверить подписку:
+```gdscript
+func _ready():
+    EventBus.my_signal.connect(_on_my_signal)  # ← ВАЖНО: connect!
+```
+
+2. Проверить, что EventBus autoload:
+```bash
+grep "EventBus" project.godot
+```
+
+3. Добавить отладку:
+```gdscript
+EventBus.my_signal.connect(func(x): print("Received: ", x))
+```
+
+---
+
+### Проблема: UI не обновляется после изменения языка
+
+**Симптомы**: Кнопка языка нажата, но тексты не меняются
+
+**Решение**:
+1. Проверить, что все Label используют `Localization.t()`:
+```gdscript
+# НЕПРАВИЛЬНО
+label.text = "Карты"
+
+# ПРАВИЛЬНО
+label.text = Localization.t("ACTION_BUTTON_CARDS")
+```
+
+2. Подписаться на событие:
+```gdscript
+EventBus.language_changed.connect(_update_labels)
+
+func _update_labels(lang):
+    label.text = Localization.t("KEY")
+```
+
+---
+
+### Проблема: GameStateManager возвращает неправильное состояние
+
+**Симптомы**: После раздачи карт состояние не соответствует ожиданиям
+
+**Решение**:
+1. Проверить кэш:
+```gdscript
+# В GameStateManager
+print("[DEBUG] Cache hit: ", cache.has(hash))
+cache.clear()  # Очистить кэш для отладки
+```
+
+2. Проверить входные данные:
+```gdscript
+print("Player hand: ", player_hand)
+print("Banker hand: ", banker_hand)
+print("Player value: ", BaccaratRules.hand_value(player_hand))
+```
+
+3. Изучить таблицу решений в `BaccaratRules.banker_should_draw()`
+
+---
+
+### Проблема: Выплаты неправильно рассчитываются
+
+**Симптомы**: PayoutValidator показывает ошибку, хотя сумма верная
+
+**Решение**:
+1. Проверить погрешность:
+```gdscript
+# В PayoutValidator
+const EPSILON = 0.01  # Погрешность
+
+# Изменить на:
+const EPSILON = 0.1  # Временно увеличить
+```
+
+2. Проверить логику расчёта:
+```gdscript
+print("Expected: ", expected)
+print("Collected: ", collected)
+print("Difference: ", abs(expected - collected))
+```
+
+3. Проверить режим игры:
+```gdscript
+# Комиссия зависит от режима
+print("Game mode: ", GameModeManager.get_mode())
+# "junket" → комиссия 5%
+# "classic" → может отличаться
+```
+
+---
+
+## Индекс (быстрая навигация)
+
+### По задачам
+- [Добавить новую ставку](#сценарий-1-добавить-новый-тип-ставки-например-lucky-6)
+- [Изменить анимацию](#сценарий-2-изменить-анимацию-раздачи-карт)
+- [Добавить язык](#сценарий-3-добавить-новый-язык-например-китайский)
+- [Создать менеджер](#сценарий-4-добавить-новый-менеджер)
+- [Отладить логику](#сценарий-5-отладка-ошибки-в-логике-баккара)
+
+### По компонентам
+- [GameController](#главный-контроллер-gamecontroller)
+- [GameStateManager](#система-управления-состояниями)
+- [EventBus](#autoload-синглтоны)
+- [UIManager](#ui-система-uimanager-phase-2-refactoring---завершён)
+- [BaccaratRules](#правила-баккара-baccараtrules)
+- [Система выплат](#система-выплат-с-фишками)
+
+### По паттернам
+- [Event-Driven](#рекомендации-при-разработке)
+- [State Machine](#система-управления-состояниями)
+- [Dependency Injection](#ui-система-uimanager-phase-2-refactoring---завершён)
+- [Object Pooling](#autoload-синглтоны)
+
+### Troubleshooting
+- [Тесты не работают](#проблема-тесты-gut-не-запускаются)
+- [EventBus не срабатывает](#проблема-eventbusemit-не-работает)
+- [UI не обновляется](#проблема-ui-не-обновляется-после-изменения-языка)
+- [Неправильное состояние](#проблема-gamestatemanager-возвращает-неправильное-состояние)
+- [Ошибки выплат](#проблема-выплаты-неправильно-рассчитываются)

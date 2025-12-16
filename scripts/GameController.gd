@@ -40,6 +40,13 @@ var bet_collection_manager: BetCollectionPhaseManager
 var payout_overlay: CanvasLayer = null
 
 # ═══════════════════════════════════════════════════════════════════════════
+# РЕФАКТОРЕННЫЕ МЕНЕДЖЕРЫ (SRP)
+# ═══════════════════════════════════════════════════════════════════════════
+
+var payout_manager: PayoutManager
+var state_restorer: StateRestorer
+
+# ═══════════════════════════════════════════════════════════════════════════
 # UI КОМПОНЕНТЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -247,31 +254,32 @@ func _create_payout_queue(actual: String) -> void:
 func _add_main_bet_to_queue(actual: String, player_score: int, banker_score: int) -> void:
 	"""Добавление основной ставки в очередь (Player/Banker/Tie)
 	
+	Рефакторено: использует IBetType вместо match bet_type (OCP)
+	
 	Args:
 		actual: Фактический победитель
 		player_score: Очки игрока
 		banker_score: Очки банкира
 	"""
+	var bet_type = BetTypeFactory.create(actual)
+	if not bet_type:
+		return
+	
 	if not PayoutSettingsManager.is_payout_enabled(actual):
 		return
 	
-	var stake: float = 0.0
-	var payout: float = 0.0
+	var stake = bet_type.get_stake(limits_manager)
+	var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 	
-	if actual == "Banker":
-		stake = limits_manager.generate_bet()
-		var commission = GameModeManager.get_banker_commission()
-		if GameModeManager.get_mode_string() == "classic":
-			var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-			if banker_value == 6:
-				commission = 0.5
-		payout = stake * commission
-	elif actual == "Tie":
-		stake = limits_manager.generate_tie_bet()
-		payout = stake * 8.0
-	else:  # Player
-		stake = limits_manager.generate_bet()
-		payout = stake * 1.0
+	var payout_calculator = PayoutCalculator.new()
+	var payout = payout_calculator.calculate(
+		bet_type, 
+		stake, 
+		actual,
+		pair_betting_manager.player_pair_detected if pair_betting_manager else false,
+		pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+		banker_value
+	)
 	
 	GameDataManager.add_to_payout_queue(actual, stake, payout, player_score, banker_score)
 
@@ -279,20 +287,29 @@ func _add_main_bet_to_queue(actual: String, player_score: int, banker_score: int
 func _add_pair_bets_to_queue(player_score: int, banker_score: int) -> void:
 	"""Добавление ставок на пары в очередь выплат
 	
+	Рефакторено: использует IBetType вместо прямых проверок (OCP)
+	
 	Args:
 		player_score: Очки игрока
 		banker_score: Очки банкира
 	"""
+	if not pair_betting_manager:
+		return
+	
+	var payout_calculator = PayoutCalculator.new()
+	
 	# Пара игрока - если обнаружена И ставка была
 	if pair_betting_manager.player_pair_detected and pair_betting_manager.pair_player_bet_enabled:
-		var stake = limits_manager.generate_pair_bet()
-		var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer")
+		var bet_type = BetTypeFactory.create("PairPlayer")
+		var stake = bet_type.get_stake(limits_manager)
+		var payout = payout_calculator.calculate_pair_payout(bet_type, stake, pair_betting_manager)
 		GameDataManager.add_to_payout_queue("PairPlayer", stake, payout, player_score, banker_score)
 	
 	# Пара банкира - если обнаружена И ставка была
 	if pair_betting_manager.banker_pair_detected and pair_betting_manager.pair_banker_bet_enabled:
-		var stake = limits_manager.generate_pair_bet()
-		var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker")
+		var bet_type = BetTypeFactory.create("PairBanker")
+		var stake = bet_type.get_stake(limits_manager)
+		var payout = payout_calculator.calculate_pair_payout(bet_type, stake, pair_betting_manager)
 		GameDataManager.add_to_payout_queue("PairBanker", stake, payout, player_score, banker_score)
 
 
@@ -354,16 +371,8 @@ func _format_victory_toast(winner: String) -> String:
 func _prepare_payouts_manual(actual_winner: String) -> void:
 	"""Подготовка выплат в ручном режиме (без автоматического перехода к сцене)
 
-	Создает payout_queue_manager с информацией о всех ставках:
-	- Выигравшие ставки (won=true, is_paid=false)
-	- Проигравшие ставки (won=false)
-
-	В REALISTIC режиме создает множественные ставки со случайным количеством.
-	Делает фишки выигравших ставок кликабельными.
+	Рефакторено: использует PayoutManager (SRP)
 	"""
-	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
-	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-
 	# Создаем новый payout_queue_manager
 	payout_queue_manager = PayoutQueueManager.new()
 	
@@ -371,226 +380,74 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	phase_manager.payout_queue_manager = payout_queue_manager
 	DebugLogger.log_init("Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
 	
-	# ← Настраиваем менеджер фазы сбора/оплаты с информацией о победителе (БЕЗ инициализации последовательностей)
-	bet_collection_manager.payout_queue_manager = payout_queue_manager
-	bet_collection_manager.actual_winner = actual_winner
-	bet_collection_manager.collected_losing_bets.clear()
-	bet_collection_manager.collected_bets_by_id.clear()
-	bet_collection_manager.current_mode = BetCollectionPhaseManager.CollectionMode.NONE
-	
-	# Показываем кнопки collect/pay (они уже должны быть показаны из GamePhaseManager,
-	# но на всякий случай показываем снова)
-	ui_manager.button_ui.show_collect_pay_buttons()
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРОВЕРКА РЕЖИМА REALISTIC
-	# ═══════════════════════════════════════════════════════════════════
-	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
-	
-	if is_realistic:
-		_prepare_payouts_realistic(actual_winner, player_score, banker_score)
+	# Создаем или обновляем PayoutManager
+	if not payout_manager:
+		payout_manager = PayoutManager.new(
+			payout_queue_manager,
+			bet_collection_manager,
+			chip_visual_manager,
+			limits_manager,
+			pair_betting_manager,
+			hand_manager
+		)
 	else:
-		_prepare_payouts_standard(actual_winner, player_score, banker_score)
-
-	# Выводим статус очереди
-	payout_queue_manager.print_status()
+		# Обновляем ссылки
+		payout_manager.payout_queue_manager = payout_queue_manager
 	
-	# ⚠️ ВАЖНО: Инициализируем последовательности ПОСЛЕ добавления всех ставок
-	bet_collection_manager.initialize_sequences()
-	DebugLogger.log("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % actual_winner)
+	# Делегируем подготовку выплат в PayoutManager
+	payout_manager.prepare_manual_payouts(actual_winner, ui_manager)
 	
 	# Завершаем подготовку - обновляем видимость и сохраняем состояние
 	_finalize_payouts_manual(actual_winner)
 
 
-func _prepare_payouts_standard(actual_winner: String, player_score: int, banker_score: int) -> void:
-	"""Стандартная подготовка выплат (DEFAULT, RANDOM, MAX режимы)"""
-	
-	var is_max_mode = PayoutSettingsManager.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
-	
-	# 1. Основные ставки (Player/Banker/Tie)
-	# Player
-	if PayoutSettingsManager.player_payout_enabled:
-		var won = (actual_winner == "Player")
-		var stake = limits_manager.generate_bet()
-		var payout = stake * 1.0 if won else 0.0
-		
-		if is_max_mode:
-			# В MAX режиме добавляем ставку для каждой позиции
-			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("Player", [])
-			for pos_idx in range(positions.size()):
-				payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score, pos_idx)
-		else:
-			payout_queue_manager.add_bet("Player", stake, payout, won, player_score, banker_score, 0)
-
-	# Banker
-	if PayoutSettingsManager.banker_payout_enabled:
-		var won = (actual_winner == "Banker")
-		var stake = limits_manager.generate_bet()
-		var payout = 0.0
-		if won:
-			var commission = GameModeManager.get_banker_commission()
-			if GameModeManager.get_mode_string() == "classic":
-				var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-				if banker_value == 6:
-					commission = 0.5
-			payout = stake * commission
-			DebugLogger.log("🏦 Banker выиграл: stake=%.1f, commission=%.2f, payout=%.1f" % [stake, commission, payout])
-		else:
-			DebugLogger.log("🏦 Banker проиграл: stake=%.1f, payout=0" % stake)
-		
-		if is_max_mode:
-			# В MAX режиме добавляем ставку для каждой позиции
-			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("Banker", [])
-			for pos_idx in range(positions.size()):
-				payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score, pos_idx)
-		else:
-			payout_queue_manager.add_bet("Banker", stake, payout, won, player_score, banker_score, 0)
-
-	# Tie
-	if PayoutSettingsManager.tie_payout_enabled:
-		var won = (actual_winner == "Tie")
-		var stake = limits_manager.generate_tie_bet()
-		var payout = stake * 8.0 if won else 0.0
-		
-		if is_max_mode:
-			# В MAX режиме добавляем ставку для каждой позиции
-			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("Tie", [])
-			for pos_idx in range(positions.size()):
-				payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score, pos_idx)
-		else:
-			payout_queue_manager.add_bet("Tie", stake, payout, won, player_score, banker_score, 0)
-
-	# 2. Ставки на пары
-	if pair_betting_manager:
-		# Pair Player
-		if pair_betting_manager.pair_player_bet_enabled:
-			var won = pair_betting_manager.player_pair_detected
-			var stake = limits_manager.generate_pair_bet()
-			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairPlayer") if won else 0.0
-			
-			if is_max_mode:
-				# В MAX режиме добавляем ставку для каждой позиции
-				var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("PairPlayer", [])
-				for pos_idx in range(positions.size()):
-					payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score, pos_idx)
-			else:
-				payout_queue_manager.add_bet("PairPlayer", stake, payout, won, player_score, banker_score, 0)
-
-		# Pair Banker
-		if pair_betting_manager.pair_banker_bet_enabled:
-			var won = pair_betting_manager.banker_pair_detected
-			var stake = limits_manager.generate_pair_bet()
-			var payout = pair_betting_manager.calculate_pair_payout(stake, "PairBanker") if won else 0.0
-			
-			if is_max_mode:
-				# В MAX режиме добавляем ставку для каждой позиции
-				var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get("PairBanker", [])
-				for pos_idx in range(positions.size()):
-					payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score, pos_idx)
-			else:
-				payout_queue_manager.add_bet("PairBanker", stake, payout, won, player_score, banker_score, 0)
-	else:
-		push_warning("⚠️  pair_betting_manager is null в _prepare_payouts_standard")
-
-
-func _prepare_payouts_realistic(actual_winner: String, player_score: int, banker_score: int) -> void:
-	"""Подготовка выплат в REALISTIC режиме со случайным количеством ставок"""
-	
-	DebugLogger.log_bet("REALISTIC режим: генерируем случайные ставки...")
-	
-	# Очищаем все активные фишки перед созданием новых
-	if chip_visual_manager:
-		chip_visual_manager.clear_all_active_chips()
-	
-	# Генерируем ставки для каждого типа
-	var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
-	
-	for bet_type in bet_types:
-		# Проверяем, включена ли ставка
-		var is_enabled = false
-		match bet_type:
-			"Player":
-				is_enabled = PayoutSettingsManager.player_payout_enabled
-			"Banker":
-				is_enabled = PayoutSettingsManager.banker_payout_enabled
-			"Tie":
-				is_enabled = PayoutSettingsManager.tie_payout_enabled
-			"PairPlayer":
-				is_enabled = pair_betting_manager and pair_betting_manager.pair_player_bet_enabled
-			"PairBanker":
-				is_enabled = pair_betting_manager and pair_betting_manager.pair_banker_bet_enabled
-		
-		if not is_enabled:
-			continue
-		
-		# Определяем выиграла ли ставка этого типа
-		var won = false
-		match bet_type:
-			"Player":
-				won = (actual_winner == "Player")
-			"Banker":
-				won = (actual_winner == "Banker")
-			"Tie":
-				won = (actual_winner == "Tie")
-			"PairPlayer":
-				won = pair_betting_manager.player_pair_detected if pair_betting_manager else false
-			"PairBanker":
-				won = pair_betting_manager.banker_pair_detected if pair_betting_manager else false
-		
-		# Создаём фишки в REALISTIC режиме
-		var created_chips = chip_visual_manager.show_chips_realistic(bet_type)
-		
-		# Для каждой созданной фишки добавляем ставку в очередь
-		for chip_instance in created_chips:
-			var stake = _generate_stake_for_bet_type(bet_type)
-			var payout = _calculate_payout_for_bet_type(bet_type, stake, won)
-			
-			payout_queue_manager.add_bet(
-				bet_type, 
-				stake, 
-				payout, 
-				won, 
-				player_score, 
-				banker_score, 
-				chip_instance.position_index
-			)
-		
-		DebugLogger.log("  %s: создано %d ставок (won=%s)" % [bet_type, created_chips.size(), won])
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ _prepare_payouts_standard и _prepare_payouts_realistic ПЕРЕНЕСЕНЫ
+# В PayoutManager для соблюдения SRP
+# ═══════════════════════════════════════════════════════════════════════════
 
 
 func _generate_stake_for_bet_type(bet_type: String) -> float:
-	"""Генерация размера ставки для типа"""
-	match bet_type:
-		"Tie":
-			return limits_manager.generate_tie_bet()
-		"PairPlayer", "PairBanker":
-			return limits_manager.generate_pair_bet()
-		_:  # Player, Banker
-			return limits_manager.generate_bet()
+	"""Генерация размера ставки для типа
+	
+	Рефакторено: использует IBetType вместо match (OCP)
+	"""
+	var bet_type_obj = BetTypeFactory.create(bet_type)
+	if not bet_type_obj:
+		return 0.0
+	return bet_type_obj.get_stake(limits_manager)
 
 
 func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -> float:
-	"""Расчёт выплаты для типа ставки"""
+	"""Расчёт выплаты для типа ставки
+	
+	Рефакторено: использует PayoutCalculator вместо match (OCP, SRP)
+	"""
 	if not won:
 		return 0.0
 	
-	match bet_type:
-		"Player":
-			return stake * 1.0
-		"Banker":
-			var commission = GameModeManager.get_banker_commission()
-			if GameModeManager.get_mode_string() == "classic":
-				var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-				if banker_value == 6:
-					commission = 0.5
-			return stake * commission
-		"Tie":
-			return stake * 8.0
-		"PairPlayer", "PairBanker":
-			return pair_betting_manager.calculate_pair_payout(stake, bet_type) if pair_betting_manager else 0.0
-		_:
-			return 0.0
+	var bet_type_obj = BetTypeFactory.create(bet_type)
+	if not bet_type_obj:
+		return 0.0
+	
+	var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
+	var payout_calculator = PayoutCalculator.new()
+	
+	# Для пар используем специальную логику
+	if bet_type_obj.get_group() == "pairs" and pair_betting_manager:
+		return payout_calculator.calculate_pair_payout(bet_type_obj, stake, pair_betting_manager)
+	
+	# Для остальных используем стандартный расчет
+	# actual_winner нужен для проверки is_winner, но здесь мы уже знаем что won=true
+	var actual_winner = "Player"  # Значение не важно, т.к. won уже проверен
+	return payout_calculator.calculate(
+		bet_type_obj,
+				stake, 
+		actual_winner,
+		pair_betting_manager.player_pair_detected if pair_betting_manager else false,
+		pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+		banker_value
+	)
 
 
 func _finalize_payouts_manual(actual_winner: String) -> void:
@@ -901,66 +758,46 @@ func _handle_manual_mode_payout_return(context: Dictionary) -> void:
 
 
 func _restore_table_state() -> void:
-	"""Восстановление карт, UI карт и GameStateManager"""
-	# 1. Восстанавливаем карты через HandManager
-	hand_manager.restore_from_arrays(
-		TableStateManager.player_hand,
-		TableStateManager.banker_hand
-	)
-	DebugLogger.log("♻️  Восстановлены карты: Player=%d, Banker=%d" % [
-		hand_manager.get_player_size(),
-		hand_manager.get_banker_size()
-	])
-
-	# 2. Показываем карты на UI
-	_restore_cards_ui()
-
-	# 3. Обновляем GameStateManager с восстановленными картами
-	var player_third_card = hand_manager.get_player_third_card()
-	var banker_third_card = hand_manager.get_banker_third_card()
-	GameStateManager.determine_and_update_state(
-		false,  # cards_hidden = false (карты открыты)
-		hand_manager.get_player_hand_ref(),
-		hand_manager.get_banker_hand_ref(),
-		player_third_card,
-		banker_third_card
-	)
-	DebugLogger.log("♻️  GameStateManager обновлен: состояние = %s" % GameStateManager.get_current_state())
+	"""Восстановление карт, UI карт и GameStateManager
+	
+	Рефакторено: использует StateRestorer (SRP)
+	"""
+	if not state_restorer:
+		state_restorer = StateRestorer.new(
+			hand_manager,
+			winner_selection_manager,
+			survival_ui,
+			camera_manager,
+			ui_manager,
+			card_manager
+		)
+	
+	state_restorer.restore_table_state()
 
 
 func _restore_survival_and_queue() -> void:
-	"""Восстановление маркера победителя, survival режима и очереди выплат"""
-	# 1. Восстанавливаем маркер победителя
-	var saved_winner = TableStateManager.selected_winner
-	if saved_winner != "" and winner_selection_manager:
-		winner_selection_manager.select_winner(saved_winner)
-		DebugLogger.log("🎯 Восстановлен маркер: %s" % saved_winner)
+	"""Восстановление маркера победителя, survival режима и очереди выплат
 	
-	# 2. Восстанавливаем survival режим
-	survival_rounds_completed = TableStateManager.survival_rounds
-	if survival_ui:
-		survival_ui.is_active = TableStateManager.survival_active
-		survival_ui.set_lives(GameDataManager.survival_lives)
-		DebugLogger.log("♻️  Survival режим восстановлен: жизней=%d, раундов=%d" % [
-			GameDataManager.survival_lives, survival_rounds_completed
-		])
-	
-	# 3. Восстанавливаем PayoutQueueManager из TableStateManager
-	payout_queue_manager = PayoutQueueManager.new()
-	for bet_state in TableStateManager.bets:
-		payout_queue_manager.add_bet(
-			bet_state.bet_type,
-			bet_state.stake,
-			bet_state.payout,
-			bet_state.won,
-			bet_state.player_score,
-			bet_state.banker_score
+	Рефакторено: использует StateRestorer (SRP)
+	"""
+	if not state_restorer:
+		state_restorer = StateRestorer.new(
+			hand_manager,
+			winner_selection_manager,
+			survival_ui,
+			camera_manager,
+			ui_manager,
+			card_manager
 		)
-		# Восстанавливаем статус оплаты
-		if bet_state.is_paid:
-			payout_queue_manager.mark_as_paid(bet_state.bet_type)
 	
-	DebugLogger.log("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
+	# Восстанавливаем survival режим
+	survival_rounds_completed = TableStateManager.survival_rounds
+	
+	# Восстанавливаем очередь выплат через StateRestorer
+	payout_queue_manager = state_restorer.restore_survival_and_queue(
+		payout_queue_manager,
+		survival_rounds_completed
+	)
 	
 	# КРИТИЧНО: Обновляем ссылку в phase_manager после восстановления!
 	phase_manager.payout_queue_manager = payout_queue_manager
@@ -997,17 +834,21 @@ func _process_manual_payout_result(context: Dictionary) -> void:
 
 
 func _restore_camera_and_cleanup() -> void:
-	"""Восстановление камеры и очистка контекстов"""
-	# Восстанавливаем камеру на общий план
-	if camera_manager and camera_manager.camera:
-		var general_settings = camera_manager.get_config().get_general_settings()
-		camera_manager.camera.position = general_settings.position
-		camera_manager.camera.zoom = general_settings.zoom
-		camera_manager.set_is_first_deal(false)
-		DebugLogger.log("📷 Камера восстановлена: общий план")
+	"""Восстановление камеры и очистка контекстов
 	
-	# Показываем кнопки областей для выбора следующей области
-	EventBus.area_buttons_visibility_changed.emit(true)
+	Рефакторено: использует StateRestorer (SRP)
+	"""
+	if not state_restorer:
+		state_restorer = StateRestorer.new(
+			hand_manager,
+			winner_selection_manager,
+			survival_ui,
+			camera_manager,
+			ui_manager,
+			card_manager
+		)
+	
+	state_restorer.restore_camera()
 	
 	# Очищаем контексты
 	PayoutContextManager.clear_context()
@@ -1692,34 +1533,21 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 
 
 func _restore_cards_ui():
-	"""Восстановить карты на UI после возврата из PayoutScene"""
-	# Показываем первые две карты игрока
-	if hand_manager.get_player_hand_ref().size() >= 1:
-		ui_manager.player_card1.texture = hand_manager.get_player_hand_ref()[0].get_texture(card_manager)
-		ui_manager.player_card1.visible = true
-	if hand_manager.get_player_hand_ref().size() >= 2:
-		ui_manager.player_card2.texture = hand_manager.get_player_hand_ref()[1].get_texture(card_manager)
-		ui_manager.player_card2.visible = true
-	if hand_manager.get_player_hand_ref().size() >= 3:
-		ui_manager.player_card3.texture = hand_manager.get_player_hand_ref()[2].get_texture(card_manager)
-		ui_manager.player_card3.visible = true
-
-	# Показываем первые две карты банкира
-	if hand_manager.get_banker_hand_ref().size() >= 1:
-		ui_manager.banker_card1.texture = hand_manager.get_banker_hand_ref()[0].get_texture(card_manager)
-		ui_manager.banker_card1.visible = true
-	if hand_manager.get_banker_hand_ref().size() >= 2:
-		ui_manager.banker_card2.texture = hand_manager.get_banker_hand_ref()[1].get_texture(card_manager)
-		ui_manager.banker_card2.visible = true
-	if hand_manager.get_banker_hand_ref().size() >= 3:
-		ui_manager.banker_card3.texture = hand_manager.get_banker_hand_ref()[2].get_texture(card_manager)
-		ui_manager.banker_card3.visible = true
-
-	# Скрываем toggles третьих карт (карты уже открыты)
-	ui_manager.player_third_toggle.visible = false
-	ui_manager.banker_third_toggle.visible = false
-
-	DebugLogger.log_restore(" Карты восстановлены на UI")
+	"""Восстановить карты на UI после возврата из PayoutScene
+	
+	Рефакторено: использует StateRestorer (SRP)
+	"""
+	if not state_restorer:
+		state_restorer = StateRestorer.new(
+			hand_manager,
+			winner_selection_manager,
+			survival_ui,
+			camera_manager,
+			ui_manager,
+			card_manager
+		)
+	
+	state_restorer.restore_cards_ui()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ EVENTBUS (для Dependency Injection рефакторинга Фазы 1)

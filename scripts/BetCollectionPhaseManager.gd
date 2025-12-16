@@ -145,11 +145,14 @@ static func get_mode_name(mode: CollectionMode) -> String:
 func is_tie_push_bet(bet_type: String) -> bool:
 	"""Проверить, является ли ставка 'push' при Tie
 	
+	Рефакторено: использует IBetType вместо прямых проверок (OCP)
+	
 	При Tie ставки Player и Banker не выиграли и не проиграли - их нельзя трогать.
 	Пары (PairPlayer, PairBanker) НЕ являются push при Tie.
 	"""
-	if actual_winner == "Tie":
-		return bet_type == "Player" or bet_type == "Banker"
+	var bet_type_obj = BetTypeFactory.create(bet_type)
+	if bet_type_obj:
+		return bet_type_obj.is_tie_push(actual_winner)
 	return false
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -271,20 +274,17 @@ func _get_pairs_line_number(bet_type: String, position_index: int) -> int:
 func _get_bet_group(bet_type: String) -> String:
 	"""Определить группу ставки
 	
+	Рефакторено: использует IBetType вместо match (OCP)
+	
 	Returns:
 		"main" для Player/Banker
 		"tie" для Tie
 		"pairs" для PairPlayer/PairBanker
 	"""
-	match bet_type:
-		"Player", "Banker":
-			return "main"
-		"Tie":
-			return "tie"
-		"PairPlayer", "PairBanker":
-			return "pairs"
-		_:
-			return ""
+	var bet_type_obj = BetTypeFactory.create(bet_type)
+	if bet_type_obj:
+		return bet_type_obj.get_group()
+	return ""
 
 func _get_position_coordinates(bet_type: String, position_index: int) -> Vector2:
 	"""Получить координаты позиции фишки
