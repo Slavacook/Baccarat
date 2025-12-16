@@ -222,6 +222,25 @@ func _handle_correct_winner_choice(actual: String) -> void:
 	# Пауза 1 секунда (карты остаются открытыми, маркер активен)
 	await get_tree().create_timer(GameConstants.VICTORY_TOAST_DELAY).timeout
 	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ВАЛИДНОСТИ ПОСЛЕ AWAIT (защита от race conditions)
+	# ═══════════════════════════════════════════════════════════════════
+	if not is_instance_valid(self):
+		DebugLogger.log("⚠️  GameController удалён во время await, прерываем операцию")
+		return
+	
+	# Проверяем что менеджеры всё ещё инициализированы
+	if not hand_manager or not limits_manager:
+		push_error("❌ Критические менеджеры не инициализированы после await!")
+		return
+	
+	# Проверяем что руки не пустые (игра не была сброшена)
+	var player_hand = hand_manager.get_player_hand_ref()
+	var banker_hand = hand_manager.get_banker_hand_ref()
+	if player_hand.is_empty() or banker_hand.is_empty():
+		DebugLogger.log("⚠️  Руки пустые после await, возможно раунд был сброшен")
+		return
+	
 	# Создаём очередь выплат
 	_create_payout_queue(actual)
 	
@@ -1476,14 +1495,20 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		EventBus.payout_correct.emit(collected, expected)
 		DebugLogger.log("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
 
-		# Отмечаем ставку как оплаченную в PayoutQueueManager
-		if payout_queue_manager:
-			payout_queue_manager.mark_as_paid(bet_type, position_index)
-			DebugLogger.log("  ✅ Ставка %s[%d] отмечена как оплаченная" % [bet_type, position_index])
-		
-		# Отмечаем в BetCollectionPhaseManager
+		# ═══════════════════════════════════════════════════════════════════
+		# ВАЖНО: pay_bet() сам вызывает mark_as_paid() внутри
+		# НЕ вызываем mark_as_paid() отдельно, иначе pay_bet() выйдет раньше
+		# и не обновит payment_progress!
+		# ═══════════════════════════════════════════════════════════════════
 		if bet_collection_manager:
-			bet_collection_manager.pay_bet(bet_type, position_index)
+			# pay_bet() автоматически:
+			# 1. Помечает ставку как оплаченную (mark_as_paid)
+			# 2. Обновляет payment_progress[group]
+			# 3. Проверяет порядок оплаты
+			if bet_collection_manager.pay_bet(bet_type, position_index):
+				DebugLogger.log("  ✅ Ставка %s[%d] оплачена через BetCollectionPhaseManager" % [bet_type, position_index])
+			else:
+				DebugLogger.log_error("  ❌ Не удалось оплатить ставку %s[%d] через BetCollectionPhaseManager" % [bet_type, position_index])
 
 		# Скрываем конкретную фишку по position_index (работает для всех режимов)
 		if chip_visual_manager:

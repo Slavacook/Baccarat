@@ -85,7 +85,7 @@ func add_to_payout_queue(bet_type: String, stake: float, payout: float, p_score:
 	"""Добавить выплату в очередь"""
 	var payout_data = PayoutData.new(bet_type, stake, payout, p_score, b_score)
 	payout_queue.append(payout_data)
-	print("💰 PayoutQueue: добавлена выплата %s (stake=%.1f, payout=%.1f)" % [bet_type, stake, payout])
+	DebugLogger.log("💰 PayoutQueue: добавлена выплата %s (stake=%.1f, payout=%.1f)" % [bet_type, stake, payout])
 
 
 func get_next_payout() -> PayoutData:
@@ -95,7 +95,7 @@ func get_next_payout() -> PayoutData:
 
 	var next_payout = payout_queue[0]
 	payout_queue.remove_at(0)
-	print("💰 PayoutQueue: взята выплата %s из очереди (осталось: %d)" % [next_payout.bet_type, payout_queue.size()])
+	DebugLogger.log("💰 PayoutQueue: взята выплата %s из очереди (осталось: %d)" % [next_payout.bet_type, payout_queue.size()])
 	return next_payout
 
 
@@ -114,14 +114,14 @@ func clear_payout_queue() -> void:
 	var count = payout_queue.size()
 	payout_queue.clear()
 	if count > 0:
-		print("🗑️  PayoutQueue: очищено (%d выплат удалено)" % count)
+		DebugLogger.log("🗑️  PayoutQueue: очищено (%d выплат удалено)" % count)
 
 
 func print_queue_status() -> void:
 	"""Вывести текущий статус очереди"""
-	print("═══ PayoutQueue Status ═══")
-	print("Выплат в очереди: %d" % payout_queue.size())
+	DebugLogger.log("═══ PayoutQueue Status ═══")
+	DebugLogger.log("Выплат в очереди: %d" % payout_queue.size())
 	for i in range(payout_queue.size()):
 		var p = payout_queue[i]
-		print("  [%d] %s: %.1f → %.1f" % [i + 1, p.bet_type, p.stake, p.payout])
-	print("═══════════════════════════")
+		DebugLogger.log("  [%d] %s: %.1f → %.1f" % [i + 1, p.bet_type, p.stake, p.payout])
+	DebugLogger.log("═══════════════════════════")

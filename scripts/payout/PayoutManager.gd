@@ -37,17 +37,9 @@ func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> voi
 	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
 	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
 	
-	# Настраиваем менеджер фазы сбора/оплаты
-	bet_collection_manager.payout_queue_manager = payout_queue_manager
-	bet_collection_manager.actual_winner = actual_winner
-	bet_collection_manager.collected_losing_bets.clear()
-	bet_collection_manager.collected_bets_by_id.clear()
-	bet_collection_manager.current_mode = BetCollectionPhaseManager.CollectionMode.NONE
-	
-	# Показываем кнопки collect/pay
-	ui_manager.button_ui.show_collect_pay_buttons()
-	
-	# Проверяем режим и подготавливаем выплаты
+	# ═══════════════════════════════════════════════════════════════════
+	# ШАГ 1: Подготавливаем выплаты (добавляем ставки в очередь)
+	# ═══════════════════════════════════════════════════════════════════
 	var is_realistic = settings_provider.is_realistic_mode_enabled()
 	if is_realistic:
 		_prepare_realistic_payouts(actual_winner, player_score, banker_score)
@@ -57,9 +49,18 @@ func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> voi
 	# Выводим статус очереди
 	payout_queue_manager.print_status()
 	
-	# Инициализируем последовательности ПОСЛЕ добавления всех ставок
-	bet_collection_manager.initialize_sequences()
+	# ═══════════════════════════════════════════════════════════════════
+	# ШАГ 2: Настраиваем менеджер фазы сбора/оплаты ПОСЛЕ добавления всех ставок
+	# setup() автоматически вызовет initialize_sequences() внутри
+	# ═══════════════════════════════════════════════════════════════════
+	bet_collection_manager.setup(payout_queue_manager, actual_winner)
 	DebugLogger.log("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % actual_winner)
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ШАГ 3: Показываем кнопки collect/pay ПОСЛЕ setup()
+	# show_collect_pay_buttons() автоматически активирует режим COLLECT
+	# ═══════════════════════════════════════════════════════════════════
+	ui_manager.button_ui.show_collect_pay_buttons()
 
 func _prepare_standard_payouts(actual_winner: String, player_score: int, banker_score: int) -> void:
 	"""Стандартная подготовка выплат (DEFAULT, RANDOM, MAX режимы)"""

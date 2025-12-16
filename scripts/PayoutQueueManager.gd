@@ -44,7 +44,7 @@ func add_bet(bet_type: String, stake: float, payout: float, won: bool, p_score: 
 	var bet = BetData.new(bet_type, stake, payout, won, p_score, b_score, position_index)
 	bets.append(bet)
 	var status = "✅ ВЫИГРЫШ" if won else "❌ ПРОИГРЫШ"
-	print("💰 PayoutQueueManager: добавлена ставка %s[%d] (stake=%.1f, payout=%.1f, %s)" % [bet_type, position_index, stake, payout, status])
+	DebugLogger.log("💰 PayoutQueueManager: добавлена ставка %s[%d] (stake=%.1f, payout=%.1f, %s)" % [bet_type, position_index, stake, payout, status])
 
 
 func get_bet_by_type(bet_type: String) -> BetData:
@@ -83,7 +83,7 @@ func mark_as_paid(bet_type: String, position_index: int = -1) -> bool:
 	
 	if bet and bet.won and not bet.is_paid:
 		bet.is_paid = true
-		print("💰 PayoutQueueManager: ставка %s[%d] отмечена как оплаченная" % [bet_type, bet.position_index])
+		DebugLogger.log("💰 PayoutQueueManager: ставка %s[%d] отмечена как оплаченная" % [bet_type, bet.position_index])
 		return true
 	return false
 
@@ -98,7 +98,7 @@ func mark_as_collected(bet_type: String, position_index: int = -1) -> bool:
 	
 	if bet and not bet.won and not bet.is_collected:
 		bet.is_collected = true
-		print("💰 PayoutQueueManager: ставка %s[%d] отмечена как собранная" % [bet_type, bet.position_index])
+		DebugLogger.log("💰 PayoutQueueManager: ставка %s[%d] отмечена как собранная" % [bet_type, bet.position_index])
 		return true
 	return false
 
@@ -194,13 +194,13 @@ func get_all_bets() -> Array[BetData]:
 func clear() -> void:
 	"""Очистить все ставки"""
 	bets.clear()
-	print("🗑️  PayoutQueueManager: очищено")
+	DebugLogger.log("🗑️  PayoutQueueManager: очищено")
 
 
 func print_status() -> void:
 	"""Вывести статус всех ставок"""
-	print("═══ PayoutQueueManager Status ═══")
-	print("Всего ставок: %d" % bets.size())
+	DebugLogger.log("═══ PayoutQueueManager Status ═══")
+	DebugLogger.log("Всего ставок: %d" % bets.size())
 	for bet in bets:
 		var status = ""
 		if not bet.won:
@@ -212,7 +212,7 @@ func print_status() -> void:
 			status = "✅ ОПЛАЧЕНО"
 		else:
 			status = "💰 К ОПЛАТЕ"
-		print("  %s[%d]: %.1f → %.1f (%s)" % [bet.bet_type, bet.position_index, bet.stake, bet.payout, status])
-	print("Неоплаченных выигрышей: %d" % get_unpaid_count())
-	print("Несобранных проигрышей: %d" % get_uncollected_count())
-	print("═════════════════════════════════")
+		DebugLogger.log("  %s[%d]: %.1f → %.1f (%s)" % [bet.bet_type, bet.position_index, bet.stake, bet.payout, status])
+	DebugLogger.log("Неоплаченных выигрышей: %d" % get_unpaid_count())
+	DebugLogger.log("Несобранных проигрышей: %d" % get_uncollected_count())
+	DebugLogger.log("═════════════════════════════════")
