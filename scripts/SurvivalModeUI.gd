@@ -367,7 +367,8 @@ func _on_chance_card_clicked() -> void:
 		EventBus.show_toast_info.emit(Localization.t("NOT_TIME"))
 		return
 	
-	print("🎴 Карта шанса нажата - открываем popup")
+	# Проверка будет в GameController - он знает состояние HeartBetManager
+	print("🎴 Карта шанса нажата - запрос на popup")
 	EventBus.chance_card_pressed.emit()
 
 
@@ -405,8 +406,14 @@ func _on_chance_count_changed(count: int) -> void:
 
 func _on_game_state_changed(_old_state, new_state) -> void:
 	"""Состояние игры изменилось - обновляем доступность карты"""
-	# WAITING = можно использовать карту
+	# WAITING = можно использовать карту, НО ТОЛЬКО если HeartBet не активен
 	_can_use_chance = (new_state == GameStateManager.GameState.WAITING)
+	_update_chance_card_color()
+
+
+func set_chance_card_enabled(enabled: bool) -> void:
+	"""Установить доступность карты шанса (вызывается из HeartBetManager)"""
+	_can_use_chance = enabled
 	_update_chance_card_color()
 
 

@@ -32,14 +32,14 @@ func _ready():
 	if use_button:
 		use_button.pressed.connect(_on_use_pressed)
 	
-	# Подписываемся на EventBus
-	EventBus.chance_card_pressed.connect(_on_chance_card_pressed)
+	# НЕ подписываемся напрямую - GameController будет решать открывать ли
+	# EventBus.chance_card_pressed.connect(_on_chance_card_pressed)
 	
 	print("🎴 ChanceCardPopup готов")
 
 
-func _on_chance_card_pressed():
-	"""Открыть popup с большой картой"""
+func open_popup():
+	"""Открыть popup с большой картой (вызывается из GameController)"""
 	show_popup()
 
 

@@ -911,25 +911,27 @@ func hide_all_guest_chips() -> void:
 
 func show_all_guest_chips() -> void:
 	"""Показать все ставки гостей (после завершения Heart Bet раздачи)
-	
+
 	Восстанавливает сохранённое состояние видимости.
 	"""
 	if _saved_visibility.is_empty():
 		print("⚠️ Нет сохранённых состояний видимости для восстановления")
 		return
-	
+
 	# Восстанавливаем видимость активных фишек (ChipInstance)
 	for chip in active_chips:
-		if chip.node:
+		# Проверяем что узел существует и не удалён
+		if chip.node and is_instance_valid(chip.node):
 			var key = "%s_%d" % [chip.bet_type, chip.position_index]
 			if _saved_visibility.has(key):
 				chip.node.visible = _saved_visibility[key]
-	
+
 	# Восстанавливаем видимость основных фишек
 	for bet_type in chip_nodes.keys():
 		if _saved_visibility.has(bet_type):
-			chip_nodes[bet_type].visible = _saved_visibility[bet_type]
-	
+			if chip_nodes[bet_type] and is_instance_valid(chip_nodes[bet_type]):
+				chip_nodes[bet_type].visible = _saved_visibility[bet_type]
+
 	print("❤️ Ставки гостей восстановлены")
 	_saved_visibility.clear()
 
@@ -941,12 +943,14 @@ func clear_guest_chips_for_sector(guest_id: int) -> void:
 	"""
 	var removed_count = 0
 	
+	print("👥 clear_guest_chips_for_sector(%d): active_chips.size=%d" % [guest_id, active_chips.size()])
+	
 	# Удаляем активные фишки из этого сектора
 	var chips_to_remove: Array = []
 	for chip in active_chips:
-		# guest_id соответствует position_index для основных ставок этого гостя
-		# Каждый гость имеет свой набор позиций (2 на сектор)
-		var sector = _get_sector_for_position(chip.bet_type, chip.position_index)
+		# Используем GuestSectorMapper для определения сектора
+		var sector = GuestSectorMapper.get_sector_from_position(chip.bet_type, chip.position_index)
+		print("👥   - chip %s[%d] → sector %d (target: %d)" % [chip.bet_type, chip.position_index, sector, guest_id])
 		if sector == guest_id:
 			chips_to_remove.append(chip)
 	
@@ -957,31 +961,3 @@ func clear_guest_chips_for_sector(guest_id: int) -> void:
 		removed_count += 1
 	
 	print("👥 Удалено %d фишек гостя %d" % [removed_count, guest_id])
-
-
-func _get_sector_for_position(bet_type: String, position_index: int) -> int:
-	"""Определить сектор (1-6) по типу ставки и индексу позиции"""
-	# Основные позиции (индекс 0) - сектор 4
-	if position_index == 0:
-		return 4
-	
-	# Для Player/Banker: 2 позиции на сектор
-	if bet_type in ["Player", "Banker"]:
-		match position_index:
-			1, 2: return 4
-			3, 4: return 5
-			5, 6: return 3
-			7, 8: return 2
-			9, 10: return 1
-			11, 12: return 6
-	
-	# Для Tie/PairPlayer/PairBanker: 1 позиция на сектор
-	else:
-		match position_index:
-			1: return 1
-			2: return 2
-			3: return 3
-			4: return 5
-			5: return 6
-	
-	return 0  # Неизвестная позиция

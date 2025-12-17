@@ -66,6 +66,11 @@ func _connect_signals() -> void:
 ## Проверить триггеры после завершения раунда
 ## Возвращает true если какой-то триггер сработал
 func check_triggers(winner: String, banker_score: int, player_score: int, is_natural: bool) -> bool:
+	# #region agent log
+	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
+	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H9","location":"HeartBetManager.check_triggers","message":"checking triggers","data":{"current_state":"%s","winner":"%s","banker_score":%d,"player_score":%d,"is_natural":%s},"timestamp":%d}' % [State.keys()[current_state], winner, banker_score, player_score, str(is_natural).to_lower(), int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
+	# #endregion
+	
 	# Можем накапливать шансы даже во время активной игры на жизнь
 	# (но не во время RESOLVING)
 	if current_state == State.RESOLVING:
@@ -126,6 +131,9 @@ func use_chance() -> bool:
 	
 	# Показываем сердца
 	EventBus.heart_bet_show_ui.emit()
+	
+	# Блокируем карту шанса (чтобы нельзя было использовать вторую пока первая активна)
+	EventBus.chance_count_changed.emit(chance_count)  # Это обновит UI
 	
 	return true
 
@@ -341,6 +349,11 @@ func _handle_tie_draw() -> void:
 
 ## Сбросить состояние
 func _reset() -> void:
+	# #region agent log
+	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
+	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H8","location":"HeartBetManager._reset","message":"resetting state","data":{"old_state":"%s","chance_count":%d},"timestamp":%d}' % [State.keys()[current_state], chance_count, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
+	# #endregion
+	
 	current_state = State.IDLE
 	selected_target = ""
 	last_trigger_name = ""

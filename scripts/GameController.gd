@@ -54,6 +54,7 @@ var settings_scene: CanvasLayer
 var settings_button: Button
 var survival_ui: Control
 var game_over_popup: CanvasLayer
+var chance_card_popup: CanvasLayer
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
@@ -122,10 +123,14 @@ func _ready():
 		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
 		
 		# Heart Bet: использование шанса через карту
+		EventBus.chance_card_pressed.connect(_on_chance_card_pressed)
 		EventBus.chance_card_use_requested.connect(_on_chance_card_use_requested)
 	
 	# Подписка на изменение настроек гостей (для очистки фишек при отключении)
 	GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed)
+	
+	# Находим ChanceCardPopup
+	chance_card_popup = get_node_or_null("TopUI/ChanceCardPopup")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1230,6 +1235,24 @@ func _on_camera_zoom_requested(zoom_type: String) -> void:
 # ❤️ HEART BET - СКРЫТИЕ/ПОКАЗ СТАВОК ГОСТЕЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _on_chance_card_pressed() -> void:
+	"""Клик на карту шанса - проверяем можно ли открывать popup"""
+	# Проверяем что HeartBet не в активном состоянии
+	if phase_manager and phase_manager.heart_bet_manager:
+		var state = phase_manager.heart_bet_manager.get_state_name()
+		if state != "IDLE":
+			# HeartBet активен - нельзя использовать вторую карту
+			print("🎴 Карта шанса: уже идёт игра на жизнь (state=%s)" % state)
+			EventBus.show_toast_info.emit(Localization.t("HEART_BET_IN_PROGRESS"))
+			return
+	
+	# Открываем popup
+	if chance_card_popup:
+		chance_card_popup.open_popup()
+	else:
+		print("⚠️ ChanceCardPopup не найден!")
+
+
 func _on_guest_settings_changed(guest_id: int) -> void:
 	"""Настройки гостя изменились - очищаем его фишки если отключён"""
 	if not GuestSettingsManager.is_guest_enabled(guest_id):
@@ -1244,7 +1267,17 @@ func _on_guest_settings_changed(guest_id: int) -> void:
 
 func _on_chance_card_use_requested() -> void:
 	"""Использовать шанс (нажата кнопка "Использовать" в popup карты)"""
-	print("🎴 GameController: запрос использования шанса")
+	# #region agent log
+	var _hb_state = ""
+	var _hb_chances = 0
+	if phase_manager and phase_manager.heart_bet_manager:
+		_hb_state = phase_manager.heart_bet_manager.get_state_name()
+		_hb_chances = phase_manager.heart_bet_manager.get_chance_count()
+	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
+	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H10","location":"GameController._on_chance_card_use_requested","message":"use requested","data":{"is_table_prepared":%s,"hb_state":"%s","hb_chances":%d},"timestamp":%d}' % [str(phase_manager.is_table_prepared if phase_manager else false).to_lower(), _hb_state, _hb_chances, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
+	# #endregion
+	
+	print("🎴 GameController: запрос использования шанса (is_table_prepared=%s)" % (phase_manager.is_table_prepared if phase_manager else "N/A"))
 	
 	# Проверяем что можно использовать (is_table_prepared)
 	if not phase_manager or not phase_manager.is_table_prepared:
@@ -1254,11 +1287,12 @@ func _on_chance_card_use_requested() -> void:
 	
 	# Вызываем use_chance() в HeartBetManager
 	if phase_manager.heart_bet_manager:
+		print("🎴 Вызываю use_chance() (state=%s, chances=%d)" % [phase_manager.heart_bet_manager.get_state_name(), phase_manager.heart_bet_manager.get_chance_count()])
 		var success = phase_manager.heart_bet_manager.use_chance()
 		if success:
 			print("🎴 Шанс использован успешно!")
 		else:
-			print("🎴 Не удалось использовать шанс")
+			print("🎴 Не удалось использовать шанс (state=%s)" % phase_manager.heart_bet_manager.get_state_name())
 
 
 func _on_guest_bets_hide_requested() -> void:

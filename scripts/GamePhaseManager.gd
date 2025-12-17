@@ -742,6 +742,9 @@ func _validate_winner_selection() -> void:
 
 	# Проверяем правильность
 	var actual_winner = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
+	
+	# ВАЖНО: Сохраняем победителя в TableStateManager для триггеров Heart Bet!
+	TableStateManager.actual_winner = actual_winner
 
 	if selected_winner != actual_winner:
 		# ❌ Неправильный выбор

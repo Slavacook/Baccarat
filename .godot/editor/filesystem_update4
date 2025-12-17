@@ -1,8 +1,7 @@
+res://scripts/ChipVisualManager.gd
 res://scripts/GameController.gd
-res://scripts/GamePhaseManager.gd
+res://scenes/SurvivalModeUI.tscn
+res://scripts/ChanceCardPopup.gd
+res://scripts/Localization.gd
 res://scripts/SurvivalModeUI.gd
 res://scripts/heart_bet/HeartBetManager.gd
-res://scenes/SurvivalModeUI.tscn
-res://scripts/BaccaratRules.gd
-res://scripts/ChipVisualManager.gd
-res://scripts/Localization.gd
