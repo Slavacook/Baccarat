@@ -21,7 +21,7 @@
 [ext_resource type="Script" path="res://scripts/PayoutSurvivalInfo.gd" id="17_survival_info"]
 [ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="18_45i86"]
 [ext_resource type="Texture2D" uid="uid://bi8p5atnji7jw" path="res://assets/ui/error.png" id="18_sv1m6"]
-[ext_resource type="PackedScene" path="res://scenes/SettingsScene.tscn" id="21_a8wo8"]
+[ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="21_a8wo8"]
 [ext_resource type="Texture2D" uid="uid://bvepwtmlt4ecj" path="res://assets/ui/buttons/complete_button_broken.png" id="22_broken"]
 [ext_resource type="Script" uid="uid://ctrkmnbi413ic" path="res://scripts/ui/PayButton.gd" id="23_paybutton"]
 [ext_resource type="Script" uid="uid://c8nuey0a3cflc" path="res://scripts/ui/AreaButton.gd" id="24_area_btn"]

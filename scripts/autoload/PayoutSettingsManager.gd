@@ -9,7 +9,7 @@ extends Node
 # ═══════════════════════════════════════════════════════════════════════════
 
 signal payout_settings_changed(player: bool, banker: bool, tie: bool, player_pair: bool, banker_pair: bool)
-signal random_positions_changed(enabled: bool)
+# signal random_positions_changed(enabled: bool)  # Deprecated - режим всегда GUEST
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -21,14 +21,14 @@ var tie_payout_enabled: bool = true
 var player_pair_payout_enabled: bool = true
 var banker_pair_payout_enabled: bool = true
 
-# Режим позиций фишек: DEFAULT (основные), RANDOM (случайные), MAX (все позиции), REALISTIC (случайное кол-во)
-enum PositionMode { DEFAULT, RANDOM, MAX, REALISTIC }
-var position_mode: PositionMode = PositionMode.DEFAULT
+# Режим позиций фишек: GUEST (гости ставят в своих секторах)
+enum PositionMode { GUEST }
+var position_mode: PositionMode = PositionMode.GUEST
 
-# Для обратной совместимости
+# Для обратной совместимости (deprecated, всегда false)
 var random_positions_enabled: bool:
 	get:
-		return position_mode == PositionMode.RANDOM
+		return false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -125,11 +125,12 @@ func _load_settings() -> void:
 	player_pair_payout_enabled = settings.get("player_pair", true)
 	banker_pair_payout_enabled = settings.get("banker_pair", true)
 	
-	# Загружаем режим позиций фишек
-	position_mode = SaveManager.load_position_mode() as PositionMode
+	# Режим позиций всегда GUEST (миграция старых настроек)
+	position_mode = PositionMode.GUEST
+	SaveManager.save_position_mode(PositionMode.GUEST)
 	
-	print("💰 PayoutSettingsManager загружен: Player=%s Banker=%s Tie=%s PlayerPair=%s BankerPair=%s PositionMode=%s" % [
-		player_payout_enabled, banker_payout_enabled, tie_payout_enabled, player_pair_payout_enabled, banker_pair_payout_enabled, PositionMode.keys()[position_mode]
+	print("💰 PayoutSettingsManager загружен: Player=%s Banker=%s Tie=%s PlayerPair=%s BankerPair=%s PositionMode=GUEST" % [
+		player_payout_enabled, banker_payout_enabled, tie_payout_enabled, player_pair_payout_enabled, banker_pair_payout_enabled
 	])
 
 # ← Вспомогательный метод для emit и сохранения
@@ -141,33 +142,34 @@ func _emit_and_save() -> void:
 # РЕЖИМ ПОЗИЦИЙ ФИШЕК (DEFAULT / RANDOM / MAX)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ← Установить режим позиций
-func set_position_mode(mode: PositionMode) -> void:
-	position_mode = mode
-	SaveManager.save_position_mode(mode)
-	random_positions_changed.emit(mode == PositionMode.RANDOM)
-	EventBus.position_mode_changed.emit(mode)
-	print("🎲 Position mode: %s" % PositionMode.keys()[mode])
+# ← Установить режим позиций (всегда GUEST)
+func set_position_mode(_mode: PositionMode) -> void:
+	position_mode = PositionMode.GUEST  # Всегда GUEST
+	SaveManager.save_position_mode(PositionMode.GUEST)
+	EventBus.position_mode_changed.emit(PositionMode.GUEST)
+	print("🎲 Position mode: GUEST (гости)")
 
-# ← Получить текущий режим
+# ← Получить текущий режим (всегда GUEST)
 func get_position_mode() -> PositionMode:
-	return position_mode
+	return PositionMode.GUEST
 
-# ← Проверить, включён ли режим случайных позиций (для обратной совместимости)
+# ← Проверить, включён ли режим случайных позиций (deprecated, всегда false)
 func is_random_positions_enabled() -> bool:
-	return position_mode == PositionMode.RANDOM
+	return false
 
-# ← Проверить, включён ли MAX режим
+# ← Проверить, включён ли MAX режим (deprecated, всегда false)
 func is_max_mode_enabled() -> bool:
-	return position_mode == PositionMode.MAX
+	return false
 
-# ← Проверить, включён ли REALISTIC режим
+# ← Проверить, включён ли REALISTIC режим (deprecated, всегда false)
 func is_realistic_mode_enabled() -> bool:
-	return position_mode == PositionMode.REALISTIC
+	return false
 
-# ← Переключить режим случайных позиций (для обратной совместимости)
-func toggle_random_positions(enabled: bool) -> void:
-	if enabled:
-		set_position_mode(PositionMode.RANDOM)
-	else:
-		set_position_mode(PositionMode.DEFAULT)
+# ← Проверить, включён ли режим гостей
+func is_guest_mode_enabled() -> bool:
+	return true
+
+# ← Переключить режим случайных позиций (deprecated, ничего не делает)
+func toggle_random_positions(_enabled: bool) -> void:
+	# Режим всегда GUEST, игнорируем
+	pass

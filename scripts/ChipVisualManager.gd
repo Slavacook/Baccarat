@@ -151,14 +151,14 @@ var current_textures: Dictionary = {}
 # Основные позиции фишек (сохраняются при setup из сцены)
 var default_positions: Dictionary = {}
 
-# Режим позиций: DEFAULT, RANDOM, MAX, REALISTIC
-enum PositionMode { DEFAULT, RANDOM, MAX, REALISTIC }
-var current_mode: PositionMode = PositionMode.DEFAULT
+# Режим позиций: GUEST (гости ставят в своих секторах)
+enum PositionMode { GUEST }
+var current_mode: PositionMode = PositionMode.GUEST
 
-# Для обратной совместимости
+# Для обратной совместимости (deprecated, всегда false)
 var random_positions_enabled: bool:
 	get:
-		return current_mode == PositionMode.RANDOM
+		return false
 
 # Дополнительные фишки для MAX режима (копии) - устаревшее, используется для совместимости
 # {"Player": [TextureButton, TextureButton, ...], ...}
@@ -227,10 +227,10 @@ func _save_default_positions() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_chip(bet_type: String) -> void:
-	"""Показать фишку с текстурой и позицией (зависит от режима)
+	"""Показать фишку с текстурой и позицией (режим GUEST)
 	
-	В MAX режиме: все фишки на всех позициях без рандома (тестовый режим)
-	В остальных режимах: случайная текстура и позиция
+	В режиме GUEST фишки показываются только для гостевых ставок через _show_guest_bets()
+	Этот метод используется для обратной совместимости или fallback случаев.
 	"""
 	if not chip_nodes.has(bet_type):
 		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
@@ -238,18 +238,11 @@ func show_chip(bet_type: String) -> void:
 
 	var chip = chip_nodes[bet_type]
 	
-	# В MAX режиме используем первую текстуру (без рандома), в остальных - случайную
-	var texture_path: String
-	if current_mode == PositionMode.MAX:
-		# MAX режим: первая текстура (без рандома)
-		if CHIP_TEXTURES.has(bet_type) and CHIP_TEXTURES[bet_type].size() > 0:
-			texture_path = CHIP_TEXTURES[bet_type][0]
-		else:
-			push_error("ChipVisualManager: нет текстур для типа '%s'" % bet_type)
-			return
-	else:
-		# Остальные режимы: случайная текстура
-		texture_path = _get_random_texture(bet_type)
+	# Случайная текстура
+	var texture_path = _get_random_texture(bet_type)
+	if texture_path.is_empty():
+		push_error("ChipVisualManager: нет текстур для типа '%s'" % bet_type)
+		return
 
 	# Загружаем текстуру
 	var texture = load(texture_path)
@@ -261,24 +254,11 @@ func show_chip(bet_type: String) -> void:
 	chip.visible = true
 	current_textures[bet_type] = texture_path
 
-	# Применяем позицию в зависимости от режима
-	match current_mode:
-		PositionMode.DEFAULT:
-			_reset_to_default_position(bet_type)
-			_remove_extra_chips(bet_type)
-		PositionMode.RANDOM:
-			_apply_random_position(bet_type)
-			_remove_extra_chips(bet_type)
-		PositionMode.MAX:
-			_reset_to_default_position(bet_type)
-			_create_extra_chips_max(bet_type, texture)
-		PositionMode.REALISTIC:
-			# В REALISTIC режиме используется show_chips_realistic()
-			# show_chip() просто показывает одну фишку на основной позиции
-			_reset_to_default_position(bet_type)
-			_remove_extra_chips(bet_type)
+	# В режиме GUEST используем основную позицию (фишки гостей создаются через _show_guest_bets)
+	_reset_to_default_position(bet_type)
+	_remove_extra_chips(bet_type)
 
-	print("💰 ChipVisualManager: показана фишка %s (%s) mode=%s" % [bet_type, texture_path.get_file(), PositionMode.keys()[current_mode]])
+	print("💰 ChipVisualManager: показана фишка %s (%s) mode=GUEST" % [bet_type, texture_path.get_file()])
 
 
 func set_chip_texture(bet_type: String, texture_path: String) -> void:
@@ -413,37 +393,24 @@ func get_visible_chips() -> Array:
 # УПРАВЛЕНИЕ ПОЗИЦИЯМИ ФИШЕК
 # ═══════════════════════════════════════════════════════════════════════════
 
-func set_random_mode(enabled: bool) -> void:
-	"""Включить/выключить режим случайных позиций (для обратной совместимости)"""
-	set_position_mode(PositionMode.RANDOM if enabled else PositionMode.DEFAULT)
+func set_random_mode(_enabled: bool) -> void:
+	"""Включить/выключить режим случайных позиций (deprecated, всегда GUEST)"""
+	set_position_mode(PositionMode.GUEST)
 
 
-func set_position_mode(mode: PositionMode) -> void:
-	"""Установить режим позиций фишек"""
-	var _old_mode = current_mode
-	current_mode = mode
-	print("🎲 ChipVisualManager: режим позиций = %s" % PositionMode.keys()[mode])
+func set_position_mode(_mode: PositionMode) -> void:
+	"""Установить режим позиций фишек (всегда GUEST)"""
+	current_mode = PositionMode.GUEST  # Всегда GUEST
+	print("🎲 ChipVisualManager: режим позиций = GUEST")
 	
 	# Очищаем активные фишки при смене режима
 	clear_all_active_chips()
 	
-	# Применяем изменения для всех видимых фишек
+	# В режиме GUEST фишки создаются через _show_guest_bets() в GamePhaseManager
+	# Здесь просто сбрасываем позиции на основные
 	for bet_type in chip_nodes.keys():
 		if is_chip_visible(bet_type):
-			match mode:
-				PositionMode.DEFAULT:
-					_reset_to_default_position(bet_type)
-				PositionMode.RANDOM:
-					_apply_random_position(bet_type)
-				PositionMode.MAX:
-					_reset_to_default_position(bet_type)
-					var texture = chip_nodes[bet_type].texture_normal
-					if texture:
-						_create_extra_chips_max(bet_type, texture)
-				PositionMode.REALISTIC:
-					# В REALISTIC режиме фишки создаются через show_chips_realistic()
-					# При смене режима просто скрываем основную фишку
-					chip_nodes[bet_type].visible = false
+			_reset_to_default_position(bet_type)
 
 
 func _apply_random_position(bet_type: String) -> void:
@@ -498,8 +465,8 @@ func get_alternative_positions(bet_type: String) -> Array:
 
 
 func is_random_mode_enabled() -> bool:
-	"""Проверить, включён ли режим случайных позиций"""
-	return current_mode == PositionMode.RANDOM
+	"""Проверить, включён ли режим случайных позиций (deprecated, всегда false)"""
+	return false
 
 
 func get_position_mode() -> PositionMode:

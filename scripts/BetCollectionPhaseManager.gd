@@ -848,14 +848,27 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 		return false
 	
 	var bet = payout_queue_manager.get_bet_by_id(bet_type, position_index)
+	var used_fallback = false
 	if not bet:
 		# Для обратной совместимости пробуем по типу
 		bet = payout_queue_manager.get_bet_by_type(bet_type)
+		used_fallback = true
 		if not bet:
 			DebugLogger.log_error("Ставка %s[%d] не найдена в pay_bet()" % [bet_type, position_index])
 			is_processing = false
 			return false
 	
+	# Если использовали fallback - используем position_index из найденной ставки
+	if used_fallback and bet.position_index != position_index:
+		DebugLogger.log("⚠️  pay_bet: использован fallback, корректируем position_index %d -> %d" % [position_index, bet.position_index])
+		position_index = bet.position_index
+	
+	# Проверяем что ставка выигрышная (можно оплачивать только выигрышные)
+	if not bet.won:
+		DebugLogger.log("⚠️  Ставка %s[%d] не выиграла (won=%s), пропускаем оплату" % [bet_type, position_index, bet.won])
+		is_processing = false
+		return true  # Не ошибка, просто пропускаем
+
 	# Проверяем что ставка ещё не оплачена (единственный источник истины - bet.is_paid)
 	if bet.is_paid:
 		DebugLogger.log("⏸️  Ставка %s[%d] уже оплачена, игнорируем" % [bet_type, position_index])

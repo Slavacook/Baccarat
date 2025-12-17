@@ -120,7 +120,23 @@ const DATA = {
 		"POSITION_MODE_DEFAULT": "Обычный",
 		"POSITION_MODE_RANDOM": "Случайные",
 		"POSITION_MODE_MAX": "Максимум",
-		"POSITION_MODE_REALISTIC": "Реалистичный"
+		"POSITION_MODE_REALISTIC": "Реалистичный",
+		
+		# === НАСТРОЙКИ ГОСТЕЙ ===
+		"GUEST_SETTINGS_TITLE": "Настройки гостей",
+		"GUEST_SETTINGS_BUTTON": "Ставки",
+		"GUEST_ENABLED": "Включён",
+		"GUEST_CHARACTER": "Характер:",
+		"GUEST_WEALTH": "Обеспеченность:",
+		"GUEST_BALANCE": "Баланс:",
+		"GUEST_CHARACTER_GENTLEMAN": "Джентельмен",
+		"GUEST_CHARACTER_CAUTIOUS": "Осторожный",
+		"GUEST_CHARACTER_GAMBLER": "Азартный",
+		"GUEST_WEALTH_POOR": "Бедный",
+		"GUEST_WEALTH_MEDIUM": "Средний",
+		"GUEST_WEALTH_RICH": "Богатый",
+		"GUEST_N": "Гость %d",
+		"CLOSE": "Закрыть"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural victory! Choose winner",
@@ -239,7 +255,23 @@ const DATA = {
 		"POSITION_MODE_DEFAULT": "Default",
 		"POSITION_MODE_RANDOM": "Random",
 		"POSITION_MODE_MAX": "Maximum",
-		"POSITION_MODE_REALISTIC": "Realistic"
+		"POSITION_MODE_REALISTIC": "Realistic",
+		
+		# === GUEST SETTINGS ===
+		"GUEST_SETTINGS_TITLE": "Guest Settings",
+		"GUEST_SETTINGS_BUTTON": "Bets",
+		"GUEST_ENABLED": "Enabled",
+		"GUEST_CHARACTER": "Character:",
+		"GUEST_WEALTH": "Wealth:",
+		"GUEST_BALANCE": "Balance:",
+		"GUEST_CHARACTER_GENTLEMAN": "Gentleman",
+		"GUEST_CHARACTER_CAUTIOUS": "Cautious",
+		"GUEST_CHARACTER_GAMBLER": "Gambler",
+		"GUEST_WEALTH_POOR": "Poor",
+		"GUEST_WEALTH_MEDIUM": "Medium",
+		"GUEST_WEALTH_RICH": "Rich",
+		"GUEST_N": "Guest %d",
+		"CLOSE": "Close"
 	}
 }
 

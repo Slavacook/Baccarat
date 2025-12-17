@@ -20,6 +20,9 @@ var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
 var pair_betting_manager: PairBettingManager
 var bet_collection_manager: BetCollectionPhaseManager = null
+var limits_manager: LimitsManager = null
+var guest_bet_storage: GuestBetStorage = null
+var guest_bet_factory: GuestBetFactory = null
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
@@ -42,7 +45,8 @@ func _init(
 	payout_queue_mgr: PayoutQueueManager,
 	chip_visual_mgr: ChipVisualManager,
 	winner_selection_mgr: WinnerSelectionManager,
-	pair_betting_mgr: PairBettingManager
+	pair_betting_mgr: PairBettingManager,
+	limits_mgr: LimitsManager = null
 ):
 	deck = deck_ref
 	card_manager = card_manager_ref
@@ -52,6 +56,12 @@ func _init(
 	chip_visual_manager = chip_visual_mgr
 	winner_selection_manager = winner_selection_mgr
 	pair_betting_manager = pair_betting_mgr
+	limits_manager = limits_mgr
+	
+	# Инициализируем хранилище и фабрику ставок гостей
+	if limits_manager:
+		guest_bet_storage = GuestBetStorage.new()
+		guest_bet_factory = GuestBetFactory.new(limits_manager, guest_bet_storage)
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -97,11 +107,16 @@ func reset(update_state: bool = true):
 		bet_collection_manager.reset()
 	if ui and ui.button_ui:
 		ui.button_ui.reset_collect_pay_buttons()
-	
+
+	# Очищаем ставки гостей после завершения раунда
+	if guest_bet_storage:
+		guest_bet_storage.clear_all_bets()
+		DebugLogger.log("🗑️ Ставки гостей очищены после завершения раунда")
+
 	# Скрываем кнопки областей и стрелки навигации
 	EventBus.area_buttons_visibility_changed.emit(false)
 	EventBus.navigation_arrows_visibility_changed.emit(false)
-	
+
 	DebugLogger.log("🔄 Сброс раунда: очищены выплаты, фишки, маркеры, TableStateManager и режимы collect/pay")
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -510,6 +525,9 @@ func _restore_active_bet_chips() -> void:
 	if not chip_visual_manager:
 		return
 
+	# Сначала показываем ставки гостей (если есть)
+	_show_guest_bets()
+
 	# Проверяем есть ли сохраненное состояние
 	if TableStateManager.has_saved_state() and TableStateManager.bets.size() > 0:
 		# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
@@ -522,20 +540,148 @@ func _restore_active_bet_chips() -> void:
 			DebugLogger.log("  → Восстановлена фишка %s" % bet.bet_type)
 	else:
 		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
-		DebugLogger.log_warning(" Нет сохраненного состояния, показываем фишки на основе toggles")
-		if PayoutSettingsManager.player_payout_enabled:
-			chip_visual_manager.make_chip_visible("Player")
-		if PayoutSettingsManager.banker_payout_enabled:
-			chip_visual_manager.make_chip_visible("Banker")
-		if PayoutSettingsManager.tie_payout_enabled:
-			chip_visual_manager.make_chip_visible("Tie")
-		if pair_betting_manager:
-			if pair_betting_manager.pair_player_bet_enabled:
-				chip_visual_manager.make_chip_visible("PairPlayer")
-			if pair_betting_manager.pair_banker_bet_enabled:
-				chip_visual_manager.make_chip_visible("PairBanker")
+		# НО только если нет гостевых ставок (гости имеют приоритет)
+		if not guest_bet_storage or guest_bet_storage.get_guests_with_bets().is_empty():
+			DebugLogger.log_warning(" Нет сохраненного состояния, показываем фишки на основе toggles")
+			if PayoutSettingsManager.player_payout_enabled:
+				chip_visual_manager.make_chip_visible("Player")
+			if PayoutSettingsManager.banker_payout_enabled:
+				chip_visual_manager.make_chip_visible("Banker")
+			if PayoutSettingsManager.tie_payout_enabled:
+				chip_visual_manager.make_chip_visible("Tie")
+			if pair_betting_manager:
+				if pair_betting_manager.pair_player_bet_enabled:
+					chip_visual_manager.make_chip_visible("PairPlayer")
+				if pair_betting_manager.pair_banker_bet_enabled:
+					chip_visual_manager.make_chip_visible("PairBanker")
 
 	DebugLogger.log_payout("Показаны фишки всех активных ставок")
+
+func _show_guest_bets() -> void:
+	"""Показать ставки гостей на их позициях в секторах"""
+	if not guest_bet_storage or not chip_visual_manager:
+		return
+	
+	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
+	if guests_with_bets.is_empty():
+		DebugLogger.log("👥 Нет ставок гостей для отображения")
+		return
+	
+	DebugLogger.log("👥 Отображение ставок %d гостей..." % guests_with_bets.size())
+	
+	for guest_id in guests_with_bets:
+		var bets = guest_bet_storage.get_guest_bets(guest_id)
+		for bet in bets:
+			# Получаем координаты позиции
+			var coords = GuestSectorMapper.get_position_coordinates(bet.sector, bet.bet_type)
+			if coords == Vector2.ZERO:
+				DebugLogger.log_warning("⚠️ Не найдены координаты для %s в секторе %d" % [bet.bet_type, bet.sector])
+				continue
+			
+			# Создаём фишку на позиции гостя
+			_show_guest_chip_at_position(bet.bet_type, bet.position_index, coords, bet.stake)
+			DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f)" % [guest_id, bet.bet_type, bet.position_index, bet.stake])
+
+func _show_guest_chip_at_position(bet_type: String, position_index: int, coords: Vector2, stake: float) -> void:
+	"""Показать фишку гостя на конкретной позиции
+	
+	Использует метод show_chips_realistic для создания фишки на конкретной позиции
+	"""
+	if not chip_visual_manager:
+		return
+	
+	# Проверяем, есть ли уже фишка на этой позиции
+	var existing_chip = chip_visual_manager.get_chip_instance(bet_type, position_index)
+	if existing_chip:
+		# Обновляем существующую фишку (текстура уже установлена)
+		if existing_chip.node:
+			existing_chip.node.visible = true
+			existing_chip.stake = stake
+		return
+	
+	# Создаём фишку через show_chips_realistic с конкретной позицией
+	# Но нам нужен способ указать конкретную позицию, а не случайную
+	# Пока используем упрощённый подход: создаём фишку на позиции через прямое обращение
+	
+	# Получаем текстуру
+	var texture_path = chip_visual_manager.get_current_texture(bet_type)
+	if texture_path.is_empty():
+		# Если нет сохранённой текстуры - используем случайную
+		# Но _get_random_texture приватный, поэтому используем show_chip для получения текстуры
+		chip_visual_manager.show_chip(bet_type)
+		texture_path = chip_visual_manager.get_current_texture(bet_type)
+	
+	var texture = load(texture_path) if not texture_path.is_empty() else null
+	if not texture:
+		DebugLogger.log_error("❌ Не удалось загрузить текстуру для %s" % bet_type)
+		return
+	
+	# Получаем оригинальную фишку
+	var original_chip = chip_visual_manager.chip_nodes.get(bet_type)
+	if not original_chip:
+		DebugLogger.log_error("❌ Нет оригинальной фишки для типа %s" % bet_type)
+		return
+	
+	# Проверяем, есть ли уже активные фишки этого типа
+	var active_chips_of_type = chip_visual_manager.get_active_chips_by_type(bet_type)
+	
+	if active_chips_of_type.is_empty():
+		# Первая фишка - используем оригинальную
+		original_chip.texture_normal = texture
+		original_chip.position = coords
+		original_chip.visible = true
+		
+		# Отключаем старый обработчик (если был)
+		# В Godot 4 используем get_connections() который возвращает Array[Dictionary]
+		# с ключами: signal, callable, flags
+		var connections = original_chip.pressed.get_connections()
+		for conn in connections:
+			var callable: Callable = conn["callable"]
+			# Проверяем имя метода через get_method()
+			if callable.get_method() == "_on_chip_pressed":
+				original_chip.pressed.disconnect(callable)
+		
+		# Подключаем новый обработчик с position_index
+		# Используем прямой вызов метода (в GDScript приватные методы доступны)
+		if not original_chip.pressed.is_connected(chip_visual_manager._on_chip_instance_pressed.bind(bet_type, position_index)):
+			original_chip.pressed.connect(chip_visual_manager._on_chip_instance_pressed.bind(bet_type, position_index))
+		
+		# Создаём ChipInstance
+		var chip_instance = ChipVisualManager.ChipInstance.new(bet_type, position_index, original_chip, true)
+		chip_instance.stake = stake
+		chip_visual_manager.active_chips.append(chip_instance)
+	else:
+		# Создаём копию фишки (используем приватный метод через публичный интерфейс)
+		# Для этого создадим фишку через show_chips_realistic, но нам нужна конкретная позиция
+		# Временно создадим фишку вручную
+		if not chip_visual_manager.scene_root:
+			DebugLogger.log_error("❌ scene_root не задан в ChipVisualManager")
+			return
+		
+		var new_chip = TextureButton.new()
+		new_chip.texture_normal = texture
+		new_chip.position = coords
+		new_chip.scale = original_chip.scale
+		new_chip.modulate = original_chip.modulate
+		new_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		new_chip.visible = true
+		
+		# Подключаем сигнал
+		new_chip.pressed.connect(chip_visual_manager._on_chip_instance_pressed.bind(bet_type, position_index))
+		
+		chip_visual_manager.scene_root.add_child(new_chip)
+		
+		# Добавляем в extra_chips для совместимости
+		# В GDScript приватные переменные доступны напрямую
+		# TODO: Создать публичный метод в ChipVisualManager для добавления фишки
+		if not chip_visual_manager.extra_chips.has(bet_type):
+			chip_visual_manager.extra_chips[bet_type] = []
+		chip_visual_manager.extra_chips[bet_type].append(new_chip)
+		
+		# Создаём ChipInstance
+		var chip_instance = ChipVisualManager.ChipInstance.new(bet_type, position_index, new_chip, false)
+		chip_instance.stake = stake
+		chip_visual_manager.active_chips.append(chip_instance)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ СОСТОЯНИЕМ
@@ -745,6 +891,11 @@ func _complete_round_and_prepare_new_game() -> void:
 	# Сброс раунда БЕЗ обновления GameStateManager
 	reset(false)
 	DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
+
+	# Генерируем ставки для всех активных гостей
+	if guest_bet_factory and limits_manager:
+		guest_bet_factory.generate_bets_for_all_guests()
+		DebugLogger.log("  → ✅ Ставки гостей сгенерированы")
 
 	# Восстанавливаем видимость активных фишек
 	if chip_visual_manager:

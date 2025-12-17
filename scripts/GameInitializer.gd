@@ -148,11 +148,9 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 		chip_visual_manager.chip_clicked.connect(controller._on_chip_clicked)
 		chip_visual_manager.chip_instance_clicked.connect(controller._on_chip_instance_clicked)
 
-		var mode: int = PayoutSettingsManager.get_position_mode()
-		chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
-
-		var mode_names: Array = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
-		DebugLogger.log("✅ ChipVisualManager инициализирован (position_mode=%s)" % mode_names[mode])
+		# Режим всегда GUEST
+		chip_visual_manager.set_position_mode(ChipVisualManager.PositionMode.GUEST)
+		DebugLogger.log("✅ ChipVisualManager инициализирован (position_mode=GUEST)")
 	else:
 		push_warning("⚠️  Узлы фишек не найдены в сцене")
 
@@ -206,7 +204,8 @@ static func _setup_phase_manager(_controller: Node2D, result: Dictionary) -> voi
 		result["payout_queue_manager"],
 		result["chip_visual_manager"],
 		result["winner_selection_manager"],
-		result["pair_betting_manager"]
+		result["pair_betting_manager"],
+		result["limits_manager"]  # Передаём limits_manager для генерации ставок гостей
 	)
 	result["phase_manager"] = phase_manager
 
@@ -298,61 +297,16 @@ static func _initialize_chips_visibility(controller: Node2D, result: Dictionary,
 		_show_chips_by_settings(controller, result)
 
 
-static func _show_chips_by_settings(_controller: Node2D, result: Dictionary) -> void:
-	"""Показ фишек на основе настроек PayoutSettingsManager"""
-	var chip_visual_manager: ChipVisualManager = result.get("chip_visual_manager")
-	if not chip_visual_manager:
-		return
-
-	var pair_betting_manager: PairBettingManager = result.get("pair_betting_manager")
-	var is_realistic: bool = PayoutSettingsManager.is_realistic_mode_enabled()
-	var is_max_mode: bool = PayoutSettingsManager.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
-
-	if is_realistic:
-		# REALISTIC режим - случайное количество фишек
-		if PayoutSettingsManager.player_payout_enabled:
-			chip_visual_manager.show_chips_realistic("Player")
-		if PayoutSettingsManager.banker_payout_enabled:
-			chip_visual_manager.show_chips_realistic("Banker")
-		if PayoutSettingsManager.tie_payout_enabled:
-			chip_visual_manager.show_chips_realistic("Tie")
-		if PayoutSettingsManager.player_pair_payout_enabled:
-			chip_visual_manager.show_chips_realistic("PairPlayer")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_player_bet(true)
-		if PayoutSettingsManager.banker_pair_payout_enabled:
-			chip_visual_manager.show_chips_realistic("PairBanker")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log_init("Фишки синхронизированы (REALISTIC режим)")
-	elif is_max_mode:
-		# MAX режим - ВСЕ фишки на всех позициях (тестовый режим, игнорируем настройки)
-		chip_visual_manager.show_chip("Player")
-		chip_visual_manager.show_chip("Banker")
-		chip_visual_manager.show_chip("Tie")
-		chip_visual_manager.show_chip("PairPlayer")
-		chip_visual_manager.show_chip("PairBanker")
-		if pair_betting_manager:
-			pair_betting_manager.toggle_pair_player_bet(true)
-			pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log_init("Фишки показаны (MAX режим - все фишки на всех позициях)")
-	else:
-		# Стандартный режим (DEFAULT, RANDOM) - только включенные в настройках
-		if PayoutSettingsManager.player_payout_enabled:
-			chip_visual_manager.show_chip("Player")
-		if PayoutSettingsManager.banker_payout_enabled:
-			chip_visual_manager.show_chip("Banker")
-		if PayoutSettingsManager.tie_payout_enabled:
-			chip_visual_manager.show_chip("Tie")
-		if PayoutSettingsManager.player_pair_payout_enabled:
-			chip_visual_manager.show_chip("PairPlayer")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_player_bet(true)
-		if PayoutSettingsManager.banker_pair_payout_enabled:
-			chip_visual_manager.show_chip("PairBanker")
-			if pair_betting_manager:
-				pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log_init("Фишки синхронизированы с настройками")
+static func _show_chips_by_settings(_controller: Node2D, _result: Dictionary) -> void:
+	"""Показ фишек на основе настроек (режим GUEST)
+	
+	В режиме GUEST фишки показываются только для гостевых ставок.
+	Гостевые ставки отображаются через _show_guest_bets() в GamePhaseManager.
+	Здесь ничего не делаем - фишки будут показаны при подготовке новой игры.
+	"""
+	# В режиме GUEST фишки создаются через _show_guest_bets() в GamePhaseManager
+	# при подготовке новой игры (когда есть сгенерированные ставки гостей)
+	DebugLogger.log_init("Режим GUEST: фишки будут показаны при подготовке новой игры (через гостевые ставки)")
 
 
 static func _restore_chips_from_table_state(_controller: Node2D, result: Dictionary) -> void:

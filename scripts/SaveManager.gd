@@ -192,3 +192,48 @@ func save_random_positions_mode(enabled: bool):
 func load_random_positions_mode() -> bool:
 	"""Загрузить режим случайных позиций фишек (deprecated)"""
 	return load_position_mode() == 1
+
+# ← Настройки гостей
+func save_guest_settings(guests_data: Dictionary):
+	"""Сохранить настройки гостей"""
+	var settings = load_settings()
+	settings["guests"] = guests_data
+	save_settings(settings)
+
+func load_guest_settings() -> Dictionary:
+	"""Загрузить настройки гостей"""
+	var settings = load_settings()
+	return settings.get("guests", {})
+
+# ← Статистика гостей (баланс)
+func save_guest_stats(guest_stats: Dictionary):
+	"""Сохранить статистику гостей (баланс каждого)"""
+	# Сначала читаем существующие данные
+	var data: Dictionary = {}
+	if FileAccess.file_exists(SAVE_PATH):
+		var read_file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+		if read_file:
+			var existing = read_file.get_var()
+			read_file.close()
+			if existing is Dictionary:
+				data = existing
+	
+	# Обновляем данные
+	data["guest_stats"] = guest_stats
+	
+	# Записываем обратно
+	var write_file = FileAccess.open(SAVE_PATH, FileAccess.WRITE)
+	if write_file:
+		write_file.store_var(data)
+		write_file.close()
+
+func load_guest_stats() -> Dictionary:
+	"""Загрузить статистику гостей (баланс каждого)"""
+	if FileAccess.file_exists(SAVE_PATH):
+		var file = FileAccess.open(SAVE_PATH, FileAccess.READ)
+		if file:
+			var data = file.get_var()
+			file.close()
+			if data is Dictionary:
+				return data.get("guest_stats", {})
+	return {}

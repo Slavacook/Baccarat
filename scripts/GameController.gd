@@ -401,17 +401,22 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	
 	# Создаем или обновляем PayoutManager
 	if not payout_manager:
+		# Передаём guest_bet_storage из phase_manager
+		var guest_storage = phase_manager.guest_bet_storage if phase_manager else null
 		payout_manager = PayoutManager.new(
 			payout_queue_manager,
 			bet_collection_manager,
 			chip_visual_manager,
 			limits_manager,
 			pair_betting_manager,
-			hand_manager
+			hand_manager,
+			null,  # settings_provider (по умолчанию)
+			guest_storage  # guest_bet_storage
 		)
 	else:
 		# Обновляем ссылки
 		payout_manager.payout_queue_manager = payout_queue_manager
+		payout_manager.guest_bet_storage = phase_manager.guest_bet_storage if phase_manager else null
 	
 	# Делегируем подготовку выплат в PayoutManager
 	payout_manager.prepare_manual_payouts(actual_winner, ui_manager)
@@ -512,68 +517,38 @@ func _finalize_payouts_manual(actual_winner: String) -> void:
 func _update_chip_visibility() -> void:
 	"""Обновить видимость и кликабельность фишек через ChipVisualManager
 
-	Новая логика (с фазой сбора ставок):
+	Режим GUEST: работаем с каждой ставкой индивидуально (гостевые ставки)
 	- Оплаченные ставки → скрыть
 	- Собранные проигрышные ставки → скрыть
 	- Все остальные ставки (выигрышные, проигрышные, Tie push) → видимы и кликабельны
 	  (валидация клика в BetCollectionPhaseManager)
-	
-	В REALISTIC режиме работает с множественными ставками одного типа.
 	"""
 	if not payout_queue_manager or not chip_visual_manager:
 		return
 
-	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
-	
-	if is_realistic:
-		# В REALISTIC режиме работаем с каждой ставкой индивидуально
-		for bet in payout_queue_manager.get_all_bets():
-			var is_collected = bet.is_collected or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet.bet_type, bet.position_index))
+	# В режиме GUEST работаем с каждой ставкой индивидуально (гостевые ставки)
+	for bet in payout_queue_manager.get_all_bets():
+		var is_collected = bet.is_collected or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet.bet_type, bet.position_index))
+		
+		if bet.is_paid or is_collected:
+			# Оплаченная или собранная → скрываем конкретную фишку
+			chip_visual_manager.hide_chip_instance(bet.bet_type, bet.position_index)
+		else:
+			# Все остальные → видимы и кликабельны
+			# В режиме GUEST фишки уже созданы через _show_guest_bets()
+			var chip_instance = chip_visual_manager.get_chip_instance(bet.bet_type, bet.position_index)
+			if chip_instance and chip_instance.node:
+				chip_instance.node.visible = true
+				chip_visual_manager.make_chip_clickable(bet.bet_type, true)
 			
-			if bet.is_paid or is_collected:
-				# Оплаченная или собранная → скрываем конкретную фишку
-				chip_visual_manager.hide_chip_instance(bet.bet_type, bet.position_index)
+			var status = ""
+			if bet.won:
+				status = "выигрышная"
+			elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet.bet_type):
+				status = "Tie push"
 			else:
-				# Все остальные → видимы и кликабельны
-				# В REALISTIC режиме фишки уже созданы через show_chips_realistic()
-				var status = ""
-				if bet.won:
-					status = "выигрышная"
-				elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet.bet_type):
-					status = "Tie push"
-				else:
-					status = "проигрышная"
-				DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.bet_type, bet.position_index, status])
-	else:
-		# Стандартный режим - по одной фишке на тип
-		var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
-
-		for bet_type in bet_types:
-			var bet = payout_queue_manager.get_bet_by_type(bet_type)
-
-			if bet:
-				# Проверяем, собрана ли проигрышная ставка
-				var is_collected = bet.is_collected or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet_type))
-				
-				if bet.is_paid or is_collected:
-					# Оплаченная или собранная → скрываем
-					chip_visual_manager.hide_chip(bet_type)
-				else:
-					# Все остальные → видимы и кликабельны
-					# (валидация клика происходит в BetCollectionPhaseManager)
-					# Используем make_chip_visible чтобы не менять текстуру
-					chip_visual_manager.make_chip_visible(bet_type)
-					chip_visual_manager.make_chip_clickable(bet_type, true)
-					
-					# Логирование для отладки
-					var status = ""
-					if bet.won:
-						status = "выигрышная"
-					elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet_type):
-						status = "Tie push"
-					else:
-						status = "проигрышная"
-					DebugLogger.log("💰 Фишка %s видна (%s)" % [bet_type, status])
+				status = "проигрышная"
+			DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.bet_type, bet.position_index, status])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ UI СОБЫТИЙ
@@ -1128,33 +1103,10 @@ func _on_payout_setting_changed(bet_type: String, enabled: bool):
 	if not chip_visual_manager:
 		return
 
-	var is_realistic = PayoutSettingsManager.is_realistic_mode_enabled()
-	var is_max_mode = PayoutSettingsManager.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
-
-	# В MAX режиме игнорируем изменения настроек - все фишки всегда видны
-	if is_max_mode:
-		chip_visual_manager.show_chip(bet_type)
-		# Для пар - также обновляем PairBettingManager
-		if bet_type == "PairPlayer" and pair_betting_manager:
-			pair_betting_manager.toggle_pair_player_bet(true)
-		elif bet_type == "PairBanker" and pair_betting_manager:
-			pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log("💰 MAX режим: фишка %s показана (настройки игнорируются)" % bet_type)
-		return
-
-	# Управляем видимостью фишек (для остальных режимов)
-	if enabled:
-		if is_realistic:
-			chip_visual_manager.show_chips_realistic(bet_type)
-		else:
-			chip_visual_manager.show_chip(bet_type)
-	else:
-		chip_visual_manager.hide_chip(bet_type)
-		# В REALISTIC режиме также очищаем активные фишки этого типа
-		if is_realistic:
-			var chips_to_remove = chip_visual_manager.get_active_chips_by_type(bet_type)
-			for chip in chips_to_remove:
-				chip_visual_manager.hide_chip_instance(bet_type, chip.position_index)
+	# В режиме GUEST фишки управляются через гостевые ставки
+	# Изменение настроек PayoutSettingsManager не влияет на видимость фишек
+	# Фишки показываются только для активных гостей через _show_guest_bets()
+	DebugLogger.log("💰 Режим GUEST: видимость фишек управляется через гостевые ставки")
 
 	# Для пар - также обновляем PairBettingManager
 	if bet_type == "PairPlayer" and pair_betting_manager:
@@ -1179,7 +1131,7 @@ func _on_card_back_style_changed(style: String):
 	DebugLogger.log("🎴 Стиль рубашки карт изменён: %s" % style)
 
 
-func _on_position_mode_changed(mode: int):
+func _on_position_mode_changed(_mode: int):
 	"""Обработка изменения режима позиций фишек из SettingsScene
 
 	Args:
@@ -1188,23 +1140,9 @@ func _on_position_mode_changed(mode: int):
 	if not chip_visual_manager:
 		return
 
-	# Применяем новый режим
-	chip_visual_manager.set_position_mode(mode as ChipVisualManager.PositionMode)
-
-	var mode_names = ["DEFAULT", "RANDOM", "MAX", "REALISTIC"]
-	DebugLogger.log("🎲 Режим позиций фишек изменён: %s" % mode_names[mode])
-	
-	# В MAX режиме показываем ВСЕ фишки независимо от настроек (тестовый режим)
-	if mode == 2:  # MAX режим
-		chip_visual_manager.show_chip("Player")
-		chip_visual_manager.show_chip("Banker")
-		chip_visual_manager.show_chip("Tie")
-		chip_visual_manager.show_chip("PairPlayer")
-		chip_visual_manager.show_chip("PairBanker")
-		if pair_betting_manager:
-			pair_betting_manager.toggle_pair_player_bet(true)
-			pair_betting_manager.toggle_pair_banker_bet(true)
-		DebugLogger.log("🎲 MAX режим: показаны все фишки на всех позициях")
+	# Режим всегда GUEST
+	chip_visual_manager.set_position_mode(ChipVisualManager.PositionMode.GUEST)
+	DebugLogger.log("🎲 Режим позиций фишек: GUEST (гости)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА СТАВОК И ФИШЕК
@@ -1323,6 +1261,10 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	if validation.action == "collect":
 		# Собираем проигрышную ставку
 		bet_collection_manager.collect_bet(bet_type, position_index)
+		
+		# Обновляем баланс гостя при сборе проигрышной ставки
+		_update_guest_balance_on_collect(bet_type, position_index)
+		
 		# Скрываем конкретную фишку по position_index (работает для всех режимов)
 		if chip_visual_manager:
 			chip_visual_manager.hide_chip_instance(bet_type, position_index)
@@ -1496,6 +1438,11 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		DebugLogger.log("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
 
 		# ═══════════════════════════════════════════════════════════════════
+		# ОБНОВЛЕНИЕ БАЛАНСА ГОСТЯ (если это гостевые ставки)
+		# ═══════════════════════════════════════════════════════════════════
+		_update_guest_balance_for_bet(bet_type, position_index, expected)
+
+		# ═══════════════════════════════════════════════════════════════════
 		# ВАЖНО: pay_bet() сам вызывает mark_as_paid() внутри
 		# НЕ вызываем mark_as_paid() отдельно, иначе pay_bet() выйдет раньше
 		# и не обновит payment_progress!
@@ -1591,3 +1538,71 @@ func _on_table_prepared():
 		winner_selection_manager.unlock_markers()
 
 	DebugLogger.log_game_flow("Стол подготовлен к новой игре (флаг is_table_prepared установлен, маркеры разблокированы)")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБНОВЛЕНИЕ БАЛАНСА ГОСТЕЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _update_guest_balance_for_bet(bet_type: String, position_index: int, payout: float) -> void:
+	"""Обновить баланс гостя при правильной выплате
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции
+		payout: Размер выплаты
+	"""
+	if not phase_manager or not phase_manager.guest_bet_storage:
+		return
+	
+	# Определяем сектор по position_index
+	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+	if sector < 1 or sector > 6:
+		# Не гостевые ставки - пропускаем
+		return
+	
+	var guest_id = sector  # Сектор = ID гостя
+	
+	# Находим ставку гостя в хранилище
+	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+	for bet in guest_bets:
+		if bet.bet_type == bet_type and bet.position_index == position_index:
+			# Нашли ставку гостя
+			# Обновляем баланс: добавляем payout (выигрыш) и вычитаем stake (ставка уже поставлена)
+			var net_profit = payout - bet.stake
+			GuestStatsManager.add_to_balance(guest_id, net_profit)
+			DebugLogger.log("💰 Гость %d: баланс обновлён (+%.0f - %.0f = %.0f)" % [guest_id, payout, bet.stake, net_profit])
+			return
+	
+	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
+
+func _update_guest_balance_on_collect(bet_type: String, position_index: int) -> void:
+	"""Обновить баланс гостя при сборе проигрышной ставки
+	
+	При сборе проигрышной ставки вычитаем stake из баланса гостя
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции
+	"""
+	if not phase_manager or not phase_manager.guest_bet_storage:
+		return
+	
+	# Определяем сектор по position_index
+	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+	if sector < 1 or sector > 6:
+		# Не гостевые ставки - пропускаем
+		return
+	
+	var guest_id = sector  # Сектор = ID гостя
+	
+	# Находим ставку гостя в хранилище
+	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+	for bet in guest_bets:
+		if bet.bet_type == bet_type and bet.position_index == position_index:
+			# Нашли ставку гостя
+			# Вычитаем stake (проигрыш)
+			GuestStatsManager.subtract_from_balance(guest_id, bet.stake)
+			DebugLogger.log("💰 Гость %d: баланс обновлён (-%.0f за проигрыш)" % [guest_id, bet.stake])
+			return
+	
+	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])

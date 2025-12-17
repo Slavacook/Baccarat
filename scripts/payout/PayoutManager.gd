@@ -12,6 +12,7 @@ var pair_betting_manager: PairBettingManager
 var hand_manager: HandManager
 var payout_calculator: PayoutCalculator
 var settings_provider: IPayoutSettingsProvider
+var guest_bet_storage: GuestBetStorage = null
 
 func _init(
 	queue_manager: PayoutQueueManager,
@@ -20,7 +21,8 @@ func _init(
 	limits_mgr: LimitsManager,
 	pair_mgr: PairBettingManager,
 	hand_mgr: HandManager,
-	settings: IPayoutSettingsProvider = null
+	settings: IPayoutSettingsProvider = null,
+	guest_storage: GuestBetStorage = null
 ):
 	payout_queue_manager = queue_manager
 	bet_collection_manager = collection_manager
@@ -30,6 +32,7 @@ func _init(
 	hand_manager = hand_mgr
 	payout_calculator = PayoutCalculator.new()
 	settings_provider = settings if settings else PayoutSettingsProvider.new()
+	guest_bet_storage = guest_storage
 
 ## Подготовка выплат в ручном режиме
 func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> void:
@@ -40,11 +43,13 @@ func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> voi
 	# ═══════════════════════════════════════════════════════════════════
 	# ШАГ 1: Подготавливаем выплаты (добавляем ставки в очередь)
 	# ═══════════════════════════════════════════════════════════════════
-	var is_realistic = settings_provider.is_realistic_mode_enabled()
-	if is_realistic:
-		_prepare_realistic_payouts(actual_winner, player_score, banker_score)
-	else:
-		_prepare_standard_payouts(actual_winner, player_score, banker_score)
+	# В режиме GUEST обычные ставки не используются - только гостевые
+	# Но оставляем _prepare_standard_payouts для обратной совместимости
+	# (если в будущем понадобятся обычные ставки)
+	_prepare_standard_payouts(actual_winner, player_score, banker_score)
+	
+	# Добавляем гостевые ставки (основной источник ставок в режиме GUEST)
+	_prepare_guest_bets(actual_winner, player_score, banker_score)
 	
 	# Выводим статус очереди
 	payout_queue_manager.print_status()
@@ -62,101 +67,23 @@ func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> voi
 	# ═══════════════════════════════════════════════════════════════════
 	ui_manager.button_ui.show_collect_pay_buttons()
 
-func _prepare_standard_payouts(actual_winner: String, player_score: int, banker_score: int) -> void:
-	"""Стандартная подготовка выплат (DEFAULT, RANDOM, MAX режимы)"""
-	var is_max_mode = settings_provider.get_position_mode() == PayoutSettingsManager.PositionMode.MAX
-	var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
+func _prepare_standard_payouts(_actual_winner: String, _player_score: int, _banker_score: int) -> void:
+	"""Подготовка стандартных выплат (deprecated в режиме GUEST)
 	
-	# Получаем все типы ставок из фабрики
-	var all_bet_types = BetTypeFactory.get_all_types()
-	
-	for bet_type_name in all_bet_types:
-		var bet_type = BetTypeFactory.create(bet_type_name)
-		if not bet_type:
-			continue
-		
-		# Проверяем, включена ли ставка
-		if not _is_bet_enabled(bet_type_name):
-			continue
-		
-		# Определяем выиграла ли ставка
-		var won = bet_type.is_winner(
-			actual_winner,
-			pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-			pair_betting_manager.banker_pair_detected if pair_betting_manager else false
-		)
-		
-		# Генерируем ставку и выплату
-		var stake = bet_type.get_stake(limits_manager)
-		var payout = 0.0
-		
-		if won:
-			if bet_type.get_group() == "pairs" and pair_betting_manager:
-				payout = payout_calculator.calculate_pair_payout(bet_type, stake, pair_betting_manager)
-			else:
-				payout = payout_calculator.calculate(
-					bet_type,
-					stake,
-					actual_winner,
-					pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-					pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
-					banker_value
-				)
-		
-		# Добавляем ставку (в MAX режиме для всех позиций)
-		if is_max_mode:
-			var positions = ChipVisualManager.ALTERNATIVE_POSITIONS.get(bet_type_name, [])
-			for pos_idx in range(positions.size()):
-				payout_queue_manager.add_bet(bet_type_name, stake, payout, won, player_score, banker_score, pos_idx)
-		else:
-			payout_queue_manager.add_bet(bet_type_name, stake, payout, won, player_score, banker_score, 0)
+	В режиме GUEST обычные ставки не используются - только гостевые.
+	Этот метод оставлен для обратной совместимости, но не добавляет ставки.
+	"""
+	# В режиме GUEST обычные ставки не используются
+	# Все ставки создаются через гостей
+	DebugLogger.log("💰 Режим GUEST: стандартные ставки не используются (только гостевые)")
 
-func _prepare_realistic_payouts(actual_winner: String, player_score: int, banker_score: int) -> void:
-	"""Подготовка выплат в REALISTIC режиме"""
-	DebugLogger.log_bet("REALISTIC режим: генерируем случайные ставки...")
+func _prepare_realistic_payouts(_actual_winner: String, _player_score: int, _banker_score: int) -> void:
+	"""Подготовка выплат в REALISTIC режиме (deprecated)
 	
-	# Очищаем все активные фишки перед созданием новых
-	if chip_visual_manager:
-		chip_visual_manager.clear_all_active_chips()
-	
-	# Генерируем ставки для каждого типа
-	var bet_type_names = BetTypeFactory.get_all_types()
-	
-	for bet_type_name in bet_type_names:
-		var bet_type = BetTypeFactory.create(bet_type_name)
-		if not bet_type:
-			continue
-		
-		# Проверяем, включена ли ставка
-		if not _is_bet_enabled(bet_type_name):
-			continue
-		
-		# Определяем выиграла ли ставка этого типа
-		var won = bet_type.is_winner(
-			actual_winner,
-			pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-			pair_betting_manager.banker_pair_detected if pair_betting_manager else false
-		)
-		
-		# Создаём фишки в REALISTIC режиме
-		var created_chips = chip_visual_manager.show_chips_realistic(bet_type_name)
-		
-		# Для каждой созданной фишки добавляем ставку в очередь
-		for chip_instance in created_chips:
-			var stake = bet_type.get_stake(limits_manager)
-			var payout = _calculate_payout_for_bet_type(bet_type_name, bet_type, stake, won, actual_winner)
-			
-			payout_queue_manager.add_bet(
-				bet_type_name, 
-				stake, 
-				payout, 
-				won, 
-				player_score, 
-				banker_score, 
-				chip_instance.position_index
-			)
-		
-		DebugLogger.log("  %s: создано %d ставок (won=%s)" % [bet_type_name, created_chips.size(), won])
+	В режиме GUEST этот метод не используется.
+	Все ставки создаются через гостей.
+	"""
+	DebugLogger.log("💰 Режим GUEST: _prepare_realistic_payouts не используется")
 
 func _calculate_payout_for_bet_type(_bet_type_name: String, bet_type: IBetType, stake: float, won: bool, actual_winner: String) -> float:
 	"""Расчёт выплаты для типа ставки
@@ -203,3 +130,65 @@ func _is_bet_enabled(bet_type_name: String) -> bool:
 			return pair_betting_manager and pair_betting_manager.pair_banker_bet_enabled
 		_:
 			return false
+
+func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score: int) -> void:
+	"""Добавить гостевые ставки в очередь выплат
+	
+	Гостевые ставки уже сгенерированы и сохранены в guest_bet_storage.
+	Здесь мы добавляем их в PayoutQueueManager с расчётом выплат.
+	"""
+	if not guest_bet_storage:
+		return
+	
+	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
+	if guests_with_bets.is_empty():
+		DebugLogger.log("👥 Нет гостевых ставок для добавления в очередь")
+		return
+	
+	DebugLogger.log("👥 Добавление ставок %d гостей в очередь выплат..." % guests_with_bets.size())
+	
+	var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
+	
+	for guest_id in guests_with_bets:
+		var bets = guest_bet_storage.get_guest_bets(guest_id)
+		for bet in bets:
+			# Определяем выиграла ли ставка
+			var bet_type_obj = BetTypeFactory.create(bet.bet_type)
+			if not bet_type_obj:
+				continue
+			
+			var won = bet_type_obj.is_winner(
+				actual_winner,
+				pair_betting_manager.player_pair_detected if pair_betting_manager else false,
+				pair_betting_manager.banker_pair_detected if pair_betting_manager else false
+			)
+			
+			# Рассчитываем выплату
+			var payout = 0.0
+			if won:
+				if bet_type_obj.get_group() == "pairs" and pair_betting_manager:
+					payout = payout_calculator.calculate_pair_payout(bet_type_obj, bet.stake, pair_betting_manager)
+				else:
+					payout = payout_calculator.calculate(
+						bet_type_obj,
+						bet.stake,
+						actual_winner,
+						pair_betting_manager.player_pair_detected if pair_betting_manager else false,
+						pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+						banker_value
+					)
+			
+			# Добавляем ставку в очередь
+			payout_queue_manager.add_bet(
+				bet.bet_type,
+				bet.stake,
+				payout,
+				won,
+				player_score,
+				banker_score,
+				bet.position_index
+			)
+			
+			DebugLogger.log("  → Гость %d: %s ставка %.0f (won=%s, payout=%.0f)" % [guest_id, bet.bet_type, bet.stake, won, payout])
+	
+	DebugLogger.log("👥 Добавлено %d гостевых ставок в очередь" % guest_bet_storage.get_all_bets().size())
