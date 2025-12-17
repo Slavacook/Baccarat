@@ -291,8 +291,12 @@ func make_chip_visible(bet_type: String) -> void:
 		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
 		return
 
-	chip_nodes[bet_type].visible = true
-	print("👁️ ChipVisualManager: фишка %s сделана видимой" % bet_type)
+	# Проверяем что узел существует и не удалён
+	if chip_nodes[bet_type] and is_instance_valid(chip_nodes[bet_type]):
+		chip_nodes[bet_type].visible = true
+		print("👁️ ChipVisualManager: фишка %s сделана видимой" % bet_type)
+	else:
+		print("⚠️ ChipVisualManager: узел %s уже удалён" % bet_type)
 
 
 func hide_chip(bet_type: String) -> void:
@@ -301,7 +305,12 @@ func hide_chip(bet_type: String) -> void:
 		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
 		return
 
-	chip_nodes[bet_type].visible = false
+	# Проверяем что узел существует и не удалён
+	if chip_nodes[bet_type] and is_instance_valid(chip_nodes[bet_type]):
+		chip_nodes[bet_type].visible = false
+	else:
+		print("⚠️ ChipVisualManager: узел %s уже удалён" % bet_type)
+		return
 	# НЕ стираем current_textures - сохраняем текстуру для восстановления
 	
 	# Удаляем дополнительные фишки (если были в MAX режиме)
@@ -897,14 +906,15 @@ func hide_all_guest_chips() -> void:
 	
 	# Сохраняем и скрываем активные фишки (ChipInstance)
 	for chip in active_chips:
-		if chip.node:
+		if chip.node and is_instance_valid(chip.node):
 			_saved_visibility["%s_%d" % [chip.bet_type, chip.position_index]] = chip.node.visible
 			chip.node.visible = false
 	
 	# Сохраняем и скрываем основные фишки
 	for bet_type in chip_nodes.keys():
-		_saved_visibility[bet_type] = chip_nodes[bet_type].visible
-		chip_nodes[bet_type].visible = false
+		if chip_nodes[bet_type] and is_instance_valid(chip_nodes[bet_type]):
+			_saved_visibility[bet_type] = chip_nodes[bet_type].visible
+			chip_nodes[bet_type].visible = false
 	
 	print("❤️ Ставки гостей скрыты (сохранено %d состояний)" % _saved_visibility.size())
 
@@ -950,14 +960,22 @@ func clear_guest_chips_for_sector(guest_id: int) -> void:
 	for chip in active_chips:
 		# Используем GuestSectorMapper для определения сектора
 		var sector = GuestSectorMapper.get_sector_from_position(chip.bet_type, chip.position_index)
-		print("👥   - chip %s[%d] → sector %d (target: %d)" % [chip.bet_type, chip.position_index, sector, guest_id])
+		print("👥   - chip %s[%d] → sector %d (target: %d), is_original=%s" % [chip.bet_type, chip.position_index, sector, guest_id, chip.is_original])
 		if sector == guest_id:
 			chips_to_remove.append(chip)
 	
 	for chip in chips_to_remove:
-		if chip.node:
-			chip.node.queue_free()
-		active_chips.erase(chip)
-		removed_count += 1
+		# НЕ удаляем оригинальные фишки (они часть сцены), только скрываем
+		if chip.is_original:
+			if chip.node and is_instance_valid(chip.node):
+				chip.node.visible = false
+			# НЕ удаляем из active_chips - оригинальные фишки нужны для следующих раундов
+			print("👥   → оригинальная фишка %s скрыта (не удалена)" % chip.bet_type)
+		else:
+			# Удаляем только копии
+			if chip.node and is_instance_valid(chip.node):
+				chip.node.queue_free()
+			active_chips.erase(chip)
+			removed_count += 1
 	
-	print("👥 Удалено %d фишек гостя %d" % [removed_count, guest_id])
+	print("👥 Удалено %d копий фишек гостя %d" % [removed_count, guest_id])

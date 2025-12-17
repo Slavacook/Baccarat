@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1765979994
+::res://::1765982892
 CLAUDE.md::TextFile::-1::1765937705::0::1::::<><><>0<>0<><>::
 CLEANUP_REPORT.md::TextFile::-1::1765878385::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1765877564::0::1::::<><><>0<>0<><>::
@@ -203,7 +203,7 @@ icon_512x512.png::CompressedTexture2D::2774166128768893739::1765877564::17658775
 ::res://resources/::1765878366
 CameraConfig.gd::GDScript::-1::1765878366::0::1::::CameraConfig<>Resource<><>0<>0<><>::
 GameConfig.gd::GDScript::9082664074550891935::1765877564::0::1::::GameConfig<>Resource<><>0<>0<><>::
-::res://scenes/::1765979981
+::res://scenes/::1765982881
 BetPopup.tscn::PackedScene::4738235037960788730::1765878366::0::1::::<><><>0<>0<><>::uid://c60k5ekwpxfw7::::res://scripts/BetPopup.gd
 ChanceCardPopup.tscn::PackedScene::7493855773486672224::1765977273::0::1::::<><><>0<>0<><>::res://scripts/ChanceCardPopup.gd<>uid://ch6mlxy0v6dx7::::res://assets/ui/invitation_card.png
 flip_card.tscn::PackedScene::2203904829151038995::1765877564::0::1::::<><><>0<>0<><>::uid://3g33us4ym5r1::::res://scripts/FlipCard.gd<>uid://bxgut3oh6s8sw::::res://assets/animation/animation_open_card/open_card_1.png<>uid://bti40v4x1wmd0::::res://assets/animation/animation_open_card/open_card_2.png<>uid://bupv608aq1x0h::::res://assets/animation/animation_open_card/open_card_3.png<>uid://dfq1uvneroypd::::res://assets/animation/animation_open_card/open_card_4.png<>uid://bnr1ecy1lb78t::::res://assets/animation/animation_open_card/open_card_5.png<>uid://co6t8ijeehbjd::::res://assets/animation/animation_open_card/open_card_6.png<>uid://dr13684kelh8t::::res://assets/animation/animation_open_card/open_card_7.png<>uid://cg8nsjoqi70ya::::res://assets/animation/animation_open_card/open_card_8.png<>uid://ikpc5htslnwk::::res://assets/animation/animation_open_card/open_card_9.png<>uid://cn7uayylmw18a::::res://assets/animation/animation_open_card/open_card_10.png<>uid://c8i6qcnshcre0::::res://assets/sound/flip_card8.wav
@@ -214,7 +214,7 @@ OverlayNotification.tscn::PackedScene::-1::1765877564::0::1::::<><><>0<>0<><>::r
 PayoutScene.tscn::PackedScene::5056559289898713349::1765878366::0::1::::<><><>0<>0<><>::uid://duptxv0hwgyyk::::res://scripts/scenes/PayoutScene.gd
 SettingsPopup.tscn::PackedScene::8682819899485884407::1765878366::0::1::::<><><>0<>0<><>::uid://fl5the672xbt::::res://scripts/SettingsPopup.gd
 SettingsScene.tscn::PackedScene::8637889271710464782::1765932122::0::1::::<><><>0<>0<><>::uid://d3ov5kmwxvbem::::res://scripts/SettingsScene.gd
-SurvivalModeUI.tscn::PackedScene::1200197571375732007::1765979981::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd<>uid://ch6mlxy0v6dx7::::res://assets/ui/invitation_card.png
+SurvivalModeUI.tscn::PackedScene::1200197571375732007::1765982881::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd<>uid://ch6mlxy0v6dx7::::res://assets/ui/invitation_card.png
 Toast.tscn::PackedScene::1936476259211108317::1765878366::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
 ::res://scenes/heart_bet/::1765972765
 HeartBetUI.tscn::PackedScene::7103767641990542386::1765972765::0::1::::<><><>0<>0<><>::uid://bgncl0lhk41q0::::res://scripts/heart_bet/HeartBetUI.gd
@@ -227,18 +227,18 @@ BetPopup.gd::GDScript::4186871779109626763::1765928393::0::1::::<>PopupPanel<><>
 CameraManager.gd::GDScript::-1::1765878366::0::1::::CameraManager<>RefCounted<><>0<>0<><>::
 Card.gd::GDScript::3661103580919269901::1765877564::0::1::::Card<>RefCounted<><>0<>0<><>::
 CardTextureManager.gd::GDScript::7744892902498355683::1765878366::0::1::::CardTextureManager<>RefCounted<><>0<>0<><>::
-ChanceCardPopup.gd::GDScript::3187868635419298234::1765977434::0::1::::<>CanvasLayer<><>0<>0<><>::
-ChipVisualManager.gd::GDScript::3537868617731749902::1765979942::0::1::::ChipVisualManager<>RefCounted<><>0<>0<><>::
+ChanceCardPopup.gd::GDScript::3187868635419298234::1765981728::0::1::::<>CanvasLayer<><>0<>0<><>::
+ChipVisualManager.gd::GDScript::3537868617731749902::1765982256::0::1::::ChipVisualManager<>RefCounted<><>0<>0<><>::
 DebugLogger.gd::GDScript::-1::1765878366::0::1::::DebugLogger<>RefCounted<><>0<>0<><>::
 Deck.gd::GDScript::6145890468197991316::1765877564::0::1::::Deck<>RefCounted<><>0<>0<><>::
 FlipCard.gd::GDScript::1979425046039752148::1765877564::0::1::::FlipCard<>Node2D<><>0<>0<><>::
 GameConstants.gd::GDScript::5908386211620384816::1765878366::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
-GameController.gd::GDScript::5622432768509677956::1765979202::0::1::::<>Node2D<><>0<>0<><>::
+GameController.gd::GDScript::5622432768509677956::1765981727::0::1::::<>Node2D<><>0<>0<><>::
 GameDataManager.gd::GDScript::3173968144031983268::1765884160::0::1::::<>Node<><>0<>0<><>::
 GameInitializer.gd::GDScript::7528074775368441392::1765932122::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
 GameModeManager.gd::GDScript::5355736345804787176::1765878366::0::1::::<>Node<><>0<>0<><>::
 GameOverScene.gd::GDScript::-1::1765878366::0::1::::<>CanvasLayer<><>0<>0<><>::
-GamePhaseManager.gd::GDScript::1038087620930647068::1765979942::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
+GamePhaseManager.gd::GDScript::1038087620930647068::1765982840::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
 GamePhaseManager_refactored_method.gd::GDScript::-1::1765878366::0::1::::<>RefCounted<><>0<>0<><>::
 GuestBetFactory.gd::GDScript::7378832181832205610::1765934965::0::1::::GuestBetFactory<>RefCounted<><>0<>0<><>::
 GuestBetStorage.gd::GDScript::7752683457361897967::1765894321::0::1::::GuestBetStorage<>RefCounted<><>0<>0<><>::
@@ -247,7 +247,7 @@ HandManager.gd::GDScript::-1::1765878366::0::1::::HandManager<>RefCounted<><>0<>
 HelpPopup.gd::GDScript::2016307310253579686::1765877564::0::1::::<>PopupPanel<><>0<>0<><>::
 KeyboardNavigationController.gd::GDScript::-1::1765878366::0::1::::<>Node<><>0<>0<><>::
 LimitsManager.gd::GDScript::5602290158410269632::1765877564::0::1::::LimitsManager<>RefCounted<><>0<>0<><>::
-Localization.gd::GDScript::8906088309069551929::1765979202::0::1::::Localization<>Node<><>0<>0<><>::
+Localization.gd::GDScript::8906088309069551929::1765981728::0::1::::Localization<>Node<><>0<>0<><>::
 OverlayNotification.gd::GDScript::438564339509042980::1765970905::0::1::::<>CanvasLayer<><>0<>0<><>::
 OverlayNotificationManager.gd::GDScript::7654303330837225282::1765877564::0::1::::<>Node<><>0<>0<><>::
 PairBettingManager.gd::GDScript::6346628608273793759::1765877564::0::1::::PairBettingManager<>RefCounted<><>0<>0<><>::
@@ -258,7 +258,7 @@ PayoutSurvivalInfo.gd::GDScript::-1::1765878366::0::1::::PayoutSurvivalInfo<>HBo
 SaveManager.gd::GDScript::8627907365010767779::1765930342::0::1::::<>Node<><>0<>0<><>::
 SettingsScene.gd::GDScript::9154780136968585584::1765932122::0::1::::<>CanvasLayer<><>0<>0<><>::
 StatsManager.gd::GDScript::7422061842198344417::1765878366::0::1::::<>Node<><>0<>0<><>::
-SurvivalModeUI.gd::GDScript::6868350488718170528::1765979202::0::1::::<>Control<><>0<>0<><>::
+SurvivalModeUI.gd::GDScript::6868350488718170528::1765981076::0::1::::<>Control<><>0<>0<><>::
 Toast.gd::GDScript::6819915181880335807::1765878366::0::1::::<>PanelContainer<><>0<>0<><>::
 ToastManager.gd::GDScript::2410074093126528627::1765877564::0::1::::<>Node<><>0<>0<><>::
 ToastPool.gd::GDScript::5388200129698335381::1765877564::0::1::::ToastPool<>RefCounted<><>0<>0<><>::
@@ -282,9 +282,9 @@ ChipStack.gd::GDScript::1674756323753705090::1765878366::0::1::::ChipStack<>RefC
 ChipStackManager.gd::GDScript::1060822543130080410::1765877564::0::1::::ChipStackManager<>RefCounted<><>0<>0<><>::
 PayoutValidator.gd::GDScript::2597968456011595629::1765877564::0::1::::PayoutValidator<>RefCounted<><>0<>0<><>::
 ::res://scripts/heart_bet/::1765960077
-HeartBetManager.gd::GDScript::1869351681931537776::1765979942::0::1::::HeartBetManager<>RefCounted<><>0<>0<><>::
+HeartBetManager.gd::GDScript::1869351681931537776::1765981076::0::1::::HeartBetManager<>RefCounted<><>0<>0<><>::
 HeartBetTriggerSystem.gd::GDScript::2741909634765357015::1765946756::0::1::::HeartBetTriggerSystem<>RefCounted<><>0<>0<><>::
-HeartBetUI.gd::GDScript::2834533064451743177::1765965752::0::1::::<>Control<><>0<>0<><>::
+HeartBetUI.gd::GDScript::2834533064451743177::1765982840::0::1::::<>Control<><>0<>0<><>::
 ::res://scripts/heart_bet/triggers/::1765946814
 BankerSixTrigger.gd::GDScript::376409764418605663::1765946756::0::1::::BankerSixTrigger<>HeartBetBaseTrigger<><>0<>0<><>::
 BaseTrigger.gd::GDScript::5364365325402534801::1765946756::0::1::::HeartBetBaseTrigger<>RefCounted<><>0<>0<><>::

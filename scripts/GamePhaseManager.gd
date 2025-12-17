@@ -567,18 +567,24 @@ func _restore_active_bet_chips() -> void:
 		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
 		# НО только если нет гостевых ставок (гости имеют приоритет)
 		if not guest_bet_storage or guest_bet_storage.get_guests_with_bets().is_empty():
-			DebugLogger.log_warning(" Нет сохраненного состояния, показываем фишки на основе toggles")
+			DebugLogger.log_warning(" Нет сохраненного состояния и нет гостей, показываем фишки на основе toggles")
+			# Показываем фишки на дефолтных позициях и делаем кликабельными
 			if PayoutSettingsManager.player_payout_enabled:
-				chip_visual_manager.make_chip_visible("Player")
+				chip_visual_manager.show_chip("Player")  # show_chip сбрасывает позицию
+				chip_visual_manager.make_chip_clickable("Player", true)
 			if PayoutSettingsManager.banker_payout_enabled:
-				chip_visual_manager.make_chip_visible("Banker")
+				chip_visual_manager.show_chip("Banker")
+				chip_visual_manager.make_chip_clickable("Banker", true)
 			if PayoutSettingsManager.tie_payout_enabled:
-				chip_visual_manager.make_chip_visible("Tie")
+				chip_visual_manager.show_chip("Tie")
+				chip_visual_manager.make_chip_clickable("Tie", true)
 			if pair_betting_manager:
 				if pair_betting_manager.pair_player_bet_enabled:
-					chip_visual_manager.make_chip_visible("PairPlayer")
+					chip_visual_manager.show_chip("PairPlayer")
+					chip_visual_manager.make_chip_clickable("PairPlayer", true)
 				if pair_betting_manager.pair_banker_bet_enabled:
-					chip_visual_manager.make_chip_visible("PairBanker")
+					chip_visual_manager.show_chip("PairBanker")
+					chip_visual_manager.make_chip_clickable("PairBanker", true)
 
 	DebugLogger.log_payout("Показаны фишки всех активных ставок")
 

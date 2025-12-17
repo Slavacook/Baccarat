@@ -55,11 +55,13 @@ func show_popup():
 	# Начальное состояние (применяем к background и card_texture)
 	if background:
 		background.modulate.a = 0.0
+		background.mouse_filter = Control.MOUSE_FILTER_STOP  # Восстанавливаем input
 	if card_texture:
 		card_texture.modulate.a = 0.0
 		card_texture.scale = Vector2(0.5, 0.5)
 	if use_button:
 		use_button.modulate.a = 0.0
+		use_button.mouse_filter = Control.MOUSE_FILTER_STOP  # Восстанавливаем input
 	
 	show()
 	
@@ -81,6 +83,12 @@ func hide_popup():
 	"""Скрыть popup с анимацией"""
 	if _tween:
 		_tween.kill()
+	
+	# СРАЗУ отключаем input чтобы не перехватывать клики
+	if background:
+		background.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if use_button:
+		use_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	_tween = create_tween()
 	_tween.set_parallel(true)

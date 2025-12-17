@@ -215,14 +215,37 @@ func _on_show_ui() -> void:
 	"""Показать UI с сердцами"""
 	print("❤️ Показываем сердца для ставки")
 	selected_target = ""
+	
+	# ВАЖНО: Восстанавливаем видимость всех сердец (могли быть скрыты после предыдущего Heart Bet)
+	heart_player.visible = true
+	heart_banker.visible = true
+	heart_tie.visible = true
+	
 	_setup_hearts()
 	show()
 	
+	# Показываем подсказку
+	EventBus.show_toast_info.emit(Localization.t("HEART_BET_SELECT_HEART"))
+
 	# Принудительно обновляем mouse_filter после показа
 	await get_tree().process_frame
 	heart_player.mouse_filter = Control.MOUSE_FILTER_STOP
 	heart_banker.mouse_filter = Control.MOUSE_FILTER_STOP
 	heart_tie.mouse_filter = Control.MOUSE_FILTER_STOP
+	
+	print("❤️ Сердца готовы к выбору:")
+	print("   - HeartBetUI: visible=%s, global_pos=%s, size=%s, z_index=%d" % [
+		visible, global_position, size, z_index
+	])
+	print("   - Player: visible=%s, pos=%s, size=%s, modulate.a=%.1f" % [
+		heart_player.visible, heart_player.position, heart_player.size, heart_player.modulate.a
+	])
+	print("   - Banker: visible=%s, pos=%s, size=%s, modulate.a=%.1f" % [
+		heart_banker.visible, heart_banker.position, heart_banker.size, heart_banker.modulate.a
+	])
+	print("   - Tie: visible=%s, pos=%s, size=%s, modulate.a=%.1f" % [
+		heart_tie.visible, heart_tie.position, heart_tie.size, heart_tie.modulate.a
+	])
 
 
 func _on_hide_ui() -> void:

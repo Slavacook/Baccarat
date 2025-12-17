@@ -1277,7 +1277,7 @@ func _on_chance_card_use_requested() -> void:
 	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H10","location":"GameController._on_chance_card_use_requested","message":"use requested","data":{"is_table_prepared":%s,"hb_state":"%s","hb_chances":%d},"timestamp":%d}' % [str(phase_manager.is_table_prepared if phase_manager else false).to_lower(), _hb_state, _hb_chances, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
 	# #endregion
 	
-	print("🎴 GameController: запрос использования шанса (is_table_prepared=%s)" % (phase_manager.is_table_prepared if phase_manager else "N/A"))
+	print("🎴 GameController: запрос использования шанса (is_table_prepared=%s)" % str(phase_manager.is_table_prepared if phase_manager else false))
 	
 	# Проверяем что можно использовать (is_table_prepared)
 	if not phase_manager or not phase_manager.is_table_prepared:
