@@ -24,6 +24,9 @@ var limits_manager: LimitsManager = null
 var guest_bet_storage: GuestBetStorage = null
 var guest_bet_factory: GuestBetFactory = null
 
+## Менеджер ставки сердцем (Heart Bet)
+var heart_bet_manager: HeartBetManager = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -62,15 +65,20 @@ func _init(
 	if limits_manager:
 		guest_bet_storage = GuestBetStorage.new()
 		guest_bet_factory = GuestBetFactory.new(limits_manager, guest_bet_storage)
+	
+	# Инициализируем менеджер ставки сердцем
+	heart_bet_manager = HeartBetManager.new()
+	DebugLogger.log("❤️ HeartBetManager инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
 
-func reset(update_state: bool = true):
+func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	"""Сброс раунда
 
 	Args:
 		update_state: Обновлять ли GameStateManager (false при подготовке к новой игре)
+		keep_guest_bets: Сохранять ли ставки гостей (true при Heart Bet)
 	"""
 	hand_manager.reset()
 	player_third_selected = false
@@ -94,9 +102,13 @@ func reset(update_state: bool = true):
 
 	# Очищаем PayoutQueueManager и фишки для нового раунда
 	payout_queue_manager = null
+	# При Heart Bet НЕ очищаем фишки гостей - они будут восстановлены
 	if chip_visual_manager:
-		chip_visual_manager.hide_all_chips()
-		chip_visual_manager.clear_all_active_chips()  # Важно для REALISTIC режима!
+		if not keep_guest_bets:
+			chip_visual_manager.hide_all_chips()
+			chip_visual_manager.clear_all_active_chips()  # Важно для REALISTIC режима!
+		else:
+			DebugLogger.log("❤️ Фишки гостей НЕ очищены (Heart Bet)")
 	if winner_selection_manager:
 		winner_selection_manager.reset()
 	# Очищаем TableStateManager (полное состояние стола)
@@ -108,10 +120,12 @@ func reset(update_state: bool = true):
 	if ui and ui.button_ui:
 		ui.button_ui.reset_collect_pay_buttons()
 
-	# Очищаем ставки гостей после завершения раунда
-	if guest_bet_storage:
+	# Очищаем ставки гостей после завершения раунда (НЕ при Heart Bet!)
+	if guest_bet_storage and not keep_guest_bets:
 		guest_bet_storage.clear_all_bets()
 		DebugLogger.log("🗑️ Ставки гостей очищены после завершения раунда")
+	elif keep_guest_bets:
+		DebugLogger.log("❤️ Ставки гостей сохранены (Heart Bet)")
 
 	# Скрываем кнопки областей и стрелки навигации
 	EventBus.area_buttons_visibility_changed.emit(false)
@@ -153,6 +167,17 @@ func deal_first_four():
 			DebugLogger.log_game_flow("Начинаем новую раздачу после подготовки стола")
 	else:
 		DebugLogger.log("  → ⚠️ Условие зума НЕ выполнено, зум не произойдет")
+
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Подтверждаем или отклоняем ставку перед раздачей
+	# Если есть ожидающий выбор - confirm() либо подтвердит, либо отклонит
+	# ═══════════════════════════════════════════════════════════════════
+	if heart_bet_manager and has_pending_heart_bet():
+		var confirmed = confirm_heart_bet()
+		if confirmed:
+			DebugLogger.log("❤️ Heart Bet подтверждён, раздача со ставкой")
+		else:
+			DebugLogger.log("❤️ Heart Bet отклонён, обычная раздача")
 
 	hand_manager.deal_first_four(deck)
 	player_third_selected = false
@@ -733,12 +758,22 @@ func _validate_winner_selection() -> void:
 
 	# ✅ Правильный выбор!
 	EventBus.action_correct.emit("winner")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Если есть активная ставка - разрешаем её и завершаем
+	# Выплаты НЕ нужны при Heart Bet!
+	# ═══════════════════════════════════════════════════════════════════
+	if has_active_heart_bet():
+		print("❤️ _validate_winner_selection: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
+		resolve_heart_bet(actual_winner)
+		# НЕ продолжаем с обычной логикой - раунд сбросится через EventBus
+		return
 
 	# Меняем кнопку на "complete" (готовность к выплатам)
 	ui.set_action_button_state("complete")
 	# Активируем кнопку при переходе в стадию выплат
 	ui.enable_action_button()
-	
+
 	# Показываем кнопки Collect/Pay после определения победителя
 	if ui.button_ui:
 		ui.button_ui.show_collect_pay_buttons()
@@ -862,13 +897,32 @@ func _complete_round_and_prepare_new_game() -> void:
 	"""Завершение раунда и подготовка к новой игре
 
 	Выполняет:
-	1. Показ сообщения о завершении (зависит от результата ставок)
-	2. Зум камеры на общий план
-	3. Начисление очков
-	4. Сброс раунда
-	5. Восстановление фишек
-	6. Установка флага подготовки
+	1. РАЗРЕШЕНИЕ АКТИВНОГО Heart Bet (если есть)
+	2. Проверка триггеров Heart Bet (ПЕРЕД сбросом!)
+	3. Показ сообщения о завершении (зависит от результата ставок)
+	4. Зум камеры на общий план
+	5. Начисление очков
+	6. Сброс раунда
+	7. Восстановление фишек
+	8. Установка флага подготовки
 	"""
+
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Разрешаем активную ставку сердцем (если есть)
+	# При активном Heart Bet НЕ делаем обычное завершение!
+	# ═══════════════════════════════════════════════════════════════════
+	if has_active_heart_bet():
+		var actual_winner = TableStateManager.actual_winner
+		print("❤️ GamePhaseManager: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
+		resolve_heart_bet(actual_winner)
+		# НЕ продолжаем - раунд сбросится через EventBus heart_bet_round_complete
+		return
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ТРИГГЕРОВ HEART BET (до сброса раунда!)
+	# ═══════════════════════════════════════════════════════════════════
+	if heart_bet_manager and SaveManager.instance.load_survival_mode():
+		_check_heart_bet_triggers()
 
 	# Показываем сообщение о завершении
 	_show_round_completion_message()
@@ -904,6 +958,14 @@ func _complete_round_and_prepare_new_game() -> void:
 
 	# Устанавливаем флаг подготовки к новой игре
 	is_table_prepared = true
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Автоматический показ сердец УБРАН!
+	# Теперь игрок сам нажимает на карту шанса чтобы активировать игру на жизнь
+	# ═══════════════════════════════════════════════════════════════════
+	# if heart_bet_manager and heart_bet_manager.is_available():
+	#     start_heart_bet_selection()  # ← СТАРАЯ ЛОГИКА
+	
 	DebugLogger.log_separator("ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
 
 
@@ -937,3 +999,107 @@ func _show_round_completion_message() -> void:
 	else:
 		DebugLogger.log_init("НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
 		EventBus.show_toast_info.emit(Localization.t("NO_WINNING_BETS"))
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ❤️ HEART BET - СТАВКА СЕРДЦЕМ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _check_heart_bet_triggers() -> void:
+	"""Проверить триггеры Heart Bet после завершения раунда
+	
+	Вызывается ПЕРЕД сбросом раунда, чтобы данные о раздаче ещё были доступны.
+	"""
+	if not heart_bet_manager:
+		print("❤️ _check_heart_bet_triggers: heart_bet_manager не существует")
+		return
+	
+	# Получаем данные о завершённом раунде
+	var winner = TableStateManager.actual_winner
+	print("❤️ _check_heart_bet_triggers: winner='%s'" % winner)
+	
+	if winner.is_empty():
+		print("❤️ _check_heart_bet_triggers: нет данных о победителе, пропускаем")
+		return
+	
+	# Вычисляем очки
+	var player_hand = hand_manager.get_player_hand_ref()
+	var banker_hand = hand_manager.get_banker_hand_ref()
+	
+	print("❤️ _check_heart_bet_triggers: player_hand.size=%d, banker_hand.size=%d" % [player_hand.size(), banker_hand.size()])
+	
+	if player_hand.is_empty() or banker_hand.is_empty():
+		print("❤️ _check_heart_bet_triggers: руки пустые, пропускаем")
+		return
+	
+	var player_score = BaccaratRules.hand_value(player_hand)
+	var banker_score = BaccaratRules.hand_value(banker_hand)
+	var is_natural = BaccaratRules.is_natural(player_hand) or BaccaratRules.is_natural(banker_hand)
+	
+	print("❤️ _check_heart_bet_triggers: player=%d, banker=%d, natural=%s" % [player_score, banker_score, is_natural])
+	
+	# Проверяем триггеры
+	var triggered = heart_bet_manager.check_triggers(winner, banker_score, player_score, is_natural)
+	print("❤️ _check_heart_bet_triggers: triggered=%s" % triggered)
+	
+	if triggered:
+		# Запускаем анимацию карты шанса (вместо простого оверлея)
+		EventBus.heart_bet_trigger_activated.emit(heart_bet_manager.last_trigger_name)
+		print("❤️ Триггер сработал! Показываем карту шанса")
+
+
+func start_heart_bet_selection() -> void:
+	"""Начать фазу выбора Heart Bet (вызывается при начале раздачи)
+	
+	Если есть доступный шанс - показывает сердца на столе.
+	"""
+	if heart_bet_manager and heart_bet_manager.is_available():
+		heart_bet_manager.start_selection_phase()
+		DebugLogger.log("❤️ Фаза выбора Heart Bet начата")
+
+
+func confirm_heart_bet() -> bool:
+	"""Подтвердить или отклонить ставку Heart Bet
+	
+	Вызывается при нажатии кнопки "Начать" если есть ожидающий выбор.
+	Returns: true если ставка подтверждена, false если отклонена или не было выбора
+	"""
+	if not heart_bet_manager:
+		return false
+	
+	if heart_bet_manager.is_pending() or heart_bet_manager.is_selected():
+		return heart_bet_manager.confirm()
+	
+	return false
+
+
+func resolve_heart_bet(actual_winner: String) -> void:
+	"""Разрешить ставку Heart Bet (определить результат)
+
+	Вызывается после определения победителя раздачи.
+	"""
+	# #region agent log
+	var _hb_active = heart_bet_manager.is_active() if heart_bet_manager else false
+	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
+	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H1","location":"GamePhaseManager.resolve_heart_bet","message":"resolve_heart_bet called","data":{"actual_winner":"%s","heart_bet_active":%s},"timestamp":%d}' % [actual_winner, str(_hb_active).to_lower(), int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
+	# #endregion
+	
+	if heart_bet_manager and heart_bet_manager.is_active():
+		heart_bet_manager.resolve(actual_winner)
+		DebugLogger.log("❤️ Heart Bet разрешён (winner=%s)" % actual_winner)
+
+
+func has_active_heart_bet() -> bool:
+	"""Проверить, есть ли активная ставка Heart Bet"""
+	var result = heart_bet_manager != null and heart_bet_manager.is_active()
+	if heart_bet_manager:
+		print("❤️ has_active_heart_bet: manager exists, state=%s, is_active=%s" % [
+			heart_bet_manager.get_state_name(),
+			heart_bet_manager.is_active()
+		])
+	return result
+
+
+func has_pending_heart_bet() -> bool:
+	"""Проверить, есть ли ожидающий выбор Heart Bet"""
+	return heart_bet_manager != null and (heart_bet_manager.is_pending() or heart_bet_manager.is_selected())

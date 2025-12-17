@@ -199,6 +199,93 @@ signal game_restarted()
 signal game_state_changed(old_state: int, new_state: int)
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ❤️ СТАВКА СЕРДЦЕМ (HEART BET)
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Триггер сработал - шанс доступен
+## trigger_name: имя сработавшего триггера ("BankerSix", "NaturalWin")
+@warning_ignore("unused_signal")
+signal heart_bet_trigger_activated(trigger_name: String)
+
+## Показать UI с сердцами (начало фазы выбора)
+@warning_ignore("unused_signal")
+signal heart_bet_show_ui()
+
+## Скрыть UI с сердцами
+@warning_ignore("unused_signal")
+signal heart_bet_hide_ui()
+
+## Сердце выбрано (Player/Banker/Tie)
+@warning_ignore("unused_signal")
+signal heart_bet_selected(target: String)
+
+## Ставка отменена (нажали "Начать" без выбора)
+@warning_ignore("unused_signal")
+signal heart_bet_declined()
+
+## Ставка подтверждена (нажали "Начать" с выбором)
+@warning_ignore("unused_signal")
+signal heart_bet_confirmed(target: String)
+
+## Результат ставки - выигрыш
+## target: на что ставили ("Player", "Banker", "Tie")
+## lives_gained: сколько жизней получено (1 для Player/Banker, 6 для Tie)
+@warning_ignore("unused_signal")
+signal heart_bet_won(target: String, lives_gained: int)
+
+## Результат ставки - проигрыш
+## target: на что ставили
+## lives_remaining: сколько жизней осталось после проигрыша
+@warning_ignore("unused_signal")
+signal heart_bet_lost(target: String, lives_remaining: int)
+
+## Сердце взято в залог (визуальное изменение в UI жизней)
+@warning_ignore("unused_signal")
+signal heart_pledged()
+
+## Сердце возвращено из залога
+@warning_ignore("unused_signal")
+signal heart_returned()
+
+## Жизни добавлены (после выигрыша heart bet)
+## lives_added: количество добавленных жизней
+## total_lives: итоговое количество жизней
+@warning_ignore("unused_signal")
+signal lives_added(lives_added: int, total_lives: int)
+
+## Скрыть ставки гостей (при выборе сердца для Heart Bet)
+@warning_ignore("unused_signal")
+signal guest_bets_hide_requested()
+
+## Показать ставки гостей (после завершения Heart Bet раздачи)
+@warning_ignore("unused_signal")
+signal guest_bets_show_requested()
+
+## Скрыть выбранное сердце со стола (после определения результата)
+@warning_ignore("unused_signal")
+signal heart_bet_hide_selected()
+
+## Heart Bet раздача завершена - сбросить раунд без выплат
+@warning_ignore("unused_signal")
+signal heart_bet_round_complete()
+
+## Карта шанса нажата (маленькая)
+@warning_ignore("unused_signal")
+signal chance_card_pressed()
+
+## Запрос использования шанса (нажата кнопка "Использовать")
+@warning_ignore("unused_signal")
+signal chance_card_use_requested()
+
+## Popup карты закрыт (без использования)
+@warning_ignore("unused_signal")
+signal chance_card_popup_closed()
+
+## Счётчик шансов изменился
+@warning_ignore("unused_signal")
+signal chance_count_changed(count: int)
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 

@@ -878,3 +878,110 @@ func print_status() -> void:
 		var active_count = get_active_chips_count_by_type(bet_type)
 		print("  %s: %s | Текстура: %s | Активных: %d" % [bet_type, status, texture, active_count])
 	print("═══════════════════════════════")
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ❤️ HEART BET - СКРЫТИЕ/ПОКАЗ СТАВОК ГОСТЕЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Сохранённое состояние видимости фишек (для восстановления после Heart Bet)
+var _saved_visibility: Dictionary = {}
+
+
+func hide_all_guest_chips() -> void:
+	"""Скрыть все ставки гостей (при выборе сердца для Heart Bet)
+	
+	Сохраняет текущее состояние видимости для восстановления.
+	"""
+	_saved_visibility.clear()
+	
+	# Сохраняем и скрываем активные фишки (ChipInstance)
+	for chip in active_chips:
+		if chip.node:
+			_saved_visibility["%s_%d" % [chip.bet_type, chip.position_index]] = chip.node.visible
+			chip.node.visible = false
+	
+	# Сохраняем и скрываем основные фишки
+	for bet_type in chip_nodes.keys():
+		_saved_visibility[bet_type] = chip_nodes[bet_type].visible
+		chip_nodes[bet_type].visible = false
+	
+	print("❤️ Ставки гостей скрыты (сохранено %d состояний)" % _saved_visibility.size())
+
+
+func show_all_guest_chips() -> void:
+	"""Показать все ставки гостей (после завершения Heart Bet раздачи)
+	
+	Восстанавливает сохранённое состояние видимости.
+	"""
+	if _saved_visibility.is_empty():
+		print("⚠️ Нет сохранённых состояний видимости для восстановления")
+		return
+	
+	# Восстанавливаем видимость активных фишек (ChipInstance)
+	for chip in active_chips:
+		if chip.node:
+			var key = "%s_%d" % [chip.bet_type, chip.position_index]
+			if _saved_visibility.has(key):
+				chip.node.visible = _saved_visibility[key]
+	
+	# Восстанавливаем видимость основных фишек
+	for bet_type in chip_nodes.keys():
+		if _saved_visibility.has(bet_type):
+			chip_nodes[bet_type].visible = _saved_visibility[bet_type]
+	
+	print("❤️ Ставки гостей восстановлены")
+	_saved_visibility.clear()
+
+
+func clear_guest_chips_for_sector(guest_id: int) -> void:
+	"""Удалить фишки конкретного гостя (при отключении гостя)
+	
+	guest_id: 1-6 (соответствует сектору)
+	"""
+	var removed_count = 0
+	
+	# Удаляем активные фишки из этого сектора
+	var chips_to_remove: Array = []
+	for chip in active_chips:
+		# guest_id соответствует position_index для основных ставок этого гостя
+		# Каждый гость имеет свой набор позиций (2 на сектор)
+		var sector = _get_sector_for_position(chip.bet_type, chip.position_index)
+		if sector == guest_id:
+			chips_to_remove.append(chip)
+	
+	for chip in chips_to_remove:
+		if chip.node:
+			chip.node.queue_free()
+		active_chips.erase(chip)
+		removed_count += 1
+	
+	print("👥 Удалено %d фишек гостя %d" % [removed_count, guest_id])
+
+
+func _get_sector_for_position(bet_type: String, position_index: int) -> int:
+	"""Определить сектор (1-6) по типу ставки и индексу позиции"""
+	# Основные позиции (индекс 0) - сектор 4
+	if position_index == 0:
+		return 4
+	
+	# Для Player/Banker: 2 позиции на сектор
+	if bet_type in ["Player", "Banker"]:
+		match position_index:
+			1, 2: return 4
+			3, 4: return 5
+			5, 6: return 3
+			7, 8: return 2
+			9, 10: return 1
+			11, 12: return 6
+	
+	# Для Tie/PairPlayer/PairBanker: 1 позиция на сектор
+	else:
+		match position_index:
+			1: return 1
+			2: return 2
+			3: return 3
+			4: return 5
+			5: return 6
+	
+	return 0  # Неизвестная позиция

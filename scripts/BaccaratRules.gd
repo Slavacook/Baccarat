@@ -8,7 +8,12 @@ static func hand_value(hand: Array[Card]) -> int:
 	return total % 10
 
 static func is_natural(hand: Array[Card]) -> bool:
-	return hand_value(hand) >= 8
+	# Натуральная - это 8 или 9 очков на ПЕРВЫХ ДВУХ картах!
+	if hand.size() < 2:
+		return false
+	# Считаем только первые 2 карты
+	var first_two_value = (hand[0].get_point() + hand[1].get_point()) % 10
+	return first_two_value >= 8
 
 static func player_should_draw(player_hand: Array[Card]) -> bool:
 	return hand_value(player_hand) <= 5

@@ -40,22 +40,25 @@ func show_message(text: String, type: NotificationType = NotificationType.SUCCES
 
 	# Анимация появления → пауза → исчезновения
 	_animation_tween = create_tween()
+	# Привязываем tween к SceneTree чтобы он не прерывался при изменениях сцены
+	_animation_tween.set_process_mode(Tween.TWEEN_PROCESS_IDLE)
 	_animation_tween.set_parallel(true)
 
-	# Fade in (0.2 сек)
-	_animation_tween.tween_property(background, "modulate:a", 0.6, 0.2)
-	_animation_tween.tween_property(message_label, "modulate:a", 1.0, 0.2)
+	# Fade in (0.3 сек)
+	_animation_tween.tween_property(background, "modulate:a", 0.7, 0.3)
+	_animation_tween.tween_property(message_label, "modulate:a", 1.0, 0.3)
 
 	_animation_tween.set_parallel(false)
 
-	# Пауза (duration)
+	# Пауза (duration) - используем полную длительность
+	print("🎬 Оверлей: пауза %.1f секунд" % duration)
 	_animation_tween.tween_interval(duration)
 
 	_animation_tween.set_parallel(true)
 
-	# Fade out (0.2 сек)
-	_animation_tween.tween_property(background, "modulate:a", 0.0, 0.2)
-	_animation_tween.tween_property(message_label, "modulate:a", 0.0, 0.2)
+	# Fade out (0.3 сек)
+	_animation_tween.tween_property(background, "modulate:a", 0.0, 0.3)
+	_animation_tween.tween_property(message_label, "modulate:a", 0.0, 0.3)
 
 	# Скрываем после анимации
 	_animation_tween.tween_callback(hide)

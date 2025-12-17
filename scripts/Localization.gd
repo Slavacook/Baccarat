@@ -70,6 +70,8 @@ const DATA = {
 		"BET_PROFILE_DESC_LARGE": "Имитация богатого клиента",
 		"ERR_UNPAID_BETS": "Ошибка. Оплати ставки!",
 		"PAY_FIRST": "Сначала оплати!",
+		"WAIT": "Ждите",
+		"NOT_TIME": "Не время",
 		"ALL_PAYOUTS_COMPLETED": "Все выплаты оплачены! Можно начинать новую игру.",
 		"ALL_BETS_PAID": "Все ставки оплачены! Следующая раздача",
 		"NO_WINNING_BETS": "Ставки не сыграли. Следующая раздача",
@@ -136,7 +138,16 @@ const DATA = {
 		"GUEST_WEALTH_MEDIUM": "Средний",
 		"GUEST_WEALTH_RICH": "Богатый",
 		"GUEST_N": "Гость %d",
-		"CLOSE": "Закрыть"
+		"CLOSE": "Закрыть",
+		
+		# ═══ HEART BET (Ставка сердцем) ═══
+		"HEART_BET_CHANCE": "Шанс!",
+		"HEART_BET_WON_PLAYER": "Поздравляем! Вы угадали! +2 ❤️",
+		"HEART_BET_WON_BANKER": "Поздравляем! Вы угадали! +2 ❤️",
+		"HEART_BET_WON_TIE": "Невероятно! Вы угадали Игалите! +7 ❤️",
+		"HEART_BET_LOST": "Не повезло! Сердце потеряно 💔",
+		"HEART_BET_TIE_DRAW": "Игалите! Попробуйте ещё раз 🔄",
+		"HEART_BET_DECLINED": "Шанс упущен"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural 8 or 9! No third card",
@@ -205,6 +216,8 @@ const DATA = {
 		"BET_PROFILE_DESC_LARGE": "High roller simulation",
 		"ERR_UNPAID_BETS": "Error. Pay bets!",
 		"PAY_FIRST": "Pay first!",
+		"WAIT": "Wait",
+		"NOT_TIME": "Not now",
 		"ALL_PAYOUTS_COMPLETED": "All payouts completed! You can start a new game.",
 		"ALL_BETS_PAID": "All bets paid! Next deal",
 		"NO_WINNING_BETS": "Bets didn't win. Next deal",
@@ -271,7 +284,16 @@ const DATA = {
 		"GUEST_WEALTH_MEDIUM": "Medium",
 		"GUEST_WEALTH_RICH": "Rich",
 		"GUEST_N": "Guest %d",
-		"CLOSE": "Close"
+		"CLOSE": "Close",
+		
+		# === HEART BET ===
+		"HEART_BET_CHANCE": "Chance!",
+		"HEART_BET_WON_PLAYER": "Congratulations! You guessed! +2 ❤️",
+		"HEART_BET_WON_BANKER": "Congratulations! You guessed! +2 ❤️",
+		"HEART_BET_WON_TIE": "Incredible! You guessed Tie! +7 ❤️",
+		"HEART_BET_LOST": "Unlucky! Heart lost 💔",
+		"HEART_BET_TIE_DRAW": "Tie! Try again 🔄",
+		"HEART_BET_DECLINED": "Chance missed"
 	}
 }
 

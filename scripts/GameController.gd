@@ -115,6 +115,17 @@ func _ready():
 	# Реакция на запрос зума: подсвечиваем целевую область сразу при нажатии
 	if EventBus:
 		EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested)
+		
+		# Heart Bet: скрытие/показ ставок гостей
+		EventBus.guest_bets_hide_requested.connect(_on_guest_bets_hide_requested)
+		EventBus.guest_bets_show_requested.connect(_on_guest_bets_show_requested)
+		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
+		
+		# Heart Bet: использование шанса через карту
+		EventBus.chance_card_use_requested.connect(_on_chance_card_use_requested)
+	
+	# Подписка на изменение настроек гостей (для очистки фишек при отключении)
+	GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -214,6 +225,20 @@ func _handle_correct_winner_choice(actual: String) -> void:
 	"""
 	# ✅ Правильный выбор победителя
 	EventBus.action_correct.emit("winner")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Разрешаем ставку сердцем (если была активна)
+	# При активной Heart Bet выплаты не производятся!
+	# ═══════════════════════════════════════════════════════════════════
+	var has_heart_bet = phase_manager and phase_manager.has_active_heart_bet()
+	print("❤️ GameController: has_active_heart_bet = %s" % has_heart_bet)
+	
+	if has_heart_bet:
+		print("❤️ GameController: вызываем resolve_heart_bet(%s)" % actual)
+		phase_manager.resolve_heart_bet(actual)
+		# Раунд сбросится через heart_bet_round_complete в EventBus
+		# НЕ продолжаем с выплатами - это особая раздача на жизнь
+		return
 	
 	# Блокируем маркеры, чтобы игрок не мог случайно изменить выбор во время выплат
 	if winner_selection_manager:
@@ -1199,6 +1224,113 @@ func _on_camera_zoom_requested(zoom_type: String) -> void:
 	# (они уже не нужны, так как зона выбрана)
 	if zoom_type.begins_with("area_"):
 		EventBus.area_buttons_visibility_changed.emit(false)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ❤️ HEART BET - СКРЫТИЕ/ПОКАЗ СТАВОК ГОСТЕЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_guest_settings_changed(guest_id: int) -> void:
+	"""Настройки гостя изменились - очищаем его фишки если отключён"""
+	if not GuestSettingsManager.is_guest_enabled(guest_id):
+		print("👥 Гость %d отключён - очищаем его фишки" % guest_id)
+		# Очищаем фишки этого гостя из хранилища
+		if phase_manager and phase_manager.guest_bet_storage:
+			phase_manager.guest_bet_storage.clear_guest_bets(guest_id)
+		# Скрываем визуальные фишки этого гостя
+		if chip_visual_manager:
+			chip_visual_manager.clear_guest_chips_for_sector(guest_id)
+
+
+func _on_chance_card_use_requested() -> void:
+	"""Использовать шанс (нажата кнопка "Использовать" в popup карты)"""
+	print("🎴 GameController: запрос использования шанса")
+	
+	# Проверяем что можно использовать (is_table_prepared)
+	if not phase_manager or not phase_manager.is_table_prepared:
+		print("🎴 Нельзя использовать шанс - стол не готов")
+		EventBus.show_toast_info.emit(Localization.t("WAIT"))
+		return
+	
+	# Вызываем use_chance() в HeartBetManager
+	if phase_manager.heart_bet_manager:
+		var success = phase_manager.heart_bet_manager.use_chance()
+		if success:
+			print("🎴 Шанс использован успешно!")
+		else:
+			print("🎴 Не удалось использовать шанс")
+
+
+func _on_guest_bets_hide_requested() -> void:
+	"""Скрыть ставки гостей при выборе сердца для Heart Bet"""
+	if chip_visual_manager:
+		chip_visual_manager.hide_all_guest_chips()
+		print("❤️ GameController: ставки гостей скрыты")
+
+
+func _on_guest_bets_show_requested() -> void:
+	"""Показать ставки гостей после завершения Heart Bet раздачи"""
+	if chip_visual_manager:
+		chip_visual_manager.show_all_guest_chips()
+		print("❤️ GameController: ставки гостей восстановлены")
+
+
+func _on_heart_bet_round_complete() -> void:
+	"""Завершение Heart Bet раздачи - сброс без выплат
+
+	После Heart Bet раздачи игра возвращается в состояние ожидания.
+	Выплаты не производятся (это была особая раздача на жизнь).
+	"""
+	# #region agent log
+	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
+	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H4","location":"GameController._on_heart_bet_round_complete","message":"round complete received","data":{},"timestamp":%d}' % [int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
+	# #endregion
+	
+	print("❤️ GameController: Heart Bet раздача завершена, сбрасываем раунд без выплат")
+	
+	# Разблокируем маркеры (если были заблокированы)
+	if winner_selection_manager:
+		winner_selection_manager.unlock_markers()
+		winner_selection_manager.reset()
+	
+	# Небольшая задержка чтобы увидеть результат
+	await get_tree().create_timer(1.5).timeout
+	
+	# Зум камеры на общий план
+	EventBus.camera_zoom_requested.emit("out")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ТРИГГЕРОВ Heart Bet ДО СБРОСА!
+	# Если в этом раунде тоже был триггер - сохраняем его
+	# ═══════════════════════════════════════════════════════════════════
+	var new_trigger_available = false
+	if phase_manager and phase_manager.heart_bet_manager:
+		# Проверяем триггеры (сработает если была натуральная победа или банкир с 6)
+		phase_manager._check_heart_bet_triggers()
+		new_trigger_available = phase_manager.heart_bet_manager.is_available()
+		print("❤️ Проверка триггеров после Heart Bet раунда: %s" % ("сработал!" if new_trigger_available else "нет"))
+	
+	# Сбрасываем раунд через phase_manager (карты скрываются)
+	# keep_guest_bets=true - НЕ очищаем фишки гостей!
+	if phase_manager:
+		phase_manager.reset(true, true)  # update_state=true, keep_guest_bets=true
+		phase_manager.is_table_prepared = true  # Готовы к новой раздаче
+		print("❤️ Раунд сброшен, готов к новой раздаче")
+	
+	# Восстанавливаем ВИДИМОСТЬ ставок гостей (они не были удалены благодаря keep_guest_bets)
+	if chip_visual_manager:
+		chip_visual_manager.show_all_guest_chips()
+		print("❤️ Видимость ставок гостей восстановлена")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Автоматический показ сердец УБРАН!
+	# Карта шанса уже видна (если есть шансы), игрок сам нажмёт когда захочет
+	# ═══════════════════════════════════════════════════════════════════
+	if phase_manager and phase_manager.heart_bet_manager:
+		var chances = phase_manager.heart_bet_manager.get_chance_count()
+		if chances > 0:
+			print("❤️ Шансов доступно: %d (игрок может использовать карту)" % chances)
+
 
 func _on_collect_mode_toggled(enabled: bool):
 	"""Обработчик toggle кнопки 'Забрать'"""
