@@ -134,6 +134,9 @@ func generate_guest_bets(guest_id: int) -> Array[GuestBetStorage.GuestBet]:
 	# Восстанавливаем старый профиль
 	BetProfileManager.set_profile(old_profile)
 	
+	# 4. Применяем фильтр настроек (PayoutSettingsManager)
+	bets = _apply_settings_filter(bets)
+	
 	return bets
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -231,3 +234,45 @@ func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array
 	
 	# None - гость не ставит на пары
 	return bets
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ФИЛЬТРАЦИЯ СТАВОК ПО НАСТРОЙКАМ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _apply_settings_filter(bets: Array[GuestBetStorage.GuestBet]) -> Array[GuestBetStorage.GuestBet]:
+	"""Применить фильтр настроек PayoutSettingsManager
+	
+	Если ставка выключена в настройках - она удаляется из партии.
+	Это позволяет тренировать только определённые типы ставок.
+	
+	Args:
+		bets: Сгенерированные ставки гостя
+	
+	Returns:
+		Отфильтрованные ставки
+	"""
+	var filtered: Array[GuestBetStorage.GuestBet] = []
+	
+	for bet in bets:
+		if _is_bet_type_enabled(bet.bet_type):
+			filtered.append(bet)
+		else:
+			print("🎲 GuestBetFactory: ставка %s отфильтрована (выключена в настройках)" % bet.bet_type)
+	
+	return filtered
+
+func _is_bet_type_enabled(bet_type: String) -> bool:
+	"""Проверить, включён ли тип ставки в настройках"""
+	match bet_type:
+		"Player":
+			return PayoutSettingsManager.player_payout_enabled
+		"Banker":
+			return PayoutSettingsManager.banker_payout_enabled
+		"Tie":
+			return PayoutSettingsManager.tie_payout_enabled
+		"PairPlayer":
+			return PayoutSettingsManager.player_pair_payout_enabled
+		"PairBanker":
+			return PayoutSettingsManager.banker_pair_payout_enabled
+		_:
+			return true  # Неизвестный тип - пропускаем

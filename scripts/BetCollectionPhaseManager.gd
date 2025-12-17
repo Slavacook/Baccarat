@@ -767,14 +767,21 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 		return false
 	
 	var bet = payout_queue_manager.get_bet_by_id(bet_type, position_index)
+	var used_fallback = false
 	if not bet:
 		# Для обратной совместимости пробуем по типу
 		bet = payout_queue_manager.get_bet_by_type(bet_type)
+		used_fallback = true
 		if not bet:
 			DebugLogger.log_error("Ставка %s[%d] не найдена в collect_bet()" % [bet_type, position_index])
 			is_processing = false
 			return false
 	
+	# Если использовали fallback - используем position_index из найденной ставки
+	if used_fallback and bet.position_index != position_index:
+		DebugLogger.log("⚠️  collect_bet: использован fallback, корректируем position_index %d -> %d" % [position_index, bet.position_index])
+		position_index = bet.position_index
+
 	# Проверяем что ставка ещё не собрана (единственный источник истины - bet.is_collected)
 	if bet.is_collected:
 		DebugLogger.log("⏸️  Ставка %s[%d] уже собрана, игнорируем" % [bet_type, position_index])

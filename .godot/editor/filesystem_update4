@@ -8,3 +8,6 @@ res://scripts/autoload/PayoutSettingsManager.gd
 res://scripts/payout/PayoutManager.gd
 res://scripts/popups/GuestSettingsPopup.gd
 res://scripts/BetCollectionPhaseManager.gd
+res://scripts/GuestBetFactory.gd
+res://scripts/Localization.gd
+res://scripts/GamePhaseManager.gd

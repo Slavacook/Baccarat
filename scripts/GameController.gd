@@ -536,10 +536,15 @@ func _update_chip_visibility() -> void:
 		else:
 			# Все остальные → видимы и кликабельны
 			# В режиме GUEST фишки уже созданы через _show_guest_bets()
+			# и уже кликабельны через _on_chip_instance_pressed
+			# НЕ вызываем make_chip_clickable() - это подключит дополнительный обработчик
+			# _on_chip_pressed, который вызовет двойной сбор ставки!
 			var chip_instance = chip_visual_manager.get_chip_instance(bet.bet_type, bet.position_index)
 			if chip_instance and chip_instance.node:
 				chip_instance.node.visible = true
-				chip_visual_manager.make_chip_clickable(bet.bet_type, true)
+				# Убеждаемся что фишка не заблокирована
+				chip_instance.node.disabled = false
+				chip_instance.node.mouse_filter = Control.MOUSE_FILTER_STOP
 			
 			var status = ""
 			if bet.won:

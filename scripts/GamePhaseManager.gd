@@ -631,20 +631,20 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		original_chip.position = coords
 		original_chip.visible = true
 		
-		# Отключаем старый обработчик (если был)
+		# Отключаем ВСЕ старые обработчики (и _on_chip_pressed, и _on_chip_instance_pressed)
 		# В Godot 4 используем get_connections() который возвращает Array[Dictionary]
 		# с ключами: signal, callable, flags
+		# ВАЖНО: _on_chip_instance_pressed с разными bind() аргументами - это разные Callable,
+		# поэтому нужно отключать ВСЕ, иначе при клике вызовутся несколько обработчиков!
 		var connections = original_chip.pressed.get_connections()
 		for conn in connections:
 			var callable: Callable = conn["callable"]
-			# Проверяем имя метода через get_method()
-			if callable.get_method() == "_on_chip_pressed":
+			var method_name = callable.get_method()
+			if method_name == "_on_chip_pressed" or method_name == "_on_chip_instance_pressed":
 				original_chip.pressed.disconnect(callable)
 		
 		# Подключаем новый обработчик с position_index
-		# Используем прямой вызов метода (в GDScript приватные методы доступны)
-		if not original_chip.pressed.is_connected(chip_visual_manager._on_chip_instance_pressed.bind(bet_type, position_index)):
-			original_chip.pressed.connect(chip_visual_manager._on_chip_instance_pressed.bind(bet_type, position_index))
+		original_chip.pressed.connect(chip_visual_manager._on_chip_instance_pressed.bind(bet_type, position_index))
 		
 		# Создаём ChipInstance
 		var chip_instance = ChipVisualManager.ChipInstance.new(bet_type, position_index, original_chip, true)

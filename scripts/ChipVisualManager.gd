@@ -338,13 +338,22 @@ func make_chip_clickable(bet_type: String, clickable: bool) -> void:
 	chip.disabled = not clickable
 
 	if clickable:
-		# Подключаем сигнал нажатия
-		if not chip.pressed.is_connected(_on_chip_pressed):
-			chip.pressed.connect(_on_chip_pressed.bind(bet_type))
+		# Сначала отключаем все старые обработчики _on_chip_pressed
+		# ВАЖНО: is_connected() не работает с bind(), нужно перебрать все подключения
+		var connections = chip.pressed.get_connections()
+		for conn in connections:
+			var callable: Callable = conn["callable"]
+			if callable.get_method() == "_on_chip_pressed":
+				chip.pressed.disconnect(callable)
+		# Подключаем новый обработчик
+		chip.pressed.connect(_on_chip_pressed.bind(bet_type))
 	else:
-		# Отключаем сигнал
-		if chip.pressed.is_connected(_on_chip_pressed):
-			chip.pressed.disconnect(_on_chip_pressed)
+		# Отключаем ВСЕ обработчики _on_chip_pressed
+		var connections = chip.pressed.get_connections()
+		for conn in connections:
+			var callable: Callable = conn["callable"]
+			if callable.get_method() == "_on_chip_pressed":
+				chip.pressed.disconnect(callable)
 
 
 func make_all_chips_clickable(clickable: bool) -> void:
@@ -508,10 +517,14 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 	var original_chip = chip_nodes[bet_type]
 	
 	# Подключаем оригинальную фишку к правильному обработчику с position_index = 0
-	if original_chip.pressed.is_connected(_on_chip_pressed):
-		original_chip.pressed.disconnect(_on_chip_pressed)
-	if not original_chip.pressed.is_connected(_on_chip_instance_pressed):
-		original_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, 0))
+	# ВАЖНО: отключаем ВСЕ старые обработчики (bind() создаёт разные Callable!)
+	var connections = original_chip.pressed.get_connections()
+	for conn in connections:
+		var callable: Callable = conn["callable"]
+		var method_name = callable.get_method()
+		if method_name == "_on_chip_pressed" or method_name == "_on_chip_instance_pressed":
+			original_chip.pressed.disconnect(callable)
+	original_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, 0))
 	
 	# Устанавливаем оригинальную фишку на позицию 0
 	if positions.size() > 0:
@@ -699,13 +712,16 @@ func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[
 			chip_instance = ChipInstance.new(bet_type, pos_idx, original_chip, true)
 			chip_instance.stake = stake
 			
-			# Отключаем старый обработчик если был подключен
-			if original_chip.pressed.is_connected(_on_chip_pressed):
-				original_chip.pressed.disconnect(_on_chip_pressed)
+			# Отключаем ВСЕ старые обработчики (bind() создаёт разные Callable!)
+			var orig_connections = original_chip.pressed.get_connections()
+			for conn in orig_connections:
+				var callable: Callable = conn["callable"]
+				var method_name = callable.get_method()
+				if method_name == "_on_chip_pressed" or method_name == "_on_chip_instance_pressed":
+					original_chip.pressed.disconnect(callable)
 			
 			# Подключаем сигнал с индексом
-			if not original_chip.pressed.is_connected(_on_chip_instance_pressed):
-				original_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, pos_idx))
+			original_chip.pressed.connect(_on_chip_instance_pressed.bind(bet_type, pos_idx))
 		else:
 			# Остальные - создаём копии
 			var new_chip = _create_chip_copy(bet_type, pos_idx, texture)
@@ -792,9 +808,13 @@ func hide_chip_instance(bet_type: String, position_index: int) -> bool:
 		return false
 
 	if chip.node:
-		# Отключаем сигнал чтобы фишка не была кликабельной
-		if chip.node.pressed.is_connected(_on_chip_instance_pressed):
-			chip.node.pressed.disconnect(_on_chip_instance_pressed)
+		# Отключаем ВСЕ обработчики _on_chip_instance_pressed
+		# ВАЖНО: is_connected() не работает с bind(), нужно перебрать все подключения
+		var connections = chip.node.pressed.get_connections()
+		for conn in connections:
+			var callable: Callable = conn["callable"]
+			if callable.get_method() == "_on_chip_instance_pressed":
+				chip.node.pressed.disconnect(callable)
 		
 		chip.node.visible = false
 		
@@ -816,9 +836,14 @@ func clear_all_active_chips() -> void:
 	"""Удалить все активные фишки"""
 	for chip in active_chips:
 		if chip.node:
-			# Отключаем сигнал _on_chip_instance_pressed
-			if chip.node.pressed.is_connected(_on_chip_instance_pressed):
-				chip.node.pressed.disconnect(_on_chip_instance_pressed)
+			# Отключаем ВСЕ обработчики _on_chip_instance_pressed
+			# ВАЖНО: is_connected(_on_chip_instance_pressed) НЕ работает с bind()!
+			# Нужно перебрать все подключения и отключить по имени метода
+			var connections = chip.node.pressed.get_connections()
+			for conn in connections:
+				var callable: Callable = conn["callable"]
+				if callable.get_method() == "_on_chip_instance_pressed":
+					chip.node.pressed.disconnect(callable)
 			
 			# Удаляем копии (не оригинальные)
 			if not chip.is_original:
