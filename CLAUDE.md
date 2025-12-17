@@ -2,36 +2,46 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## 🎯 Критические обновления (v5.9)
+## 🎯 Критические обновления
 
-**ВАЖНО**: Документация обновлена до актуального состояния кода! Ключевые изменения:
+**ВАЖНО**: Документация обновлена до актуального состояния кода! Ключевые компоненты:
 
 1. **✅ Phase 2 Refactoring ЗАВЕРШЁН** - UIManager разделён на 5 специализированных менеджеров в `scripts/ui/`:
    - CardUIManager, ToggleUIManager, ButtonUIManager, MarkerUIManager, PayoutToggleManager
    - UIManager теперь фасад-агрегатор с Dependency Injection
 
-2. **📷 Система камеры** - новые режимы зума через EventBus:
+2. **👥 Guest System (Система гостей)** - полноценная система генерации ставок:
+   - 6 гостей с уникальными характерами (Джентльмен, Осторожный, Азартный)
+   - 3 уровня обеспеченности (Бедный, Средний, Богатый)
+   - Автоматическая генерация ставок с учетом вероятностей
+   - Трекинг балансов гостей (может быть отрицательным)
+   - Маппинг секторов стола (1-6) на позиции фишек
+
+3. **📷 Система камеры** - новые режимы зума через EventBus:
    - "in" (карты), "out" (общий план), "area_1/2/3" (области ставок)
    - Стрелки навигации между областями
 
-3. **🃏 Колода** - теперь **8 колод × 52 = 416 карт** (как в настоящем казино)
+4. **🃏 Колода** - теперь **8 колод × 52 = 416 карт** (как в настоящем казино)
    - Автоматическое перемешивание при исчерпании
 
-4. **🎮 Режимы игры** - "junket" и "classic" (не Classic/Super6/EZ как было указано ранее)
+5. **🎮 Режимы игры** - "junket" и "classic"
 
-5. **📡 EventBus расширен** - теперь **38 сигналов** (было 28):
+6. **📡 EventBus расширен** - теперь **38 сигналов**:
    - Добавлены сигналы камеры (3)
    - Расширены сигналы настроек (card_back_style, position_mode)
    - Добавлены сигналы выплат (manual_payout_requested, payout_setting_changed)
 
-6. **🆕 Новые менеджеры**:
+7. **🆕 Новые менеджеры**:
    - BetCollectionPhaseManager - управление фазой сбора ставок
    - TableStateManager - состояние стола
    - CameraManager - управление камерой
+   - GuestBetFactory - фабрика генерации ставок гостей
+   - GuestSectorMapper - маппинг секторов на позиции
+   - GuestBetStorage - хранилище ставок гостей
 
 ## Обзор проекта
 
-**Баккара 5.9** - тренажёр для обучения правилам игры в баккара, разработанный на Godot 4.5. Проект помогает дилерам и крупье практиковать:
+**Баккара** - тренажёр для обучения правилам игры в баккара, разработанный на Godot 4.5. Проект помогает дилерам и крупье практиковать:
 - Знание правил добора третьей карты
 - Расчёт выплат с комиссией 5% на банкира
 - Расчёт выплат 8:1 на ничью
@@ -169,7 +179,7 @@ godot --export-release "Windows Desktop" build/Baccarat.exe
 - limits_manager: LimitsManager - управление лимитами стола
 - camera_manager: CameraManager - камера с зумом и плавными переходами (общий план, зум на карты, зум на области ставок)
 
-# Новые менеджеры (v5.9+)
+# Менеджеры фишек и выплат
 - chip_visual_manager: ChipVisualManager - визуализация фишек на столе
 - winner_selection_manager: WinnerSelectionManager - выбор победителя с подсветкой
 - payout_queue_manager: PayoutQueueManager - очередь выплат (Main/Pair)
@@ -426,7 +436,7 @@ ui_manager.set_flip_cards(flip_cards)
 
 ### Система выплат с фишками
 
-Визуальная система расчёта выплат с физическими фишками (реализована в v5.9).
+Визуальная система расчёта выплат с физическими фишками.
 
 **Архитектура** (`scripts/chip_system/`):
 
@@ -473,6 +483,180 @@ ui_manager.set_flip_cards(flip_cards)
 Методы:
 - `generate_bet() -> int` - случайная ставка в пределах лимитов
 - `generate_tie_bet() -> int` - случайная ставка для TIE
+- `generate_pair_bet() -> int` - случайная ставка для пар
+
+### Система гостей (Guest System)
+
+Полноценная система автоматической генерации ставок для 6 виртуальных гостей за столом.
+
+**Архитектура** (`scripts/`):
+
+#### 1. **GuestBetFactory** (`GuestBetFactory.gd`) - фабрика генерации ставок
+
+**Роль**: Генерирует ставки гостей на основе их характера и обеспеченности.
+
+**3 типа характера гостя** (с уникальными вероятностями):
+- **GENTLEMAN** (Джентельмен) - сбалансированная игра:
+  - Main: Player 44%, Banker 48%, None 8%
+  - Tie: 25% вероятность
+  - Pairs: Both 25%, None 65%, Single 10%
+
+- **CAUTIOUS** (Осторожный) - консервативная игра:
+  - Main: Player 40%, Banker 42%, None 18%
+  - Tie: 15% вероятность
+  - Pairs: Both 15%, None 55%, Single 30%
+
+- **GAMBLER** (Азартный) - агрессивная игра:
+  - Main: Player 44%, Banker 54%, None 1%
+  - Tie: 45% вероятность
+  - Pairs: Both 45%, None 25%, Single 30%
+
+**Ключевые методы**:
+```gdscript
+func generate_bets_for_all_guests() -> void
+# Генерирует ставки для всех активных гостей
+
+func generate_guest_bets(guest_id: int) -> Array[GuestBet]
+# Генерирует ставки для одного гостя на основе:
+#   - характера (GENTLEMAN/CAUTIOUS/GAMBLER)
+#   - обеспеченности (POOR/MEDIUM/RICH → SMALL/MEDIUM/LARGE профиль ставок)
+#   - фильтра настроек PayoutSettingsManager
+```
+
+**Логика генерации**:
+1. Основная ставка (Player ИЛИ Banker, но не оба)
+2. Ставка на Tie (опционально)
+3. Ставки на пары (Both/PlayerPair/BankerPair/None)
+4. Фильтрация по PayoutSettingsManager (отключенные ставки удаляются)
+
+**Интеграция с BetProfileManager**:
+```gdscript
+# GuestWealth → BetProfile
+POOR → BetProfile.SMALL    # Маленькие ставки
+MEDIUM → BetProfile.MEDIUM  # Средние ставки
+RICH → BetProfile.LARGE     # Крупные ставки
+```
+
+#### 2. **GuestSectorMapper** (`GuestSectorMapper.gd`) - маппинг секторов
+
+**Роль**: Статический класс для маппинга 6 секторов стола на позиции фишек.
+
+**Маппинг секторов**:
+```
+Сектор 1 (самый левый)  → Player: [8, 9], Banker: [2, 3], Tie: [1], Pairs: [1]
+Сектор 2                → Player: [6, 7], Banker: [4, 5], Tie: [2], Pairs: [2]
+Сектор 3                → Player: [4, 5], Banker: [6, 7], Tie: [3], Pairs: [3]
+Сектор 4 (центр)        → Player: [0, 1], Banker: [0, 1], Tie: [0], Pairs: [0]
+Сектор 5                → Player: [2, 3], Banker: [8, 9], Tie: [4], Pairs: [4]
+Сектор 6 (самый правый) → Player: [10,11], Banker: [9,10], Tie: [5], Pairs: [5]
+```
+
+**Ключевые методы**:
+```gdscript
+static func get_position_index(sector: int, bet_type: String) -> int
+# Возвращает индекс позиции для типа ставки в секторе (1-6)
+
+static func get_sector_from_position(bet_type: String, position_index: int) -> int
+# Обратный маппинг: по position_index определяет сектор гостя
+
+static func get_position_coordinates(sector: int, bet_type: String) -> Vector2
+# Возвращает координаты позиции для визуализации фишки
+```
+
+**Важно**: Для Player/Banker в каждом секторе по 2 позиции - используется первая из пары.
+
+#### 3. **GuestBetStorage** (`GuestBetStorage.gd`) - хранилище ставок
+
+**Роль**: Временное хранилище сгенерированных ставок гостей до следующей раздачи.
+
+**Структура данных GuestBet**:
+```gdscript
+class GuestBet:
+    var guest_id: int           # 1-6
+    var bet_type: String        # "Player", "Banker", "Tie", "PairPlayer", "PairBanker"
+    var stake: float            # Размер ставки
+    var position_index: int     # Индекс позиции в секторе
+    var sector: int             # Сектор гостя (1-6)
+```
+
+**Ключевые методы**:
+```gdscript
+func store_guest_bets(guest_id: int, bets: Array[GuestBet]) -> void
+# Сохранить ставки гостя до следующей раздачи
+
+func get_guest_bets(guest_id: int) -> Array[GuestBet]
+# Получить сохранённые ставки гостя
+
+func get_all_bets() -> Array[GuestBet]
+# Получить все ставки всех гостей (для визуализации)
+
+func clear_all_bets() -> void
+# Очистить все ставки после использования
+```
+
+**Жизненный цикл**:
+1. Генерация: `GuestBetFactory.generate_bets_for_all_guests()` → сохранение в storage
+2. Показ фишек: `ChipVisualManager` читает из storage и визуализирует
+3. Раунд завершён: `clear_all_bets()` → новая генерация
+
+#### 4. **GuestSettingsManager** (autoload) - настройки гостей
+
+См. раздел "Autoload синглтоны" → пункт 15.
+
+#### 5. **GuestStatsManager** (autoload) - статистика гостей
+
+См. раздел "Autoload синглтоны" → пункт 16.
+
+### Интеграция Guest System с основной игрой
+
+**В GameController**:
+```gdscript
+# GamePhaseManager содержит guest_bet_storage
+phase_manager.guest_bet_storage  # Доступ к хранилищу ставок
+
+# При подготовке новой игры:
+guest_bet_factory.generate_bets_for_all_guests()  # Генерация ставок
+
+# ChipVisualManager в режиме GUEST:
+chip_visual_manager.set_position_mode(ChipVisualManager.PositionMode.GUEST)
+```
+
+**В BetCollectionPhaseManager**:
+```gdscript
+# При сборе/оплате фишек гостей:
+func _update_guest_balance_for_bet(bet_type: String, position_index: int, payout: float):
+    var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+    var guest_id = sector  # Сектор = ID гостя
+    GuestStatsManager.add_to_balance(guest_id, payout)  # Обновление баланса
+```
+
+**В ChipVisualManager**:
+- Режим `PositionMode.GUEST` - фишки показываются для активных гостей
+- Координаты берутся из `GuestSectorMapper.get_position_coordinates()`
+- Визуализация всех ставок из `guest_bet_storage.get_all_bets()`
+
+### Пример работы Guest System
+
+```gdscript
+# 1. Настройка гостя
+GuestSettingsManager.set_guest_enabled(1, true)
+GuestSettingsManager.set_guest_character(1, GuestCharacter.GAMBLER)
+GuestSettingsManager.set_guest_wealth(1, GuestWealth.RICH)
+
+# 2. Генерация ставок (перед раздачей)
+var factory = GuestBetFactory.new(limits_manager, guest_bet_storage)
+factory.generate_bets_for_all_guests()
+
+# 3. Получение ставок для визуализации
+var all_bets = guest_bet_storage.get_all_bets()
+for bet in all_bets:
+    print("Гость %d: %s ставка %f в секторе %d" % [bet.guest_id, bet.bet_type, bet.stake, bet.sector])
+
+# 4. Обновление баланса после раунда
+# (автоматически через BetCollectionPhaseManager)
+var balance = GuestStatsManager.get_guest_balance(1)
+print("Гость 1: баланс = %s" % GuestStatsManager.get_balance_string(1))
+```
 
 ### Autoload синглтоны
 
@@ -526,7 +710,23 @@ ui_manager.set_flip_cards(flip_cards)
 
 13. **PayoutContextManager** (`scripts/PayoutContextManager.gd`) - контекст текущей выплаты
 
-14. **TableStateManager** (`scripts/autoload/TableStateManager.gd`) - состояние стола (новые фичи v5.9)
+14. **TableStateManager** (`scripts/autoload/TableStateManager.gd`) - состояние стола
+
+15. **GuestSettingsManager** (`scripts/autoload/GuestSettingsManager.gd`) - настройки гостей:
+   - Управление 6 гостями (включен/выключен, характер, обеспеченность)
+   - Enum GuestCharacter: GENTLEMAN, CAUTIOUS, GAMBLER
+   - Enum GuestWealth: POOR, MEDIUM, RICH
+   - Автосохранение в SaveManager
+   - Сигнал: guest_settings_changed
+
+16. **GuestStatsManager** (`scripts/autoload/GuestStatsManager.gd`) - статистика гостей:
+   - Трекинг балансов 6 гостей (может быть отрицательным)
+   - Методы: get_guest_balance, add_to_balance, subtract_from_balance
+   - Форматированный вывод для UI: get_balance_string
+   - Автосохранение в SaveManager
+   - Сигнал: guest_balance_changed
+
+17. **KeyboardNavigationController** (`scripts/KeyboardNavigationController.gd`) - навигация с клавиатуры для UI
 
 ### Карта зависимостей менеджеров
 
@@ -931,7 +1131,7 @@ func get_point() -> int:
 
 ## Режим выживания
 
-Система жизней с наказанием за ошибки (реализована в v5.9).
+Система жизней с наказанием за ошибки.
 
 **Механика**:
 - Игрок начинает с 7 жизнями (отображаются эмодзи-сердечками ❤️)
@@ -1083,11 +1283,17 @@ Baccarat/
 │   │   ├── GameDataManager.gd        # Состояние раунда
 │   │   └── PayoutContextManager.gd   # Контекст выплаты
 │   │
-│   ├── Новые менеджеры (v5.9+):
+│   ├── Менеджеры фишек и выплат:
 │   │   ├── ChipVisualManager.gd      # Визуализация фишек
 │   │   ├── WinnerSelectionManager.gd # Подсветка победителя
 │   │   ├── PayoutQueueManager.gd     # Очередь выплат
-│   │   └── PairBettingManager.gd     # Логика пар
+│   │   ├── PairBettingManager.gd     # Логика пар
+│   │   └── BetCollectionPhaseManager.gd # Управление фазой сбора ставок
+│   │
+│   ├── Система гостей (Guest System):
+│   │   ├── GuestBetFactory.gd        # Фабрика генерации ставок
+│   │   ├── GuestSectorMapper.gd      # Маппинг секторов на позиции
+│   │   └── GuestBetStorage.gd        # Хранилище ставок гостей
 │   │
 │   ├── Модели данных:
 │   │   ├── Card.gd                   # Модель карты
@@ -1404,14 +1610,19 @@ func t(key: String, args: Array = []) -> String
 
 ## Планы развития
 
-Из `redme.txt`:
+**Реализованные фичи** ✅:
+- Интерфейс выплаты с фишками (ChipStack, PayoutValidator)
+- Динамическая камера с зумом (CameraManager)
+- Система гостей (Guest System) с генерацией ставок
+- Phase 2 Refactoring (UIManager разделён на 5 менеджеров)
 
-1. ✅ **Интерфейс выплаты с фишками** - реализовано в v5.9
-2. **Подсказка с подсветкой зон** - визуальная помощь новичкам
-3. **Улучшенные комментарии в тостах** - более информативные сообщения
-4. ✅ **Камера** - реализована динамическая камера с зумом
-5. **Анимация карт** - плавное появление карт при раздаче
-6. **Звуки** - звуковое сопровождение действий
+**Потенциальные улучшения**:
+1. **Подсказка с подсветкой зон** - визуальная помощь новичкам при выборе третьих карт
+2. **Улучшенные комментарии в тостах** - более информативные сообщения об ошибках
+3. **Анимация карт** - плавное появление карт при раздаче (флип-анимация)
+4. **Звуки** - звуковое сопровождение действий (раздача, выигрыш, ошибка)
+5. **Мультиплеер режим** - возможность игры нескольких дилеров
+6. **Расширенная статистика** - графики, тепловая карта ошибок
 
 ## Рекомендации при разработке
 
@@ -1540,7 +1751,7 @@ func _ready():
    - Знал о деталях анимаций
    - Сигналы смешаны с логикой
 
-   СТАЛО (v5.9):
+   СТАЛО:
    - UIManager теперь фасад-агрегатор
    - Делегирует работу в scripts/ui/:
      • CardUIManager (карты и анимации)
@@ -1600,7 +1811,7 @@ func _ready():
 3. ✅ UIManager стал фасадом-агрегатором
 4. ✅ Каждый компонент эмитит события → UIManager пробрасывает их
 
-**Результат**: Phase 2 Refactoring завершён в v5.9! Все сигналы работают, анимации корректны.
+**Результат**: Phase 2 Refactoring завершён! Все сигналы работают, анимации корректны.
 
 #### Фаза 2: Декомпозиция GamePhaseManager (средний риск)
 
@@ -1840,18 +2051,21 @@ static func hand_value(hand: Array[Card]) -> int:
 
 ### 📊 Метрики качества кода
 
-Текущее состояние проекта (v5.9):
+Текущее состояние проекта:
 - ✅ **Модульность**: 9.5/10 (менеджеры отлично разделены, Phase 2 завершён!)
-- ✅ **Связанность**: 8.5/10 (UIManager рефакторен, остался только GamePhaseManager)
+- ✅ **Связанность**: 9/10 (UIManager рефакторен, Guest System интегрирован)
 - ✅ **Тестируемость**: 8/10 (BaccaratRules легко тестируется, DI внедрён в UIManager)
-- ✅ **Расширяемость**: 9/10 (EventBus с 38 сигналами, легко добавлять фичи)
+- ✅ **Расширяемость**: 9.5/10 (EventBus с 38 сигналами, Guest System расширяем)
 - ✅ **Читаемость**: 9/10 (отличные комментарии, понятная структура)
 - ✅ **Производительность**: 8.5/10 (кэширование, pooling, 8 колод)
 
-**Достижения v5.9**:
+**Ключевые достижения**:
 - ✅ Phase 2 Refactoring завершён (UIManager разбит на 5 специализированных менеджеров)
 - ✅ Dependency Injection внедрён в UIManager
 - ✅ Система камеры с 3 режимами зума
+- ✅ Guest System с 6 гостями и генерацией ставок
+- ✅ Транзакционность операций с rollback механизмом
+- ✅ Защита от race conditions после await
 
 **Цели для будущего**:
 - Декомпозиция GamePhaseManager (Phase 2: разбить на HandManager, PhaseCoordinator, ActionValidator)
