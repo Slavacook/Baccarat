@@ -120,7 +120,7 @@ static func _animate_scale_from_storage(
 	
 	# Получаем текущую позицию карты (в глобальных координатах)
 	var viewport = card_texture.get_viewport()
-	var viewport_rect = viewport.get_visible_rect()
+	var _viewport_rect = viewport.get_visible_rect()
 	var card_center_global = card_texture.get_global_rect().get_center()
 	
 	# Начальное состояние: карта в позиции миниатюры, маленькая
@@ -215,7 +215,7 @@ static func animate_close(
 static func _animate_scale_to_zero(
 	card_texture: TextureRect,
 	background: ColorRect,
-	original_scale: Vector2,
+	_original_scale: Vector2,
 	on_complete: Callable
 ) -> void:
 	# Устанавливаем pivot_offset в центр карты для масштабирования из центра

@@ -148,7 +148,6 @@ func _actually_hide_card():
 		current_card.card_closed.emit(current_card)
 		EventBus.chance_card_popup_closed.emit()
 	
-	var card_to_clear = current_card
 	current_card = null
 	
 	# Скрываем в конце
