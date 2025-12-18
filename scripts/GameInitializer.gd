@@ -322,7 +322,12 @@ static func _restore_chips_from_table_state(_controller: Node2D, result: Diction
 		DebugLogger.log_warning("⚠️ Нет сохраненного состояния в TableStateManager")
 		return
 
-	# Восстанавливаем ВСЕ фишки из сохраненных ставок
+	# В режиме GUEST фишки создаются через фабрику ставок, не восстанавливаем из TableStateManager
+	if chip_visual_manager.current_mode == ChipVisualManager.PositionMode.GUEST:
+		DebugLogger.log_restore("⚠️ Режим GUEST: фишки создаются через фабрику ставок, пропускаем восстановление из TableStateManager")
+		return
+
+	# Восстанавливаем ВСЕ фишки из сохраненных ставок (для других режимов, если будут)
 	for bet in TableStateManager.bets:
 		if bet.chip_texture.is_empty():
 			# Нет сохраненной текстуры - используем случайную

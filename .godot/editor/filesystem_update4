@@ -1,0 +1,3 @@
+res://scripts/ChipVisualManager.gd
+res://scripts/GameInitializer.gd
+res://scenes/SurvivalModeUI.tscn

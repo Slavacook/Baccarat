@@ -227,10 +227,15 @@ func _save_default_positions() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_chip(bet_type: String) -> void:
-	"""Показать фишку с текстурой и позицией (режим GUEST)
+	"""Показать фишку с текстурой и позицией
 	
-	В режиме GUEST фишки показываются только для гостевых ставок через _show_guest_bets()
-	Этот метод используется для обратной совместимости или fallback случаев.
+	В режиме GUEST:
+	- Фишки гостей создаются через _show_guest_bets() на правильных позициях
+	- Этот метод только устанавливает текстуру для оригинальной фишки (шаблона)
+	- Оригинальная фишка НЕ показывается на дефолтной позиции (чтобы не конфликтовать с фабрикой ставок)
+	
+	В других режимах (если будут):
+	- Показывает фишку на дефолтной позиции
 	"""
 	if not chip_nodes.has(bet_type):
 		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
@@ -250,15 +255,23 @@ func show_chip(bet_type: String) -> void:
 		push_error("ChipVisualManager: не удалось загрузить текстуру '%s'" % texture_path)
 		return
 
+	# Устанавливаем текстуру (нужна для создания копий)
 	chip.texture_normal = texture
-	chip.visible = true
 	current_textures[bet_type] = texture_path
 
-	# В режиме GUEST используем основную позицию (фишки гостей создаются через _show_guest_bets)
-	_reset_to_default_position(bet_type)
-	_remove_extra_chips(bet_type)
-
-	print("💰 ChipVisualManager: показана фишка %s (%s) mode=GUEST" % [bet_type, texture_path.get_file()])
+	# В режиме GUEST: НЕ показываем оригинальную фишку на дефолтной позиции
+	# Фишки гостей создаются через _show_guest_bets() на правильных позициях
+	if current_mode == PositionMode.GUEST:
+		# Только устанавливаем текстуру, НЕ показываем фишку
+		chip.visible = false
+		_remove_extra_chips(bet_type)
+		print("💰 ChipVisualManager: установлена текстура для %s (%s) mode=GUEST (фишка скрыта)" % [bet_type, texture_path.get_file()])
+	else:
+		# В других режимах (если будут) - показываем на дефолтной позиции
+		chip.visible = true
+		_reset_to_default_position(bet_type)
+		_remove_extra_chips(bet_type)
+		print("💰 ChipVisualManager: показана фишка %s (%s)" % [bet_type, texture_path.get_file()])
 
 
 func set_chip_texture(bet_type: String, texture_path: String) -> void:
