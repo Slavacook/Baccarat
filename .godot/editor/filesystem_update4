@@ -1,6 +1,2 @@
-res://scripts/ChipVisualManager.gd
-res://scripts/GameInitializer.gd
-res://scenes/SurvivalModeUI.tscn
-res://scripts/heart_bet/HeartBetUI.gd
-res://scenes/heart_bet/HeartBetUI.tscn
-res://scenes/Game.tscn
+res://scenes/chance_cards/BaseChanceCardScene.tscn
+res://scripts/chance_cards/BaseChanceCardScene.gd

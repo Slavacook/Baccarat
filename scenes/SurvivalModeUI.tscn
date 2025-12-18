@@ -1,7 +1,6 @@
-[gd_scene load_steps=3 format=3 uid="uid://rdncw6ifk1c2"]
+[gd_scene load_steps=2 format=3 uid="uid://rdncw6ifk1c2"]
 
 [ext_resource type="Script" uid="uid://c44cy12nk5q05" path="res://scripts/SurvivalModeUI.gd" id="1_survival"]
-[ext_resource type="Texture2D" uid="uid://ch6mlxy0v6dx7" path="res://assets/ui/invitation_card.png" id="2_exx1q"]
 
 [node name="SurvivalModeUI" type="Control"]
 visible = false
@@ -17,33 +16,6 @@ offset_bottom = 60.0
 grow_horizontal = 2
 mouse_filter = 2
 script = ExtResource("1_survival")
-
-[node name="ChanceIndicator" type="TextureButton" parent="."]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_left = -96.0
-offset_top = 5.0
-offset_right = -36.0
-offset_bottom = 65.0
-scale = Vector2(2, 2)
-texture_normal = ExtResource("2_exx1q")
-ignore_texture_size = true
-stretch_mode = 5
-
-[node name="ChanceCounter" type="Label" parent="."]
-unique_name_in_owner = true
-visible = false
-layout_mode = 0
-offset_left = -30.0
-offset_top = 5.0
-offset_bottom = 35.0
-theme_override_colors/font_color = Color(1, 0.8, 0, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
-theme_override_constants/outline_size = 3
-theme_override_font_sizes/font_size = 24
-horizontal_alignment = 1
-vertical_alignment = 1
 
 [node name="MarginContainer" type="MarginContainer" parent="."]
 layout_mode = 1

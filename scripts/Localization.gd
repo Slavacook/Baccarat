@@ -149,7 +149,13 @@ const DATA = {
 		"HEART_BET_WON_TIE": "Невероятно! Вы угадали Игалите! +7 ❤️",
 		"HEART_BET_LOST": "Не повезло! Сердце потеряно 💔",
 		"HEART_BET_TIE_DRAW": "Игалите! Попробуйте ещё раз 🔄",
-		"HEART_BET_DECLINED": "Шанс упущен"
+		"HEART_BET_DECLINED": "Шанс упущен",
+		
+		# ═══ CHANCE CARDS (Карты шанса) ═══
+		"USE_BUTTON": "Использовать",
+		"CARD_CANNOT_USE": "Карту нельзя использовать сейчас",
+		"CANNOT_USE_CHANCE": "Нельзя использовать шанс",
+		"NO_CHANCES_AVAILABLE": "Нет доступных шансов"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural 8 or 9! No third card",
@@ -297,7 +303,13 @@ const DATA = {
 		"HEART_BET_WON_TIE": "Incredible! You guessed Tie! +7 ❤️",
 		"HEART_BET_LOST": "Unlucky! Heart lost 💔",
 		"HEART_BET_TIE_DRAW": "Tie! Try again 🔄",
-		"HEART_BET_DECLINED": "Chance missed"
+		"HEART_BET_DECLINED": "Chance missed",
+		
+		# === CHANCE CARDS ===
+		"USE_BUTTON": "Use",
+		"CARD_CANNOT_USE": "Card cannot be used now",
+		"CANNOT_USE_CHANCE": "Cannot use chance",
+		"NO_CHANCES_AVAILABLE": "No chances available"
 	}
 }
 

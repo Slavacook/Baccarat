@@ -31,7 +31,7 @@
 [ext_resource type="Texture2D" uid="uid://dy11vsvl3ejy5" path="res://assets/ui/buttons/left.PNG" id="28_left"]
 [ext_resource type="Texture2D" uid="uid://deffdpgc1k68v" path="res://assets/ui/buttons/right.PNG" id="29_right"]
 [ext_resource type="PackedScene" uid="uid://c8heartbetui1" path="res://scenes/heart_bet/HeartBetUI.tscn" id="30_heartbet"]
-[ext_resource type="PackedScene" uid="uid://de1cyeo7123su" path="res://scenes/ChanceCardPopup.tscn" id="31_chancepopup"]
+[ext_resource type="PackedScene" path="res://scenes/chance_cards/ChanceCardStorage.tscn" id="33_chance_storage"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -56,7 +56,14 @@ layer = 128
 
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
-[node name="ChanceCardPopup" parent="TopUI" instance=ExtResource("31_chancepopup")]
+[node name="ChanceCardStorage" parent="TopUI" instance=ExtResource("33_chance_storage")]
+layout_mode = 3
+anchors_preset = 0
+offset_left = 38.0
+offset_top = 575.0
+offset_right = 334.0
+offset_bottom = 770.0
+scale = Vector2(0.08, 0.08)
 
 [node name="PayButton" type="TextureButton" parent="TopUI"]
 visible = false

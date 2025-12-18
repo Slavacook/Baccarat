@@ -97,6 +97,7 @@ static func _initialize_core_managers(controller: Node2D, result: Dictionary) ->
 	survival_ui.game_over.connect(controller._on_survival_game_over)
 	result["survival_ui"] = survival_ui
 
+
 	result["game_over_popup"] = controller.get_node("GameOverScene")
 
 	# Подписываемся на Game Over по очкам

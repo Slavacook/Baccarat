@@ -269,21 +269,45 @@ signal heart_bet_hide_selected()
 @warning_ignore("unused_signal")
 signal heart_bet_round_complete()
 
-## Карта шанса нажата (маленькая)
+## Карта шанса нажата (маленькая) - DEPRECATED, используйте chance_card_storage_clicked
 @warning_ignore("unused_signal")
 signal chance_card_pressed()
 
-## Запрос использования шанса (нажата кнопка "Использовать")
+## Запрос использования шанса (нажата кнопка "Использовать") - DEPRECATED, используйте chance_card_used
 @warning_ignore("unused_signal")
 signal chance_card_use_requested()
 
-## Popup карты закрыт (без использования)
+## Popup карты закрыт (без использования) - DEPRECATED
 @warning_ignore("unused_signal")
 signal chance_card_popup_closed()
 
 ## Счётчик шансов изменился
 @warning_ignore("unused_signal")
 signal chance_count_changed(count: int)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🎴 НОВАЯ СИСТЕМА КАРТ ШАНСА
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Карта зарегистрирована в ChanceCardManager
+@warning_ignore("unused_signal")
+signal chance_card_registered(card_id: String)
+
+## Карта активирована триггером
+@warning_ignore("unused_signal")
+signal chance_card_triggered(card_id: String)
+
+## Запрос показа карты на весь экран
+@warning_ignore("unused_signal")
+signal chance_card_fullscreen_requested(card_id: String)
+
+## Клик на миниатюру карты в хранилище
+@warning_ignore("unused_signal")
+signal chance_card_storage_clicked(card_id: String)
+
+## Анимация карты завершена (уход в хранилище)
+@warning_ignore("unused_signal")
+signal chance_card_animation_complete(card_id: String)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
