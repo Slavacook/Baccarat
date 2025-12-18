@@ -1,4 +1,4 @@
-[gd_scene load_steps=32 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=33 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -31,7 +31,7 @@
 [ext_resource type="Texture2D" uid="uid://dy11vsvl3ejy5" path="res://assets/ui/buttons/left.PNG" id="28_left"]
 [ext_resource type="Texture2D" uid="uid://deffdpgc1k68v" path="res://assets/ui/buttons/right.PNG" id="29_right"]
 [ext_resource type="PackedScene" uid="uid://c8heartbetui1" path="res://scenes/heart_bet/HeartBetUI.tscn" id="30_heartbet"]
-[ext_resource type="PackedScene" uid="uid://chancecardpopup1" path="res://scenes/ChanceCardPopup.tscn" id="31_chancepopup"]
+[ext_resource type="PackedScene" uid="uid://de1cyeo7123su" path="res://scenes/ChanceCardPopup.tscn" id="31_chancepopup"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -662,11 +662,10 @@ texture = ExtResource("18_sv1m6")
 
 [node name="HeartBetUI" parent="." instance=ExtResource("30_heartbet")]
 z_index = 50
-anchors_preset = 0
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 1154.0
-offset_bottom = 650.0
+offset_left = 8.0
+offset_top = -57.0
+offset_right = 1162.0
+offset_bottom = 593.0
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]

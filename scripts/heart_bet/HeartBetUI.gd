@@ -26,13 +26,13 @@ const OPACITY_SELECTED: float = 1.0
 ## ═══════════════════════════════════════════════════════════════════════════
 
 ## Начальный масштаб сердец (1.0 = 100%)
-const SCALE_NORMAL: Vector2 = Vector2(0.5, 0.5)
+const SCALE_NORMAL: Vector2 = Vector2(1.1, 1.1)
 
 ## Масштаб при наведении мышки
-const SCALE_HOVER: Vector2 = Vector2(0.6, 0.6)
+const SCALE_HOVER: Vector2 = Vector2(1.7, 1.7)
 
 ## Масштаб выбранного сердца
-const SCALE_SELECTED: Vector2 = Vector2(0.65, 0.65)
+const SCALE_SELECTED: Vector2 = Vector2(1.1, 1.1)
 
 ## Скорость анимации масштабирования (секунды)
 const SCALE_ANIMATION_DURATION: float = 0.1
