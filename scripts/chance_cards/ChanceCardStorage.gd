@@ -34,8 +34,6 @@ func _ready():
 	# Вычисляем позицию хранилища
 	await get_tree().process_frame
 	storage_position = global_position + size / 2
-	
-	print("🎴 ChanceCardStorage готов (позиция: %s)" % storage_position)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -51,31 +49,51 @@ func add_card_miniature(card: BaseChanceCard):
 		update_card_count(card.card_id, card.count)
 		return
 	
-	# Создаём контейнер для миниатюры
-	var miniature_container = VBoxContainer.new()
-	miniature_container.name = "Miniature_" + card.card_id
+	var miniature_container: Control = null
+	var button: TextureButton = null
+	var counter_label: Label = null
 	
-	# Кнопка с текстурой карты
-	var button = TextureButton.new()
-	button.name = "CardButton"
-	button.custom_minimum_size = Vector2(80, 120)
+	# Пытаемся найти узел в сцене (для heart_bet)
+	var existing_miniature = cards_container.get_node_or_null("Miniature_" + card.card_id)
+	if existing_miniature:
+		# Используем узел из сцены
+		miniature_container = existing_miniature as Control
+		button = miniature_container.get_node_or_null("CardButton") as TextureButton
+		counter_label = miniature_container.get_node_or_null("Counter") as Label
+		
+		if not button:
+			push_warning("⚠️ ChanceCardStorage: CardButton не найден в сцене для %s" % card.card_id)
+			return
+		if not counter_label:
+			push_warning("⚠️ ChanceCardStorage: Counter не найден в сцене для %s" % card.card_id)
+			return
+	else:
+		# Создаём динамически для других карт (если появятся)
+		miniature_container = Control.new()
+		miniature_container.name = "Miniature_" + card.card_id
+		miniature_container.custom_minimum_size = Vector2(80, 120)
+		
+		button = TextureButton.new()
+		button.name = "CardButton"
+		button.custom_minimum_size = Vector2(80, 120)
+		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		
+		counter_label = Label.new()
+		counter_label.name = "Counter"
+		counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		counter_label.add_theme_font_size_override("font_size", 16)
+		counter_label.add_theme_color_override("font_color", Color(1, 0.8, 0))
+		counter_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
+		counter_label.add_theme_constant_override("outline_size", 2)
+		
+		miniature_container.add_child(button)
+		miniature_container.add_child(counter_label)
+		cards_container.add_child(miniature_container)
+	
+	# Настраиваем кнопку
 	button.texture_normal = card.card_texture
-	button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-	button.pressed.connect(_on_miniature_clicked.bind(card.card_id))
-	
-	# Счётчик
-	var counter_label = Label.new()
-	counter_label.name = "Counter"
-	counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	counter_label.add_theme_font_size_override("font_size", 16)
-	counter_label.add_theme_color_override("font_color", Color(1, 0.8, 0))
-	counter_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-	counter_label.add_theme_constant_override("outline_size", 2)
-	
-	# Добавляем в контейнер
-	miniature_container.add_child(button)
-	miniature_container.add_child(counter_label)
-	cards_container.add_child(miniature_container)
+	if not button.pressed.is_connected(_on_miniature_clicked):
+		button.pressed.connect(_on_miniature_clicked.bind(card.card_id))
 	
 	# Сохраняем ссылку
 	card_miniatures[card.card_id] = {
@@ -86,8 +104,6 @@ func add_card_miniature(card: BaseChanceCard):
 	
 	# Обновляем счётчик
 	update_card_count(card.card_id, card.count)
-	
-	print("🎴 Миниатюра добавлена: %s" % card.card_id)
 
 ## Обновить счётчик карты
 func update_card_count(card_id: String, count: int):
@@ -99,7 +115,7 @@ func update_card_count(card_id: String, count: int):
 	var button = miniature["button"] as TextureButton
 	
 	if counter:
-		if count > 1:
+		if count >= 1:
 			counter.text = str(count)
 			counter.visible = true
 		else:
@@ -128,7 +144,6 @@ func remove_card_miniature(card_id: String):
 		miniature["container"].queue_free()
 	
 	card_miniatures.erase(card_id)
-	print("🎴 Миниатюра удалена: %s" % card_id)
 
 ## Получить позицию хранилища для карты (для анимации)
 ## Можно добавить смещение для точной настройки позиции
@@ -157,12 +172,6 @@ func get_storage_position_for_card(card_id: String) -> Vector2:
 	# Применяем смещение для настройки
 	result_pos += STORAGE_POSITION_OFFSET
 	
-	# Отладочная информация
-	print("🎴 ChanceCardStorage.get_storage_position_for_card(%s):" % card_id)
-	print("   base_pos: %s" % (result_pos - STORAGE_POSITION_OFFSET))
-	print("   STORAGE_POSITION_OFFSET: %s" % STORAGE_POSITION_OFFSET)
-	print("   final_pos: %s" % result_pos)
-	
 	return result_pos
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -182,4 +191,3 @@ func _on_miniature_clicked(card_id: String):
 	
 	# Запрашиваем показ на весь экран
 	EventBus.chance_card_storage_clicked.emit(card_id)
-	print("🎴 Клик на миниатюру: %s" % card_id)

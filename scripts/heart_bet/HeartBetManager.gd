@@ -317,7 +317,7 @@ func _handle_tie_draw() -> void:
 	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H2","location":"HeartBetManager._handle_tie_draw","message":"tie draw handling started","data":{"selected_target":"%s","chance_count":%d},"timestamp":%d}' % [selected_target, chance_count, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
 	# #endregion
 	
-	print("❤️🔄 НИЧЬЯ (Tie)! Залог возвращается, новый шанс в следующей раздаче")
+	print("❤️🔄 НИЧЬЯ (Tie)! Карта сгорела, залог возвращается, игра завершается")
 
 	# Показываем оверлей (4 секунды чтобы успеть прочитать)
 	EventBus.show_overlay_info.emit(Localization.t("HEART_BET_TIE_DRAW"), 4.0)
@@ -327,24 +327,21 @@ func _handle_tie_draw() -> void:
 	
 	# Скрываем выбранное сердце со стола
 	EventBus.heart_bet_hide_selected.emit()
-	
-	# Сигнализируем о завершении Heart Bet раздачи (сброс без выплат)
-	EventBus.heart_bet_round_complete.emit()
-	
-	# Восстанавливаем ставки гостей
-	EventBus.guest_bets_show_requested.emit()
-	
-	# НОВАЯ ЛОГИКА: возвращаем шанс в счётчик (не сгорает при Tie)
-	chance_count += 1
-	print("❤️ Шанс возвращён! Шансов: %d" % chance_count)
+	# Карта сгорела - уменьшаем счётчик до 0
+	chance_count = 0
+	print("❤️ Карта сгорела! Шансов: %d" % chance_count)
 	EventBus.chance_count_changed.emit(chance_count)
 	
 	# Сбрасываем состояние в IDLE
 	current_state = State.IDLE
 	selected_target = ""
 	
-	# Индикатор "Шанс" появится снова
-	EventBus.heart_bet_trigger_activated.emit("TieDraw")
+	# Сигнализируем о завершении Heart Bet раздачи (сброс без выплат)
+	# ВАЖНО: НЕ показываем ставки гостей и НЕ активируем триггер снова
+	# Игра просто завершается и переходит к новой раздаче
+	EventBus.heart_bet_round_complete.emit()
+	
+	
 
 
 ## Сбросить состояние

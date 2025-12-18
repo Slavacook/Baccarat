@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1766048194
+::res://::1766052556
 CLAUDE.md::TextFile::-1::1765937705::0::1::::<><><>0<>0<><>::
 CLEANUP_REPORT.md::TextFile::-1::1765878385::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1765877564::0::1::::<><><>0<>0<><>::
@@ -136,7 +136,7 @@ flip_card5.wav::AudioStreamWAV::4813973969002589096::1765877564::1765877564::1::
 flip_card6.wav::AudioStreamWAV::8673786790609071728::1765877564::1765877564::1::::<><><>0<>0<>2d4ad33290c384426ef11b4e22205e35<>res://.godot/imported/flip_card6.wav-a6aef8749ac20d3896ddbf0c6d271beb.sample::
 flip_card7.wav::AudioStreamWAV::9052482246650028986::1765877564::1765877564::1::::<><><>0<>0<>e94a90b87f1eb6a121697d347eba9af9<>res://.godot/imported/flip_card7.wav-ce1dd900c2af6eed7abb7d76639636f0.sample::
 flip_card8.wav::AudioStreamWAV::7107499154908435813::1765877564::1765877564::1::::<><><>0<>0<>3722e0a8ed167aa54b94d082667e9d26<>res://.godot/imported/flip_card8.wav-6ec8f9934007c070c44670a00cf097a8.sample::
-::res://assets/ui/::1765967019
+::res://assets/ui/::1766051568
 banker_marker.png::CompressedTexture2D::1689125725466296418::1765877564::1765877564::1::::<><><>0<>0<>874a60342c96dbf726f2367260c5b950<>res://.godot/imported/banker_marker.png-a88c0c565b27dea210399d89b5409e88.ctex::
 banker_marker_wins.png::CompressedTexture2D::1376032299205725253::1765877564::1765877564::1::::<><><>0<>0<>60103ca6a41d8d868ca8f82bbb55204b<>res://.godot/imported/banker_marker_wins.png-5b4f63f11537a77f5c1a0420ce29bcf7.ctex::
 chip_bet.png::CompressedTexture2D::6395210504772056399::1765877564::1765877564::1::::<><><>0<>0<>8b3ad6909d3af9cb57949af6d89eb346<>res://.godot/imported/chip_bet.png-04751d588706c1af2d36566c414cf1cb.ctex::
@@ -149,7 +149,8 @@ heart_empty2.png::CompressedTexture2D::7241636582108715611::1765877564::17659553
 heart_empty.png::CompressedTexture2D::1517439945579067858::1765950176::1765955317::1::::<><><>0<>0<>4346f0c906f42a4174687348619df7fa<>res://.godot/imported/heart_empty.png-b7d477f53aa341405ef7f7ff65b39ec9.ctex::
 heart_focus.png::CompressedTexture2D::8287484702341375485::1765957998::1765958822::1::::<><><>0<>0<>89d5f220a83ee93d2484b7f015903d27<>res://.godot/imported/heart_focus.png-ced21ae83bf78f867e74d0d97a446b80.ctex::
 heart_pledged.png::CompressedTexture2D::2188610650765637089::1765948626::1765948717::1::::<><><>0<>0<>c3df7ace647b8c4ef9616bc3061496e8<>res://.godot/imported/heart_pledged.png-2e837a88f1bafe6cda9f0ae1e779c7f8.ctex::
-invitation_card.png::CompressedTexture2D::5328908477151963938::1765966925::1765967019::1::::<><><>0<>0<>8ecf73973d4b49181fab82c7d3cc0fa1<>res://.godot/imported/invitation_card.png-4e3d8b20239645bbc0323b6e6f7e7d82.ctex::
+invitation_card.png::CompressedTexture2D::1484645852782157921::1765966925::1766051568::1::::<><><>0<>0<>b82e899edb7497d840e7d31afde32842<>res://.godot/imported/invitation_card.png-4e3d8b20239645bbc0323b6e6f7e7d82.ctex::
+invitation_card_2.PNG::CompressedTexture2D::6938673254533798353::1765971036::1766051568::1::::<><><>0<>0<>4be749c16bdb22b012f12734e3f875c7<>res://.godot/imported/invitation_card_2.PNG-7d19c4c7ebbad69bee4b181ab8ca89ee.ctex::
 PairBanker.png::CompressedTexture2D::6472040130725971040::1765878366::1765877564::1::::<><><>0<>0<>a0e17654c8c2d592b474802f563809b4<>res://.godot/imported/PairBanker.png-dfaae1af8d8761685dd5b5a8405e229e.ctex::
 PairPlayer.png::CompressedTexture2D::527109863853448802::1765878366::1765877564::1::::<><><>0<>0<>b546a39c010bc1c2f82f6572f5a1a3cd<>res://.godot/imported/PairPlayer.png-ea0fc4487683826bcbed1572ae9a25ba.ctex::
 PayoutToggleBanker.png::CompressedTexture2D::2651292713541613053::1765877564::1765877564::1::::<><><>0<>0<>5aca77008f062d7e9f01faa31fb627f8<>res://.godot/imported/PayoutToggleBanker.png-ef6770875b0dee9ca89b7f3619d9a497.ctex::
@@ -219,9 +220,9 @@ SettingsPopup.tscn::PackedScene::8682819899485884407::1765878366::0::1::::<><><>
 SettingsScene.tscn::PackedScene::8637889271710464782::1765932122::0::1::::<><><>0<>0<><>::uid://d3ov5kmwxvbem::::res://scripts/SettingsScene.gd
 SurvivalModeUI.tscn::PackedScene::1200197571375732007::1766041398::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd
 Toast.tscn::PackedScene::1936476259211108317::1765878366::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
-::res://scenes/chance_cards/::1766048184
-BaseChanceCardScene.tscn::PackedScene::5419421685637804966::1766048184::0::1::::<><><>0<>0<><>::uid://bsrppt6iwhgne::::res://scripts/chance_cards/BaseChanceCardScene.gd
-ChanceCardStorage.tscn::PackedScene::-1::1766040641::0::1::::<><><>0<>0<><>::res://scripts/chance_cards/ChanceCardStorage.gd
+::res://scenes/chance_cards/::1766052548
+BaseChanceCardScene.tscn::PackedScene::5419421685637804966::1766050395::0::1::::<><><>0<>0<><>::uid://bsrppt6iwhgne::::res://scripts/chance_cards/BaseChanceCardScene.gd
+ChanceCardStorage.tscn::PackedScene::6951891940693214951::1766052548::0::1::::<><><>0<>0<><>::uid://b76fa8w0f416v::::res://scripts/chance_cards/ChanceCardStorage.gd
 ::res://scenes/heart_bet/::1766026399
 HeartBetUI.tscn::PackedScene::7103767641990542386::1766026399::0::1::::<><><>0<>0<><>::uid://bgncl0lhk41q0::::res://scripts/heart_bet/HeartBetUI.gd
 ::res://scenes/popups/::1765895084
@@ -284,11 +285,11 @@ BetTypeFactory.gd::GDScript::7892666969758083276::1765878366::0::1::::BetTypeFac
 MainBetType.gd::GDScript::4009120760104624117::1765878366::0::1::::MainBetType<>IBetType<><>0<>0<><>::
 PairBetType.gd::GDScript::4499421941133529108::1765878366::0::1::::PairBetType<>IBetType<><>0<>0<><>::
 TieBetType.gd::GDScript::4422473779741804106::1765878366::0::1::::TieBetType<>IBetType<><>0<>0<><>::
-::res://scripts/chance_cards/::1766048014
+::res://scripts/chance_cards/::1766051190
 BaseChanceCard.gd::GDScript::758666866232160810::1766041391::0::1::::BaseChanceCard<>RefCounted<><>0<>0<><>::
-BaseChanceCardScene.gd::GDScript::3685852879022525486::1766048177::0::1::::BaseChanceCardScene<>CanvasLayer<><>0<>0<><>::
+BaseChanceCardScene.gd::GDScript::3685852879022525486::1766051190::0::1::::BaseChanceCardScene<>CanvasLayer<><>0<>0<><>::
 ChanceCardManager.gd::GDScript::172684828181456583::1766041086::0::1::::<>Node<><>0<>0<><>::
-ChanceCardStorage.gd::GDScript::4696764743849812851::1766043538::0::1::::ChanceCardStorage<>Control<><>0<>0<><>::
+ChanceCardStorage.gd::GDScript::4696764743849812851::1766052529::0::1::::ChanceCardStorage<>Control<><>0<>0<><>::
 POSITION_SETUP.md::TextFile::-1::1766046998::0::1::::<><><>0<>0<><>::
 ::res://scripts/chance_cards/implementations/::1766040704
 HeartBetChanceCard.gd::GDScript::5468542522840748059::1766046073::0::1::::<>BaseChanceCard<><>0<>0<><>::

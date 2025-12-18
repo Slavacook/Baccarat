@@ -1,9 +1,10 @@
-[gd_scene load_steps=2 format=3 uid="uid://chance_card_storage_001"]
+[gd_scene load_steps=2 format=3 uid="uid://c6bsv6esin8nb"]
 
-[ext_resource type="Script" path="res://scripts/chance_cards/ChanceCardStorage.gd" id="1_storage"]
+[ext_resource type="Script" uid="uid://b76fa8w0f416v" path="res://scripts/chance_cards/ChanceCardStorage.gd" id="1_storage"]
 
 [node name="ChanceCardStorage" type="Control"]
-layout_mode = 0
+layout_mode = 3
+anchors_preset = 0
 offset_left = -96.0
 offset_top = 5.0
 offset_right = 200.0
@@ -19,3 +20,43 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 theme_override_constants/separation = 10
+
+[node name="Miniature_heart_bet" type="Control" parent="CardsContainer"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 2
+
+[node name="CardButton" type="TextureButton" parent="CardsContainer/Miniature_heart_bet"]
+custom_minimum_size = Vector2(80, 120)
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 332.0
+offset_top = -66.0
+offset_right = 332.0
+offset_bottom = -66.0
+grow_horizontal = 2
+grow_vertical = 2
+stretch_mode = 5
+
+[node name="Counter" type="Label" parent="CardsContainer/Miniature_heart_bet"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -25.0
+offset_top = 63.0
+offset_right = 13.599976
+offset_bottom = 89.0
+grow_horizontal = 2
+grow_vertical = 0
+scale = Vector2(20, 20)
+theme_override_colors/font_color = Color(1, 0.8, 0, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 2
+theme_override_font_sizes/font_size = 16
+text = "1"
+horizontal_alignment = 1
+vertical_alignment = 1

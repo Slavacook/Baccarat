@@ -1,2 +1,8 @@
-res://scenes/chance_cards/BaseChanceCardScene.tscn
+res://scenes/chance_cards/ChanceCardStorage.tscn
+res://scenes/Game.tscn
 res://scripts/chance_cards/BaseChanceCardScene.gd
+res://scripts/chance_cards/ChanceCardStorage.gd
+res://scenes/chance_cards/BaseChanceCardScene.tscn
+res://scripts/chance_cards/ChanceCardAnimation.gd
+res://scripts/GameController.gd
+res://scripts/heart_bet/HeartBetManager.gd

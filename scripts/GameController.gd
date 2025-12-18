@@ -1307,6 +1307,14 @@ func _on_heart_bet_round_complete() -> void:
 	# Зум камеры на общий план
 	EventBus.camera_zoom_requested.emit("out")
 	
+	
+	# Проверяем, был ли Tie draw (карта сгорела, chance_count = 0)
+	# ВАЖНО: проверяем ДО проверки триггеров, чтобы не изменилось состояние
+	var was_tie_draw = false
+	if phase_manager and phase_manager.heart_bet_manager:
+		var hb_manager = phase_manager.heart_bet_manager
+		# Если chance_count = 0 и состояние IDLE - значит был Tie draw
+		was_tie_draw = (hb_manager.chance_count == 0 and hb_manager.current_state == HeartBetManager.State.IDLE)
 	# ═══════════════════════════════════════════════════════════════════
 	# ПРОВЕРКА ТРИГГЕРОВ Heart Bet ДО СБРОСА!
 	# Если в этом раунде тоже был триггер - сохраняем его
@@ -1317,18 +1325,19 @@ func _on_heart_bet_round_complete() -> void:
 		phase_manager._check_heart_bet_triggers()
 		new_trigger_available = phase_manager.heart_bet_manager.is_available()
 		print("❤️ Проверка триггеров после Heart Bet раунда: %s" % ("сработал!" if new_trigger_available else "нет"))
-	
-	# Сбрасываем раунд через phase_manager (карты скрываются)
-	# keep_guest_bets=true - НЕ очищаем фишки гостей!
 	if phase_manager:
-		phase_manager.reset(true, true)  # update_state=true, keep_guest_bets=true
+		# При Tie draw НЕ сохраняем ставки гостей
+		phase_manager.reset(true, not was_tie_draw)  # update_state=true, keep_guest_bets=!was_tie_draw
 		phase_manager.is_table_prepared = true  # Готовы к новой раздаче
-		print("❤️ Раунд сброшен, готов к новой раздаче")
+		print("❤️ Раунд сброшен, готов к новой раздаче (Tie draw: %s)" % was_tie_draw)
 	
-	# Восстанавливаем ВИДИМОСТЬ ставок гостей (они не были удалены благодаря keep_guest_bets)
-	if chip_visual_manager:
+	# Восстанавливаем ВИДИМОСТЬ ставок гостей ТОЛЬКО если НЕ было Tie draw
+	if not was_tie_draw and chip_visual_manager:
 		chip_visual_manager.show_all_guest_chips()
 		print("❤️ Видимость ставок гостей восстановлена")
+	elif was_tie_draw:
+		print("❤️ Tie draw: ставки гостей НЕ показываются, игра переходит к новой раздаче")
+	
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Автоматический показ сердец УБРАН!
