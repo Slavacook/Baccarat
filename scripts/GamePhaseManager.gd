@@ -555,42 +555,36 @@ func _restore_active_bet_chips() -> void:
 
 	# Проверяем есть ли сохраненное состояние
 	if TableStateManager.has_saved_state() and TableStateManager.bets.size() > 0:
-		# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
-		DebugLogger.log_restore(" Восстановление фишек для новой раздачи из TableStateManager...")
-		for bet in TableStateManager.bets:
-			if bet.chip_texture.is_empty():
-				chip_visual_manager.make_chip_visible(bet.bet_type)
-			else:
-				chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
-			DebugLogger.log("  → Восстановлена фишка %s" % bet.bet_type)
+		# В режиме GUEST: восстанавливаем ТОЛЬКО если есть гостевые ставки
+		# Иначе фишки появятся в секторе 4 и будут нерабочими
+		var has_guests = guest_bet_storage and not guest_bet_storage.get_guests_with_bets().is_empty()
+		if not has_guests:
+			DebugLogger.log_warning(" Режим GUEST: нет гостей, пропускаем восстановление из TableStateManager")
+		else:
+			# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
+			DebugLogger.log_restore(" Восстановление фишек для новой раздачи из TableStateManager...")
+			for bet in TableStateManager.bets:
+				if bet.chip_texture.is_empty():
+					chip_visual_manager.make_chip_visible(bet.bet_type)
+				else:
+					chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
+				DebugLogger.log("  → Восстановлена фишка %s" % bet.bet_type)
 	else:
 		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
 		# НО только если нет гостевых ставок (гости имеют приоритет)
+		# В режиме GUEST: если нет гостей - фишки НЕ показываем (режим GUEST только для гостей)
 		if not guest_bet_storage or guest_bet_storage.get_guests_with_bets().is_empty():
-			DebugLogger.log_warning(" Нет сохраненного состояния и нет гостей, показываем фишки на основе toggles")
-			# Показываем фишки на дефолтных позициях и делаем кликабельными
-			if PayoutSettingsManager.player_payout_enabled:
-				chip_visual_manager.show_chip("Player")  # show_chip сбрасывает позицию
-				chip_visual_manager.make_chip_clickable("Player", true)
-			if PayoutSettingsManager.banker_payout_enabled:
-				chip_visual_manager.show_chip("Banker")
-				chip_visual_manager.make_chip_clickable("Banker", true)
-			if PayoutSettingsManager.tie_payout_enabled:
-				chip_visual_manager.show_chip("Tie")
-				chip_visual_manager.make_chip_clickable("Tie", true)
-			if pair_betting_manager:
-				if pair_betting_manager.pair_player_bet_enabled:
-					chip_visual_manager.show_chip("PairPlayer")
-					chip_visual_manager.make_chip_clickable("PairPlayer", true)
-				if pair_betting_manager.pair_banker_bet_enabled:
-					chip_visual_manager.show_chip("PairBanker")
-					chip_visual_manager.make_chip_clickable("PairBanker", true)
+			DebugLogger.log_warning(" Нет сохраненного состояния и нет гостей")
+			# В режиме GUEST фишки показываются ТОЛЬКО для гостей
+			# Если гостей нет - фишки не показываем (иначе они появятся в секторе 4 и будут нерабочими)
+			DebugLogger.log(" Режим GUEST: гостей нет, фишки не показываем")
 
 	DebugLogger.log_payout("Показаны фишки всех активных ставок")
 
 func _show_guest_bets() -> void:
 	"""Показать ставки гостей на их позициях в секторах"""
 	if not guest_bet_storage or not chip_visual_manager:
+		DebugLogger.log("👥 _show_guest_bets: нет guest_bet_storage или chip_visual_manager")
 		return
 	
 	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
@@ -598,10 +592,11 @@ func _show_guest_bets() -> void:
 		DebugLogger.log("👥 Нет ставок гостей для отображения")
 		return
 	
-	DebugLogger.log("👥 Отображение ставок %d гостей..." % guests_with_bets.size())
+	DebugLogger.log("👥 Отображение ставок %d гостей: %s" % [guests_with_bets.size(), guests_with_bets])
 	
 	for guest_id in guests_with_bets:
 		var bets = guest_bet_storage.get_guest_bets(guest_id)
+		DebugLogger.log("👥 Гость %d: %d ставок" % [guest_id, bets.size()])
 		for bet in bets:
 			# Получаем координаты позиции
 			var coords = GuestSectorMapper.get_position_coordinates(bet.sector, bet.bet_type)
@@ -621,6 +616,10 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 	if not chip_visual_manager:
 		return
 	
+	# Определяем сектор для логирования
+	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+	DebugLogger.log("👥 _show_guest_chip_at_position: %s[%d] → сектор %d, coords=%s, stake=%.0f" % [bet_type, position_index, sector, coords, stake])
+	
 	# Проверяем, есть ли уже фишка на этой позиции
 	var existing_chip = chip_visual_manager.get_chip_instance(bet_type, position_index)
 	if existing_chip:
@@ -628,6 +627,7 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		if existing_chip.node:
 			existing_chip.node.visible = true
 			existing_chip.stake = stake
+		DebugLogger.log("  → Обновлена существующая фишка %s[%d]" % [bet_type, position_index])
 		return
 	
 	# Создаём фишку через show_chips_realistic с конкретной позицией
@@ -638,9 +638,10 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 	var texture_path = chip_visual_manager.get_current_texture(bet_type)
 	if texture_path.is_empty():
 		# Если нет сохранённой текстуры - используем случайную
-		# Но _get_random_texture приватный, поэтому используем show_chip для получения текстуры
-		chip_visual_manager.show_chip(bet_type)
-		texture_path = chip_visual_manager.get_current_texture(bet_type)
+		# ВАЖНО: используем get_random_texture() вместо show_chip(), чтобы не показывать фишку на дефолтной позиции
+		texture_path = chip_visual_manager.get_random_texture(bet_type)
+		# Сохраняем текстуру для следующих фишек того же типа
+		chip_visual_manager.set_current_texture(bet_type, texture_path)
 	
 	var texture = load(texture_path) if not texture_path.is_empty() else null
 	if not texture:

@@ -1401,6 +1401,20 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 		return
 	
 	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА: В режиме GUEST игнорируем клики на фишки неактивных гостей
+	# ═══════════════════════════════════════════════════════════════════
+	if phase_manager and phase_manager.guest_bet_storage:
+		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+		if sector >= 1 and sector <= 6:
+			# Это гостевой сектор - проверяем есть ли активный гость
+			var guest_id = sector
+			var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+			if guest_bets.is_empty():
+				# Гость не включён или нет ставок - игнорируем клик
+				DebugLogger.log_warning("⚠️ Клик на фишку %s[%d] в секторе %d, но гостя %d нет или он не включён - игнорируем" % [bet_type, position_index, sector, guest_id])
+				return
+	
+	# ═══════════════════════════════════════════════════════════════════
 	# ВАЛИДАЦИЯ КЛИКА ЧЕРЕЗ BetCollectionPhaseManager
 	# ═══════════════════════════════════════════════════════════════════
 	var validation = bet_collection_manager.validate_chip_click(bet_type, position_index)

@@ -136,4 +136,5 @@ func get_guests_with_bets() -> Array[int]:
 	for guest_id in stored_bets.keys():
 		if stored_bets[guest_id].size() > 0:
 			guests.append(guest_id)
+	print("👥 get_guests_with_bets(): найдено %d гостей с ставками: %s (stored_bets.keys=%s)" % [guests.size(), guests, stored_bets.keys()])
 	return guests

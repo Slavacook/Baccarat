@@ -393,9 +393,19 @@ func _get_random_texture(bet_type: String) -> String:
 	return textures[random_index]
 
 
+func get_random_texture(bet_type: String) -> String:
+	"""Публичный метод для получения случайной текстуры БЕЗ показа фишки"""
+	return _get_random_texture(bet_type)
+
+
 func get_current_texture(bet_type: String) -> String:
 	"""Получить текущую текстуру фишки"""
 	return current_textures.get(bet_type, "")
+
+
+func set_current_texture(bet_type: String, texture_path: String) -> void:
+	"""Установить текущую текстуру фишки (без показа фишки)"""
+	current_textures[bet_type] = texture_path
 
 
 func get_visible_chips() -> Array:
