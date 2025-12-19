@@ -6,3 +6,4 @@ res://scripts/GameInitializer.gd
 res://scripts/GamePhaseManager.gd
 res://scripts/autoload/TableStateManager.gd
 res://scripts/state/StateRestorer.gd
+res://scripts/GuestBetStorage.gd

@@ -125,6 +125,7 @@ func _ready():
 		EventBus.guest_bets_hide_requested.connect(_on_guest_bets_hide_requested)
 		EventBus.guest_bets_show_requested.connect(_on_guest_bets_show_requested)
 		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
+		EventBus.heart_bet_declined.connect(_on_heart_bet_declined)
 		
 		# Heart Bet: триггеры обрабатываются через ChanceCardManager
 		# Старые сигналы оставлены для обратной совместимости
@@ -1377,9 +1378,15 @@ func _setup_chance_card_system() -> void:
 
 func _on_guest_bets_hide_requested() -> void:
 	"""Скрыть ставки гостей при выборе сердца для Heart Bet"""
+	# ВАЖНО: Сначала сохраняем ставки в backup, затем скрываем
+	if phase_manager and phase_manager.guest_bet_storage:
+		phase_manager.guest_bet_storage.backup_all_bets()
+		# Очищаем текущие ставки (чтобы они не показывались в Heart Bet раунде)
+		phase_manager.guest_bet_storage.clear_all_bets()
+	
 	if chip_visual_manager:
 		chip_visual_manager.hide_all_guest_chips()
-		print("❤️ GameController: ставки гостей скрыты")
+		print("❤️ GameController: ставки гостей скрыты и сохранены в backup")
 
 
 func _on_guest_bets_show_requested() -> void:
@@ -1387,6 +1394,18 @@ func _on_guest_bets_show_requested() -> void:
 	if chip_visual_manager:
 		chip_visual_manager.show_all_guest_chips()
 		print("❤️ GameController: ставки гостей восстановлены")
+
+
+func _on_heart_bet_declined() -> void:
+	"""Обработчик отказа от карты Heart Bet - восстанавливаем ставки"""
+	# Восстанавливаем ставки гостей из backup (если был backup)
+	if phase_manager and phase_manager.guest_bet_storage:
+		phase_manager.guest_bet_storage.restore_all_bets()
+	
+	# Показываем ставки гостей
+	if chip_visual_manager:
+		chip_visual_manager.show_all_guest_chips()
+		print("❤️ GameController: ставки гостей восстановлены после отказа от карты")
 
 
 func _on_heart_bet_round_complete() -> void:
@@ -1438,6 +1457,10 @@ func _on_heart_bet_round_complete() -> void:
 		phase_manager.reset(true, not was_tie_draw)  # update_state=true, keep_guest_bets=!was_tie_draw
 		phase_manager.is_table_prepared = true  # Готовы к новой раздаче
 		print("❤️ Раунд сброшен, готов к новой раздаче (Tie draw: %s)" % was_tie_draw)
+	
+	# Восстанавливаем ставки гостей из backup (если был backup)
+	if phase_manager and phase_manager.guest_bet_storage:
+		phase_manager.guest_bet_storage.restore_all_bets()
 	
 	# Восстанавливаем ВИДИМОСТЬ ставок гостей ТОЛЬКО если НЕ было Tie draw
 	if not was_tie_draw and chip_visual_manager:

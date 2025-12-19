@@ -13,6 +13,9 @@ extends RefCounted
 # Ключ - guest_id (1-6), значение - массив ставок этого гостя (использует единый класс Bet)
 var stored_bets: Dictionary = {}
 
+# Временное хранилище для backup (используется при Heart Bet)
+var _backup_bets: Dictionary = {}
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -102,3 +105,63 @@ func get_guests_with_bets() -> Array[int]:
 			guests.append(guest_id)
 	print("👥 get_guests_with_bets(): найдено %d гостей с ставками: %s (stored_bets.keys=%s)" % [guests.size(), guests, stored_bets.keys()])
 	return guests
+
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ BACKUP/RESTORE (для Heart Bet)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ← Сохранить все ставки в backup (для Heart Bet)
+func backup_all_bets() -> void:
+	"""Сохранить все текущие ставки в backup
+	
+	Используется при использовании карты Heart Bet для временного сохранения ставок.
+	"""
+	_backup_bets.clear()
+	
+	# Глубокое копирование всех ставок
+	for guest_id in stored_bets.keys():
+		var bets_copy: Array = []
+		for bet in stored_bets[guest_id]:
+			bets_copy.append(bet)  # Bet - это RefCounted, копируем ссылки
+		_backup_bets[guest_id] = bets_copy
+	
+	var total_bets = 0
+	for guest_id in _backup_bets.keys():
+		total_bets += _backup_bets[guest_id].size()
+	
+	print("💾 GuestBetStorage: backup создан (%d ставок для %d гостей)" % [total_bets, _backup_bets.size()])
+
+# ← Восстановить все ставки из backup (после Heart Bet)
+func restore_all_bets() -> void:
+	"""Восстановить все ставки из backup
+	
+	Используется после завершения Heart Bet раунда для восстановления ставок.
+	"""
+	if _backup_bets.is_empty():
+		print("⚠️ GuestBetStorage: нет backup для восстановления (ставок не было)")
+		# Это нормально - если ставок не было, backup будет пустым
+		return
+	
+	# Очищаем текущие ставки
+	stored_bets.clear()
+	
+	# Восстанавливаем из backup
+	for guest_id in _backup_bets.keys():
+		var bets_copy: Array = []
+		for bet in _backup_bets[guest_id]:
+			bets_copy.append(bet)  # Bet - это RefCounted, копируем ссылки
+		stored_bets[guest_id] = bets_copy
+	
+	var total_bets = 0
+	for guest_id in stored_bets.keys():
+		total_bets += stored_bets[guest_id].size()
+	
+	print("💾 GuestBetStorage: ставки восстановлены из backup (%d ставок для %d гостей)" % [total_bets, stored_bets.size()])
+	
+	# Очищаем backup после восстановления
+	_backup_bets.clear()
+
+# ← Проверить, есть ли backup
+func has_backup() -> bool:
+	"""Проверить, есть ли сохранённый backup"""
+	return not _backup_bets.is_empty()
