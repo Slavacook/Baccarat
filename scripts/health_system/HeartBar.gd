@@ -149,12 +149,17 @@ func return_pledged_heart() -> void:
 	if pledged_heart_index < 0:
 		return
 	
-	if pledged_heart_index < hearts.size():
-		hearts[pledged_heart_index].set_state(HeartState.State.FULL)
-		_update_visual()
-		print("❤️ Сердце #%d возвращено из залога" % (pledged_heart_index + 1))
+	var saved_index = pledged_heart_index  # Сохраняем индекс перед сбросом
 	
+	if saved_index < hearts.size():
+		hearts[saved_index].set_state(HeartState.State.FULL)
+		print("❤️ Сердце #%d возвращено из залога" % (saved_index + 1))
+	
+	# Сбрасываем индекс ДО обновления визуализации
 	pledged_heart_index = -1
+	
+	# Обновляем визуализацию ПОСЛЕ сброса индекса (чтобы сердце отобразилось как FULL, а не PLEDGED)
+	_update_visual()
 
 ## Забрать заложенное сердце (проигрыш)
 func forfeit_pledged_heart() -> void:
