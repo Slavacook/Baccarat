@@ -1,6 +1,7 @@
 # res://scripts/KeyboardNavigationController.gd
 # Контроллер клавиатурного управления стрелками навигации камеры
 # Обрабатывает нажатия клавиш Left/Right/A/D/Up/Down/W/S для переключения между областями ставок
+# ПОЛНОСТЬЮ ИНКАПСУЛИРОВАН через EventBus (без get_node)
 
 extends Node
 
@@ -19,18 +20,13 @@ func _ready() -> void:
 	# Подписываемся на изменение видимости стрелок навигации
 	if EventBus:
 		EventBus.navigation_arrows_visibility_changed.connect(_on_navigation_visibility_changed)
-
-	print("⌨️ KeyboardNavigationController инициализирован")
-
-func _get_camera_manager() -> CameraManager:
-	"""Получить camera_manager через GameController"""
-	var game = get_node_or_null("/root/Game")
-	if game and game.has_method("get") and game.get("camera_manager"):
-		return game.camera_manager
-	return null
+		# Подписываемся на ответы от CameraManager
+		EventBus.camera_target_area_received.connect(_on_target_area_received)
+	
+	print("⌨️ KeyboardNavigationController инициализирован (полностью инкапсулирован)")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ОБРАБОТКА ВВОДА
+# ОБРАБОТКА ВВОДА (через EventBus)
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -40,54 +36,53 @@ func _unhandled_input(event: InputEvent) -> void:
 
 	# Проверяем нажатия клавиш стрелок и A/D/W/S
 	if event is InputEventKey and event.pressed and not event.echo:
-		var camera_mgr = _get_camera_manager()
-		if not camera_mgr:
-			return  # camera_manager недоступен, пропускаем
-		
+		var direction: String = ""
 		match event.keycode:
 			KEY_LEFT, KEY_A:
-				# Вычисляем конкретную область по направлению
-				var target_area = camera_mgr.get_target_area_by_direction("left")
-				if target_area > 0:
-					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-				else:
-					EventBus.camera_zoom_requested.emit("in")
-				get_viewport().set_input_as_handled()
-				var key_name = "Left" if event.keycode == KEY_LEFT else "A"
-				print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
-
+				direction = "left"
 			KEY_RIGHT, KEY_D:
-				# Вычисляем конкретную область по направлению
-				var target_area = camera_mgr.get_target_area_by_direction("right")
-				if target_area > 0:
-					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-				else:
-					EventBus.camera_zoom_requested.emit("in")
-				get_viewport().set_input_as_handled()
-				var key_name = "Right" if event.keycode == KEY_RIGHT else "D"
-				print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
-
+				direction = "right"
 			KEY_UP, KEY_W:
-				# Вычисляем конкретную область по направлению
-				var target_area = camera_mgr.get_target_area_by_direction("up")
-				if target_area > 0:
-					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-				else:
-					EventBus.camera_zoom_requested.emit("in")
-				get_viewport().set_input_as_handled()
-				var key_name = "Up" if event.keycode == KEY_UP else "W"
-				print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
-
+				direction = "up"
 			KEY_DOWN, KEY_S:
-				# Вычисляем конкретную область по направлению
-				var target_area = camera_mgr.get_target_area_by_direction("down")
-				if target_area > 0:
-					EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-				else:
-					EventBus.camera_zoom_requested.emit("in")
-				get_viewport().set_input_as_handled()
-				var key_name = "Down" if event.keycode == KEY_DOWN else "S"
-				print("⌨️ Клавиша %s → in (карты)" % key_name)
+				direction = "down"
+			_:
+				return
+		
+		if direction != "":
+			# Запрашиваем целевую область через EventBus
+			_request_target_area(direction)
+			get_viewport().set_input_as_handled()
+
+func _request_target_area(direction: String) -> void:
+	"""Запросить целевую область через EventBus
+	
+	Args:
+		direction: "left", "right", "up", "down"
+	"""
+	# Создаём временную подписку на ответ (одноразово)
+	var response_handler = func(dir: String, area: int):
+		if dir == direction:
+			_handle_target_area_response(direction, area)
+			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
+	
+	EventBus.camera_target_area_received.connect(response_handler, CONNECT_ONE_SHOT)
+	EventBus.camera_target_area_requested.emit(direction)
+
+func _handle_target_area_response(direction: String, target_area: int) -> void:
+	"""Обработка ответа от CameraManager
+	
+	Args:
+		direction: Направление запроса
+		target_area: Целевая область (0 = карты, 1-3 = области ставок)
+	"""
+	if target_area > 0:
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+	else:
+		EventBus.camera_zoom_requested.emit("in")
+	
+	var key_name = direction.capitalize()
+	print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
@@ -105,3 +100,8 @@ func _on_navigation_visibility_changed(visible: bool) -> void:
 		print("⌨️ Навигация активирована (стрелки ←→↑↓ или клавиши WASD)")
 	else:
 		print("⌨️ Навигация деактивирована")
+
+func _on_target_area_received(_direction: String, _target_area: int) -> void:
+	"""Обработка ответа от CameraManager (может быть вызван из других мест)"""
+	# Этот метод может использоваться для других целей, если нужно
+	pass

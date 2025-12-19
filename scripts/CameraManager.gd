@@ -7,15 +7,6 @@ class_name CameraManager
 extends RefCounted
 
 # ═══════════════════════════════════════════════════════════════════════════
-# КОНФИГУРАЦИЯ КАМЕРЫ
-# ═══════════════════════════════════════════════════════════════════════════
-
-# Путь к файлу конфигурации (можно изменить в коде)
-# Используем .gd файл вместо .tres для удобного редактирования
-var config_path: String = "res://resources/CameraConfig.gd"
-var config: CameraConfig = null
-
-# ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -23,11 +14,18 @@ signal zoom_started(zoom_type: String)
 signal zoom_completed(zoom_type: String)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ПЕРЕМЕННЫЕ
+# ПРИВАТНЫЕ ПЕРЕМЕННЫЕ (инкапсуляция)
 # ═══════════════════════════════════════════════════════════════════════════
 
-var camera: Camera2D = null
-var scene: Node = null  # Родительская сцена для создания tween
+var _config_path: String = "res://resources/CameraConfig.gd"
+var _config: CameraConfig = null
+var _camera: Camera2D = null
+var _scene: Node = null  # Родительская сцена для создания tween
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПУБЛИЧНЫЕ ПЕРЕМЕННЫЕ (для внутреннего использования)
+# ═══════════════════════════════════════════════════════════════════════════
+
 var is_first_deal: bool = true
 var current_area: int = 0  # Текущая активная область (0 = нет, 1-3 = область)
 var last_zoom_type: String = "out"  # Последний тип зума (для вертикальной навигации)
@@ -44,97 +42,111 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 		parent_scene: Родительская сцена (Game.tscn) для добавления камеры
 		camera_config_path: Путь к файлу конфигурации (опционально)
 	"""
-	scene = parent_scene
+	_scene = parent_scene
 	
 	# Загружаем конфигурацию камеры
 	if camera_config_path != "":
-		config_path = camera_config_path
+		_config_path = camera_config_path
 	
 	# Загружаем класс и создаём экземпляр
-	var config_script = load(config_path) as GDScript
+	var config_script = load(_config_path) as GDScript
 	if config_script:
-		config = config_script.new() as CameraConfig
+		_config = config_script.new() as CameraConfig
 	else:
-		push_error("❌ CameraManager: не удалось загрузить конфигурацию из %s. Используются значения по умолчанию." % config_path)
+		push_error("❌ CameraManager: не удалось загрузить конфигурацию из %s. Используются значения по умолчанию." % _config_path)
 		# Создаём конфигурацию по умолчанию
-		config = CameraConfig.new()
+		_config = CameraConfig.new()
 	
 	# Создаём камеру
-	camera = Camera2D.new()
-	camera.enabled = true
-	parent_scene.add_child(camera)
+	_camera = Camera2D.new()
+	_camera.enabled = true
+	parent_scene.add_child(_camera)
 	
 	# Начинаем с общего плана (из конфигурации)
-	var general_settings = config.get_general_settings()
-	camera.position = general_settings.position
-	camera.zoom = general_settings.zoom
+	var general_settings = _config.get_general_settings()
+	_camera.position = general_settings.position
+	_camera.zoom = general_settings.zoom
 	last_zoom_type = "out"
 	
-	# Подписываемся на EventBus
+	# ═══════════════════════════════════════════════════════════════════
+	# ПОДПИСКА НА EVENTBUS - ВСЕ КОМАНДЫ И ЗАПРОСЫ
+	# ═══════════════════════════════════════════════════════════════════
 	if EventBus:
+		# Команды зума
 		EventBus.camera_zoom_requested.connect(_on_zoom_requested)
 		EventBus.first_deal_completed.connect(_on_first_deal_completed)
+		
+		# Запросы состояния
+		EventBus.camera_current_area_requested.connect(_on_current_area_requested)
+		EventBus.camera_target_area_requested.connect(_on_target_area_requested)
+		EventBus.camera_target_area_from_requested.connect(_on_target_area_from_requested)
+		EventBus.camera_settings_requested.connect(_on_settings_requested)
+		EventBus.camera_first_deal_set_requested.connect(_on_first_deal_set_requested)
 	
-	print("📷 CameraManager: камера создана (zoom %.1f, конфиг: %s)" % [general_settings.zoom.x, config_path])
+	print("📷 CameraManager: камера создана и полностью инкапсулирована (zoom %.1f, конфиг: %s)" % [general_settings.zoom.x, _config_path])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ ЗУМА
 # ═══════════════════════════════════════════════════════════════════════════
 
-func zoom_in() -> void:
-	"""Плавный зум на область карт"""
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ ЗУМА (внутренняя логика)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _zoom_in() -> void:
+	"""Внутренний метод зума на область карт"""
 	current_area = 0
-	var settings = config.get_cards_settings()
+	var settings = _config.get_cards_settings()
 	_animate_to(settings.position, settings.zoom, "in")
 
-func zoom_out() -> void:
-	"""Возврат к общему плану"""
+func _zoom_out() -> void:
+	"""Внутренний метод возврата к общему плану"""
 	current_area = 0
-	var settings = config.get_general_settings()
+	var settings = _config.get_general_settings()
 	_animate_to(settings.position, settings.zoom, "out")
 
-func zoom_cards() -> void:
-	"""Плавный зум на область карт (алиас для zoom_in)"""
-	zoom_in()
-
-func zoom_area(area_index: int) -> void:
-	"""Плавный зум на указанную область (1, 2 или 3)"""
+func _zoom_area(area_index: int) -> void:
+	"""Внутренний метод зума на указанную область (1, 2 или 3)"""
 	if area_index < 1 or area_index > 3:
 		push_error("CameraManager: неверный индекс области %d" % area_index)
 		return
 	current_area = area_index
-	var settings = config.get_area_settings(area_index)
+	var settings = _config.get_area_settings(area_index)
 	_animate_to(settings.position, settings.zoom, "area_%d" % area_index)
 
-func zoom_next_area() -> void:
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ НАВИГАЦИИ (внутренняя логика)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _zoom_next_area() -> void:
 	"""Переключиться на следующую область (вправо)"""
-	var target = get_target_area_by_direction("right")
+	var target = _get_target_area_by_direction("right")
 	if target > 0 and target != current_area:
-		zoom_area(target)
+		_zoom_area(target)
 
-func zoom_prev_area() -> void:
+func _zoom_prev_area() -> void:
 	"""Переключиться на предыдущую область (влево)"""
-	var target = get_target_area_by_direction("left")
+	var target = _get_target_area_by_direction("left")
 	if target > 0 and target != current_area:
-		zoom_area(target)
+		_zoom_area(target)
 
-func zoom_up() -> void:
+func _zoom_up() -> void:
 	"""Вертикальная навигация вверх: с карт/общего плана → area_2"""
-	var target = get_target_area_by_direction("up")
+	var target = _get_target_area_by_direction("up")
 	if target > 0 and target != current_area:
-		zoom_area(target)
+		_zoom_area(target)
 
-func zoom_down() -> void:
+func _zoom_down() -> void:
 	"""Вертикальная навигация вниз: из областей → карты"""
-	var target = get_target_area_by_direction("down")
+	var target = _get_target_area_by_direction("down")
 	if target == 0 and current_area > 0:
-		zoom_in()
+		_zoom_in()
 
-func get_current_area() -> int:
-	"""Получить текущую активную область (0 = нет, 1-3 = область)"""
-	return current_area
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЙ (внутренняя логика)
+# ═══════════════════════════════════════════════════════════════════════════
 
-func get_target_area_by_direction(direction: String) -> int:
+func _get_target_area_by_direction(direction: String) -> int:
 	"""Определить целевую область по направлению из текущего состояния
 	
 	Единая точка истины для всех переходов камеры.
@@ -170,7 +182,7 @@ func get_target_area_by_direction(direction: String) -> int:
 			return 0
 	return 0
 
-func get_target_area_by_direction_from(area: int, direction: String) -> int:
+func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 	"""Определить целевую область по направлению из указанной области
 	
 	Аналогично get_target_area_by_direction(), но принимает область как параметр.
@@ -211,7 +223,8 @@ func get_target_area_by_direction_from(area: int, direction: String) -> int:
 func predict_target_area(zoom_type: String) -> int:
 	"""Предсказать целевую область (1-3) по zoom_type, 0 — если карты/общий план
 	
-	Использует get_target_area_by_direction() для единообразия логики.
+	Использует _get_target_area_by_direction() для единообразия логики.
+	Публичный метод для GameController (используется для подсветки областей).
 	"""
 	match zoom_type:
 		"area_1":
@@ -221,13 +234,13 @@ func predict_target_area(zoom_type: String) -> int:
 		"area_3":
 			return 3
 		"next_area":
-			return get_target_area_by_direction("right")
+			return _get_target_area_by_direction("right")
 		"prev_area":
-			return get_target_area_by_direction("left")
+			return _get_target_area_by_direction("left")
 		"up":
-			return get_target_area_by_direction("up")
+			return _get_target_area_by_direction("up")
 		"down":
-			return get_target_area_by_direction("down")
+			return _get_target_area_by_direction("down")
 		_:
 			return 0  # любые in/out/cards — без подсветки
 
@@ -249,7 +262,7 @@ func get_last_zoom_type() -> String:
 
 func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -> void:
 	"""Анимировать камеру к заданной позиции и зуму"""
-	if not camera or not scene or not config:
+	if not _camera or not _scene or not _config:
 		return
 	
 	# Останавливаем предыдущую анимацию если она ещё идёт (защита от быстрых нажатий)
@@ -260,18 +273,18 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 	last_zoom_type = zoom_type
 	zoom_started.emit(zoom_type)
 	
-	var tween = scene.create_tween()
+	var tween = _scene.create_tween()
 	current_tween = tween  # Сохраняем ссылку для возможности остановки
 	tween.set_parallel(true)  # Позиция и зум меняются одновременно
 	
 	# Используем тип анимации из конфигурации
-	var transition_type = _get_transition_type(config.transition_type)
+	var transition_type = _get_transition_type(_config.transition_type)
 	tween.set_trans(transition_type)
 	tween.set_ease(Tween.EASE_IN_OUT)
 	
 	# Используем длительность из конфигурации
-	tween.tween_property(camera, "position", target_pos, config.transition_duration)
-	tween.tween_property(camera, "zoom", target_zoom, config.transition_duration)
+	tween.tween_property(_camera, "position", target_pos, _config.transition_duration)
+	tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
 	
 	# Сигнал завершения после окончания анимации
 	tween.finished.connect(func(): 
@@ -279,7 +292,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 		zoom_completed.emit(zoom_type)
 	)
 
-	var _settings = config.get_settings_by_type(zoom_type)
+	var _settings = _config.get_settings_by_type(zoom_type)
 	print("📷 CameraManager: %s (zoom %.1f, pos %s)" % [
 		_get_zoom_name(zoom_type), 
 		target_zoom.x,
@@ -326,36 +339,70 @@ func _get_zoom_name(zoom_type: String) -> String:
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ EVENTBUS - КОМАНДЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
 func _on_zoom_requested(zoom_type: String) -> void:
 	"""Обработка запроса зума через EventBus"""
 	match zoom_type:
 		"in":
-			zoom_in()
+			_zoom_in()
 		"out":
-			zoom_out()
+			_zoom_out()
 		"cards":
-			zoom_cards()
+			_zoom_in()
 		"area_1":
-			zoom_area(1)
+			_zoom_area(1)
 		"area_2":
-			zoom_area(2)
+			_zoom_area(2)
 		"area_3":
-			zoom_area(3)
+			_zoom_area(3)
 		"next_area":
-			zoom_next_area()
+			_zoom_next_area()
 		"prev_area":
-			zoom_prev_area()
+			_zoom_prev_area()
 		"up":
-			zoom_up()
+			_zoom_up()
 		"down":
-			zoom_down()
+			_zoom_down()
 		_:
 			push_error("CameraManager: неизвестный тип зума '%s'" % zoom_type)
+
+func _on_first_deal_set_requested(value: bool) -> void:
+	"""Обработка запроса установки is_first_deal"""
+	is_first_deal = value
 
 func _on_first_deal_completed() -> void:
 	"""Обработка завершения первой раздачи"""
 	is_first_deal = false
 	print("📷 CameraManager: первая раздача завершена")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ EVENTBUS - ЗАПРОСЫ СОСТОЯНИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_current_area_requested() -> void:
+	"""Обработка запроса текущей области"""
+	if EventBus:
+		EventBus.camera_current_area_received.emit(current_area)
+
+func _on_target_area_requested(direction: String) -> void:
+	"""Обработка запроса целевой области по направлению"""
+	var target = _get_target_area_by_direction(direction)
+	if EventBus:
+		EventBus.camera_target_area_received.emit(direction, target)
+
+func _on_target_area_from_requested(area: int, direction: String) -> void:
+	"""Обработка запроса целевой области из указанной"""
+	var target = _get_target_area_by_direction_from(area, direction)
+	if EventBus:
+		EventBus.camera_target_area_from_received.emit(area, direction, target)
+
+func _on_settings_requested() -> void:
+	"""Обработка запроса настроек камеры"""
+	if _camera and EventBus:
+		EventBus.camera_settings_received.emit(_camera.position, _camera.zoom)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ГЕТТЕРЫ
@@ -371,23 +418,31 @@ func set_is_first_deal(value: bool) -> void:
 # МЕТОДЫ ДЛЯ РАБОТЫ С КОНФИГУРАЦИЕЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func get_config() -> CameraConfig:
-	"""Получить текущую конфигурацию камеры"""
-	return config
+# ═══════════════════════════════════════════════════════════════════════════
+# ПУБЛИЧНЫЙ API (для специальных случаев, например StateRestorer)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func restore_to_general() -> void:
+	"""Восстановить камеру к общему плану (для StateRestorer)
+	
+	Публичный метод для восстановления состояния камеры без анимации.
+	Используется только в StateRestorer для восстановления состояния стола.
+	"""
+	if _camera and _config:
+		var general_settings = _config.get_general_settings()
+		_camera.position = general_settings.position
+		_camera.zoom = general_settings.zoom
+		is_first_deal = false
+		current_area = 0
+		last_zoom_type = "out"
+		print("📷 CameraManager: камера восстановлена к общему плану")
 
 func reload_config() -> void:
-	"""Перезагрузить конфигурацию из файла"""
-	config = load(config_path) as CameraConfig
-	if not config:
-		push_error("❌ CameraManager: не удалось перезагрузить конфигурацию из %s" % config_path)
-		config = CameraConfig.new()
-	print("📷 CameraManager: конфигурация перезагружена из %s" % config_path)
-
-func get_current_settings() -> Dictionary:
-	"""Получить текущие настройки камеры (позиция и зум)"""
-	if not camera:
-		return {}
-	return {
-		"position": camera.position,
-		"zoom": camera.zoom
-	}
+	"""Перезагрузить конфигурацию из файла (для отладки)"""
+	var config_script = load(_config_path) as GDScript
+	if config_script:
+		_config = config_script.new() as CameraConfig
+	else:
+		push_error("❌ CameraManager: не удалось перезагрузить конфигурацию из %s" % _config_path)
+		_config = CameraConfig.new()
+	print("📷 CameraManager: конфигурация перезагружена из %s" % _config_path)

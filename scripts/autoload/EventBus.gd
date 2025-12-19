@@ -53,6 +53,53 @@ signal area_buttons_visibility_changed(visible: bool)
 @warning_ignore("unused_signal")
 signal navigation_arrows_visibility_changed(visible: bool)
 
+## ═══════════════════════════════════════════════════════════════════════════
+## 📷 КАМЕРА - ЗАПРОСЫ СОСТОЯНИЯ (для полной инкапсуляции)
+## ═══════════════════════════════════════════════════════════════════════════
+
+## Запрос текущей области камеры (0 = карты, 1-3 = области ставок)
+## Ответ через camera_current_area_received
+@warning_ignore("unused_signal")
+signal camera_current_area_requested()
+
+## Ответ на запрос текущей области
+@warning_ignore("unused_signal")
+signal camera_current_area_received(area: int)
+
+## Запрос целевой области по направлению из текущего состояния
+## direction: "left", "right", "up", "down"
+## Ответ через camera_target_area_received
+@warning_ignore("unused_signal")
+signal camera_target_area_requested(direction: String)
+
+## Ответ на запрос целевой области
+@warning_ignore("unused_signal")
+signal camera_target_area_received(direction: String, target_area: int)
+
+## Запрос целевой области из указанной области
+## area: исходная область (0 = карты, 1-3 = области ставок)
+## direction: "left", "right", "up", "down"
+## Ответ через camera_target_area_from_received
+@warning_ignore("unused_signal")
+signal camera_target_area_from_requested(area: int, direction: String)
+
+## Ответ на запрос целевой области из указанной
+@warning_ignore("unused_signal")
+signal camera_target_area_from_received(area: int, direction: String, target_area: int)
+
+## Запрос настроек камеры (позиция, зум)
+## Ответ через camera_settings_received
+@warning_ignore("unused_signal")
+signal camera_settings_requested()
+
+## Ответ на запрос настроек камеры
+@warning_ignore("unused_signal")
+signal camera_settings_received(position: Vector2, zoom: Vector2)
+
+## Запрос на установку is_first_deal
+@warning_ignore("unused_signal")
+signal camera_first_deal_set_requested(value: bool)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ✅ ПРАВИЛЬНЫЕ ДЕЙСТВИЯ
 # ═══════════════════════════════════════════════════════════════════════════

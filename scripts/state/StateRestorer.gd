@@ -130,12 +130,10 @@ func restore_survival_and_queue(
 
 ## Восстановить камеру
 func restore_camera() -> void:
-	"""Восстановление камеры на общий план"""
-	if camera_manager and camera_manager.camera:
-		var general_settings = camera_manager.get_config().get_general_settings()
-		camera_manager.camera.position = general_settings.position
-		camera_manager.camera.zoom = general_settings.zoom
-		camera_manager.set_is_first_deal(false)
+	"""Восстановление камеры на общий план (через публичный API)"""
+	if camera_manager:
+		# Используем публичный метод вместо прямого доступа
+		camera_manager.restore_to_general()
 		DebugLogger.log("📷 Камера восстановлена: общий план")
 	
 	# Показываем кнопки областей для выбора следующей области

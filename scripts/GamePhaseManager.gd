@@ -343,6 +343,16 @@ func on_tie_button_pressed():
 	# ✅ Правильно! Действительно ничья
 	EventBus.action_correct.emit("winner")
 
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Если есть активная ставка - разрешаем её и завершаем
+	# Выплаты НЕ нужны при Heart Bet!
+	# ═══════════════════════════════════════════════════════════════════
+	if has_active_heart_bet():
+		print("❤️ on_tie_button_pressed: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
+		resolve_heart_bet(actual_winner)
+		# НЕ продолжаем с обычной логикой - раунд сбросится через EventBus
+		return
+
 	# Меняем кнопку на "complete"
 	ui.set_action_button_state("complete")
 	# Активируем кнопку при переходе в стадию выплат

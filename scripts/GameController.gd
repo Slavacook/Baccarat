@@ -523,14 +523,34 @@ func _finalize_payouts_manual(actual_winner: String) -> void:
 	# Получаем текущие текстуры фишек
 	var chip_textures = chip_visual_manager.current_textures if chip_visual_manager else {}
 
+	# Запрашиваем настройки камеры через EventBus
+	var camera_data = {"position": Vector2.ZERO, "zoom": Vector2.ONE, "received": false}
+	
+	if camera_manager:
+		var response_handler = func(pos: Vector2, zoom: Vector2):
+			camera_data.position = pos
+			camera_data.zoom = zoom
+			camera_data.received = true
+			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
+		
+		EventBus.camera_settings_received.connect(response_handler, CONNECT_ONE_SHOT)
+		EventBus.camera_settings_requested.emit()
+		
+		# Ждём ответ (синхронно, но с таймаутом)
+		var timeout = 0.1
+		var elapsed = 0.0
+		while not camera_data.received and elapsed < timeout:
+			await get_tree().process_frame
+			elapsed += get_process_delta_time()
+	
 	TableStateManager.save_table_state(
 		hand_manager.get_player_hand_ref(),
 		hand_manager.get_banker_hand_ref(),
 		actual_winner,
 		selected_winner,
 		payout_queue_manager.get_all_bets(),
-		camera_manager.camera.position if camera_manager and camera_manager.camera else Vector2.ZERO,
-		camera_manager.camera.zoom if camera_manager and camera_manager.camera else Vector2.ONE,
+		camera_data.position,
+		camera_data.zoom,
 		GameModeManager.get_mode_string(),
 		survival_rounds_completed,
 		surv_lives,
@@ -632,7 +652,7 @@ func _on_survival_game_over(_rounds: int):
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
-	camera_manager.set_is_first_deal(true)  # Следующая раздача будет первой (с зумом)
+	EventBus.camera_first_deal_set_requested.emit(true)  # Следующая раздача будет первой (с зумом)
 
 	game_over_popup.show_game_over(survival_rounds_completed)
 
@@ -646,7 +666,7 @@ func _on_score_game_over():
 
 	# Зум аут до общего плана при Game Over
 	camera_zoom_out()
-	camera_manager.set_is_first_deal(true)  # Следующая раздача будет первой (с зумом)
+	EventBus.camera_first_deal_set_requested.emit(true)  # Следующая раздача будет первой (с зумом)
 
 	var final_score = SaveManager.instance.score
 	game_over_popup.show_game_over_score(final_score)
@@ -659,7 +679,7 @@ func _on_score_game_over():
 
 func _on_restart_game():
 	survival_rounds_completed = 0
-	camera_manager.set_is_first_deal(true)  # После рестарта первая раздача с зумом
+	EventBus.camera_first_deal_set_requested.emit(true)  # После рестарта первая раздача с зумом
 	StatsManager.instance.reset()
 	if is_survival_mode:
 		survival_ui.reset()
@@ -911,11 +931,8 @@ func _restore_automatic_mode_state() -> void:
 	survival_ui.is_active = GameDataManager.is_survival_active
 	
 	# Восстанавливаем камеру на общий план (без анимации)
-	if camera_manager and camera_manager.camera:
-		var general_settings = camera_manager.get_config().get_general_settings()
-		camera_manager.camera.position = general_settings.position
-		camera_manager.camera.zoom = general_settings.zoom
-		camera_manager.set_is_first_deal(false)
+	if camera_manager:
+		camera_manager.restore_to_general()
 		DebugLogger.log("📷 Камера восстановлена: общий план")
 	
 	# Показываем кнопки областей
@@ -998,69 +1015,56 @@ func _handle_payout_queue() -> void:
 
 
 func camera_zoom_in():
-	"""Плавный зум на область карт (делегирование к CameraManager)"""
-	if camera_manager:
-		camera_manager.zoom_in()
+	"""Плавный зум на область карт (через EventBus)"""
+	EventBus.camera_zoom_requested.emit("in")
 
 func camera_zoom_out():
-	"""Возврат к общему плану (делегирование к CameraManager)"""
-	if camera_manager:
-		camera_manager.zoom_out()
+	"""Возврат к общему плану (через EventBus)"""
+	EventBus.camera_zoom_requested.emit("out")
 
 func camera_zoom_cards():
-	"""Плавный зум на область карт (делегирование к CameraManager)"""
-	if camera_manager:
-		camera_manager.zoom_cards()
+	"""Плавный зум на область карт (через EventBus)"""
+	EventBus.camera_zoom_requested.emit("cards")
 
 func camera_zoom_area(area_index: int):
-	"""Плавный зум на область ставок (делегирование к CameraManager)"""
-	if camera_manager:
-		camera_manager.zoom_area(area_index)
+	"""Плавный зум на область ставок (через EventBus)"""
+	EventBus.camera_zoom_requested.emit("area_%d" % area_index)
 
 
 func _on_left_arrow_pressed():
-	"""Обработчик нажатия левой стрелки"""
-	if not camera_manager:
-		return
-	var target_area = camera_manager.get_target_area_by_direction("left")
-	if target_area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-	else:
-		EventBus.camera_zoom_requested.emit("in")
-	_update_arrows_state()
+	"""Обработчик нажатия левой стрелки (через EventBus)"""
+	_request_camera_target_area("left")
 
 func _on_right_arrow_pressed():
-	"""Обработчик нажатия правой стрелки"""
-	if not camera_manager:
-		return
-	var target_area = camera_manager.get_target_area_by_direction("right")
-	if target_area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-	else:
-		EventBus.camera_zoom_requested.emit("in")
-	_update_arrows_state()
+	"""Обработчик нажатия правой стрелки (через EventBus)"""
+	_request_camera_target_area("right")
 
 func _on_up_arrow_pressed():
-	"""Обработчик нажатия стрелки вверх"""
-	if not camera_manager:
-		return
-	var target_area = camera_manager.get_target_area_by_direction("up")
-	if target_area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-	else:
-		EventBus.camera_zoom_requested.emit("in")
-	_update_arrows_state()
+	"""Обработчик нажатия стрелки вверх (через EventBus)"""
+	_request_camera_target_area("up")
 
 func _on_down_arrow_pressed():
-	"""Обработчик нажатия стрелки вниз"""
-	if not camera_manager:
-		return
-	var target_area = camera_manager.get_target_area_by_direction("down")
-	if target_area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
-	else:
-		EventBus.camera_zoom_requested.emit("in")
-	_update_arrows_state()
+	"""Обработчик нажатия стрелки вниз (через EventBus)"""
+	_request_camera_target_area("down")
+
+func _request_camera_target_area(direction: String) -> void:
+	"""Запросить целевую область через EventBus и выполнить зум
+	
+	Args:
+		direction: "left", "right", "up", "down"
+	"""
+	# Создаём временную подписку на ответ (одноразово)
+	var response_handler = func(dir: String, area: int):
+		if dir == direction:
+			if area > 0:
+				EventBus.camera_zoom_requested.emit("area_%d" % area)
+			else:
+				EventBus.camera_zoom_requested.emit("in")
+			_update_arrows_state()
+			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
+	
+	EventBus.camera_target_area_received.connect(response_handler, CONNECT_ONE_SHOT)
+	EventBus.camera_target_area_requested.emit(direction)
 
 func _on_arrows_visibility_changed(should_show: bool):
 	"""Обработчик изменения видимости стрелок"""
@@ -1085,46 +1089,98 @@ func _update_arrows_state(target_area: int = -1):
 	"""Обновить состояние стрелок (активность) в зависимости от текущей области
 	
 	Args:
-		target_area: Целевая область для мгновенного обновления (если -1, используется текущая)
+		target_area: Целевая область для мгновенного обновления (если -1, запрашивается через EventBus)
 	"""
-	if not camera_manager:
-		return
+	if target_area >= 0:
+		# Если область передана, используем её напрямую
+		_update_arrows_for_area(target_area)
+	else:
+		# Запрашиваем текущую область через EventBus
+		var response_handler = func(area: int):
+			_update_arrows_for_area(area)
+			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
+		
+		EventBus.camera_current_area_received.connect(response_handler, CONNECT_ONE_SHOT)
+		EventBus.camera_current_area_requested.emit()
+
+func _update_arrows_for_area(current_area: int) -> void:
+	"""Обновить состояние стрелок для указанной области
 	
-	# Используем целевую область если передана, иначе текущую
-	var current_area = target_area if target_area >= 0 else camera_manager.get_current_area()
+	Args:
+		current_area: Текущая область (0 = карты, 1-3 = области ставок)
+	"""
 	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
 	var up_arrow = get_node_or_null("TopUI/UpArrowButton")
 	var down_arrow = get_node_or_null("TopUI/DownArrowButton")
 	
-	# Используем get_target_area_by_direction_from для определения доступности стрелок
-	# Стрелка активна, если целевая область отличается от текущей (есть переход)
-	# Стрелка неактивна, если целевая область равна текущей (нет перехода)
+	# Счётчик ожидаемых ответов и словарь ответов (используем словарь для изменяемых значений)
+	var state = {
+		"pending": 4,
+		"completed": false,
+		"responses": {
+			"left": null,
+			"right": null,
+			"up": null,
+			"down": null
+		}
+	}
 	
+	# Обработчик ответов (не отписываемся вручную - просто игнорируем после завершения)
+	var response_handler = func(area: int, dir: String, target: int):
+		# Игнорируем, если уже завершено
+		if state.completed:
+			return
+		# Проверяем, что ответ относится к текущему запросу
+		if area == current_area and dir in state.responses and state.responses[dir] == null:
+			state.responses[dir] = target
+			state.pending -= 1
+			if state.pending == 0:
+				# Все ответы получены, обновляем стрелки
+				state.completed = true
+				_apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, current_area, state.responses)
+				# Не отписываемся - обработчик просто будет игнорировать дальнейшие вызовы
+	
+	EventBus.camera_target_area_from_received.connect(response_handler)
+	
+	# Запрашиваем целевые области для всех направлений
+	EventBus.camera_target_area_from_requested.emit(current_area, "left")
+	EventBus.camera_target_area_from_requested.emit(current_area, "right")
+	EventBus.camera_target_area_from_requested.emit(current_area, "up")
+	EventBus.camera_target_area_from_requested.emit(current_area, "down")
+
+func _apply_arrows_state(left_arrow: Node, right_arrow: Node, up_arrow: Node, down_arrow: Node, current_area: int, responses: Dictionary) -> void:
+	"""Применить состояние стрелок на основе ответов
+	
+	Args:
+		left_arrow, right_arrow, up_arrow, down_arrow: Узлы стрелок
+		current_area: Текущая область
+		responses: Словарь с целевыми областями {"left": int, "right": int, ...}
+	"""
 	# Левая стрелка
-	if left_arrow:
-		var target_left = camera_manager.get_target_area_by_direction_from(current_area, "left")
+	if left_arrow and responses.has("left"):
+		var target_left = responses["left"]
 		var can_go_left = (target_left != current_area)
 		left_arrow.disabled = not can_go_left
 		left_arrow.modulate.a = 0.3 if not can_go_left else 1.0
 	
 	# Правая стрелка
-	if right_arrow:
-		var target_right = camera_manager.get_target_area_by_direction_from(current_area, "right")
+	if right_arrow and responses.has("right"):
+		var target_right = responses["right"]
 		var can_go_right = (target_right != current_area)
 		right_arrow.disabled = not can_go_right
 		right_arrow.modulate.a = 0.3 if not can_go_right else 1.0
 	
 	# Стрелка вверх
-	if up_arrow:
-		var target_up = camera_manager.get_target_area_by_direction_from(current_area, "up")
+	if up_arrow and responses.has("up"):
+		var target_up = responses["up"]
 		var can_go_up = (target_up != current_area)
 		up_arrow.disabled = not can_go_up
 		up_arrow.modulate.a = 0.3 if not can_go_up else 1.0
 	
 	# Стрелка вниз
-	if down_arrow:
-		var target_down = camera_manager.get_target_area_by_direction_from(current_area, "down")
+	if down_arrow and responses.has("down"):
+		var target_down = responses["down"]
 		var can_go_down = (target_down != current_area)
 		down_arrow.disabled = not can_go_down
 		down_arrow.modulate.a = 0.3 if not can_go_down else 1.0

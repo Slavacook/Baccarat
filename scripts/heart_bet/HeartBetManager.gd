@@ -327,10 +327,10 @@ func _handle_tie_draw() -> void:
 	
 	# Скрываем выбранное сердце со стола
 	EventBus.heart_bet_hide_selected.emit()
-	# Карта сгорела - уменьшаем счётчик до 0
-	chance_count = 0
-	print("❤️ Карта сгорела! Шансов: %d" % chance_count)
-	EventBus.chance_count_changed.emit(chance_count)
+	# Карта сгорела (уже была списана при использовании в use_chance())
+	# НЕ обнуляем chance_count - остальные карты должны остаться
+	print("❤️ Карта сгорела! Осталось шансов: %d" % chance_count)
+	# НЕ эмитим chance_count_changed - счётчик не изменился (карта уже была списана)
 	
 	# Сбрасываем состояние в IDLE
 	current_state = State.IDLE
