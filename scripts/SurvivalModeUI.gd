@@ -11,18 +11,46 @@ signal game_over(rounds_survived: int)
 # Карта "Шанс" теперь управляется через GameController.chance_card_ui
 
 const MAX_LIVES = 7
-var current_lives: int = MAX_LIVES
-var is_active: bool = false
 
-## Индекс сердца в залоге (-1 если нет залога)
-var pledged_heart_index: int = -1
+# ═══════════════════════════════════════════════════════════════════════════
+# НОВАЯ СИСТЕМА: HeartBar с State Pattern
+# ═══════════════════════════════════════════════════════════════════════════
 
+## HeartBar - главный менеджер жизней
+var heart_bar: HeartBar
+
+## Визуализация сердец
+var heart_visual: TextureRectHeartVisual
+
+## Текстуры для визуализации
 var heart_full = preload("res://assets/ui/heart.png")
 var heart_empty = preload("res://assets/ui/heart_empty.png")
+var heart_pledged: Texture2D = null
 
-## Текстура для сердца в залоге (пользователь может заменить на свою)
-## Пока используем полупрозрачное сердце как заглушку
-var heart_pledged: Texture2D = null  # Будет установлено при наличии файла
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАТНАЯ СОВМЕСТИМОСТЬ: Публичные свойства для старого кода
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Текущее количество жизней (для обратной совместимости)
+var current_lives: int:
+	get:
+		return heart_bar.get_lives() if heart_bar else MAX_LIVES
+	set(value):
+		if heart_bar:
+			heart_bar.set_lives(value)
+
+## Активен ли режим (для обратной совместимости)
+var is_active: bool:
+	get:
+		return heart_bar.is_active_mode() if heart_bar else false
+	set(_value):
+		# Нельзя устанавливать напрямую, используйте activate()/deactivate()
+		pass
+
+## Индекс сердца в залоге (для обратной совместимости)
+var pledged_heart_index: int:
+	get:
+		return heart_bar.pledged_heart_index if heart_bar else -1
 
 func _ready():
 	hide()  # Скрыто по умолчанию
@@ -35,76 +63,55 @@ func _ready():
 		heart_pledged = null
 		print("⚠️  SurvivalModeUI: heart_pledged.png не найден, используем заглушку")
 	
-	# Подписываемся на события ошибок для потери жизней
-	EventBus.action_error.connect(_on_error)
-	EventBus.payout_wrong.connect(_on_payout_wrong)
-	EventBus.hint_used.connect(_on_hint_used)
+	# Инициализируем HeartBar
+	heart_bar = HeartBar.new(MAX_LIVES)
 	
-	# Подписываемся на события Heart Bet
-	EventBus.heart_pledged.connect(_on_heart_pledged)
-	EventBus.heart_returned.connect(_on_heart_returned)
-	EventBus.heart_bet_won.connect(_on_heart_bet_won)
-	EventBus.heart_bet_lost.connect(_on_heart_bet_lost)
+	# Создаём визуализацию
+	heart_visual = TextureRectHeartVisual.new(
+		hearts,
+		heart_full,
+		heart_empty,
+		heart_pledged
+	)
+	heart_bar.set_visual(heart_visual)
 	
-	# Примечание: heart_bet_trigger_activated и heart_bet_selected теперь обрабатываются в GameController
-	# для управления картой "Шанс"
-
-func _on_error(_type: String = "", _message: String = ""):
-	"""Обработчик ошибок действий (третья карта, выбор победителя)"""
-	lose_life()
-
-func _on_payout_wrong(_collected: float, _expected: float):
-	"""Обработчик неправильной выплаты"""
-	lose_life()
-
-func _on_hint_used():
-	"""Обработчик использования подсказки (штраф)"""
-	lose_life()
+	# Подписываемся на сигналы HeartBar
+	heart_bar.lives_changed.connect(_on_lives_changed)
+	heart_bar.game_over.connect(_on_game_over)
+	heart_bar.life_lost.connect(_on_life_lost)
+	
+	# Примечание: HeartBar уже подписан на EventBus события внутри себя
+	# (action_error, payout_wrong, hint_used, heart_pledged, heart_returned, heart_bet_won, heart_bet_lost)
 
 # ← Активировать режим выживания
 func activate():
-	if is_active:
-		# Уже активен - НЕ сбрасываем жизни, просто показываем
-		show()
-		print("♻️  Режим выживания уже активен, жизней: ", current_lives)
+	if not heart_bar:
 		return
-
-	is_active = true
-	current_lives = MAX_LIVES
-	_update_hearts()
+	
+	heart_bar.activate()
 	show()
-	print("Режим выживания активирован! Жизней: ", current_lives)
+	
+	# Если уже был активен, HeartBar не сбросит жизни
+	if heart_bar.is_active_mode():
+		print("♻️  Режим выживания уже активен, жизней: ", heart_bar.get_lives())
+	else:
+		print("Режим выживания активирован! Жизней: ", heart_bar.get_lives())
 
 # ← Деактивировать режим выживания
 func deactivate():
-	is_active = false
+	if not heart_bar:
+		return
+	
+	heart_bar.deactivate()
 	hide()
 	print("Режим выживания деактивирован")
 
-# ← Потерять жизнь при ошибке
+# ← Потерять жизнь при ошибке (для обратной совместимости)
 func lose_life():
-	if not is_active:
+	if not heart_bar:
 		return
-
-	current_lives -= 1
-	print("Жизнь потеряна! Осталось: ", current_lives)
-
-	# Эмитим событие с оставшимся количеством жизней
-	EventBus.life_lost.emit(current_lives)
-
-	_update_hearts()
+	heart_bar.lose_life()
 	_play_damage_animation()
-
-	if current_lives <= 0:
-		_trigger_game_over()
-
-# ← Обновить визуальное отображение сердечек
-func _update_hearts():
-	for i in range(MAX_LIVES):
-		if i < current_lives:
-			hearts[i].texture = heart_full  # Полное сердечко
-		else:
-			hearts[i].texture = heart_empty  # Пустое сердечко
 
 # ← Анимация потери жизни
 func _play_damage_animation():
@@ -119,22 +126,32 @@ func _play_damage_animation():
 	for heart in hearts:
 		tween.tween_property(heart, "modulate", Color.WHITE, 0.1)
 
-# ← Триггер окончания игры
-func _trigger_game_over():
-	is_active = false
+# ← Обработчик изменения жизней от HeartBar
+func _on_lives_changed(_new_lives: int):
+	# Визуализация обновляется автоматически через HeartBar
+	pass
+
+# ← Обработчик потери жизни от HeartBar
+func _on_life_lost(_remaining_lives: int):
+	_play_damage_animation()
+
+# ← Обработчик game over от HeartBar
+func _on_game_over():
 	print("GAME OVER! Режим выживания завершён")
 	game_over.emit(0)  # 0 пока, GameController передаст реальное значение
 
 # ← Сбросить жизни (для начала новой игры)
 func reset():
-	current_lives = MAX_LIVES
-	_update_hearts()
+	if not heart_bar:
+		return
+	heart_bar.activate()  # Активация сбрасывает жизни на MAX_LIVES
 
 # ← Установить количество жизней (для синхронизации из PayoutScene)
 func set_lives(lives: int):
-	current_lives = clamp(lives, 0, MAX_LIVES)
-	_update_hearts()
-	print("♻️  SurvivalModeUI: установлено жизней: %d" % current_lives)
+	if not heart_bar:
+		return
+	heart_bar.set_lives(lives)
+	print("♻️  SurvivalModeUI: установлено жизней: %d" % heart_bar.get_lives())
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -143,78 +160,29 @@ func set_lives(lives: int):
 
 ## Добавить жизни (после выигрыша Heart Bet)
 func add_lives(count: int) -> void:
-	if not is_active:
+	if not heart_bar:
 		return
-	
-	var old_lives = current_lives
-	current_lives = min(current_lives + count, MAX_LIVES)
-	var actually_added = current_lives - old_lives
-	
-	print("❤️ +%d жизней! (запрошено: %d, добавлено: %d, итого: %d)" % [actually_added, count, actually_added, current_lives])
-	
-	_update_hearts()
+	heart_bar.add_life(count)
 	_play_heal_animation()
-	
-	EventBus.lives_added.emit(actually_added, current_lives)
-
 
 ## Взять сердце в залог (визуальное изменение последнего сердца)
 func pledge_heart() -> void:
-	if not is_active or current_lives <= 0:
+	if not heart_bar:
 		return
-	
-	# Находим последнее видимое полное сердце (крайнее справа)
-	pledged_heart_index = -1
-	for i in range(hearts.size() - 1, -1, -1):
-		if hearts[i].texture == heart_full:
-			pledged_heart_index = i
-			break
-	
-	# Если не найдено полное сердце, используем fallback
-	if pledged_heart_index < 0:
-		pledged_heart_index = max(0, current_lives - 1)
-	
-	if heart_pledged:
-		# Используем специальную текстуру
-		hearts[pledged_heart_index].texture = heart_pledged
-	else:
-		# Заглушка - полупрозрачное сердце с оттенком
-		hearts[pledged_heart_index].modulate = Color(1.0, 0.7, 0.3, 0.8)  # Оранжевый оттенок
-	
-	print("❤️ Сердце #%d в залоге" % (pledged_heart_index + 1))
-
+	heart_bar.pledge_heart()
 
 ## Вернуть сердце из залога
 func return_pledged_heart() -> void:
-	if pledged_heart_index < 0:
+	if not heart_bar:
 		return
-	
-	# Восстанавливаем текстуру
-	hearts[pledged_heart_index].texture = heart_full
-	hearts[pledged_heart_index].modulate = Color.WHITE
-	
-	print("❤️ Сердце #%d возвращено из залога" % (pledged_heart_index + 1))
-	pledged_heart_index = -1
-
+	heart_bar.return_pledged_heart()
 
 ## Забрать заложенное сердце (проигрыш)
 func forfeit_pledged_heart() -> void:
-	if pledged_heart_index < 0:
+	if not heart_bar:
 		return
-	
-	# Сердце сгорает
-	hearts[pledged_heart_index].texture = heart_empty
-	hearts[pledged_heart_index].modulate = Color.WHITE
-	current_lives -= 1
-	
-	print("❤️💔 Сердце #%d потеряно! Осталось: %d" % [pledged_heart_index + 1, current_lives])
-	pledged_heart_index = -1
-	
-	EventBus.life_lost.emit(current_lives)
-	
-	if current_lives <= 0:
-		_trigger_game_over()
-
+	heart_bar.forfeit_pledged_heart()
+	_play_damage_animation()
 
 ## Анимация получения жизни
 func _play_heal_animation() -> void:
@@ -229,60 +197,38 @@ func _play_heal_animation() -> void:
 	for heart in hearts:
 		tween.tween_property(heart, "modulate", Color.WHITE, 0.15)
 
-
-## Обработчик события "сердце в залог"
+## Обработчик события "сердце в залог" (HeartBar обрабатывает сам через EventBus)
 func _on_heart_pledged() -> void:
-	print("❤️ SurvivalModeUI: _on_heart_pledged() is_active=%s" % is_active)
-	if not is_active:
-		print("⚠️ SurvivalModeUI не активен, пропускаем pledge_heart")
-		return
-	pledge_heart()
+	# HeartBar уже обработал через EventBus, здесь только для совместимости
+	pass
 
-
-## Обработчик события "сердце возвращено"
+## Обработчик события "сердце возвращено" (HeartBar обрабатывает сам через EventBus)
 func _on_heart_returned() -> void:
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H3","location":"SurvivalModeUI._on_heart_returned","message":"heart_returned received","data":{"is_active":%s,"pledged_heart_index":%d},"timestamp":%d}' % [str(is_active).to_lower(), pledged_heart_index, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
-	print("❤️ SurvivalModeUI: _on_heart_returned() is_active=%s" % is_active)
-	if not is_active:
-		print("⚠️ SurvivalModeUI не активен, пропускаем return_pledged_heart")
-		return
-	return_pledged_heart()
+	# HeartBar уже обработал через EventBus, здесь только для совместимости
+	pass
 
+## Обработчик выигрыша Heart Bet (HeartBar обрабатывает сам через EventBus)
+func _on_heart_bet_won(_target: String, _lives_gained: int) -> void:
+	# HeartBar уже обработал через EventBus, здесь только для совместимости
+	_play_heal_animation()
 
-## Обработчик выигрыша Heart Bet
-func _on_heart_bet_won(target: String, lives_gained: int) -> void:
-	print("❤️ SurvivalModeUI: _on_heart_bet_won(%s, %d) is_active=%s" % [target, lives_gained, is_active])
-	if not is_active:
-		print("⚠️ SurvivalModeUI не активен, пропускаем")
-		return
-	# Сначала возвращаем залог
-	return_pledged_heart()
-	# Затем добавляем выигрыш
-	add_lives(lives_gained)
-
-
-## Обработчик проигрыша Heart Bet
-func _on_heart_bet_lost(target: String, _lives_remaining: int) -> void:
-	print("❤️ SurvivalModeUI: _on_heart_bet_lost(%s) is_active=%s" % [target, is_active])
-	if not is_active:
-		print("⚠️ SurvivalModeUI не активен, пропускаем")
-		return
-	# Залог сгорает
-	forfeit_pledged_heart()
+## Обработчик проигрыша Heart Bet (HeartBar обрабатывает сам через EventBus)
+func _on_heart_bet_lost(_target: String, _lives_remaining: int) -> void:
+	# HeartBar уже обработал через EventBus, здесь только для совместимости
+	_play_damage_animation()
 
 
 ## Получить текущее количество жизней
 func get_lives() -> int:
-	return current_lives
-
+	if not heart_bar:
+		return MAX_LIVES
+	return heart_bar.get_lives()
 
 ## Проверить, есть ли сердце в залоге
 func has_pledged_heart() -> bool:
-	return pledged_heart_index >= 0
+	if not heart_bar:
+		return false
+	return heart_bar.has_pledged_heart()
 
 
 # ═══════════════════════════════════════════════════════════════════════════

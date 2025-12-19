@@ -55,6 +55,9 @@ var settings_button: Button
 var survival_ui: Control
 var game_over_popup: CanvasLayer
 
+## HeartBar - менеджер жизней (новая система)
+var heart_bar: HeartBar = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -98,6 +101,8 @@ func _ready():
 	game_over_popup = initialized["game_over_popup"]
 	settings_scene = initialized.get("settings_scene")
 	settings_button = initialized.get("settings_button")
+	
+	# HeartBar будет инициализирован в _ready() после того как survival_ui._ready() вызван
 	phase_manager = initialized["phase_manager"]
 	bet_collection_manager = initialized["bet_collection_manager"]
 	chip_visual_manager = initialized["chip_visual_manager"]
@@ -129,6 +134,17 @@ func _ready():
 	
 	# Настройка новой системы карт шанса
 	_setup_chance_card_system()
+	
+	# Инициализируем HeartBar (если ещё не инициализирован)
+	_initialize_heart_bar()
+
+## Инициализировать HeartBar из survival_ui
+func _initialize_heart_bar() -> void:
+	if survival_ui and "heart_bar" in survival_ui and survival_ui.heart_bar != null:
+		heart_bar = survival_ui.heart_bar
+		print("✅ HeartBar инициализирован в GameController")
+	else:
+		print("⚠️  HeartBar не найден в survival_ui (возможно, survival_ui ещё не готов)")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -376,10 +392,12 @@ func _process_payout_queue_or_reset() -> void:
 		)
 		
 		# Сохраняем состояние игры (сердечки, раунды)
+		var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
+		var active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
 		GameDataManager.set_game_state(
 			survival_rounds_completed,
-			survival_ui.current_lives,
-			survival_ui.is_active
+			lives,
+			active
 		)
 		
 		get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
@@ -513,8 +531,8 @@ func _finalize_payouts_manual(actual_winner: String) -> void:
 	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
 	# ═══════════════════════════════════════════════════════════════════
 	var selected_winner = winner_selection_manager.get_selected_winner() if winner_selection_manager else ""
-	var surv_lives = survival_ui.current_lives if survival_ui else 7
-	var surv_active = survival_ui.is_active if survival_ui else false
+	var surv_lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
+	var surv_active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
 
 	# Получаем состояние ставок на пары из настроек
 	var pair_player_pressed = PayoutSettingsManager.player_pair_payout_enabled
@@ -927,8 +945,18 @@ func _restore_automatic_mode_state() -> void:
 	"""Восстановление состояния игры, камеры и UI"""
 	# Восстанавливаем состояние survival режима
 	survival_rounds_completed = GameDataManager.survival_rounds
-	survival_ui.current_lives = GameDataManager.survival_lives
-	survival_ui.is_active = GameDataManager.is_survival_active
+	if heart_bar:
+		heart_bar.set_lives(GameDataManager.survival_lives)
+		if GameDataManager.is_survival_active:
+			heart_bar.activate()
+		else:
+			heart_bar.deactivate()
+	elif survival_ui:
+		survival_ui.set_lives(GameDataManager.survival_lives)
+		if GameDataManager.is_survival_active:
+			survival_ui.activate()
+		else:
+			survival_ui.deactivate()
 	
 	# Восстанавливаем камеру на общий план (без анимации)
 	if camera_manager:
@@ -939,14 +967,17 @@ func _restore_automatic_mode_state() -> void:
 	EventBus.area_buttons_visibility_changed.emit(true)
 	
 	# Обновляем визуальное отображение сердечек
-	if survival_ui.is_active:
-		survival_ui._update_hearts()
-		survival_ui.show()
+	var is_active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
+	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
+	if is_active:
+		if survival_ui:
+			survival_ui.show()
 	else:
-		survival_ui.hide()
-	
+		if survival_ui:
+			survival_ui.hide()
+
 	DebugLogger.log("♻️  Состояние игры восстановлено: rounds=%d, lives=%d, active=%s" % [
-		survival_rounds_completed, survival_ui.current_lives, survival_ui.is_active
+		survival_rounds_completed, lives, is_active
 	])
 
 
@@ -956,7 +987,9 @@ func _check_and_handle_game_over() -> bool:
 	Returns:
 		true если Game Over произошёл, false если игра продолжается
 	"""
-	if survival_ui.is_active and survival_ui.current_lives <= 0:
+	var is_active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
+	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
+	if is_active and lives <= 0:
 		DebugLogger.log_game_flow("GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
 		_on_survival_game_over(survival_rounds_completed)
 		GameDataManager.clear()
@@ -1541,7 +1574,7 @@ func _show_payout_overlay_instance(bet_type: String, position_index: int, stake:
 	payout_overlay.set_meta("current_position_index", position_index)
 
 	# Передаём состояние игры через параметры (вместо get_parent())
-	var lives = survival_ui.current_lives if survival_ui else 7
+	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
 	payout_overlay.show_payout(bet_type, stake, payout, is_survival_mode, lives)
 
 func _open_payout_scene(bet_type: String):
@@ -1580,13 +1613,14 @@ func _open_payout_scene(bet_type: String):
 	DebugLogger.log("  → is_survival_mode = %s" % is_survival_mode)
 	DebugLogger.log("  → survival_ui exists = %s" % (survival_ui != null))
 	if survival_ui:
-		DebugLogger.log("  → survival_ui.current_lives = %d" % survival_ui.current_lives)
+		var lives = heart_bar.get_lives() if heart_bar else survival_ui.get_lives()
+		DebugLogger.log("  → survival_ui.current_lives = %d" % lives)
 	DebugLogger.log("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.survival_lives)
 
 	var surv_lives = 7  # Значение по умолчанию
 	if is_survival_mode and survival_ui:
 		# Режим выживания активен - берем текущее количество жизней
-		surv_lives = survival_ui.current_lives
+		surv_lives = heart_bar.get_lives() if heart_bar else survival_ui.get_lives()
 		DebugLogger.log("  → Берем из survival_ui: %d" % surv_lives)
 	elif is_survival_mode:
 		# Режим выживания активен, но survival_ui не инициализирован - берем из GameDataManager
@@ -1631,7 +1665,7 @@ func _show_payout_overlay(bet_type: String, stake: float, payout: float):
 	# Overlay сам управляет UI, фишками и валидацией
 
 	# Передаём состояние игры через параметры (вместо get_parent())
-	var lives = survival_ui.current_lives if survival_ui else 7
+	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
 	payout_overlay.show_payout(bet_type, stake, payout, is_survival_mode, lives)
 
 

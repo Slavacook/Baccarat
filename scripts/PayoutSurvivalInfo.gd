@@ -22,6 +22,13 @@ var lives_count_label: Label   # ← Label с количеством жизне�
 var heart_full: Texture2D
 
 # ═══════════════════════════════════════════════════════════════════════════
+# НОВАЯ СИСТЕМА: LabelHeartVisual
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Визуализация для Label + TextureRect
+var heart_visual: LabelHeartVisual = null
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -35,6 +42,14 @@ func _ready():
 
 	# Создаём одно сердце и Label с количеством жизней
 	_create_single_heart_display()
+	
+	# Инициализируем LabelHeartVisual
+	if lives_count_label and single_heart:
+		heart_visual = LabelHeartVisual.new(
+			lives_count_label,
+			single_heart,
+			heart_full
+		)
 
 	# Начальное состояние (скрыто до первого update)
 	lives_container.visible = false
@@ -96,13 +111,15 @@ func _update_hearts(current_lives: int):
 	var clamped_lives = clamp(current_lives, 0, MAX_LIVES)
 	print("  → _update_hearts: current_lives=%d, clamped=%d" % [current_lives, clamped_lives])
 
-	# Обновляем Label с количеством жизней
-	if lives_count_label:
-		lives_count_label.text = str(clamped_lives)
-
-	# Сердце всегда показываем (оно всегда видимо)
-	if single_heart:
-		single_heart.texture = heart_full
+	# Используем LabelHeartVisual для обновления
+	if heart_visual:
+		heart_visual.update_visual(HeartState.State.FULL, clamped_lives)
+	else:
+		# Fallback на старый код для обратной совместимости
+		if lives_count_label:
+			lives_count_label.text = str(clamped_lives)
+		if single_heart:
+			single_heart.texture = heart_full
 
 	print("  ✅ Отображение жизней обновлено: ♥ %d" % clamped_lives)
 
