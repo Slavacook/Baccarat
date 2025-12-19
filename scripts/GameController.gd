@@ -65,6 +65,7 @@ var heart_bar: HeartBar = null
 var survival_rounds_completed: int = 0
 var is_survival_mode: bool = false
 var is_table_prepared_for_new_game: bool = false
+var is_game_over: bool = false  # Флаг Game Over для блокировки процессов
 
 # Добавляем FlipCard ссылки
 # Массивы для ссылок на flip-анимации и карты:
@@ -138,6 +139,10 @@ func _ready():
 	
 	# Инициализируем HeartBar (если ещё не инициализирован)
 	_initialize_heart_bar()
+	
+	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
+	is_game_over = false
+	EventBus.is_game_active = true
 
 ## Инициализировать HeartBar из survival_ui
 func _initialize_heart_bar() -> void:
@@ -678,42 +683,78 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 # GAME OVER И РЕСТАРТ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func is_game_active() -> bool:
+	"""Проверка, активна ли игра (не в Game Over)"""
+	return not is_game_over
+
 func _on_survival_game_over(_rounds: int):
+	if is_game_over:
+		return  # Уже в Game Over, игнорируем повторные вызовы
+	
+	is_game_over = true
+	EventBus.is_game_active = false  # Синхронизируем с EventBus
 	DebugLogger.log("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
 
-	# Закрываем окно выплат, если оно открыто
+	# 1. Сбрасываем шансы (чтобы не переходили в новую игру)
+	if phase_manager and phase_manager.heart_bet_manager:
+		phase_manager.heart_bet_manager.force_reset()
+		DebugLogger.log("❤️ Шансы сброшены при Game Over")
+
+	# 2. Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
 		payout_overlay.hide()
 		DebugLogger.log_payout("PayoutOverlay закрыт при Game Over")
 
-	# Зум аут до общего плана при Game Over
+	# 3. Зум аут до общего плана при Game Over
 	camera_zoom_out()
 	EventBus.camera_first_deal_set_requested.emit(true)  # Следующая раздача будет первой (с зумом)
 
+	# 4. Уведомляем все системы через EventBus
+	EventBus.game_over.emit(survival_rounds_completed)
+
+	# 5. Показываем UI
 	game_over_popup.show_game_over(survival_rounds_completed)
 
 func _on_score_game_over():
+	if is_game_over:
+		return  # Уже в Game Over
+	
+	is_game_over = true
+	EventBus.is_game_active = false  # Синхронизируем с EventBus
 	DebugLogger.log_game_flow("GAME OVER! Очки достигли 0")
 
-	# Закрываем окно выплат, если оно открыто
+	# 1. Сбрасываем шансы (чтобы не переходили в новую игру)
+	if phase_manager and phase_manager.heart_bet_manager:
+		phase_manager.heart_bet_manager.force_reset()
+		DebugLogger.log("❤️ Шансы сброшены при Game Over")
+
+	# 2. Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
 		payout_overlay.hide()
 		DebugLogger.log_payout("PayoutOverlay закрыт при Game Over")
 
-	# Зум аут до общего плана при Game Over
+	# 3. Зум аут до общего плана при Game Over
 	camera_zoom_out()
 	EventBus.camera_first_deal_set_requested.emit(true)  # Следующая раздача будет первой (с зумом)
 
+	# 4. Уведомляем все системы через EventBus
 	var final_score = SaveManager.instance.score
+	EventBus.game_over.emit(0)  # 0 для режима без выживания
+
+	# 5. Показываем UI
 	game_over_popup.show_game_over_score(final_score)
 	
-	# ← Сбрасываем очки на 10 после геймовера (в режиме без сердечек)
+	# 6. Сбрасываем очки на 10 после геймовера (в режиме без сердечек)
 	if not SaveManager.instance.load_survival_mode():
 		SaveManager.instance.score = 10
 		SaveManager.instance.save_data()
 		DebugLogger.log("🔄 Очки сброшены на 10 после геймовера")
 
 func _on_restart_game():
+	# Сбрасываем флаг Game Over
+	is_game_over = false
+	EventBus.is_game_active = true  # Синхронизируем с EventBus
+	
 	survival_rounds_completed = 0
 	EventBus.camera_first_deal_set_requested.emit(true)  # После рестарта первая раздача с зумом
 	StatsManager.instance.reset()
@@ -725,7 +766,17 @@ func _on_restart_game():
 	if winner_selection_manager:
 		winner_selection_manager.unlock_markers()
 
+	# Сбрасываем шансы (на всякий случай)
+	if phase_manager and phase_manager.heart_bet_manager:
+		phase_manager.heart_bet_manager.force_reset()
+		DebugLogger.log("❤️ Шансы сброшены при рестарте")
+
 	phase_manager.reset()
+	
+	# Уведомляем все системы о рестарте
+	EventBus.game_restarted.emit()
+	
+	DebugLogger.log("🔄 Игра перезапущена, все системы сброшены")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ

@@ -19,10 +19,10 @@ var payout_queue_manager: PayoutQueueManager
 var chip_visual_manager: ChipVisualManager
 var winner_selection_manager: WinnerSelectionManager
 var pair_betting_manager: PairBettingManager
-var bet_collection_manager: BetCollectionPhaseManager = null
 var limits_manager: LimitsManager = null
 var guest_bet_storage: GuestBetStorage = null
 var guest_bet_factory: GuestBetFactory = null
+var bet_collection_manager: BetCollectionPhaseManager = null
 
 ## Менеджер ставки сердцем (Heart Bet)
 var heart_bet_manager: HeartBetManager = null
@@ -991,6 +991,11 @@ func _complete_round_and_prepare_new_game() -> void:
 	reset(false)
 	DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
 
+	# ВАЖНО: Явно устанавливаем WAITING, так как reset(false) не обновляет состояние
+	# Это нужно для того, чтобы карту шанса можно было использовать
+	GameStateManager.update_state(GameStateManager.GameState.WAITING)
+	DebugLogger.log("  → ✅ Состояние установлено в WAITING (готово к использованию карты шанса)")
+
 	# Генерируем ставки для всех активных гостей
 	if guest_bet_factory and limits_manager:
 		guest_bet_factory.generate_bets_for_all_guests()
@@ -1055,6 +1060,11 @@ func _check_heart_bet_triggers() -> void:
 	
 	Вызывается ПЕРЕД сбросом раунда, чтобы данные о раздаче ещё были доступны.
 	"""
+	# ПРОВЕРКА: Если Game Over - не проверяем триггеры
+	if not EventBus.is_game_active:
+		print("❤️ _check_heart_bet_triggers: Game Over, триггеры не проверяются")
+		return
+	
 	if not heart_bet_manager:
 		print("❤️ _check_heart_bet_triggers: heart_bet_manager не существует")
 		return

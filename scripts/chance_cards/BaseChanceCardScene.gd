@@ -79,6 +79,16 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	card_texture.modulate = original_card_modulate
 	background.modulate = original_bg_modulate
 	
+	# Проверяем, можно ли использовать карту, и блокируем кнопку если нельзя
+	var can_use_card = card.can_use()
+	if use_button:
+		use_button.disabled = not can_use_card
+		if not can_use_card:
+			# Визуально показываем, что кнопка недоступна
+			use_button.modulate = Color(0.6, 0.6, 0.6, 1.0)
+		else:
+			use_button.modulate = Color.WHITE
+	
 	# Показываем - позиция и размер берутся ТОЛЬКО из сцены (Inspector)
 	show()
 	

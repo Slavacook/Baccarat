@@ -54,17 +54,24 @@ func can_use() -> bool:
 		return false
 	
 	# Проверяем состояние игры
-	# Карту можно использовать в WAITING (перед раздачей) или CHOOSE_WINNER (между раундами)
+	# Карту можно использовать ТОЛЬКО в WAITING (перед раздачей, когда ожидается начало новой раздачи)
 	var game_state = GameStateManager.current_state
-	if game_state not in [GameStateManager.GameState.WAITING, GameStateManager.GameState.CHOOSE_WINNER]:
+	if game_state != GameStateManager.GameState.WAITING:
 		var game_state_name = GameStateManager.get_state_name(game_state)
-		print("⚠️ HeartBetChanceCard.can_use(): игра не в состоянии WAITING или CHOOSE_WINNER (текущее: %s)" % game_state_name)
+		print("⚠️ HeartBetChanceCard.can_use(): игра не в состоянии WAITING (текущее: %s)" % game_state_name)
 		return false
 	
 	return true
 
 func on_use() -> void:
 	"""Использовать карту - вызвать HeartBetManager.use_chance()"""
+	# ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: проверяем can_use() ещё раз перед использованием
+	# (на случай если состояние изменилось между открытием карты и нажатием кнопки)
+	if not can_use():
+		push_warning("⚠️ HeartBetChanceCard.on_use(): карту нельзя использовать (повторная проверка failed)")
+		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
+		return
+	
 	var phase_manager = _get_phase_manager()
 	if not phase_manager or not phase_manager.heart_bet_manager:
 		push_error("⚠️ HeartBetChanceCard: HeartBetManager не найден")

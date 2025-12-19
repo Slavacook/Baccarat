@@ -182,6 +182,11 @@ func _on_card_closed(card: BaseChanceCard):
 
 func _on_heart_bet_trigger_activated(_trigger_name: String):
 	"""Триггер Heart Bet активирован"""
+	# ПРОВЕРКА: Если Game Over - не показываем карту
+	if not EventBus.is_game_active:
+		print("🎴 ChanceCardManager: Game Over, карта не показывается")
+		return
+	
 	trigger_card("heart_bet")
 
 func _on_fullscreen_requested(card_id: String):
