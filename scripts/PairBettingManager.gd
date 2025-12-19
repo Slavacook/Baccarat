@@ -19,16 +19,48 @@ signal pair_detected(pair_type: String)  # "PairPlayer" или "PairBanker"
 signal pair_bet_placed(pair_type: String)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ПЕРЕМЕННЫЕ
+# ПРИВАТНЫЕ ПЕРЕМЕННЫЕ (инкапсуляция)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Активные ставки на пары
-var pair_player_bet_enabled: bool = false
-var pair_banker_bet_enabled: bool = false
+# Активные ставки на пары (приватные)
+var _pair_player_bet_enabled: bool = false
+var _pair_banker_bet_enabled: bool = false
 
-# Результаты раунда
-var player_pair_detected: bool = false
-var banker_pair_detected: bool = false
+# Результаты раунда (приватные)
+var _player_pair_detected: bool = false
+var _banker_pair_detected: bool = false
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПУБЛИЧНЫЕ СВОЙСТВА (для обратной совместимости)
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Активна ли ставка на пару игрока (обратная совместимость)
+var pair_player_bet_enabled: bool:
+	get:
+		return _pair_player_bet_enabled
+	set(value):
+		_pair_player_bet_enabled = value
+
+## Активна ли ставка на пару банкира (обратная совместимость)
+var pair_banker_bet_enabled: bool:
+	get:
+		return _pair_banker_bet_enabled
+	set(value):
+		_pair_banker_bet_enabled = value
+
+## Обнаружена ли пара у игрока (обратная совместимость)
+var player_pair_detected: bool:
+	get:
+		return _player_pair_detected
+	set(value):
+		_player_pair_detected = value
+
+## Обнаружена ли пара у банкира (обратная совместимость)
+var banker_pair_detected: bool:
+	get:
+		return _banker_pair_detected
+	set(value):
+		_banker_pair_detected = value
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ СТАВКАМИ
@@ -36,7 +68,7 @@ var banker_pair_detected: bool = false
 
 func toggle_pair_player_bet(enabled: bool) -> void:
 	"""Переключить ставку на пару игрока"""
-	pair_player_bet_enabled = enabled
+	_pair_player_bet_enabled = enabled
 	if enabled:
 		pair_bet_placed.emit("PairPlayer")
 	print("💰 PairBetting: ставка на пару игрока = %s" % enabled)
@@ -44,7 +76,7 @@ func toggle_pair_player_bet(enabled: bool) -> void:
 
 func toggle_pair_banker_bet(enabled: bool) -> void:
 	"""Переключить ставку на пару банкира"""
-	pair_banker_bet_enabled = enabled
+	_pair_banker_bet_enabled = enabled
 	if enabled:
 		pair_bet_placed.emit("PairBanker")
 	print("💰 PairBetting: ставка на пару банкира = %s" % enabled)
@@ -63,26 +95,26 @@ func randomize_pair_bets() -> void:
 
 	if random_choice < 30:
 		# 30% - нет ставок на пары
-		pair_player_bet_enabled = false
-		pair_banker_bet_enabled = false
+		_pair_player_bet_enabled = false
+		_pair_banker_bet_enabled = false
 	elif random_choice < 55:
 		# 25% - только на игрока
-		pair_player_bet_enabled = true
-		pair_banker_bet_enabled = false
+		_pair_player_bet_enabled = true
+		_pair_banker_bet_enabled = false
 		pair_bet_placed.emit("PairPlayer")
 	elif random_choice < 80:
 		# 25% - только на банкира
-		pair_player_bet_enabled = false
-		pair_banker_bet_enabled = true
+		_pair_player_bet_enabled = false
+		_pair_banker_bet_enabled = true
 		pair_bet_placed.emit("PairBanker")
 	else:
 		# 20% - на обе пары
-		pair_player_bet_enabled = true
-		pair_banker_bet_enabled = true
+		_pair_player_bet_enabled = true
+		_pair_banker_bet_enabled = true
 		pair_bet_placed.emit("PairPlayer")
 		pair_bet_placed.emit("PairBanker")
 
-	print("🎲 PairBetting: рандомизация ставок - Игрок=%s, Банкир=%s" % [pair_player_bet_enabled, pair_banker_bet_enabled])
+	print("🎲 PairBetting: рандомизация ставок - Игрок=%s, Банкир=%s" % [_pair_player_bet_enabled, _pair_banker_bet_enabled])
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -98,15 +130,15 @@ func check_pairs(player_card1: Card, player_card2: Card,
 
 	Возвращает словарь: {"player_pair": bool, "banker_pair": bool}
 	"""
-	player_pair_detected = _is_pair(player_card1, player_card2)
-	banker_pair_detected = _is_pair(banker_card1, banker_card2)
+	_player_pair_detected = _is_pair(player_card1, player_card2)
+	_banker_pair_detected = _is_pair(banker_card1, banker_card2)
 
 	# ← Молча проверяем пары (без toast оповещений)
 	# Это проверка внимательности дилера - он должен заметить пару сам!
 
 	return {
-		"player_pair": player_pair_detected,
-		"banker_pair": banker_pair_detected
+		"player_pair": _player_pair_detected,
+		"banker_pair": _banker_pair_detected
 	}
 
 
@@ -132,10 +164,10 @@ func get_winning_pairs() -> Array:
 	"""
 	var winning_pairs = []
 
-	if player_pair_detected and pair_player_bet_enabled:
+	if _player_pair_detected and _pair_player_bet_enabled:
 		winning_pairs.append("PairPlayer")
 
-	if banker_pair_detected and pair_banker_bet_enabled:
+	if _banker_pair_detected and _pair_banker_bet_enabled:
 		winning_pairs.append("PairBanker")
 
 	return winning_pairs
@@ -159,17 +191,17 @@ func has_winning_pairs() -> bool:
 
 func reset_round() -> void:
 	"""Сбросить результаты раунда (не сбрасывает ставки!)"""
-	player_pair_detected = false
-	banker_pair_detected = false
+	_player_pair_detected = false
+	_banker_pair_detected = false
 	print("🔄 PairBetting: раунд сброшен")
 
 
 func reset_all() -> void:
 	"""Полный сброс (ставки + результаты)"""
-	pair_player_bet_enabled = false
-	pair_banker_bet_enabled = false
-	player_pair_detected = false
-	banker_pair_detected = false
+	_pair_player_bet_enabled = false
+	_pair_banker_bet_enabled = false
+	_player_pair_detected = false
+	_banker_pair_detected = false
 	print("🔄 PairBetting: полный сброс")
 
 
@@ -181,13 +213,33 @@ func print_status() -> void:
 	"""Вывести текущий статус"""
 	print("═══ PairBetting Status ═══")
 	print("Ставки:")
-	print("  Player Pair: %s" % ("✅" if pair_player_bet_enabled else "❌"))
-	print("  Banker Pair: %s" % ("✅" if pair_banker_bet_enabled else "❌"))
+	print("  Player Pair: %s" % ("✅" if _pair_player_bet_enabled else "❌"))
+	print("  Banker Pair: %s" % ("✅" if _pair_banker_bet_enabled else "❌"))
 	print("Результаты:")
-	print("  Player Pair: %s" % ("🃏 ПАРА" if player_pair_detected else "—"))
-	print("  Banker Pair: %s" % ("🃏 ПАРА" if banker_pair_detected else "—"))
+	print("  Player Pair: %s" % ("🃏 ПАРА" if _player_pair_detected else "—"))
+	print("  Banker Pair: %s" % ("🃏 ПАРА" if _banker_pair_detected else "—"))
 
 	var winning = get_winning_pairs()
 	if winning.size() > 0:
 		print("Выигравшие пары: %s" % ", ".join(winning))
 	print("═════════════════════════")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ-ГЕТТЕРЫ (новый API для инкапсуляции)
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Проверить, обнаружена ли пара у игрока
+func has_player_pair() -> bool:
+	return _player_pair_detected
+
+## Проверить, обнаружена ли пара у банкира
+func has_banker_pair() -> bool:
+	return _banker_pair_detected
+
+## Проверить, активна ли ставка на пару игрока
+func is_player_pair_bet_enabled() -> bool:
+	return _pair_player_bet_enabled
+
+## Проверить, активна ли ставка на пару банкира
+func is_banker_pair_bet_enabled() -> bool:
+	return _pair_banker_bet_enabled

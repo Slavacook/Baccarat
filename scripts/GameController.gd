@@ -339,8 +339,8 @@ func _add_main_bet_to_queue(actual: String, player_score: int, banker_score: int
 		bet_type, 
 		stake, 
 		actual,
-		pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-		pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+		pair_betting_manager.has_player_pair() if pair_betting_manager else false,
+		pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
 		banker_value
 	)
 	
@@ -362,14 +362,14 @@ func _add_pair_bets_to_queue(player_score: int, banker_score: int) -> void:
 	var payout_calculator = PayoutCalculator.new()
 	
 	# Пара игрока - если обнаружена И ставка была
-	if pair_betting_manager.player_pair_detected and pair_betting_manager.pair_player_bet_enabled:
+	if pair_betting_manager.has_player_pair() and pair_betting_manager.is_player_pair_bet_enabled():
 		var bet_type = BetTypeFactory.create("PairPlayer")
 		var stake = bet_type.get_stake(limits_manager)
 		var payout = payout_calculator.calculate_pair_payout(bet_type, stake, pair_betting_manager)
 		GameDataManager.add_to_payout_queue("PairPlayer", stake, payout, player_score, banker_score)
 	
 	# Пара банкира - если обнаружена И ставка была
-	if pair_betting_manager.banker_pair_detected and pair_betting_manager.pair_banker_bet_enabled:
+	if pair_betting_manager.has_banker_pair() and pair_betting_manager.is_banker_pair_bet_enabled():
 		var bet_type = BetTypeFactory.create("PairBanker")
 		var stake = bet_type.get_stake(limits_manager)
 		var payout = payout_calculator.calculate_pair_payout(bet_type, stake, pair_betting_manager)
@@ -514,8 +514,8 @@ func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -
 		bet_type_obj,
 				stake, 
 		actual_winner,
-		pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-		pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+		pair_betting_manager.has_player_pair() if pair_betting_manager else false,
+		pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
 		banker_value
 	)
 

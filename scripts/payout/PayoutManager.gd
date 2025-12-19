@@ -110,8 +110,8 @@ func _calculate_payout_for_bet_type(_bet_type_name: String, bet_type: IBetType, 
 		bet_type,
 		stake,
 		actual_winner,
-		pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-		pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+		pair_betting_manager.has_player_pair() if pair_betting_manager else false,
+		pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
 		banker_value
 	)
 
@@ -125,9 +125,9 @@ func _is_bet_enabled(bet_type_name: String) -> bool:
 		"Tie":
 			return settings_provider.is_tie_enabled()
 		"PairPlayer":
-			return pair_betting_manager and pair_betting_manager.pair_player_bet_enabled
+			return pair_betting_manager and pair_betting_manager.is_player_pair_bet_enabled()
 		"PairBanker":
-			return pair_betting_manager and pair_betting_manager.pair_banker_bet_enabled
+			return pair_betting_manager and pair_betting_manager.is_banker_pair_bet_enabled()
 		_:
 			return false
 
@@ -159,8 +159,8 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 			
 			var won = bet_type_obj.is_winner(
 				actual_winner,
-				pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-				pair_betting_manager.banker_pair_detected if pair_betting_manager else false
+				pair_betting_manager.has_player_pair() if pair_betting_manager else false,
+				pair_betting_manager.has_banker_pair() if pair_betting_manager else false
 			)
 			
 			# Рассчитываем выплату
@@ -173,8 +173,8 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 						bet_type_obj,
 						bet.stake,
 						actual_winner,
-						pair_betting_manager.player_pair_detected if pair_betting_manager else false,
-						pair_betting_manager.banker_pair_detected if pair_betting_manager else false,
+						pair_betting_manager.has_player_pair() if pair_betting_manager else false,
+						pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
 						banker_value
 					)
 			

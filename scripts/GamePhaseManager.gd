@@ -144,8 +144,8 @@ func deal_first_four():
 	var has_main_bets = PayoutSettingsManager.has_any_active_bet()
 	var has_pair_bets = false
 	if pair_betting_manager:
-		has_pair_bets = pair_betting_manager.pair_player_bet_enabled or \
-						pair_betting_manager.pair_banker_bet_enabled
+		has_pair_bets = pair_betting_manager.is_player_pair_bet_enabled() or \
+						pair_betting_manager.is_banker_pair_bet_enabled()
 
 	if not has_main_bets and not has_pair_bets:
 		EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
@@ -200,8 +200,8 @@ func deal_first_four():
 			hand_manager.get_banker_card(1)
 		)
 		DebugLogger.log("🃏 Проверка пар: Player=%s, Banker=%s" % [
-			pair_betting_manager.player_pair_detected,
-			pair_betting_manager.banker_pair_detected
+			pair_betting_manager.has_player_pair(),
+			pair_betting_manager.has_banker_pair()
 		])
 
 	# Фишки уже показаны при настройке ставок, не обновляем их здесь
