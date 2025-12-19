@@ -6,47 +6,11 @@ class_name GuestBetStorage
 extends RefCounted
 
 # ═══════════════════════════════════════════════════════════════════════════
-# СТРУКТУРА ДАННЫХ СТАВКИ ГОСТЯ
-# ═══════════════════════════════════════════════════════════════════════════
-
-class GuestBet:
-	var guest_id: int  # 1-6
-	var bet_type: String  # "Player", "Banker", "Tie", "PairPlayer", "PairBanker"
-	var stake: float  # Размер ставки
-	var position_index: int  # Индекс позиции в секторе гостя
-	var sector: int  # Сектор гостя (1-6)
-	
-	func _init(g_id: int, b_type: String, s: float, pos_idx: int, sec: int):
-		guest_id = g_id
-		bet_type = b_type
-		stake = s
-		position_index = pos_idx
-		sector = sec
-	
-	func to_dict() -> Dictionary:
-		return {
-			"guest_id": guest_id,
-			"bet_type": bet_type,
-			"stake": stake,
-			"position_index": position_index,
-			"sector": sector
-		}
-	
-	static func from_dict(data: Dictionary) -> GuestBet:
-		return GuestBet.new(
-			data.get("guest_id", 0),
-			data.get("bet_type", ""),
-			data.get("stake", 0.0),
-			data.get("position_index", 0),
-			data.get("sector", 0)
-		)
-
-# ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Хранилище ставок: Dictionary[guest_id: int, Array[GuestBet]]
-# Ключ - guest_id (1-6), значение - массив ставок этого гостя
+# Хранилище ставок: Dictionary[guest_id: int, Array[Bet]]
+# Ключ - guest_id (1-6), значение - массив ставок этого гостя (использует единый класс Bet)
 var stored_bets: Dictionary = {}
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -54,12 +18,12 @@ var stored_bets: Dictionary = {}
 # ═══════════════════════════════════════════════════════════════════════════
 
 # ← Сохранить ставки гостя
-func store_guest_bets(guest_id: int, bets: Array[GuestBet]) -> void:
+func store_guest_bets(guest_id: int, bets: Array) -> void:  # Array[Bet] (типизация убрана для парсинга)
 	"""Сохранить ставки гостя до следующей раздачи
 	
 	Args:
 		guest_id: ID гостя (1-6)
-		bets: Массив ставок гостя
+		bets: Массив ставок гостя (Bet)
 	"""
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestBetStorage: неверный guest_id %d" % guest_id)
@@ -69,14 +33,14 @@ func store_guest_bets(guest_id: int, bets: Array[GuestBet]) -> void:
 	print("💾 GuestBetStorage: сохранено %d ставок для гостя %d" % [bets.size(), guest_id])
 
 # ← Получить ставки гостя
-func get_guest_bets(guest_id: int) -> Array[GuestBet]:
+func get_guest_bets(guest_id: int) -> Array:  # Array[Bet] (типизация убрана для парсинга)
 	"""Получить сохранённые ставки гостя
 	
 	Args:
 		guest_id: ID гостя (1-6)
 	
 	Returns:
-		Массив ставок гостя или пустой массив если нет ставок
+		Массив ставок гостя (Bet) или пустой массив если нет ставок
 	"""
 	if guest_id < 1 or guest_id > 6:
 		return []
@@ -87,13 +51,13 @@ func get_guest_bets(guest_id: int) -> Array[GuestBet]:
 	return stored_bets[guest_id].duplicate()
 
 # ← Получить все сохранённые ставки (для всех гостей)
-func get_all_bets() -> Array[GuestBet]:
+func get_all_bets() -> Array:  # Array[Bet] (типизация убрана для парсинга)
 	"""Получить все сохранённые ставки всех гостей
 	
 	Returns:
-		Массив всех ставок
+		Массив всех ставок (Bet)
 	"""
-	var all_bets: Array[GuestBet] = []
+	var all_bets: Array = []  # Array[Bet] (типизация убрана для парсинга)
 	for guest_id in stored_bets.keys():
 		all_bets.append_array(stored_bets[guest_id])
 	return all_bets

@@ -21,25 +21,11 @@ var is_survival_active: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОЧЕРЕДЬ ВЫПЛАТ (для множественных ставок в одном раунде)
+# Использует единый класс Bet
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Структура данных для выплаты
-class PayoutData:
-	var bet_type: String  # "Player", "Banker", "Tie", "PairPlayer", "PairBanker"
-	var stake: float
-	var payout: float
-	var player_score: int
-	var banker_score: int
-
-	func _init(type: String, stake_amt: float, payout_amt: float, p_score: int = 0, b_score: int = 0):
-		bet_type = type
-		stake = stake_amt
-		payout = payout_amt
-		player_score = p_score
-		banker_score = b_score
-
 # Очередь выплат (обрабатываются по порядку)
-var payout_queue: Array[PayoutData] = []
+var payout_queue: Array[Bet] = []
 
 
 func set_payout_data(winner: String, stake: float, amount: float, player_score: int = 0, banker_score: int = 0):
@@ -83,19 +69,19 @@ func clear():
 
 func add_to_payout_queue(bet_type: String, stake: float, payout: float, p_score: int = 0, b_score: int = 0) -> void:
 	"""Добавить выплату в очередь"""
-	var payout_data = PayoutData.new(bet_type, stake, payout, p_score, b_score)
+	var payout_data = Bet.create_payout_bet(bet_type, stake, payout, p_score, b_score)
 	payout_queue.append(payout_data)
 	DebugLogger.log("💰 PayoutQueue: добавлена выплата %s (stake=%.1f, payout=%.1f)" % [bet_type, stake, payout])
 
 
-func get_next_payout() -> PayoutData:
+func get_next_payout() -> Bet:
 	"""Получить следующую выплату из очереди (и удалить её)"""
 	if payout_queue.is_empty():
 		return null
 
 	var next_payout = payout_queue[0]
 	payout_queue.remove_at(0)
-	DebugLogger.log("💰 PayoutQueue: взята выплата %s из очереди (осталось: %d)" % [next_payout.bet_type, payout_queue.size()])
+	DebugLogger.log("💰 PayoutQueue: взята выплата %s из очереди (осталось: %d)" % [next_payout.get_bet_type(), payout_queue.size()])
 	return next_payout
 
 
@@ -123,5 +109,5 @@ func print_queue_status() -> void:
 	DebugLogger.log("Выплат в очереди: %d" % payout_queue.size())
 	for i in range(payout_queue.size()):
 		var p = payout_queue[i]
-		DebugLogger.log("  [%d] %s: %.1f → %.1f" % [i + 1, p.bet_type, p.stake, p.payout])
+		DebugLogger.log("  [%d] %s: %.1f → %.1f" % [i + 1, p.get_bet_type(), p.get_stake(), p.get_payout()])
 	DebugLogger.log("═══════════════════════════")

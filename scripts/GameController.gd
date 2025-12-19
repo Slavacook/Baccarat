@@ -384,11 +384,11 @@ func _process_payout_queue_or_reset() -> void:
 		
 		# Сохраняем данные для PayoutScene
 		GameDataManager.set_payout_data(
-			next_payout.bet_type,
-			next_payout.stake,
-			next_payout.payout,
-			next_payout.player_score,
-			next_payout.banker_score
+			next_payout.get_bet_type(),
+			next_payout.get_stake(),
+			next_payout.get_payout(),
+			next_payout.get_player_score(),
+			next_payout.get_banker_score()
 		)
 		
 		# Сохраняем состояние игры (сердечки, раунды)
@@ -594,18 +594,20 @@ func _update_chip_visibility() -> void:
 
 	# В режиме GUEST работаем с каждой ставкой индивидуально (гостевые ставки)
 	for bet in payout_queue_manager.get_all_bets():
-		var is_collected = bet.is_collected or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet.bet_type, bet.position_index))
+		var bet_type = bet.get_bet_type()
+		var pos_idx = bet.get_position_index()
+		var is_collected = bet.is_collected() or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet_type, pos_idx))
 		
-		if bet.is_paid or is_collected:
+		if bet.is_paid() or is_collected:
 			# Оплаченная или собранная → скрываем конкретную фишку
-			chip_visual_manager.hide_chip_instance(bet.bet_type, bet.position_index)
+			chip_visual_manager.hide_chip_instance(bet_type, pos_idx)
 		else:
 			# Все остальные → видимы и кликабельны
 			# В режиме GUEST фишки уже созданы через _show_guest_bets()
 			# и уже кликабельны через _on_chip_instance_pressed
 			# НЕ вызываем make_chip_clickable() - это подключит дополнительный обработчик
 			# _on_chip_pressed, который вызовет двойной сбор ставки!
-			var chip_instance = chip_visual_manager.get_chip_instance(bet.bet_type, bet.position_index)
+			var chip_instance = chip_visual_manager.get_chip_instance(bet.get_bet_type(), bet.get_position_index())
 			if chip_instance and chip_instance.node:
 				chip_instance.node.visible = true
 				# Убеждаемся что фишка не заблокирована
@@ -613,13 +615,13 @@ func _update_chip_visibility() -> void:
 				chip_instance.node.mouse_filter = Control.MOUSE_FILTER_STOP
 			
 			var status = ""
-			if bet.won:
+			if bet.is_won():
 				status = "выигрышная"
-			elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet.bet_type):
+			elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet.get_bet_type()):
 				status = "Tie push"
 			else:
 				status = "проигрышная"
-			DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.bet_type, bet.position_index, status])
+			DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.get_bet_type(), bet.get_position_index(), status])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ UI СОБЫТИЙ
@@ -1021,16 +1023,16 @@ func _handle_payout_queue() -> void:
 		var next_payout = GameDataManager.get_next_payout()
 		
 		DebugLogger.log("🔄 Следующая выплата: %s (осталось %d)" % [
-			next_payout.bet_type, GameDataManager.get_queue_size()
+			next_payout.get_bet_type(), GameDataManager.get_queue_size()
 		])
 		
 		# Сохраняем данные для PayoutScene
 		GameDataManager.set_payout_data(
-			next_payout.bet_type,
-			next_payout.stake,
-			next_payout.payout,
-			next_payout.player_score,
-			next_payout.banker_score
+			next_payout.get_bet_type(),
+			next_payout.get_stake(),
+			next_payout.get_payout(),
+			next_payout.get_player_score(),
+			next_payout.get_banker_score()
 		)
 		
 		# Переходим в PayoutScene для следующей выплаты
@@ -1547,7 +1549,7 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 		# ═══════════════════════════════════════════════════════════════════
 		if USE_OVERLAY_PAYOUT:
 			# НОВЫЙ СПОСОБ: показать overlay поверх Game.tscn
-			_show_payout_overlay_instance(bet_type, position_index, bet.stake, bet.payout)
+			_show_payout_overlay_instance(bet_type, position_index, bet.get_stake(), bet.get_payout())
 		else:
 			# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
 			_open_payout_scene(bet_type)
@@ -1591,19 +1593,19 @@ func _open_payout_scene(bet_type: String):
 		push_error("❌ _open_payout_scene: ставка %s не найдена в TableStateManager" % bet_type)
 		return
 
-	DebugLogger.log("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
+	DebugLogger.log("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.get_stake(), bet_data.get_payout()])
 
 	# Устанавливаем данные в GameDataManager (PayoutScene читает данные оттуда)
 	GameDataManager.payout_winner = bet_type
-	GameDataManager.payout_stake = bet_data.stake
-	GameDataManager.payout_amount = bet_data.payout
-	DebugLogger.log("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.stake, bet_data.payout])
+	GameDataManager.payout_stake = bet_data.get_stake()
+	GameDataManager.payout_amount = bet_data.get_payout()
+	DebugLogger.log("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.get_stake(), bet_data.get_payout()])
 
 	# Устанавливаем контекст для PayoutScene через старый PayoutContextManager (для совместимости)
 	PayoutContextManager.set_context({
 		"bet_type": bet_type,
-		"stake": bet_data.stake,
-		"expected_payout": bet_data.payout,
+		"stake": bet_data.get_stake(),
+		"expected_payout": bet_data.get_payout(),
 		"return_to_game": true,
 		"manual_mode": true
 	})
@@ -1826,12 +1828,12 @@ func _update_guest_balance_for_bet(bet_type: String, position_index: int, payout
 	# Находим ставку гостя в хранилище
 	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
 	for bet in guest_bets:
-		if bet.bet_type == bet_type and bet.position_index == position_index:
+		if bet.get_bet_type() == bet_type and bet.get_position_index() == position_index:
 			# Нашли ставку гостя
 			# Обновляем баланс: добавляем payout (выигрыш) и вычитаем stake (ставка уже поставлена)
-			var net_profit = payout - bet.stake
+			var net_profit = payout - bet.get_stake()
 			GuestStatsManager.add_to_balance(guest_id, net_profit)
-			DebugLogger.log("💰 Гость %d: баланс обновлён (+%.0f - %.0f = %.0f)" % [guest_id, payout, bet.stake, net_profit])
+			DebugLogger.log("💰 Гость %d: баланс обновлён (+%.0f - %.0f = %.0f)" % [guest_id, payout, bet.get_stake(), net_profit])
 			return
 	
 	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
@@ -1859,11 +1861,11 @@ func _update_guest_balance_on_collect(bet_type: String, position_index: int) -> 
 	# Находим ставку гостя в хранилище
 	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
 	for bet in guest_bets:
-		if bet.bet_type == bet_type and bet.position_index == position_index:
+		if bet.get_bet_type() == bet_type and bet.get_position_index() == position_index:
 			# Нашли ставку гостя
 			# Вычитаем stake (проигрыш)
-			GuestStatsManager.subtract_from_balance(guest_id, bet.stake)
-			DebugLogger.log("💰 Гость %d: баланс обновлён (-%.0f за проигрыш)" % [guest_id, bet.stake])
+			GuestStatsManager.subtract_from_balance(guest_id, bet.get_stake())
+			DebugLogger.log("💰 Гость %d: баланс обновлён (-%.0f за проигрыш)" % [guest_id, bet.get_stake()])
 			return
 	
 	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])

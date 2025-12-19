@@ -5,12 +5,12 @@
 class_name DefaultBetCollectionValidator
 extends IBetCollectionValidator
 
-var bet_collection_manager: BetCollectionPhaseManager
+var bet_collection_manager = null  # BetCollectionPhaseManager (типизация убрана для парсинга)
 
-func _init(manager: BetCollectionPhaseManager):
+func _init(manager):  # Типизация убрана для парсинга
 	bet_collection_manager = manager
 
-func validate_collect(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int, _context: Dictionary) -> Dictionary:
+func validate_collect(bet, bet_type: String, position_index: int, _context: Dictionary) -> Dictionary:
 	"""Валидация попытки собрать ставку (делегирует к BetCollectionPhaseManager)
 	
 	Args:
@@ -25,7 +25,7 @@ func validate_collect(bet: PayoutQueueManager.BetData, bet_type: String, positio
 	# Используем внутренний метод валидации
 	return bet_collection_manager._validate_collect_internal(bet, bet_type, position_index)
 
-func validate_pay(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int, _context: Dictionary) -> Dictionary:
+func validate_pay(bet, bet_type: String, position_index: int, _context: Dictionary) -> Dictionary:
 	"""Валидация попытки оплатить ставку (делегирует к BetCollectionPhaseManager)
 	
 	Args:

@@ -113,16 +113,16 @@ func restore_survival_and_queue(
 	var restored_queue = PayoutQueueManager.new()
 	for bet_state in TableStateManager.bets:
 		restored_queue.add_bet(
-			bet_state.bet_type,
-			bet_state.stake,
-			bet_state.payout,
-			bet_state.won,
-			bet_state.player_score,
-			bet_state.banker_score
+			bet_state.get_bet_type(),
+			bet_state.get_stake(),
+			bet_state.get_payout(),
+			bet_state.is_won(),
+			bet_state.get_player_score(),
+			bet_state.get_banker_score()
 		)
 		# Восстанавливаем статус оплаты
-		if bet_state.is_paid:
-			restored_queue.mark_as_paid(bet_state.bet_type)
+		if bet_state.is_paid():
+			restored_queue.mark_as_paid(bet_state.get_bet_type())
 	
 	DebugLogger.log("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
 	

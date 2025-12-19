@@ -7,7 +7,7 @@ extends RefCounted
 
 ## Валидация попытки собрать ставку
 ## Returns: Dictionary с полями can_proceed, error_type, error_message, action
-func validate_collect(_bet: PayoutQueueManager.BetData, _bet_type: String, _position_index: int, _context: Dictionary) -> Dictionary:
+func validate_collect(_bet, _bet_type: String, _position_index: int, _context: Dictionary) -> Dictionary:
 	"""Абстрактный метод - должен быть переопределен в наследниках
 	
 	Args:
@@ -21,7 +21,7 @@ func validate_collect(_bet: PayoutQueueManager.BetData, _bet_type: String, _posi
 
 ## Валидация попытки оплатить ставку
 ## Returns: Dictionary с полями can_proceed, error_type, error_message, action
-func validate_pay(_bet: PayoutQueueManager.BetData, _bet_type: String, _position_index: int, _context: Dictionary) -> Dictionary:
+func validate_pay(_bet, _bet_type: String, _position_index: int, _context: Dictionary) -> Dictionary:
 	"""Абстрактный метод - должен быть переопределен в наследниках
 	
 	Args:

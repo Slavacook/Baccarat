@@ -153,7 +153,7 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 		var bets = guest_bet_storage.get_guest_bets(guest_id)
 		for bet in bets:
 			# Определяем выиграла ли ставка
-			var bet_type_obj = BetTypeFactory.create(bet.bet_type)
+			var bet_type_obj = BetTypeFactory.create(bet.get_bet_type())
 			if not bet_type_obj:
 				continue
 			
@@ -167,11 +167,11 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 			var payout = 0.0
 			if won:
 				if bet_type_obj.get_group() == "pairs" and pair_betting_manager:
-					payout = payout_calculator.calculate_pair_payout(bet_type_obj, bet.stake, pair_betting_manager)
+					payout = payout_calculator.calculate_pair_payout(bet_type_obj, bet.get_stake(), pair_betting_manager)
 				else:
 					payout = payout_calculator.calculate(
 						bet_type_obj,
-						bet.stake,
+						bet.get_stake(),
 						actual_winner,
 						pair_betting_manager.has_player_pair() if pair_betting_manager else false,
 						pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
@@ -180,15 +180,15 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 			
 			# Добавляем ставку в очередь
 			payout_queue_manager.add_bet(
-				bet.bet_type,
-				bet.stake,
+				bet.get_bet_type(),
+				bet.get_stake(),
 				payout,
 				won,
 				player_score,
 				banker_score,
-				bet.position_index
+				bet.get_position_index()
 			)
 			
-			DebugLogger.log("  → Гость %d: %s ставка %.0f (won=%s, payout=%.0f)" % [guest_id, bet.bet_type, bet.stake, won, payout])
+			DebugLogger.log("  → Гость %d: %s ставка %.0f (won=%s, payout=%.0f)" % [guest_id, bet.get_bet_type(), bet.get_stake(), won, payout])
 	
 	DebugLogger.log("👥 Добавлено %d гостевых ставок в очередь" % guest_bet_storage.get_all_bets().size())

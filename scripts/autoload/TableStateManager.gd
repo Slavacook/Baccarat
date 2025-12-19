@@ -19,30 +19,10 @@ var actual_winner: String = ""  # Реальный победитель (Player/
 var selected_winner: String = ""  # Выбранный игроком маркер
 
 # ═══════════════════════════════════════════════════════════════════════════
-# СОСТОЯНИЕ СТАВОК (из PayoutQueueManager)
+# СОСТОЯНИЕ СТАВОК (использует единый класс Bet)
 # ═══════════════════════════════════════════════════════════════════════════
 
-class BetStateData:
-	var bet_type: String  # "Player", "Banker", "Tie", "PlayerPair", "BankerPair"
-	var stake: float
-	var payout: float
-	var won: bool
-	var is_paid: bool
-	var player_score: int
-	var banker_score: int
-	var chip_texture: String  # Путь к текстуре фишки
-
-	func _init(type: String, s: float, p: float, w: bool, paid: bool, ps: int, bs: int, texture: String = ""):
-		bet_type = type
-		stake = s
-		payout = p
-		won = w
-		is_paid = paid
-		player_score = ps
-		banker_score = bs
-		chip_texture = texture
-
-var bets: Array[BetStateData] = []
+var bets: Array = []  # Array[Bet] (типизация убрана для парсинга)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ КАМЕРЫ
@@ -115,17 +95,20 @@ func save_table_state(
 	# Сохраняем ставки с текстурами
 	bets.clear()
 	for bet in bet_data:
-		var texture = chip_textures.get(bet.bet_type, "")
-		var bet_state = BetStateData.new(
-			bet.bet_type,
-			bet.stake,
-			bet.payout,
-			bet.won,
-			bet.is_paid,
-			bet.player_score,
-			bet.banker_score,
-			texture
+		var texture = chip_textures.get(bet.get_bet_type(), "")
+		# Создаём Bet из существующей ставки (конвертация)
+		var bet_state = Bet.new(
+			bet.get_bet_type(),
+			bet.get_stake(),
+			bet.get_payout(),
+			bet.is_won(),
+			0,  # position_index не хранится в TableStateManager
+			bet.get_player_score(),
+			bet.get_banker_score()
 		)
+		if bet.is_paid():
+			bet_state.mark_as_paid()
+		bet_state.set_chip_texture(texture)
 		bets.append(bet_state)
 
 	print("💾 TableStateManager: состояние стола сохранено")
@@ -160,11 +143,11 @@ func clear_state() -> void:
 	print("🗑️  TableStateManager: состояние очищено")
 
 
-func get_unpaid_bets() -> Array[BetStateData]:
+func get_unpaid_bets() -> Array:  # Array[Bet] (типизация убрана для парсинга)
 	"""Получить список неоплаченных выигрышных ставок"""
-	var unpaid: Array[BetStateData] = []
+	var unpaid: Array = []  # Array[Bet] (типизация убрана для парсинга)
 	for bet in bets:
-		if bet.won and not bet.is_paid:
+		if bet.is_won() and not bet.is_paid():
 			unpaid.append(bet)
 	return unpaid
 
@@ -172,16 +155,16 @@ func get_unpaid_bets() -> Array[BetStateData]:
 func mark_bet_as_paid(bet_type: String) -> void:
 	"""Отметить ставку как оплаченную"""
 	for bet in bets:
-		if bet.bet_type == bet_type:
-			bet.is_paid = true
+		if bet.get_bet_type() == bet_type:
+			bet.mark_as_paid()
 			print("✅ TableStateManager: ставка %s отмечена как оплаченная" % bet_type)
 			return
 
 
-func get_bet_data(bet_type: String) -> BetStateData:
+func get_bet_data(bet_type: String) -> Bet:
 	"""Получить данные ставки по типу"""
 	for bet in bets:
-		if bet.bet_type == bet_type:
+		if bet.get_bet_type() == bet_type:
 			return bet
 	return null
 

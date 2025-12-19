@@ -95,16 +95,16 @@ func generate_bets_for_all_guests() -> void:
 		print("🎲 GuestBetFactory: сгенерировано %d ставок для гостя %d" % [bets.size(), guest_id])
 
 # ← Сгенерировать ставки для одного гостя
-func generate_guest_bets(guest_id: int) -> Array[GuestBetStorage.GuestBet]:
+func generate_guest_bets(guest_id: int) -> Array[Bet]:
 	"""Сгенерировать ставки для гостя на основе его характера и обеспеченности
 	
 	Args:
 		guest_id: ID гостя (1-6)
 	
 	Returns:
-		Массив ставок гостя
+		Массив ставок гостя (Bet)
 	"""
-	var bets: Array[GuestBetStorage.GuestBet] = []
+	var bets: Array[Bet] = []
 	var character = GuestSettingsManager.get_guest_character(guest_id)
 	var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
 	var sector = guest_id  # Сектор = ID гостя (1-6)
@@ -155,7 +155,7 @@ func _get_probabilities_for_character(character: GuestSettingsManager.GuestChara
 		_:
 			return GENTLEMAN_PROBS  # По умолчанию
 
-func _generate_main_bet(guest_id: int, sector: int, probs: Dictionary) -> GuestBetStorage.GuestBet:
+func _generate_main_bet(guest_id: int, sector: int, probs: Dictionary) -> Bet:
 	"""Сгенерировать основную ставку (Player или Banker)
 	
 	Важно: Player ИЛИ Banker, но не оба одновременно
@@ -168,19 +168,19 @@ func _generate_main_bet(guest_id: int, sector: int, probs: Dictionary) -> GuestB
 	if roll < cumulative:
 		var stake = limits_manager.generate_bet()
 		var pos_idx = GuestSectorMapper.get_position_index(sector, "Player")
-		return GuestBetStorage.GuestBet.new(guest_id, "Player", stake, pos_idx, sector)
+		return Bet.create_guest_bet(guest_id, "Player", stake, pos_idx, sector)
 	
 	# Проверяем Banker
 	cumulative += probs.get("Banker", 0.0)
 	if roll < cumulative:
 		var stake = limits_manager.generate_bet()
 		var pos_idx = GuestSectorMapper.get_position_index(sector, "Banker")
-		return GuestBetStorage.GuestBet.new(guest_id, "Banker", stake, pos_idx, sector)
+		return Bet.create_guest_bet(guest_id, "Banker", stake, pos_idx, sector)
 	
 	# None - гость не ставит основную ставку
 	return null
 
-func _generate_tie_bet(guest_id: int, sector: int, probs: Dictionary) -> GuestBetStorage.GuestBet:
+func _generate_tie_bet(guest_id: int, sector: int, probs: Dictionary) -> Bet:
 	"""Сгенерировать ставку на Tie"""
 	var roll = randf() * 100.0
 	var tie_prob = probs.get("Tie", 0.0)
@@ -188,11 +188,11 @@ func _generate_tie_bet(guest_id: int, sector: int, probs: Dictionary) -> GuestBe
 	if roll < tie_prob:
 		var stake = limits_manager.generate_tie_bet()
 		var pos_idx = GuestSectorMapper.get_position_index(sector, "Tie")
-		return GuestBetStorage.GuestBet.new(guest_id, "Tie", stake, pos_idx, sector)
+		return Bet.create_guest_bet(guest_id, "Tie", stake, pos_idx, sector)
 	
 	return null
 
-func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array[GuestBetStorage.GuestBet]:
+func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array[Bet]:
 	"""Сгенерировать ставки на пары
 	
 	Варианты:
@@ -201,7 +201,7 @@ func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array
 	- Только пара банкира (BankerPair)
 	- Без пар (None)
 	"""
-	var bets: Array[GuestBetStorage.GuestBet] = []
+	var bets: Array[Bet] = []
 	var roll = randf() * 100.0
 	var cumulative = 0.0
 	
@@ -212,8 +212,8 @@ func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array
 		var stake = limits_manager.generate_pair_bet()
 		var pos_idx_player = GuestSectorMapper.get_position_index(sector, "PairPlayer")
 		var pos_idx_banker = GuestSectorMapper.get_position_index(sector, "PairBanker")
-		bets.append(GuestBetStorage.GuestBet.new(guest_id, "PairPlayer", stake, pos_idx_player, sector))
-		bets.append(GuestBetStorage.GuestBet.new(guest_id, "PairBanker", stake, pos_idx_banker, sector))
+		bets.append(Bet.create_guest_bet(guest_id, "PairPlayer", stake, pos_idx_player, sector))
+		bets.append(Bet.create_guest_bet(guest_id, "PairBanker", stake, pos_idx_banker, sector))
 		return bets
 	
 	# Проверяем PlayerPair
@@ -221,7 +221,7 @@ func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array
 	if roll < cumulative:
 		var stake = limits_manager.generate_pair_bet()
 		var pos_idx = GuestSectorMapper.get_position_index(sector, "PairPlayer")
-		bets.append(GuestBetStorage.GuestBet.new(guest_id, "PairPlayer", stake, pos_idx, sector))
+		bets.append(Bet.create_guest_bet(guest_id, "PairPlayer", stake, pos_idx, sector))
 		return bets
 	
 	# Проверяем BankerPair
@@ -229,7 +229,7 @@ func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array
 	if roll < cumulative:
 		var stake = limits_manager.generate_pair_bet()
 		var pos_idx = GuestSectorMapper.get_position_index(sector, "PairBanker")
-		bets.append(GuestBetStorage.GuestBet.new(guest_id, "PairBanker", stake, pos_idx, sector))
+		bets.append(Bet.create_guest_bet(guest_id, "PairBanker", stake, pos_idx, sector))
 		return bets
 	
 	# None - гость не ставит на пары
@@ -239,7 +239,7 @@ func _generate_pair_bets(guest_id: int, sector: int, probs: Dictionary) -> Array
 # ФИЛЬТРАЦИЯ СТАВОК ПО НАСТРОЙКАМ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _apply_settings_filter(bets: Array[GuestBetStorage.GuestBet]) -> Array[GuestBetStorage.GuestBet]:
+func _apply_settings_filter(bets: Array[Bet]) -> Array[Bet]:
 	"""Применить фильтр настроек PayoutSettingsManager
 	
 	Если ставка выключена в настройках - она удаляется из партии.
@@ -251,13 +251,14 @@ func _apply_settings_filter(bets: Array[GuestBetStorage.GuestBet]) -> Array[Gues
 	Returns:
 		Отфильтрованные ставки
 	"""
-	var filtered: Array[GuestBetStorage.GuestBet] = []
+	var filtered: Array[Bet] = []
 	
 	for bet in bets:
-		if _is_bet_type_enabled(bet.bet_type):
+		var bet_type = bet.get_bet_type()
+		if _is_bet_type_enabled(bet_type):
 			filtered.append(bet)
 		else:
-			print("🎲 GuestBetFactory: ставка %s отфильтрована (выключена в настройках)" % bet.bet_type)
+			print("🎲 GuestBetFactory: ставка %s отфильтрована (выключена в настройках)" % bet_type)
 	
 	return filtered
 

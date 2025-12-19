@@ -574,11 +574,13 @@ func _restore_active_bet_chips() -> void:
 			# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
 			DebugLogger.log_restore(" Восстановление фишек для новой раздачи из TableStateManager...")
 			for bet in TableStateManager.bets:
-				if bet.chip_texture.is_empty():
-					chip_visual_manager.make_chip_visible(bet.bet_type)
+				var bet_type = bet.get_bet_type()
+				var chip_texture = bet.get_chip_texture()
+				if chip_texture.is_empty():
+					chip_visual_manager.make_chip_visible(bet_type)
 				else:
-					chip_visual_manager.set_chip_texture(bet.bet_type, bet.chip_texture)
-				DebugLogger.log("  → Восстановлена фишка %s" % bet.bet_type)
+					chip_visual_manager.set_chip_texture(bet_type, chip_texture)
+				DebugLogger.log("  → Восстановлена фишка %s" % bet_type)
 	else:
 		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
 		# НО только если нет гостевых ставок (гости имеют приоритет)
@@ -609,14 +611,18 @@ func _show_guest_bets() -> void:
 		DebugLogger.log("👥 Гость %d: %d ставок" % [guest_id, bets.size()])
 		for bet in bets:
 			# Получаем координаты позиции
-			var coords = GuestSectorMapper.get_position_coordinates(bet.sector, bet.bet_type)
+			var bet_type = bet.get_bet_type()
+			var sector = bet.get_sector()
+			var pos_idx = bet.get_position_index()
+			var stake = bet.get_stake()
+			var coords = GuestSectorMapper.get_position_coordinates(sector, bet_type)
 			if coords == Vector2.ZERO:
-				DebugLogger.log_warning("⚠️ Не найдены координаты для %s в секторе %d" % [bet.bet_type, bet.sector])
+				DebugLogger.log_warning("⚠️ Не найдены координаты для %s в секторе %d" % [bet_type, sector])
 				continue
 			
 			# Создаём фишку на позиции гостя
-			_show_guest_chip_at_position(bet.bet_type, bet.position_index, coords, bet.stake)
-			DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f)" % [guest_id, bet.bet_type, bet.position_index, bet.stake])
+			_show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
+			DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f)" % [guest_id, bet_type, pos_idx, stake])
 
 func _show_guest_chip_at_position(bet_type: String, position_index: int, coords: Vector2, stake: float) -> void:
 	"""Показать фишку гостя на конкретной позиции

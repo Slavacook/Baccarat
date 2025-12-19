@@ -1,6 +1,6 @@
 # res://scripts/BetCollectionPhaseManager.gd
 # Централизованный менеджер для фазы сбора проигрышных ставок и оплаты выигрышных
-# Инкапсулирует логику валидации, состояния режимов и проверки возможности завершения раунда
+# Инкапсулирует логику валидации, состояний режимов и проверки возможности завершения раунда
 
 class_name BetCollectionPhaseManager
 extends RefCounted
@@ -19,7 +19,7 @@ enum CollectionMode {
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-signal mode_changed(new_mode: CollectionMode)
+signal mode_changed(new_mode: int)  # CollectionMode (int для парсинга)
 signal bet_collected(bet_type: String)
 # Новый сигнал с идентификатором конкретной фишки
 signal chip_collected(bet_type: String, position_index: int)
@@ -30,7 +30,7 @@ signal chip_paid(bet_type: String, position_index: int)
 # ═══════════════════════════════════════════════════════════════════════════
 
 var current_mode: CollectionMode = CollectionMode.NONE
-var payout_queue_manager: PayoutQueueManager = null
+var payout_queue_manager = null  # PayoutQueueManager (типизация убрана для парсинга)
 var actual_winner: String = ""  # Победитель раунда (для проверки Tie push)
 
 # Список собранных проигрышных ставок (для обратной совместимости)
@@ -54,13 +54,13 @@ var _line_position_cache: Dictionary = {}
 var is_processing: bool = false
 
 # Валидатор для операций (Strategy Pattern - для расширяемости)
-var validator: IBetCollectionValidator = null
+var validator = null  # IBetCollectionValidator (типизация убрана для парсинга)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func setup(queue_manager: PayoutQueueManager, winner: String, custom_validator: IBetCollectionValidator = null) -> void:
+func setup(queue_manager, winner: String, custom_validator = null) -> void:  # Типизация убрана для парсинга
 	"""Настроить менеджер для нового раунда
 	
 	ВАЖНО: Должен вызываться ПОСЛЕ того, как все ставки добавлены в queue_manager
@@ -120,7 +120,7 @@ func reset() -> void:
 	set_mode(CollectionMode.NONE)
 	DebugLogger.log("🔄 BetCollectionPhaseManager: сброшен")
 
-func set_validator(custom_validator: IBetCollectionValidator) -> void:
+func set_validator(custom_validator) -> void:  # Типизация убрана для парсинга
 	"""Установить кастомный валидатор (для расширяемости)
 	
 	Args:
@@ -343,7 +343,7 @@ func _get_position_coordinates(bet_type: String, position_index: int) -> Vector2
 	
 	return positions[position_index]
 
-func _get_sorted_main_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
+func _get_sorted_main_bets(winning: bool) -> Array:
 	"""Получить отсортированные основные ставки (Player/Banker) справа налево
 	
 	Args:
@@ -355,7 +355,7 @@ func _get_sorted_main_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 	if not payout_queue_manager:
 		return []
 	
-	var bets: Array[PayoutQueueManager.BetData] = []
+	var bets: Array = []
 	
 	# Определяем какие типы собирать/оплачивать
 	var types_to_include: Array[String] = []
@@ -377,19 +377,19 @@ func _get_sorted_main_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 	
 	# Собираем ставки нужных типов
 	for bet in payout_queue_manager.bets:
-		if bet.bet_type in types_to_include and bet.won == winning:
+		if bet.get_bet_type() in types_to_include and bet.is_won() == winning:
 			bets.append(bet)
 	
 	# Сортируем справа налево по номеру позиции (номер 1, 2, 3...)
 	bets.sort_custom(func(a, b): 
-		var num_a = get_line_position_number(a.bet_type, a.position_index)
-		var num_b = get_line_position_number(b.bet_type, b.position_index)
+		var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
+		var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
 		return num_a < num_b  # Меньший номер = правее = идёт первым
 	)
 	
 	return bets
 
-func _get_sorted_tie_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
+func _get_sorted_tie_bets(winning: bool) -> Array:
 	"""Получить отсортированные Tie ставки
 	- Для сбора (winning=false): слева направо (обратный порядок номеров)
 	- Для оплаты (winning=true): справа налево (прямой порядок номеров)
@@ -397,31 +397,31 @@ func _get_sorted_tie_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 	if not payout_queue_manager:
 		return []
 	
-	var bets: Array[PayoutQueueManager.BetData] = []
+	var bets: Array = []
 	
 	for bet in payout_queue_manager.bets:
-		if bet.bet_type == "Tie" and bet.won == winning:
+		if bet.get_bet_type() == "Tie" and bet.is_won() == winning:
 			bets.append(bet)
 	
 	# Используем нумерацию позиций (1 = самый правый)
 	if winning:
 		# Оплата: справа налево (номер 1, 2, 3...)
 		bets.sort_custom(func(a, b):
-			var num_a = get_line_position_number(a.bet_type, a.position_index)
-			var num_b = get_line_position_number(b.bet_type, b.position_index)
+			var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
+			var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
 			return num_a < num_b  # Меньший номер = правее = идёт первым
 		)
 	else:
 		# Сбор: слева направо (номер 3, 2, 1...)
 		bets.sort_custom(func(a, b):
-			var num_a = get_line_position_number(a.bet_type, a.position_index)
-			var num_b = get_line_position_number(b.bet_type, b.position_index)
+			var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
+			var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
 			return num_a > num_b  # Больший номер = левее = идёт первым
 		)
 	
 	return bets
 
-func _get_sorted_pair_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
+func _get_sorted_pair_bets(winning: bool) -> Array:
 	"""Получить отсортированные пары (PairPlayer + PairBanker вместе) справа налево
 	
 	Пары объединены в одну линию и сортируются по номеру позиции (1 = самый правый)
@@ -429,16 +429,17 @@ func _get_sorted_pair_bets(winning: bool) -> Array[PayoutQueueManager.BetData]:
 	if not payout_queue_manager:
 		return []
 	
-	var bets: Array[PayoutQueueManager.BetData] = []
+	var bets: Array = []
 	
 	for bet in payout_queue_manager.bets:
-		if (bet.bet_type == "PairPlayer" or bet.bet_type == "PairBanker") and bet.won == winning:
+		var bet_type = bet.get_bet_type()
+		if (bet_type == "PairPlayer" or bet_type == "PairBanker") and bet.is_won() == winning:
 			bets.append(bet)
 	
 	# Сортируем справа налево по номеру позиции (номер 1, 2, 3...)
 	bets.sort_custom(func(a, b):
-		var num_a = get_line_position_number(a.bet_type, a.position_index)
-		var num_b = get_line_position_number(b.bet_type, b.position_index)
+		var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
+		var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
 		return num_a < num_b  # Меньший номер = правее = идёт первым
 	)
 	
@@ -465,9 +466,11 @@ func _initialize_collection_sequence() -> void:
 		DebugLogger.log("  📍 Порядок пар (справа налево):")
 		for i in range(collection_sequence["pairs"].size()):
 			var bet = collection_sequence["pairs"][i]
-			var pos_num = get_line_position_number(bet.bet_type, bet.position_index)
-			var pos = _get_position_coordinates(bet.bet_type, bet.position_index)
-			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos_num, pos.x, pos.y])
+			var bet_type = bet.get_bet_type()
+			var pos_idx = bet.get_position_index()
+			var pos_num = get_line_position_number(bet_type, pos_idx)
+			var pos = _get_position_coordinates(bet_type, pos_idx)
+			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
 
 func _initialize_payment_sequence() -> void:
 	"""Инициализировать последовательности для оплаты выигрышных ставок"""
@@ -490,20 +493,24 @@ func _initialize_payment_sequence() -> void:
 		DebugLogger.log("  📍 Порядок основных ставок (справа налево):")
 		for i in range(payment_sequence["main"].size()):
 			var bet = payment_sequence["main"][i]
-			var pos_num = get_line_position_number(bet.bet_type, bet.position_index)
-			var pos = _get_position_coordinates(bet.bet_type, bet.position_index)
-			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos_num, pos.x, pos.y])
+			var bet_type = bet.get_bet_type()
+			var pos_idx = bet.get_position_index()
+			var pos_num = get_line_position_number(bet_type, pos_idx)
+			var pos = _get_position_coordinates(bet_type, pos_idx)
+			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
 	
 	# Отладочный вывод порядка пар (если есть)
 	if payment_sequence["pairs"].size() > 0:
 		DebugLogger.log("  📍 Порядок пар (справа налево):")
 		for i in range(payment_sequence["pairs"].size()):
 			var bet = payment_sequence["pairs"][i]
-			var pos_num = get_line_position_number(bet.bet_type, bet.position_index)
-			var pos = _get_position_coordinates(bet.bet_type, bet.position_index)
-			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet.bet_type, bet.position_index, pos_num, pos.x, pos.y])
+			var bet_type = bet.get_bet_type()
+			var pos_idx = bet.get_position_index()
+			var pos_num = get_line_position_number(bet_type, pos_idx)
+			var pos = _get_position_coordinates(bet_type, pos_idx)
+			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
 
-func _get_expected_next_bet(group: String, is_collecting: bool) -> PayoutQueueManager.BetData:
+func _get_expected_next_bet(group: String, is_collecting: bool):
 	"""Получить следующую ожидаемую ставку в группе
 	
 	Args:
@@ -511,7 +518,7 @@ func _get_expected_next_bet(group: String, is_collecting: bool) -> PayoutQueueMa
 		is_collecting: true для сбора, false для оплаты
 		
 	Returns:
-		BetData следующей ожидаемой ставки или null если все собраны/оплачены
+		Bet следующей ожидаемой ставки или null если все собраны/оплачены
 	"""
 	var sequence = collection_sequence[group] if is_collecting else payment_sequence[group]
 	var progress = collection_progress[group] if is_collecting else payment_progress[group]
@@ -525,7 +532,7 @@ func _get_expected_next_bet(group: String, is_collecting: bool) -> PayoutQueueMa
 		return null
 	
 	var expected = sequence[progress]
-	DebugLogger.log("  📍 Ожидаемая ставка в группе '%s' (progress=%d/%d): %s[%d]" % [group, progress, sequence.size(), expected.bet_type, expected.position_index])
+	DebugLogger.log("  📍 Ожидаемая ставка в группе '%s' (progress=%d/%d): %s[%d]" % [group, progress, sequence.size(), expected.get_bet_type(), expected.get_position_index()])
 	return expected
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -595,28 +602,28 @@ func validate_chip_click(bet_type: String, position_index: int = 0) -> Dictionar
 # ВНУТРЕННИЕ МЕТОДЫ ВАЛИДАЦИИ (для использования валидатором)
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _validate_collect_internal(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int = 0) -> Dictionary:
+func _validate_collect_internal(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Внутренний метод валидации сбора (используется валидатором)"""
 	return _validate_collect(bet, bet_type, position_index)
 
-func _validate_pay_internal(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int = 0) -> Dictionary:
+func _validate_pay_internal(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Внутренний метод валидации оплаты (используется валидатором)"""
 	return _validate_pay(bet, bet_type, position_index)
 
-func _validate_collect(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int = 0) -> Dictionary:
+func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Валидация попытки собрать ставку"""
 	
 	# Нельзя собирать выигрышные
-	if bet.won:
+	if bet.is_won():
 		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
 	
 	# Проверяем, не собрана ли уже (используем bet.is_collected как единственный источник истины)
-	if bet.is_collected:
+	if bet.is_collected():
 		return _error_result("already_collected", "Ставка уже собрана")
 	
 	# Проверяем согласованность с кэшем (для обнаружения рассинхронизации)
 	var bet_id = "%s_%d" % [bet_type, position_index]
-	if collected_bets_by_id.has(bet_id) and not bet.is_collected:
+	if collected_bets_by_id.has(bet_id) and not bet.is_collected():
 		# Рассинхронизация: в кэше есть, но bet.is_collected = false
 		DebugLogger.log_warning("Рассинхронизация обнаружена для %s: исправляем кэш" % bet_id)
 		collected_bets_by_id.erase(bet_id)
@@ -654,20 +661,20 @@ func _validate_collect(bet: PayoutQueueManager.BetData, bet_type: String, positi
 						return _error_result("wrong_order", "ERR_WRONG_COLLECT_ORDER")
 		
 		# Проверяем, что кликнули на правильную следующую ставку
-		if expected_bet.bet_type != bet_type or expected_bet.position_index != position_index:
+		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
 			return _error_result("wrong_order", "ERR_WRONG_COLLECT_ORDER")
 	
 	return _success_result("collect")
 
-func _validate_pay(bet: PayoutQueueManager.BetData, bet_type: String, position_index: int = 0) -> Dictionary:
+func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Валидация попытки оплатить ставку"""
 	
 	# Нельзя оплачивать проигрышные
-	if not bet.won:
+	if not bet.is_won():
 		return _error_result("pay_losing", "Нельзя оплачивать проигрышные ставки")
 	
 	# Проверяем, не оплачена ли уже
-	if bet.is_paid:
+	if bet.is_paid():
 		return _error_result("already_paid", "Ставка уже оплачена")
 	
 	# Проверяем, все ли проигрышные собраны
@@ -711,10 +718,10 @@ func _validate_pay(bet: PayoutQueueManager.BetData, bet_type: String, position_i
 	
 	# Если в группе ещё есть неоплаченные ставки, проверяем порядок
 	if expected_bet:
-		DebugLogger.log("🔍 DEBUG: Ожидаемая ставка: %s[%d], кликнута: %s[%d]" % [expected_bet.bet_type, expected_bet.position_index, bet_type, position_index])
+		DebugLogger.log("🔍 DEBUG: Ожидаемая ставка: %s[%d], кликнута: %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
 		# Проверяем, что кликнули на правильную следующую ставку
-		if expected_bet.bet_type != bet_type or expected_bet.position_index != position_index:
-			DebugLogger.log("  ❌ Неправильный порядок! Ожидалась %s[%d], кликнута %s[%d]" % [expected_bet.bet_type, expected_bet.position_index, bet_type, position_index])
+		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
+			DebugLogger.log("  ❌ Неправильный порядок! Ожидалась %s[%d], кликнута %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
 			return _error_result("wrong_order", "ERR_WRONG_PAY_ORDER")
 		else:
 			DebugLogger.log("  ✅ Правильная ставка!")
@@ -778,12 +785,12 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 			return false
 	
 	# Если использовали fallback - используем position_index из найденной ставки
-	if used_fallback and bet.position_index != position_index:
-		DebugLogger.log("⚠️  collect_bet: использован fallback, корректируем position_index %d -> %d" % [position_index, bet.position_index])
-		position_index = bet.position_index
+	if used_fallback and bet.get_position_index() != position_index:
+		DebugLogger.log("⚠️  collect_bet: использован fallback, корректируем position_index %d -> %d" % [position_index, bet.get_position_index()])
+		position_index = bet.get_position_index()
 
 	# Проверяем что ставка ещё не собрана (единственный источник истины - bet.is_collected)
-	if bet.is_collected:
+	if bet.is_collected():
 		DebugLogger.log("⏸️  Ставка %s[%d] уже собрана, игнорируем" % [bet_type, position_index])
 		is_processing = false
 		return false
@@ -795,11 +802,11 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	var group = _get_bet_group(bet_type)
 	
 	# Сохраняем старое состояние для возможного rollback
-	var old_collected_state = bet.is_collected
+	var old_collected_state = bet.is_collected()
 	var old_progress = collection_progress.get(group, 0) if not group.is_empty() else 0
 	
 	# Атомарно обновляем всё состояние
-	bet.is_collected = true
+	bet.mark_as_collected()
 	collected_bets_by_id[bet_id] = true
 	
 	# Для обратной совместимости - добавляем тип, если его ещё нет
@@ -813,7 +820,7 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	# Проверяем согласованность состояния после обновления
 	if not _check_state_consistency(bet, bet_id):
 		# Rollback при ошибке
-		bet.is_collected = old_collected_state
+		bet.set_collected(old_collected_state)
 		collected_bets_by_id.erase(bet_id)
 		if not group.is_empty() and collection_progress.has(group):
 			collection_progress[group] = old_progress
@@ -866,18 +873,18 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 			return false
 	
 	# Если использовали fallback - используем position_index из найденной ставки
-	if used_fallback and bet.position_index != position_index:
-		DebugLogger.log("⚠️  pay_bet: использован fallback, корректируем position_index %d -> %d" % [position_index, bet.position_index])
-		position_index = bet.position_index
+	if used_fallback and bet.get_position_index() != position_index:
+		DebugLogger.log("⚠️  pay_bet: использован fallback, корректируем position_index %d -> %d" % [position_index, bet.get_position_index()])
+		position_index = bet.get_position_index()
 	
 	# Проверяем что ставка выигрышная (можно оплачивать только выигрышные)
-	if not bet.won:
-		DebugLogger.log("⚠️  Ставка %s[%d] не выиграла (won=%s), пропускаем оплату" % [bet_type, position_index, bet.won])
+	if not bet.is_won():
+		DebugLogger.log("⚠️  Ставка %s[%d] не выиграла (won=%s), пропускаем оплату" % [bet_type, position_index, bet.is_won()])
 		is_processing = false
 		return true  # Не ошибка, просто пропускаем
 
 	# Проверяем что ставка ещё не оплачена (единственный источник истины - bet.is_paid)
-	if bet.is_paid:
+	if bet.is_paid():
 		DebugLogger.log("⏸️  Ставка %s[%d] уже оплачена, игнорируем" % [bet_type, position_index])
 		is_processing = false
 		return false
@@ -888,7 +895,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	var group = _get_bet_group(bet_type)
 	
 	# Сохраняем старое состояние для возможного rollback
-	var old_paid_state = bet.is_paid
+	var old_paid_state = bet.is_paid()
 	var old_progress = payment_progress.get(group, 0) if not group.is_empty() else 0
 	var sequence = payment_sequence.get(group, []) if not group.is_empty() else []
 	
@@ -901,35 +908,35 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	# Обновляем прогресс оплаты с проверкой последовательности
 	if not group.is_empty() and payment_progress.has(group) and old_progress < sequence.size():
 		var expected = sequence[old_progress]
-		if expected.bet_type == bet_type and expected.position_index == position_index:
+		if expected.get_bet_type() == bet_type and expected.get_position_index() == position_index:
 			payment_progress[group] += 1
 			DebugLogger.log("💰 BetCollectionPhaseManager: ставка %s[%d] оплачена, группа '%s': progress %d -> %d" % [bet_type, position_index, group, old_progress, payment_progress[group]])
 			
 			# Показываем следующую ожидаемую ставку
 			if payment_progress[group] < sequence.size():
 				var next_expected = sequence[payment_progress[group]]
-				DebugLogger.log("  📍 Следующая ожидаемая ставка: %s[%d]" % [next_expected.bet_type, next_expected.position_index])
+				DebugLogger.log("  📍 Следующая ожидаемая ставка: %s[%d]" % [next_expected.get_bet_type(), next_expected.get_position_index()])
 			else:
 				DebugLogger.log("  ✅ Все ставки в группе '%s' оплачены" % group)
 		else:
 			# Критическая ошибка: оплачивается не та ставка
-			DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Оплачивается ставка %s[%d], но ожидалась %s[%d]!" % [bet_type, position_index, expected.bet_type, expected.position_index])
+			DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Оплачивается ставка %s[%d], но ожидалась %s[%d]!" % [bet_type, position_index, expected.get_bet_type(), expected.get_position_index()])
 			# Rollback
-			bet.is_paid = old_paid_state
+			bet.set_paid(old_paid_state)
 			payment_progress[group] = old_progress
 			is_processing = false
 			return false
 	elif not group.is_empty() and old_progress >= sequence.size():
 		DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Прогресс группы '%s' (%d) >= размера последовательности (%d)!" % [group, old_progress, sequence.size()])
 		# Rollback
-		bet.is_paid = old_paid_state
+		bet.set_paid(old_paid_state)
 		is_processing = false
 		return false
 	
 	# Проверяем согласованность состояния после обновления
 	if not _check_payment_state_consistency(bet):
 		# Rollback при ошибке
-		bet.is_paid = old_paid_state
+		bet.set_paid(old_paid_state)
 		if not group.is_empty() and payment_progress.has(group):
 			payment_progress[group] = old_progress
 		DebugLogger.log_error("Рассинхронизация состояния при оплате ставки %s[%d], выполнен rollback" % [bet_type, position_index])
@@ -958,7 +965,7 @@ func is_bet_collected(bet_type: String, position_index: int = -1) -> bool:
 		# Для обратной совместимости - проверяем первую ставку по типу
 		var bet_data = payout_queue_manager.get_bet_by_type(bet_type)
 		if bet_data:
-			return bet_data.is_collected
+			return bet_data.is_collected()
 		return bet_type in collected_losing_bets
 	
 	# Используем bet.is_collected как единственный источник истины
@@ -967,14 +974,14 @@ func is_bet_collected(bet_type: String, position_index: int = -1) -> bool:
 		# Проверяем согласованность с кэшем
 		var bet_id = "%s_%d" % [bet_type, position_index]
 		var in_cache = collected_bets_by_id.has(bet_id)
-		if in_cache != bet.is_collected:
+		if in_cache != bet.is_collected():
 			# Автоматическое исправление рассинхронизации
-			DebugLogger.log_warning("Рассинхронизация для %s: кэш=%s, bet=%s, исправляем" % [bet_id, in_cache, bet.is_collected])
-			if bet.is_collected:
+			DebugLogger.log_warning("Рассинхронизация для %s: кэш=%s, bet=%s, исправляем" % [bet_id, in_cache, bet.is_collected()])
+			if bet.is_collected():
 				collected_bets_by_id[bet_id] = true
 			else:
 				collected_bets_by_id.erase(bet_id)
-		return bet.is_collected
+		return bet.is_collected()
 	
 	return false
 
@@ -991,11 +998,11 @@ func has_uncollected_losing_bets() -> bool:
 		return false
 	
 	for bet in payout_queue_manager.bets:
-		if not bet.won and not bet.is_collected:
+		if not bet.is_won() and not bet.is_collected():
 			# Исключаем Tie push ставки
-			if not is_tie_push_bet(bet.bet_type):
+			if not is_tie_push_bet(bet.get_bet_type()):
 				# Проверяем согласованность с кэшем (автоисправление)
-				var bet_id = "%s_%d" % [bet.bet_type, bet.position_index]
+				var bet_id = "%s_%d" % [bet.get_bet_type(), bet.get_position_index()]
 				if collected_bets_by_id.has(bet_id):
 					# Рассинхронизация: в кэше есть, но bet.is_collected = false
 					DebugLogger.log_warning("Рассинхронизация для %s: исправляем кэш" % bet_id)
@@ -1013,11 +1020,11 @@ func get_uncollected_losing_count() -> int:
 	
 	var count = 0
 	for bet in payout_queue_manager.bets:
-		if not bet.won and not bet.is_collected:
+		if not bet.is_won() and not bet.is_collected():
 			# Исключаем Tie push ставки
-			if not is_tie_push_bet(bet.bet_type):
+			if not is_tie_push_bet(bet.get_bet_type()):
 				# Проверяем согласованность с кэшем (автоисправление)
-				var bet_id = "%s_%d" % [bet.bet_type, bet.position_index]
+				var bet_id = "%s_%d" % [bet.get_bet_type(), bet.get_position_index()]
 				if collected_bets_by_id.has(bet_id):
 					# Рассинхронизация: исправляем
 					DebugLogger.log_warning("Рассинхронизация для %s: исправляем кэш" % bet_id)
@@ -1034,9 +1041,9 @@ func has_unpaid_winnings() -> bool:
 		return false
 	
 	for bet in payout_queue_manager.bets:
-		if bet.won and not bet.is_paid:
+		if bet.is_won() and not bet.is_paid():
 			# Исключаем Tie push ставки
-			if not is_tie_push_bet(bet.bet_type):
+			if not is_tie_push_bet(bet.get_bet_type()):
 				return true
 	return false
 
@@ -1050,8 +1057,8 @@ func get_unpaid_winnings_count() -> int:
 	
 	var count = 0
 	for bet in payout_queue_manager.bets:
-		if bet.won and not bet.is_paid:
-			if not is_tie_push_bet(bet.bet_type):
+		if bet.is_won() and not bet.is_paid():
+			if not is_tie_push_bet(bet.get_bet_type()):
 				count += 1
 	return count
 
@@ -1097,7 +1104,7 @@ func can_complete_round() -> Dictionary:
 # ПРОВЕРКА СОГЛАСОВАННОСТИ СОСТОЯНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _check_state_consistency(bet: PayoutQueueManager.BetData, bet_id: String) -> bool:
+func _check_state_consistency(bet, bet_id: String) -> bool:
 	"""Проверить согласованность состояния для собранной ставки
 	
 	Args:
@@ -1111,7 +1118,7 @@ func _check_state_consistency(bet: PayoutQueueManager.BetData, bet_id: String) -
 		return false
 	
 	var in_cache = collected_bets_by_id.has(bet_id)
-	var in_bet = bet.is_collected
+	var in_bet = bet.is_collected()
 	
 	if in_cache != in_bet:
 		# Рассинхронизация обнаружена
@@ -1125,7 +1132,7 @@ func _check_state_consistency(bet: PayoutQueueManager.BetData, bet_id: String) -
 	
 	return true
 
-func _check_payment_state_consistency(bet: PayoutQueueManager.BetData) -> bool:
+func _check_payment_state_consistency(bet) -> bool:
 	"""Проверить согласованность состояния для оплаченной ставки
 	
 	Args:
@@ -1138,8 +1145,8 @@ func _check_payment_state_consistency(bet: PayoutQueueManager.BetData) -> bool:
 		return false
 	
 	# Для оплаченных ставок проверяем что они действительно выиграли
-	if bet.is_paid and not bet.won:
-		DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Ставка %s[%d] помечена как оплаченная, но не выиграла!" % [bet.bet_type, bet.position_index])
+	if bet.is_paid() and not bet.is_won():
+		DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Ставка %s[%d] помечена как оплаченная, но не выиграла!" % [bet.get_bet_type(), bet.get_position_index()])
 		return false
 	
 	return true
@@ -1159,16 +1166,16 @@ func validate_all_state() -> Dictionary:
 	
 	# Проверяем все ставки
 	for bet in payout_queue_manager.get_all_bets():
-		var bet_id = "%s_%d" % [bet.bet_type, bet.position_index]
+		var bet_id = "%s_%d" % [bet.get_bet_type(), bet.get_position_index()]
 		
 		# Проверка для собранных ставок
-		if bet.is_collected:
+		if bet.is_collected():
 			var in_cache = collected_bets_by_id.has(bet_id)
 			if not in_cache:
 				issues.append("Ставка %s собрана (bet.is_collected=true), но отсутствует в кэше" % bet_id)
 		
 		# Проверка для оплаченных ставок
-		if bet.is_paid and not bet.won:
+		if bet.is_paid() and not bet.is_won():
 			issues.append("Ставка %s оплачена, но не выиграла (won=false)" % bet_id)
 	
 	return {
