@@ -330,7 +330,7 @@ static func _restore_chips_from_table_state(_controller: Node2D, result: Diction
 
 	# Восстанавливаем ВСЕ фишки из сохраненных ставок (для других режимов, если будут)
 	for bet in TableStateManager.bets:
-		if bet.chip_texture.is_empty():
+		if bet.get_chip_texture().is_empty():
 			# Нет сохраненной текстуры - используем случайную
 			chip_visual_manager.show_chip(bet.get_bet_type())
 		else:

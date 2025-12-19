@@ -185,63 +185,6 @@ static func create_guest_bet(guest_id: int, bet_type: String, stake: float, posi
 	"""Создать гостевую ставку (GuestBetStorage.GuestBet)"""
 	return Bet.new(bet_type, stake, 0.0, false, position_index, 0, 0, guest_id, sector)
 
-static func from_bet_data(old_bet):
-	"""Конвертация из PayoutQueueManager.BetData"""
-	if not old_bet:
-		return null
-	var bet = Bet.new(
-		old_bet.bet_type,
-		old_bet.stake,
-		old_bet.payout,
-		old_bet.won,
-		old_bet.position_index,
-		old_bet.player_score,
-		old_bet.banker_score
-	)
-	bet._is_paid = old_bet.is_paid
-	bet._is_collected = old_bet.is_collected
-	return bet
-
-static func from_bet_state_data(old_bet):
-	"""Конвертация из TableStateManager.BetStateData"""
-	if not old_bet:
-		return null
-	var bet = Bet.new(
-		old_bet.bet_type,
-		old_bet.stake,
-		old_bet.payout,
-		old_bet.won,
-		0,  # position_index не хранится в BetStateData
-		old_bet.player_score,
-		old_bet.banker_score
-	)
-	bet._is_paid = old_bet.is_paid
-	bet._chip_texture = old_bet.chip_texture
-	return bet
-
-static func from_payout_data(old_bet):
-	"""Конвертация из GameDataManager.PayoutData"""
-	if not old_bet:
-		return null
-	return Bet.create_payout_bet(
-		old_bet.bet_type,
-		old_bet.stake,
-		old_bet.payout,
-		old_bet.player_score,
-		old_bet.banker_score
-	)
-
-static func from_guest_bet(old_bet):
-	"""Конвертация из GuestBetStorage.GuestBet"""
-	if not old_bet:
-		return null
-	return Bet.create_guest_bet(
-		old_bet.guest_id,
-		old_bet.bet_type,
-		old_bet.stake,
-		old_bet.position_index,
-		old_bet.sector
-	)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СЕРИАЛИЗАЦИЯ (для GuestBetStorage)
