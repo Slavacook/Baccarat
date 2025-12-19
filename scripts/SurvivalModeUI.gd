@@ -163,8 +163,16 @@ func pledge_heart() -> void:
 	if not is_active or current_lives <= 0:
 		return
 	
-	# Последнее активное сердце становится "в залоге"
-	pledged_heart_index = current_lives - 1
+	# Находим последнее видимое полное сердце (крайнее справа)
+	pledged_heart_index = -1
+	for i in range(hearts.size() - 1, -1, -1):
+		if hearts[i].texture == heart_full:
+			pledged_heart_index = i
+			break
+	
+	# Если не найдено полное сердце, используем fallback
+	if pledged_heart_index < 0:
+		pledged_heart_index = max(0, current_lives - 1)
 	
 	if heart_pledged:
 		# Используем специальную текстуру

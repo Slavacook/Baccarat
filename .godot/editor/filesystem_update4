@@ -1,3 +1,4 @@
 res://scripts/GamePhaseManager.gd
 res://scenes/chance_cards/BaseChanceCardScene.tscn
 res://scripts/heart_bet/HeartBetManager.gd
+res://scripts/SurvivalModeUI.gd
