@@ -285,12 +285,12 @@ static func _initialize_chips_visibility(controller: Node2D, result: Dictionary,
 		# Восстанавливаем состояние кнопки
 		var ui_manager: UIManager = result["ui_manager"]
 		if ui_manager:
-			ui_manager.set_action_button_state(TableStateManager.action_button_state)
+			ui_manager.set_action_button_state(TableStateManager.get_action_button_state())
 			ui_manager.enable_action_button()
-			DebugLogger.log("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.action_button_state)
+			DebugLogger.log("♻️  Восстановлено состояние кнопки: %s" % TableStateManager.get_action_button_state())
 
 			# Показываем кнопки Collect/Pay если мы в фазе выплат
-			if TableStateManager.action_button_state == "complete":
+			if TableStateManager.get_action_button_state() == "complete":
 				ui_manager.button_ui.show_collect_pay_buttons()
 				DebugLogger.log_restore("⏮ Показаны кнопки Collect/Pay")
 	else:
@@ -329,7 +329,7 @@ static func _restore_chips_from_table_state(_controller: Node2D, result: Diction
 		return
 
 	# Восстанавливаем ВСЕ фишки из сохраненных ставок (для других режимов, если будут)
-	for bet in TableStateManager.bets:
+	for bet in TableStateManager.get_bets():
 		if bet.get_chip_texture().is_empty():
 			# Нет сохраненной текстуры - используем случайную
 			chip_visual_manager.show_chip(bet.get_bet_type())
@@ -337,7 +337,7 @@ static func _restore_chips_from_table_state(_controller: Node2D, result: Diction
 			# Восстанавливаем конкретную текстуру
 			chip_visual_manager.set_chip_texture(bet.get_bet_type(), bet.get_chip_texture())
 
-	DebugLogger.log_restore("✅ Все фишки восстановлены (%d ставок)" % TableStateManager.bets.size())
+	DebugLogger.log_restore("✅ Все фишки восстановлены (%d ставок)" % TableStateManager.get_bets().size())
 
 
 static func _setup_event_subscriptions(controller: Node2D, _result: Dictionary) -> void:

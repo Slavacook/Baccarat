@@ -568,7 +568,7 @@ func _restore_active_bet_chips() -> void:
 	_show_guest_bets()
 
 	# Проверяем есть ли сохраненное состояние
-	if TableStateManager.has_saved_state() and TableStateManager.bets.size() > 0:
+	if TableStateManager.has_saved_state() and TableStateManager.get_bets().size() > 0:
 		# В режиме GUEST: восстанавливаем ТОЛЬКО если есть гостевые ставки
 		# Иначе фишки появятся в секторе 4 и будут нерабочими
 		var has_guests = guest_bet_storage and not guest_bet_storage.get_guests_with_bets().is_empty()
@@ -577,7 +577,7 @@ func _restore_active_bet_chips() -> void:
 		else:
 			# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
 			DebugLogger.log_restore(" Восстановление фишек для новой раздачи из TableStateManager...")
-			for bet in TableStateManager.bets:
+			for bet in TableStateManager.get_bets():
 				var bet_type = bet.get_bet_type()
 				var chip_texture = bet.get_chip_texture()
 				if chip_texture.is_empty():
@@ -771,7 +771,7 @@ func _validate_winner_selection() -> void:
 	var actual_winner = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	
 	# ВАЖНО: Сохраняем победителя в TableStateManager для триггеров Heart Bet!
-	TableStateManager.actual_winner = actual_winner
+	TableStateManager.set_actual_winner(actual_winner)
 
 	if selected_winner != actual_winner:
 		# ❌ Неправильный выбор
@@ -957,7 +957,7 @@ func _complete_round_and_prepare_new_game() -> void:
 	# При активном Heart Bet НЕ делаем обычное завершение!
 	# ═══════════════════════════════════════════════════════════════════
 	if has_active_heart_bet():
-		var actual_winner = TableStateManager.actual_winner
+		var actual_winner = TableStateManager.get_actual_winner()
 		print("❤️ GamePhaseManager: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
 		resolve_heart_bet(actual_winner)
 		# НЕ продолжаем - раунд сбросится через EventBus heart_bet_round_complete
@@ -1060,7 +1060,7 @@ func _check_heart_bet_triggers() -> void:
 		return
 	
 	# Получаем данные о завершённом раунде
-	var winner = TableStateManager.actual_winner
+	var winner = TableStateManager.get_actual_winner()
 	print("❤️ _check_heart_bet_triggers: winner='%s'" % winner)
 	
 	if winner.is_empty():

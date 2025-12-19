@@ -31,8 +31,8 @@ func restore_table_state() -> void:
 	"""Восстановление карт, UI карт и GameStateManager"""
 	# 1. Восстанавливаем карты через HandManager
 	hand_manager.restore_from_arrays(
-		TableStateManager.player_hand,
-		TableStateManager.banker_hand
+		TableStateManager.get_player_hand(),
+		TableStateManager.get_banker_hand()
 	)
 	DebugLogger.log("♻️  Восстановлены карты: Player=%d, Banker=%d" % [
 		hand_manager.get_player_size(),
@@ -96,14 +96,14 @@ func restore_survival_and_queue(
 		Восстановленный PayoutQueueManager
 	"""
 	# 1. Восстанавливаем маркер победителя
-	var saved_winner = TableStateManager.selected_winner
+	var saved_winner = TableStateManager.get_selected_winner()
 	if saved_winner != "" and winner_selection_manager:
 		winner_selection_manager.select_winner(saved_winner)
 		DebugLogger.log("🎯 Восстановлен маркер: %s" % saved_winner)
 	
 	# 2. Восстанавливаем survival режим
 	if survival_ui:
-		survival_ui.is_active = TableStateManager.survival_active
+		survival_ui.is_active = TableStateManager.is_survival_active()
 		survival_ui.set_lives(GameDataManager.get_survival_lives())
 		DebugLogger.log("♻️  Survival режим восстановлен: жизней=%d, раундов=%d" % [
 			GameDataManager.get_survival_lives(), survival_rounds_completed
@@ -111,7 +111,7 @@ func restore_survival_and_queue(
 	
 	# 3. Восстанавливаем PayoutQueueManager из TableStateManager
 	var restored_queue = PayoutQueueManager.new()
-	for bet_state in TableStateManager.bets:
+	for bet_state in TableStateManager.get_bets():
 		restored_queue.add_bet(
 			bet_state.get_bet_type(),
 			bet_state.get_stake(),
@@ -124,7 +124,7 @@ func restore_survival_and_queue(
 		if bet_state.is_paid():
 			restored_queue.mark_as_paid(bet_state.get_bet_type())
 	
-	DebugLogger.log("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.bets.size())
+	DebugLogger.log("♻️  Восстановлен PayoutQueueManager: %d ставок" % TableStateManager.get_bets().size())
 	
 	return restored_queue
 

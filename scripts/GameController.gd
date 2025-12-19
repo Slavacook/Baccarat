@@ -873,7 +873,7 @@ func _restore_survival_and_queue() -> void:
 		)
 	
 	# Восстанавливаем survival режим
-	survival_rounds_completed = TableStateManager.survival_rounds
+	survival_rounds_completed = TableStateManager.get_survival_rounds()
 	
 	# Восстанавливаем очередь выплат через StateRestorer
 	payout_queue_manager = state_restorer.restore_survival_and_queue(

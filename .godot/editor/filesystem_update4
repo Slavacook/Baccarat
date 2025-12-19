@@ -1,3 +1,8 @@
 res://scripts/PayoutOverlay.gd
 res://scripts/health_system/HeartBar.gd
 res://scenes/chance_cards/BaseChanceCardScene.tscn
+res://scripts/GameController.gd
+res://scripts/GameInitializer.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/autoload/TableStateManager.gd
+res://scripts/state/StateRestorer.gd
