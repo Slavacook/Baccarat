@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1766127197
+::res://::1766128432
 CLAUDE.md::TextFile::-1::1765937705::0::1::::<><><>0<>0<><>::
 CLEANUP_REPORT.md::TextFile::-1::1765878385::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1765877564::0::1::::<><><>0<>0<><>::
@@ -220,8 +220,8 @@ SettingsPopup.tscn::PackedScene::8682819899485884407::1765878366::0::1::::<><><>
 SettingsScene.tscn::PackedScene::8637889271710464782::1765932122::0::1::::<><><>0<>0<><>::uid://d3ov5kmwxvbem::::res://scripts/SettingsScene.gd
 SurvivalModeUI.tscn::PackedScene::1200197571375732007::1766041398::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd
 Toast.tscn::PackedScene::1936476259211108317::1765878366::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
-::res://scenes/chance_cards/::1766127186
-BaseChanceCardScene.tscn::PackedScene::5419421685637804966::1766127186::0::1::::<><><>0<>0<><>::uid://bsrppt6iwhgne::::res://scripts/chance_cards/BaseChanceCardScene.gd
+::res://scenes/chance_cards/::1766128420
+BaseChanceCardScene.tscn::PackedScene::5419421685637804966::1766128420::0::1::::<><><>0<>0<><>::uid://bsrppt6iwhgne::::res://scripts/chance_cards/BaseChanceCardScene.gd
 ChanceCardStorage.tscn::PackedScene::6951891940693214951::1766053283::0::1::::<><><>0<>0<><>::uid://b76fa8w0f416v::::res://scripts/chance_cards/ChanceCardStorage.gd
 ::res://scenes/heart_bet/::1766026399
 HeartBetUI.tscn::PackedScene::7103767641990542386::1766026399::0::1::::<><><>0<>0<><>::uid://bgncl0lhk41q0::::res://scripts/heart_bet/HeartBetUI.gd
@@ -241,9 +241,9 @@ DebugLogger.gd::GDScript::-1::1765878366::0::1::::DebugLogger<>RefCounted<><>0<>
 Deck.gd::GDScript::6145890468197991316::1765877564::0::1::::Deck<>RefCounted<><>0<>0<><>::
 FlipCard.gd::GDScript::1979425046039752148::1765877564::0::1::::FlipCard<>Node2D<><>0<>0<><>::
 GameConstants.gd::GDScript::5908386211620384816::1765878366::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
-GameController.gd::GDScript::5622432768509677956::1766126390::0::1::::<>Node2D<><>0<>0<><>::
-GameDataManager.gd::GDScript::3173968144031983268::1766122918::0::1::::<>Node<><>0<>0<><>::
-GameInitializer.gd::GDScript::7528074775368441392::1766127093::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
+GameController.gd::GDScript::5622432768509677956::1766128355::0::1::::<>Node2D<><>0<>0<><>::
+GameDataManager.gd::GDScript::3173968144031983268::1766128355::0::1::::<>Node<><>0<>0<><>::
+GameInitializer.gd::GDScript::7528074775368441392::1766128355::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
 GameModeManager.gd::GDScript::5355736345804787176::1765878366::0::1::::<>Node<><>0<>0<><>::
 GameOverScene.gd::GDScript::-1::1765878366::0::1::::<>CanvasLayer<><>0<>0<><>::
 GamePhaseManager.gd::GDScript::1038087620930647068::1766123303::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
@@ -341,7 +341,7 @@ SOLID_ANALYSIS.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 SOLID_REFACTORING_SUMMARY.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 TESTING_CHECKLIST.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 ::res://scripts/state/::1765878366
-StateRestorer.gd::GDScript::157760168912163595::1766123303::0::1::::StateRestorer<>RefCounted<><>0<>0<><>::
+StateRestorer.gd::GDScript::157760168912163595::1766128355::0::1::::StateRestorer<>RefCounted<><>0<>0<><>::
 ::res://scripts/ui/::1766037841
 AreaButton.gd::GDScript::7117132900493012764::1765878366::0::1::::AreaButton<>TextureButton<><>0<>0<><>::
 ButtonUIManager.gd::GDScript::6765460019147174517::1765878366::0::1::::ButtonUIManager<>RefCounted<><>0<>0<><>::

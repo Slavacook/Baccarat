@@ -39,6 +39,7 @@ var player_third_selected: bool = false
 var banker_third_selected: bool = false
 var is_first_deal: bool = true
 var is_table_prepared: bool = false
+var was_heart_bet_round: bool = false  # Флаг Heart Bet раунда (даже при отказе)
 
 func _init(
 	deck_ref: Deck,
@@ -83,6 +84,7 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	hand_manager.reset()
 	player_third_selected = false
 	banker_third_selected = false
+	was_heart_bet_round = false  # Сбрасываем флаг Heart Bet раунда
 	ui.reset_ui()
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -173,6 +175,8 @@ func deal_first_four():
 	# Если есть ожидающий выбор - confirm() либо подтвердит, либо отклонит
 	# ═══════════════════════════════════════════════════════════════════
 	if heart_bet_manager and has_pending_heart_bet():
+		# Устанавливаем флаг Heart Bet раунда (даже если будет отказ)
+		was_heart_bet_round = true
 		var confirmed = confirm_heart_bet()
 		if confirmed:
 			DebugLogger.log("❤️ Heart Bet подтверждён, раздача со ставкой")
@@ -784,6 +788,21 @@ func _validate_winner_selection() -> void:
 
 	# ✅ Правильный выбор!
 	EventBus.action_correct.emit("winner")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Если это был Heart Bet раунд (даже с отказом) - пропускаем выплаты
+	# ═══════════════════════════════════════════════════════════════════
+	if was_heart_bet_round:
+		print("❤️ _validate_winner_selection: был Heart Bet раунд (даже с отказом), пропускаем выплаты")
+		# Если была активная ставка - разрешаем её
+		if has_active_heart_bet():
+			resolve_heart_bet(actual_winner)
+		else:
+			# Отказ от шанса - просто завершаем раунд без выплат
+			# Эмитим сигнал завершения Heart Bet раунда для сброса
+			EventBus.heart_bet_round_complete.emit()
+		# В любом случае НЕ продолжаем с обычной логикой выплат
+		return
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Если есть активная ставка - разрешаем её и завершаем

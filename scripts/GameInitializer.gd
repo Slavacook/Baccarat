@@ -278,7 +278,7 @@ static func _initialize_chips_visibility(controller: Node2D, result: Dictionary,
 		# Синхронизируем сердечки из GameDataManager
 		var survival_ui: Control = result["survival_ui"]
 		if controller.is_survival_mode and survival_ui:
-			var lives_from_payout: int = GameDataManager.survival_lives
+			var lives_from_payout: int = GameDataManager.get_survival_lives()
 			survival_ui.set_lives(lives_from_payout)
 			DebugLogger.log("♻️  Синхронизированы сердечки: %d (из PayoutScene)" % lives_from_payout)
 
@@ -468,6 +468,6 @@ static func _check_payout_return(controller: Node2D, _result: Dictionary) -> voi
 			return
 
 	# Guard Clause 2: Автоматический режим через GameDataManager
-	if GameDataManager.payout_winner != "":
+	if GameDataManager.get_payout_winner() != "":
 		controller._handle_automatic_mode_payout_return()
 		return

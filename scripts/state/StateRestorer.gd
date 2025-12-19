@@ -104,9 +104,9 @@ func restore_survival_and_queue(
 	# 2. Восстанавливаем survival режим
 	if survival_ui:
 		survival_ui.is_active = TableStateManager.survival_active
-		survival_ui.set_lives(GameDataManager.survival_lives)
+		survival_ui.set_lives(GameDataManager.get_survival_lives())
 		DebugLogger.log("♻️  Survival режим восстановлен: жизней=%d, раундов=%d" % [
-			GameDataManager.survival_lives, survival_rounds_completed
+			GameDataManager.get_survival_lives(), survival_rounds_completed
 		])
 	
 	# 3. Восстанавливаем PayoutQueueManager из TableStateManager

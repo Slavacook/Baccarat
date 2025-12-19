@@ -246,6 +246,21 @@ func _handle_correct_winner_choice(actual: String) -> void:
 	EventBus.action_correct.emit("winner")
 	
 	# ═══════════════════════════════════════════════════════════════════
+	# HEART BET: Если это был Heart Bet раунд (даже с отказом) - пропускаем выплаты
+	# ═══════════════════════════════════════════════════════════════════
+	if phase_manager and phase_manager.was_heart_bet_round:
+		print("❤️ GameController: был Heart Bet раунд (даже с отказом), пропускаем выплаты")
+		# Если была активная ставка - разрешаем её
+		if phase_manager.has_active_heart_bet():
+			phase_manager.resolve_heart_bet(actual)
+		else:
+			# Отказ от шанса - просто завершаем раунд без выплат
+			# Эмитим сигнал завершения Heart Bet раунда для сброса
+			EventBus.heart_bet_round_complete.emit()
+		# В любом случае НЕ продолжаем с обычной логикой выплат
+		return
+	
+	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Разрешаем ставку сердцем (если была активна)
 	# При активной Heart Bet выплаты не производятся!
 	# ═══════════════════════════════════════════════════════════════════
@@ -877,9 +892,9 @@ func _restore_survival_and_queue() -> void:
 func _process_manual_payout_result(context: Dictionary) -> void:
 	"""Обработка результата текущей выплаты в ручном режиме"""
 	var bet_type = context.get("bet_type", "")
-	var is_correct = GameDataManager.payout_is_correct
-	var collected = GameDataManager.payout_collected
-	var expected = GameDataManager.payout_expected
+	var is_correct = GameDataManager.get_payout_is_correct()
+	var collected = GameDataManager.get_payout_collected()
+	var expected = GameDataManager.get_payout_expected()
 	
 	if is_correct:
 		EventBus.payout_correct.emit(collected, expected)
@@ -946,16 +961,16 @@ func _handle_automatic_mode_payout_return() -> void:
 func _restore_automatic_mode_state() -> void:
 	"""Восстановление состояния игры, камеры и UI"""
 	# Восстанавливаем состояние survival режима
-	survival_rounds_completed = GameDataManager.survival_rounds
+	survival_rounds_completed = GameDataManager.get_survival_rounds()
 	if heart_bar:
-		heart_bar.set_lives(GameDataManager.survival_lives)
-		if GameDataManager.is_survival_active:
+		heart_bar.set_lives(GameDataManager.get_survival_lives())
+		if GameDataManager.is_survival_active():
 			heart_bar.activate()
 		else:
 			heart_bar.deactivate()
 	elif survival_ui:
-		survival_ui.set_lives(GameDataManager.survival_lives)
-		if GameDataManager.is_survival_active:
+		survival_ui.set_lives(GameDataManager.get_survival_lives())
+		if GameDataManager.is_survival_active():
 			survival_ui.activate()
 		else:
 			survival_ui.deactivate()
@@ -1002,9 +1017,9 @@ func _check_and_handle_game_over() -> bool:
 
 func _process_automatic_payout_result() -> void:
 	"""Обработка результата выплаты в автоматическом режиме"""
-	var is_correct = GameDataManager.payout_is_correct
-	var collected = GameDataManager.payout_collected
-	var expected = GameDataManager.payout_expected
+	var is_correct = GameDataManager.get_payout_is_correct()
+	var collected = GameDataManager.get_payout_collected()
+	var expected = GameDataManager.get_payout_expected()
 	
 	if is_correct:
 		EventBus.payout_correct.emit(collected, expected)
@@ -1043,7 +1058,7 @@ func _handle_payout_queue() -> void:
 		GameDataManager.clear()
 		
 		# Сброс раунда только если последняя выплата была правильной
-		var is_correct = GameDataManager.payout_is_correct
+		var is_correct = GameDataManager.get_payout_is_correct()
 		if is_correct:
 			phase_manager.reset()
 
@@ -1417,6 +1432,8 @@ func _on_heart_bet_round_complete() -> void:
 		new_trigger_available = phase_manager.heart_bet_manager.is_available()
 		print("❤️ Проверка триггеров после Heart Bet раунда: %s" % ("сработал!" if new_trigger_available else "нет"))
 	if phase_manager:
+		# Сбрасываем флаг Heart Bet раунда
+		phase_manager.was_heart_bet_round = false
 		# При Tie draw НЕ сохраняем ставки гостей
 		phase_manager.reset(true, not was_tie_draw)  # update_state=true, keep_guest_bets=!was_tie_draw
 		phase_manager.is_table_prepared = true  # Готовы к новой раздаче
@@ -1596,9 +1613,13 @@ func _open_payout_scene(bet_type: String):
 	DebugLogger.log("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.get_stake(), bet_data.get_payout()])
 
 	# Устанавливаем данные в GameDataManager (PayoutScene читает данные оттуда)
-	GameDataManager.payout_winner = bet_type
-	GameDataManager.payout_stake = bet_data.get_stake()
-	GameDataManager.payout_amount = bet_data.get_payout()
+	GameDataManager.set_payout_data(
+		bet_type,
+		bet_data.get_stake(),
+		bet_data.get_payout(),
+		0,  # player_score (не используется в ручном режиме)
+		0   # banker_score (не используется в ручном режиме)
+	)
 	DebugLogger.log("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.get_stake(), bet_data.get_payout()])
 
 	# Устанавливаем контекст для PayoutScene через старый PayoutContextManager (для совместимости)
@@ -1617,7 +1638,7 @@ func _open_payout_scene(bet_type: String):
 	if survival_ui:
 		var lives = heart_bar.get_lives() if heart_bar else survival_ui.get_lives()
 		DebugLogger.log("  → survival_ui.current_lives = %d" % lives)
-	DebugLogger.log("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.survival_lives)
+	DebugLogger.log("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.get_survival_lives())
 
 	var surv_lives = 7  # Значение по умолчанию
 	if is_survival_mode and survival_ui:
@@ -1626,7 +1647,7 @@ func _open_payout_scene(bet_type: String):
 		DebugLogger.log("  → Берем из survival_ui: %d" % surv_lives)
 	elif is_survival_mode:
 		# Режим выживания активен, но survival_ui не инициализирован - берем из GameDataManager
-		surv_lives = GameDataManager.survival_lives
+		surv_lives = GameDataManager.get_survival_lives()
 		DebugLogger.log("  → Берем из GameDataManager: %d" % surv_lives)
 	else:
 		DebugLogger.log("  → Используем значение по умолчанию: %d" % surv_lives)
