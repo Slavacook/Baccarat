@@ -22,6 +22,9 @@ var current_card: BaseChanceCard = null
 ## Включить анимацию (можно отключить, закомментировав вызовы анимации)
 const USE_ANIMATION: bool = true
 
+## Флаг подписки на изменения состояния игры
+var _is_state_subscribed: bool = false
+
 ## Сохраняем исходные значения для восстановления после анимации
 var original_card_scale: Vector2 = Vector2.ONE
 var original_card_modulate: Color = Color.WHITE
@@ -79,22 +82,21 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	card_texture.modulate = original_card_modulate
 	background.modulate = original_bg_modulate
 	
-	# Проверяем, можно ли использовать карту, и блокируем кнопку если нельзя
-	var can_use_card = card.can_use()
-	if use_button:
-		use_button.disabled = not can_use_card
-		if not can_use_card:
-			# Визуально показываем, что кнопка недоступна
-			use_button.modulate = Color(0.6, 0.6, 0.6, 1.0)
-		else:
-			use_button.modulate = Color.WHITE
+	# Обновляем видимость кнопки на основе возможности использования
+	_update_use_button_visibility()
+	
+	# Подписываемся на изменения состояния игры для динамического обновления кнопки
+	if not _is_state_subscribed:
+		GameStateManager.state_changed.connect(_on_game_state_changed)
+		_is_state_subscribed = true
 	
 	# Показываем - позиция и размер берутся ТОЛЬКО из сцены (Inspector)
 	show()
 	
 	# Восстанавливаем input
 	background.mouse_filter = Control.MOUSE_FILTER_STOP
-	use_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	if use_button:
+		use_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	# ═══════════════════════════════════════════════════════════════════════
 	# АНИМАЦИЯ ОТКРЫТИЯ (можно закомментировать для отключения)
@@ -148,6 +150,12 @@ func hide_card():
 
 ## Фактическое скрытие карты (вызывается после анимации или сразу)
 func _actually_hide_card():
+	# Отписываемся от изменений состояния игры
+	if _is_state_subscribed:
+		if GameStateManager.state_changed.is_connected(_on_game_state_changed):
+			GameStateManager.state_changed.disconnect(_on_game_state_changed)
+		_is_state_subscribed = false
+	
 	# Восстанавливаем исходные значения перед скрытием
 	card_texture.scale = original_card_scale
 	card_texture.modulate = original_card_modulate
@@ -176,12 +184,17 @@ func _on_background_input(event: InputEvent):
 	if event is InputEventMouseButton:
 		var mb = event as InputEventMouseButton
 		if mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
-			# Проверяем что клик был НЕ на карте и НЕ на кнопке
+			# Проверяем что клик был НЕ на карте и НЕ на кнопке (если кнопка видима)
 			var card_rect = card_texture.get_global_rect()
-			var button_rect = use_button.get_global_rect()
 			var click_pos = mb.global_position
 			
-			if not card_rect.has_point(click_pos) and not button_rect.has_point(click_pos):
+			# Проверяем клик на кнопке только если она видима
+			var clicked_on_button = false
+			if use_button and use_button.visible:
+				var button_rect = use_button.get_global_rect()
+				clicked_on_button = button_rect.has_point(click_pos)
+			
+			if not card_rect.has_point(click_pos) and not clicked_on_button:
 				close_card()
 
 func _on_use_button_pressed():
@@ -201,3 +214,24 @@ func _on_use_button_pressed():
 	
 	# Скрываем карту
 	hide_card()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ: Управление видимостью кнопки
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _update_use_button_visibility() -> void:
+	"""Обновить видимость кнопки 'Использовать' на основе can_use()"""
+	if not use_button or not current_card:
+		return
+	
+	var can_use_card = current_card.can_use()
+	use_button.visible = can_use_card
+	
+	# Восстанавливаем нормальный modulate (на случай если был изменен ранее)
+	if can_use_card:
+		use_button.modulate = Color.WHITE
+
+func _on_game_state_changed(_old_state, _new_state) -> void:
+	"""Обработчик изменения состояния игры - обновляем видимость кнопки"""
+	if current_card and visible:
+		_update_use_button_visibility()

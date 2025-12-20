@@ -4,3 +4,4 @@ res://scripts/payout/PayoutManager.gd
 res://scripts/health_system/HeartBar.gd
 res://scripts/PayoutOverlay.gd
 res://scripts/GamePhaseManager.gd
+res://scripts/chance_cards/BaseChanceCardScene.gd
