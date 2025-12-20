@@ -11,6 +11,7 @@ extends CanvasLayer
 @onready var background: ColorRect = $Background
 @onready var card_texture: TextureRect = $CardTexture
 @onready var use_button: Button = $UseButton
+var close_button: Button = null  # Получаем из сцены или создаём программно
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -52,13 +53,40 @@ func _ready():
 	if background:
 		original_bg_modulate = background.modulate
 	
+	# Получаем или создаём кнопку "Закрыть"
+	close_button = get_node_or_null("CloseButton")
+	if not close_button and use_button:
+		# Создаём программно, используя use_button как шаблон
+		close_button = Button.new()
+		close_button.name = "CloseButton"
+		add_child(close_button)
+		# Копируем параметры из use_button
+		close_button.anchors_preset = use_button.anchors_preset
+		close_button.anchor_left = use_button.anchor_left
+		close_button.anchor_top = use_button.anchor_top
+		close_button.anchor_right = use_button.anchor_right
+		close_button.anchor_bottom = use_button.anchor_bottom
+		close_button.offset_left = use_button.offset_left
+		close_button.offset_top = use_button.offset_top
+		close_button.offset_right = use_button.offset_right
+		close_button.offset_bottom = use_button.offset_bottom
+		close_button.grow_horizontal = use_button.grow_horizontal
+		close_button.grow_vertical = use_button.grow_vertical
+		close_button.theme = use_button.theme
+		if use_button.has_theme_font_size_override("font_size"):
+			close_button.add_theme_font_size_override("font_size", use_button.get_theme_font_size("font_size"))
+		close_button.text = "Закрыть"  # Исправлено: Localization.t() принимает массив, а не строку
+		close_button.visible = false
+	
 	# Подключаем сигналы
 	if background:
 		background.gui_input.connect(_on_background_input)
 	if use_button:
 		use_button.pressed.connect(_on_use_button_pressed)
+	if close_button:
+		close_button.pressed.connect(_on_close_button_pressed)
 	
-	# Настраиваем кнопку
+	# Настраиваем кнопки
 	if use_button:
 		use_button.text = Localization.t("USE_BUTTON")
 
@@ -93,10 +121,18 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	# Показываем - позиция и размер берутся ТОЛЬКО из сцены (Inspector)
 	show()
 	
+	# Ждём один кадр, чтобы узел полностью инициализировался
+	await get_tree().process_frame
+	
+	# Явно обновляем видимость кнопок после show(), чтобы они отображались сразу
+	_update_use_button_visibility()
+	
 	# Восстанавливаем input
 	background.mouse_filter = Control.MOUSE_FILTER_STOP
 	if use_button:
 		use_button.mouse_filter = Control.MOUSE_FILTER_STOP
+	if close_button:
+		close_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	# ═══════════════════════════════════════════════════════════════════════
 	# АНИМАЦИЯ ОТКРЫТИЯ (можно закомментировать для отключения)
@@ -121,7 +157,10 @@ func hide_card():
 	
 	# Отключаем input
 	background.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	use_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if use_button:
+		use_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if close_button:
+		close_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# ═══════════════════════════════════════════════════════════════════════
 	# АНИМАЦИЯ ЗАКРЫТИЯ (можно закомментировать для отключения)
@@ -188,10 +227,13 @@ func _on_background_input(event: InputEvent):
 			var card_rect = card_texture.get_global_rect()
 			var click_pos = mb.global_position
 			
-			# Проверяем клик на кнопке только если она видима
+			# Проверяем клик на кнопках только если они видимы
 			var clicked_on_button = false
 			if use_button and use_button.visible:
 				var button_rect = use_button.get_global_rect()
+				clicked_on_button = button_rect.has_point(click_pos)
+			if not clicked_on_button and close_button and close_button.visible:
+				var button_rect = close_button.get_global_rect()
 				clicked_on_button = button_rect.has_point(click_pos)
 			
 			if not card_rect.has_point(click_pos) and not clicked_on_button:
@@ -215,21 +257,32 @@ func _on_use_button_pressed():
 	# Скрываем карту
 	hide_card()
 
+func _on_close_button_pressed():
+	"""Нажата кнопка 'Закрыть'"""
+	close_card()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ: Управление видимостью кнопки
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _update_use_button_visibility() -> void:
-	"""Обновить видимость кнопки 'Использовать' на основе can_use()"""
-	if not use_button or not current_card:
+	"""Обновить видимость кнопок 'Использовать' и 'Закрыть' на основе can_use()"""
+	if not current_card:
 		return
 	
 	var can_use_card = current_card.can_use()
-	use_button.visible = can_use_card
 	
-	# Восстанавливаем нормальный modulate (на случай если был изменен ранее)
-	if can_use_card:
-		use_button.modulate = Color.WHITE
+	# Показываем кнопку "Использовать" только если карту можно использовать
+	# Показываем кнопку "Закрыть" только если карту нельзя использовать
+	if use_button:
+		use_button.visible = can_use_card
+		if can_use_card:
+			use_button.modulate = Color.WHITE
+	
+	if close_button:
+		close_button.visible = not can_use_card
+		if not can_use_card:
+			close_button.modulate = Color.WHITE
 
 func _on_game_state_changed(_old_state, _new_state) -> void:
 	"""Обработчик изменения состояния игры - обновляем видимость кнопки"""

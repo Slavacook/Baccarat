@@ -184,17 +184,14 @@ func _on_miniature_clicked(card_id: String):
 	if not card:
 		return
 	
-	# Проверяем доступность по количеству
+	# ВАЖНО: Разделяем логику "показать карту" и "использовать карту"
+	# Показ карты всегда доступен - игрок должен видеть карту даже если её нельзя использовать
+	# Использование будет заблокировано кнопкой "Использовать" если can_use() == false
+	
+	# Показываем информационное сообщение если нет доступных шансов, но всё равно показываем карту
 	if card.count == 0:
 		EventBus.show_toast_info.emit(Localization.t("NO_CHANCES_AVAILABLE"))
-		return
 	
-	# Проверяем, можно ли использовать карту (для Heart Bet - только в WAITING)
-	if not card.can_use():
-		var game_state_name = GameStateManager.get_state_name(GameStateManager.current_state)
-		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
-		print("🎴 ChanceCardStorage: карту нельзя использовать в текущем состоянии игры (%s)" % game_state_name)
-		return
-	
-	# Запрашиваем показ на весь экран
+	# Запрашиваем показ на весь экран (всегда, независимо от can_use())
+	# Кнопка "Использовать" будет скрыта если can_use() == false, а кнопка "Закрыть" будет показана
 	EventBus.chance_card_storage_clicked.emit(card_id)

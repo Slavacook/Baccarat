@@ -101,10 +101,12 @@ func trigger_card(card_id: String):
 		return
 	
 	var card = cards[card_id] as BaseChanceCard
+	# Триггерим только если есть доступные шансы
 	if card.count > 0:
 		card.trigger()
-		# Показываем на весь экран
-		_show_fullscreen(card)
+	# Показываем карту на весь экран ВСЕГДА (даже если count = 0)
+	# Это позволяет игроку увидеть карту и понять почему её нельзя использовать
+	_show_fullscreen(card)
 
 ## Получить карту по ID
 func get_card(card_id: String) -> BaseChanceCard:
