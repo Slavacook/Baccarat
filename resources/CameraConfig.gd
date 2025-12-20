@@ -22,7 +22,7 @@ var general_description: String = "Показывает весь стол"
 # Позиция камеры для ЗУМА НА КАРТЫ
 var cards_position: Vector2 = Vector2(595, 400)
 # Масштаб камеры для зума на карты
-var cards_zoom: Vector2 = Vector2(1.4, 1.4)
+var cards_zoom: Vector2 = Vector2(1.2, 1.2)
 var cards_description: String = "Фокус на зоне раздачи карт"
 
 # ═══════════════════════════════════════════════════════════════════════════

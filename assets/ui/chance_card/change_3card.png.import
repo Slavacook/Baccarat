@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://braimycoxr2a8"
-path="res://.godot/imported/heart2.png-8aac4bbc2d62e14cf95c873f9b440090.ctex"
+uid="uid://d6d8i6mab11d"
+path="res://.godot/imported/change_3card.png-b91b2e7c85a6e13b029eb6af7a0f9a75.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/heart2.png"
-dest_files=["res://.godot/imported/heart2.png-8aac4bbc2d62e14cf95c873f9b440090.ctex"]
+source_file="res://assets/ui/chance_card/change_3card.png"
+dest_files=["res://.godot/imported/change_3card.png-b91b2e7c85a6e13b029eb6af7a0f9a75.ctex"]
 
 [params]
 

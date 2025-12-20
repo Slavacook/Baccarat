@@ -13,6 +13,7 @@ var hand_manager: HandManager
 var payout_calculator: PayoutCalculator
 var settings_provider: IPayoutSettingsProvider
 var guest_bet_storage: GuestBetStorage = null
+var phase_manager: GamePhaseManager = null  # Для доступа к snapshot фильтра
 
 func _init(
 	queue_manager: PayoutQueueManager,
@@ -22,7 +23,8 @@ func _init(
 	pair_mgr: PairBettingManager,
 	hand_mgr: HandManager,
 	settings: IPayoutSettingsProvider = null,
-	guest_storage: GuestBetStorage = null
+	guest_storage: GuestBetStorage = null,
+	phase_mgr: GamePhaseManager = null
 ):
 	payout_queue_manager = queue_manager
 	bet_collection_manager = collection_manager
@@ -33,6 +35,7 @@ func _init(
 	payout_calculator = PayoutCalculator.new()
 	settings_provider = settings if settings else PayoutSettingsProvider.new()
 	guest_bet_storage = guest_storage
+	phase_manager = phase_mgr
 
 ## Подготовка выплат в ручном режиме
 func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> void:
@@ -48,72 +51,20 @@ func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> voi
 	# (если в будущем понадобятся обычные ставки)
 	_prepare_standard_payouts(actual_winner, player_score, banker_score)
 	
-	# Добавляем гостевые ставки (основной источник ставок в режиме GUEST)
+	# Добавляем гостевые ставки в очередь
 	_prepare_guest_bets(actual_winner, player_score, banker_score)
 	
-	# Выводим статус очереди
-	payout_queue_manager.print_status()
-	
-	# ═══════════════════════════════════════════════════════════════════
-	# ШАГ 2: Настраиваем менеджер фазы сбора/оплаты ПОСЛЕ добавления всех ставок
-	# setup() автоматически вызовет initialize_sequences() внутри
-	# ═══════════════════════════════════════════════════════════════════
-	bet_collection_manager.setup(payout_queue_manager, actual_winner)
-	DebugLogger.log("✅ BetCollectionPhaseManager: настроен для раунда (победитель: %s)" % actual_winner)
-	
-	# ═══════════════════════════════════════════════════════════════════
-	# ШАГ 3: Показываем кнопки collect/pay ПОСЛЕ setup()
-	# show_collect_pay_buttons() автоматически активирует режим COLLECT
-	# ═══════════════════════════════════════════════════════════════════
-	ui_manager.button_ui.show_collect_pay_buttons()
+	# Overlay показывается автоматически при клике на фишку в GameController
+	# Здесь мы только подготавливаем очередь выплат
 
 func _prepare_standard_payouts(_actual_winner: String, _player_score: int, _banker_score: int) -> void:
-	"""Подготовка стандартных выплат (deprecated в режиме GUEST)
+	"""Подготовка стандартных выплат (Player/Banker/Tie)
 	
-	В режиме GUEST обычные ставки не используются - только гостевые.
-	Этот метод оставлен для обратной совместимости, но не добавляет ставки.
+	В режиме GUEST этот метод не используется, но оставлен для обратной совместимости.
 	"""
 	# В режиме GUEST обычные ставки не используются
-	# Все ставки создаются через гостей
-	DebugLogger.log("💰 Режим GUEST: стандартные ставки не используются (только гостевые)")
-
-func _prepare_realistic_payouts(_actual_winner: String, _player_score: int, _banker_score: int) -> void:
-	"""Подготовка выплат в REALISTIC режиме (deprecated)
-	
-	В режиме GUEST этот метод не используется.
-	Все ставки создаются через гостей.
-	"""
-	DebugLogger.log("💰 Режим GUEST: _prepare_realistic_payouts не используется")
-
-func _calculate_payout_for_bet_type(_bet_type_name: String, bet_type: IBetType, stake: float, won: bool, actual_winner: String) -> float:
-	"""Расчёт выплаты для типа ставки
-	
-	Args:
-		_bet_type_name: Название типа ставки (не используется, но нужен для совместимости)
-		bet_type: Объект типа ставки
-		stake: Размер ставки
-		won: Выиграла ли ставка
-		actual_winner: Фактический победитель раунда (важно для правильного расчета!)
-	"""
-	if not won:
-		return 0.0
-	
-	var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-	
-	# Для пар используем специальную логику
-	if bet_type.get_group() == "pairs" and pair_betting_manager:
-		return payout_calculator.calculate_pair_payout(bet_type, stake, pair_betting_manager)
-	
-	# Для остальных используем стандартный расчет с правильным actual_winner
-	# ВАЖНО: actual_winner нужен для проверки is_winner() в PayoutCalculator
-	return payout_calculator.calculate(
-		bet_type,
-		stake,
-		actual_winner,
-		pair_betting_manager.has_player_pair() if pair_betting_manager else false,
-		pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
-		banker_value
-	)
+	# Все ставки генерируются через гостей
+	pass
 
 func _is_bet_enabled(bet_type_name: String) -> bool:
 	"""Проверка, включена ли ставка в настройках"""
@@ -152,8 +103,27 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 	for guest_id in guests_with_bets:
 		var bets = guest_bet_storage.get_guest_bets(guest_id)
 		for bet in bets:
+			# ═══════════════════════════════════════════════════════════════════
+			# ФИЛЬТР НАСТРОЕК: Добавляем в очередь только ставки из snapshot
+			# Snapshot сохраняется при показке ставок и изолирует текущую раздачу
+			# ═══════════════════════════════════════════════════════════════════
+			var bet_type = bet.get_bet_type()
+			var pos_idx = bet.get_position_index()
+			
+			# Проверяем через snapshot фильтра (если доступен phase_manager)
+			if phase_manager:
+				if not phase_manager.is_bet_type_enabled_in_snapshot(bet_type):
+					DebugLogger.log("  → Гость %d: ставка %s[%d] отфильтрована (выключена в snapshot)" % [guest_id, bet_type, pos_idx])
+					continue
+			else:
+				# Fallback: проверяем наличие фишки на столе
+				var chip_instance = chip_visual_manager.get_chip_instance(bet_type, pos_idx)
+				if not chip_instance:
+					DebugLogger.log("  → Гость %d: ставка %s[%d] отфильтрована (нет фишки на столе)" % [guest_id, bet_type, pos_idx])
+					continue
+			
 			# Определяем выиграла ли ставка
-			var bet_type_obj = BetTypeFactory.create(bet.get_bet_type())
+			var bet_type_obj = BetTypeFactory.create(bet_type)
 			if not bet_type_obj:
 				continue
 			

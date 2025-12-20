@@ -468,7 +468,7 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 	
 	# Создаем или обновляем PayoutManager
 	if not payout_manager:
-		# Передаём guest_bet_storage из phase_manager
+		# Передаём guest_bet_storage и phase_manager из phase_manager
 		var guest_storage = phase_manager.guest_bet_storage if phase_manager else null
 		payout_manager = PayoutManager.new(
 			payout_queue_manager,
@@ -478,12 +478,14 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 			pair_betting_manager,
 			hand_manager,
 			null,  # settings_provider (по умолчанию)
-			guest_storage  # guest_bet_storage
+			guest_storage,  # guest_bet_storage
+			phase_manager  # phase_manager (для доступа к snapshot фильтра)
 		)
 	else:
 		# Обновляем ссылки
 		payout_manager.payout_queue_manager = payout_queue_manager
 		payout_manager.guest_bet_storage = phase_manager.guest_bet_storage if phase_manager else null
+		payout_manager.phase_manager = phase_manager  # Обновляем ссылку на phase_manager
 	
 	# Делегируем подготовку выплат в PayoutManager
 	payout_manager.prepare_manual_payouts(actual_winner, ui_manager)
@@ -547,6 +549,15 @@ func _finalize_payouts_manual(actual_winner: String) -> void:
 	# УПРАВЛЕНИЕ ФИШКАМИ (показать выигравшие, скрыть проигравшие)
 	# ═══════════════════════════════════════════════════════════════════
 	_update_chip_visibility()
+
+	# ═══════════════════════════════════════════════════════════════════
+	# НАСТРОЙКА BetCollectionPhaseManager для работы с очередью выплат
+	# ═══════════════════════════════════════════════════════════════════
+	if bet_collection_manager and payout_queue_manager:
+		bet_collection_manager.setup(payout_queue_manager, actual_winner)
+		# Устанавливаем режим COLLECT по умолчанию (после определения победителя)
+		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
+		DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
@@ -792,11 +803,8 @@ func _on_settings_button_pressed():
 			DebugLogger.log("  → Закрываем настройки")
 			settings_scene.close_settings()
 		else:
-			if not GameStateManager.can_change_settings():
-				var msg = GameStateManager.get_settings_lock_message()
-				EventBus.show_toast_error.emit(msg)
-				DebugLogger.log("🔒 [НОВАЯ СИСТЕМА] " + msg)
-				return
+			# Настройки можно открыть в любое время
+			# Защита от удаления ставок во время раздачи реализована в _on_guest_settings_changed()
 			DebugLogger.log("  → Открываем настройки")
 			settings_scene.open_settings()
 	else:
@@ -1294,18 +1302,64 @@ func _on_payout_setting_changed(bet_type: String, enabled: bool):
 	if not chip_visual_manager:
 		return
 
-	# В режиме GUEST фишки управляются через гостевые ставки
-	# Изменение настроек PayoutSettingsManager не влияет на видимость фишек
-	# Фишки показываются только для активных гостей через _show_guest_bets()
-	DebugLogger.log("💰 Режим GUEST: видимость фишек управляется через гостевые ставки")
-
 	# Для пар - также обновляем PairBettingManager
 	if bet_type == "PairPlayer" and pair_betting_manager:
 		pair_betting_manager.toggle_pair_player_bet(enabled)
 	elif bet_type == "PairBanker" and pair_betting_manager:
 		pair_betting_manager.toggle_pair_banker_bet(enabled)
 
-	DebugLogger.log("💰 Настройка выплаты изменена: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРИМЕНЕНИЕ ФИЛЬТРА: В WAITING применяем сразу, иначе накапливаем
+	# ═══════════════════════════════════════════════════════════════════
+	var current_state = GameStateManager.get_current_state()
+	if current_state == GameStateManager.GameState.WAITING:
+		# В состоянии ожидания - применяем фильтр сразу и обновляем snapshot
+		var chips_of_type = chip_visual_manager.get_active_chips_by_type(bet_type)
+		DebugLogger.log("💰 Настройка выплаты изменена: %s = %s (состояние: WAITING, найдено %d фишек)" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ", chips_of_type.size()])
+		
+		if enabled:
+			# Ставка включена - показываем существующие фишки или создаём новые
+			for chip in chips_of_type:
+				if chip.node and is_instance_valid(chip.node):
+					chip.node.visible = true
+					DebugLogger.log("  → Фишка %s[%d] показана" % [bet_type, chip.position_index])
+			
+			# Если фишек нет, но есть ставки в хранилище - создаём их
+			if chips_of_type.is_empty() and phase_manager and phase_manager.guest_bet_storage:
+				var guests_with_bets = phase_manager.guest_bet_storage.get_guests_with_bets()
+				for guest_id in guests_with_bets:
+					var bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+					for bet in bets:
+						if bet.get_bet_type() == bet_type:
+							# Создаём фишку для этой ставки
+							var sector = bet.get_sector()
+							var pos_idx = bet.get_position_index()
+							var stake = bet.get_stake()
+							var coords = GuestSectorMapper.get_position_coordinates(sector, bet_type)
+							if coords != Vector2.ZERO:
+								phase_manager._show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
+								DebugLogger.log("  → Создана фишка %s[%d] для гостя %d" % [bet_type, pos_idx, guest_id])
+		else:
+			# Ставка отключена - скрываем существующие фишки
+			for chip in chips_of_type:
+				if chip.node and is_instance_valid(chip.node):
+					chip.node.visible = false
+					DebugLogger.log("  → Фишка %s[%d] скрыта (фильтр)" % [bet_type, chip.position_index])
+		
+		# Обновляем snapshot после применения изменений
+		if phase_manager:
+			phase_manager._save_filter_snapshot()
+			# Очищаем pending_changes для этого типа ставки (если был)
+			if phase_manager._pending_filter_changes.has(bet_type):
+				phase_manager._pending_filter_changes.erase(bet_type)
+			DebugLogger.log("📸 Snapshot фильтра обновлён после изменения в WAITING")
+	else:
+		# После начала раздачи - записываем в pending_changes для следующей раздачи
+		if phase_manager:
+			phase_manager._pending_filter_changes[bet_type] = enabled
+			DebugLogger.log("💰 Настройка выплаты изменена: %s = %s (состояние: %s - записано в pending_changes для следующей раздачи)" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ", GameStateManager.get_state_name(current_state)])
+		else:
+			DebugLogger.log("💰 Настройка выплаты изменена: %s = %s (состояние: %s - phase_manager недоступен)" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ", GameStateManager.get_state_name(current_state)])
 
 func _on_card_back_style_changed(style: String):
 	"""Обработка изменения стиля рубашки карт из SettingsScene
@@ -1396,6 +1450,20 @@ func _on_camera_zoom_requested(zoom_type: String) -> void:
 func _on_guest_settings_changed(guest_id: int) -> void:
 	"""Настройки гостя изменились - очищаем его фишки если отключён"""
 	if not GuestSettingsManager.is_guest_enabled(guest_id):
+		# ═══════════════════════════════════════════════════════════════════
+		# ЗАЩИТА: Не очищаем ставки во время раздачи
+		# Ставки можно удалять ТОЛЬКО в состоянии WAITING (до начала раздачи)
+		# Во всех остальных состояниях (включая CHOOSE_WINNER) ставки остаются
+		# до полного завершения раунда (сбор/оплата всех ставок)
+		# ═══════════════════════════════════════════════════════════════════
+		var current_state = GameStateManager.get_current_state()
+		if current_state != GameStateManager.GameState.WAITING:
+			print("👥 Гость %d отключён, но идёт раздача (состояние: %s) - ставки останутся до конца раунда" % [guest_id, GameStateManager.get_state_name(current_state)])
+			# НЕ очищаем ставки из хранилища и НЕ скрываем визуальные фишки
+			# Ставки останутся видимыми и будут использованы в текущей раздаче
+			# В следующей раздаче ставки не будут сгенерированы (гость отключен)
+			return
+		
 		print("👥 Гость %d отключён - очищаем его фишки" % guest_id)
 		# Очищаем фишки этого гостя из хранилища
 		if phase_manager and phase_manager.guest_bet_storage:
@@ -1578,6 +1646,21 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 				# Гость не включён или нет ставок - игнорируем клик
 				DebugLogger.log_warning("⚠️ Клик на фишку %s[%d] в секторе %d, но гостя %d нет или он не включён - игнорируем" % [bet_type, position_index, sector, guest_id])
 				return
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА: Ставка должна быть в очереди выплат
+	# Если ставки нет в очереди - игнорируем клик (ставка отключена фильтром)
+	# ═══════════════════════════════════════════════════════════════════
+	var bet_in_queue = payout_queue_manager.get_bet_by_id(bet_type, position_index)
+	if not bet_in_queue:
+		# Пробуем найти по типу (для обратной совместимости)
+		bet_in_queue = payout_queue_manager.get_bet_by_type(bet_type)
+	
+	if not bet_in_queue:
+		# Ставки нет в очереди - игнорируем клик без ошибки
+		# Это нормально, если ставка была отключена фильтром
+		DebugLogger.log("  ⏸️  Ставка %s[%d] не найдена в очереди выплат - игнорируем клик" % [bet_type, position_index])
+		return
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ВАЛИДАЦИЯ КЛИКА ЧЕРЕЗ BetCollectionPhaseManager

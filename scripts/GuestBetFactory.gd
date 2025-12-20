@@ -134,8 +134,9 @@ func generate_guest_bets(guest_id: int) -> Array[Bet]:
 	# Восстанавливаем старый профиль
 	BetProfileManager.set_profile(old_profile)
 	
-	# 4. Применяем фильтр настроек (PayoutSettingsManager)
-	bets = _apply_settings_filter(bets)
+	# Фильтр настроек НЕ применяется при генерации
+	# Все ставки сохраняются в хранилище, фильтр применяется на уровне видимости и участия в игре
+	# (при показке в _show_guest_bets() и при добавлении в очередь выплат)
 	
 	return bets
 

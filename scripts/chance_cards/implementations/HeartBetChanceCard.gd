@@ -12,8 +12,8 @@ func _init():
 	card_id = "heart_bet"
 	
 	# Загружаем текстуру карты
-	if ResourceLoader.exists("res://assets/ui/invitation_card.png"):
-		card_texture = load("res://assets/ui/invitation_card.png")
+	if ResourceLoader.exists("res://assets/ui/chance_card/invitation_card_2.png"):
+		card_texture = load("res://assets/ui/chance_card/invitation_card_2.png")
 	else:
 		# Заглушка
 		if ResourceLoader.exists("res://assets/ui/heart_focus.png"):

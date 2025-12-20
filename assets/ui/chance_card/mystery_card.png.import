@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://vff5uy3nikub"
-path="res://.godot/imported/invitation_card.png-4e3d8b20239645bbc0323b6e6f7e7d82.ctex"
+uid="uid://b1sphpjhmtot"
+path="res://.godot/imported/mystery_card.png-664769e47ec0e843f14c59238ce3845c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/invitation_card.png"
-dest_files=["res://.godot/imported/invitation_card.png-4e3d8b20239645bbc0323b6e6f7e7d82.ctex"]
+source_file="res://assets/ui/chance_card/mystery_card.png"
+dest_files=["res://.godot/imported/mystery_card.png-664769e47ec0e843f14c59238ce3845c.ctex"]
 
 [params]
 

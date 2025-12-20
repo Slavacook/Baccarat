@@ -41,6 +41,17 @@ var is_first_deal: bool = true
 var is_table_prepared: bool = false
 var was_heart_bet_round: bool = false  # Флаг Heart Bet раунда (даже при отказе)
 
+# ═══════════════════════════════════════════════════════════════════════════
+# СОСТОЯНИЕ ФИЛЬТРА СТАВОК
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Снимок состояния фильтра на момент показки ставок
+# Изолирует текущую раздачу от изменений фильтра во время игры
+var _filter_snapshot: Dictionary = {}  # {"Player": bool, "Banker": bool, "Tie": bool, "PairPlayer": bool, "PairBanker": bool}
+
+# Накопленные изменения фильтра во время раздачи (для применения в следующей раздаче)
+var _pending_filter_changes: Dictionary = {}  # {"Player": bool, "Banker": bool, "Tie": bool, "PairPlayer": bool, "PairBanker": bool}
+
 func _init(
 	deck_ref: Deck,
 	card_manager_ref: CardTextureManager,
@@ -603,6 +614,11 @@ func _show_guest_bets() -> void:
 		DebugLogger.log("👥 _show_guest_bets: нет guest_bet_storage или chip_visual_manager")
 		return
 	
+	# ═══════════════════════════════════════════════════════════════════
+	# СОХРАНЕНИЕ SNAPSHOT ФИЛЬТРА: фиксируем состояние на момент показки
+	# ═══════════════════════════════════════════════════════════════════
+	_save_filter_snapshot()
+	
 	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
 	if guests_with_bets.is_empty():
 		DebugLogger.log("👥 Нет ставок гостей для отображения")
@@ -616,6 +632,14 @@ func _show_guest_bets() -> void:
 		for bet in bets:
 			# Получаем координаты позиции
 			var bet_type = bet.get_bet_type()
+			
+			# ═══════════════════════════════════════════════════════════════════
+			# ФИЛЬТР НАСТРОЕК: Показываем только включенные ставки
+			# ═══════════════════════════════════════════════════════════════════
+			if not _is_bet_type_enabled_in_settings(bet_type):
+				DebugLogger.log("  → Гость %d: ставка %s отфильтрована (выключена в настройках)" % [guest_id, bet_type])
+				continue
+			
 			var sector = bet.get_sector()
 			var pos_idx = bet.get_position_index()
 			var stake = bet.get_stake()
@@ -734,6 +758,115 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		var chip_instance = ChipVisualManager.ChipInstance.new(bet_type, position_index, new_chip, false)
 		chip_instance.stake = stake
 		chip_visual_manager.active_chips.append(chip_instance)
+
+func _is_bet_type_enabled_in_settings(bet_type: String) -> bool:
+	"""Проверить, включён ли тип ставки в настройках PayoutSettingsManager
+	
+	Используется для фильтрации ставок при показке и добавлении в очередь выплат.
+	
+	Args:
+		bet_type: Тип ставки (Player, Banker, Tie, PairPlayer, PairBanker)
+	
+	Returns:
+		true если ставка включена в настройках, false если отключена
+	"""
+	match bet_type:
+		"Player":
+			return PayoutSettingsManager.player_payout_enabled
+		"Banker":
+			return PayoutSettingsManager.banker_payout_enabled
+		"Tie":
+			return PayoutSettingsManager.tie_payout_enabled
+		"PairPlayer":
+			return pair_betting_manager and pair_betting_manager.is_player_pair_bet_enabled()
+		"PairBanker":
+			return pair_betting_manager and pair_betting_manager.is_banker_pair_bet_enabled()
+		_:
+			return true  # Неизвестный тип - пропускаем (не фильтруем)
+
+func _save_filter_snapshot() -> void:
+	"""Сохранить снимок текущего состояния фильтра
+	
+	Вызывается при показке ставок для изоляции текущей раздачи от изменений фильтра.
+	"""
+	_filter_snapshot.clear()
+	_filter_snapshot["Player"] = PayoutSettingsManager.player_payout_enabled
+	_filter_snapshot["Banker"] = PayoutSettingsManager.banker_payout_enabled
+	_filter_snapshot["Tie"] = PayoutSettingsManager.tie_payout_enabled
+	_filter_snapshot["PairPlayer"] = pair_betting_manager.is_player_pair_bet_enabled() if pair_betting_manager else false
+	_filter_snapshot["PairBanker"] = pair_betting_manager.is_banker_pair_bet_enabled() if pair_betting_manager else false
+	DebugLogger.log("📸 Snapshot фильтра сохранён: %s" % _filter_snapshot)
+
+func _is_bet_type_enabled_in_snapshot(bet_type: String) -> bool:
+	"""Проверить, включён ли тип ставки в snapshot фильтра
+	
+	Используется при добавлении ставок в очередь выплат для изоляции текущей раздачи.
+	Если snapshot пустой - использует текущее состояние (fallback).
+	
+	Args:
+		bet_type: Тип ставки (Player, Banker, Tie, PairPlayer, PairBanker)
+	
+	Returns:
+		true если ставка включена в snapshot, false если отключена
+	"""
+	# Если snapshot пустой - используем текущее состояние (fallback)
+	if _filter_snapshot.is_empty():
+		return _is_bet_type_enabled_in_settings(bet_type)
+	
+	# Проверяем snapshot
+	if _filter_snapshot.has(bet_type):
+		return _filter_snapshot[bet_type]
+	
+	# Если типа нет в snapshot - используем текущее состояние (fallback)
+	return _is_bet_type_enabled_in_settings(bet_type)
+
+func is_bet_type_enabled_in_snapshot(bet_type: String) -> bool:
+	"""Публичный метод для проверки ставки через snapshot (для PayoutManager)
+	
+	Args:
+		bet_type: Тип ставки (Player, Banker, Tie, PairPlayer, PairBanker)
+	
+	Returns:
+		true если ставка включена в snapshot, false если отключена
+	"""
+	return _is_bet_type_enabled_in_snapshot(bet_type)
+
+func _apply_pending_filter_changes() -> void:
+	"""Применить накопленные изменения фильтра к PayoutSettingsManager
+	
+	Вызывается при завершении раунда перед генерацией новых ставок.
+	Применяет все изменения из _pending_filter_changes и обновляет snapshot.
+	"""
+	if _pending_filter_changes.is_empty():
+		DebugLogger.log("📋 Нет накопленных изменений фильтра для применения")
+		return
+	
+	DebugLogger.log("📋 Применение накопленных изменений фильтра: %s" % _pending_filter_changes)
+	
+	# Применяем каждое изменение к PayoutSettingsManager
+	for bet_type in _pending_filter_changes.keys():
+		var enabled = _pending_filter_changes[bet_type]
+		match bet_type:
+			"Player":
+				PayoutSettingsManager.player_payout_enabled = enabled
+			"Banker":
+				PayoutSettingsManager.banker_payout_enabled = enabled
+			"Tie":
+				PayoutSettingsManager.tie_payout_enabled = enabled
+			"PairPlayer":
+				if pair_betting_manager:
+					pair_betting_manager.toggle_pair_player_bet(enabled)
+			"PairBanker":
+				if pair_betting_manager:
+					pair_betting_manager.toggle_pair_banker_bet(enabled)
+		DebugLogger.log("  → Применено: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
+	
+	# Обновляем snapshot на основе примененных изменений
+	_save_filter_snapshot()
+	
+	# Очищаем pending_changes
+	_pending_filter_changes.clear()
+	DebugLogger.log("📋 Все накопленные изменения применены, snapshot обновлён")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ СОСТОЯНИЕМ
@@ -995,6 +1128,11 @@ func _complete_round_and_prepare_new_game() -> void:
 	# Это нужно для того, чтобы карту шанса можно было использовать
 	GameStateManager.update_state(GameStateManager.GameState.WAITING)
 	DebugLogger.log("  → ✅ Состояние установлено в WAITING (готово к использованию карты шанса)")
+
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРИМЕНЕНИЕ НАКОПЛЕННЫХ ИЗМЕНЕНИЙ ФИЛЬТРА
+	# ═══════════════════════════════════════════════════════════════════
+	_apply_pending_filter_changes()
 
 	# Генерируем ставки для всех активных гостей
 	if guest_bet_factory and limits_manager:
