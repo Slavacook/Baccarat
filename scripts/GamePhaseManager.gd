@@ -357,6 +357,17 @@ func on_tie_button_pressed():
 
 	# ✅ Правильно! Действительно ничья
 	EventBus.action_correct.emit("winner")
+	
+	# ВАЖНО: Сохраняем победителя в TableStateManager для триггеров!
+	TableStateManager.set_actual_winner(actual_winner)
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ТРИГГЕР HEART CARD: срабатывает при Tie (Игалите)
+	# Карта шанса показывается немедленно через EventBus.heart_card_triggered
+	# ═══════════════════════════════════════════════════════════════════
+	if SaveManager.instance.load_survival_mode():
+		EventBus.heart_card_triggered.emit()
+		print("❤️ Heart Card триггер сработал! Победитель: Tie (Игалите)")
 
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Если есть активная ставка - разрешаем её и завершаем
@@ -936,6 +947,14 @@ func _validate_winner_selection() -> void:
 
 	# ✅ Правильный выбор!
 	EventBus.action_correct.emit("winner")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ТРИГГЕР HEART CARD: срабатывает при Tie (Игалите)
+	# Карта шанса показывается немедленно через EventBus.heart_card_triggered
+	# ═══════════════════════════════════════════════════════════════════
+	if actual_winner == "Tie" and SaveManager.instance.load_survival_mode():
+		EventBus.heart_card_triggered.emit()
+		print("❤️ Heart Card триггер сработал! Победитель: Tie (Игалите)")
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Если это был Heart Bet раунд (даже с отказом) - пропускаем выплаты

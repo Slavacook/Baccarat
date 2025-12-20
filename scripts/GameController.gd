@@ -140,6 +140,11 @@ func _ready():
 	# Инициализируем HeartBar (если ещё не инициализирован)
 	_initialize_heart_bar()
 	
+	# Передаём heart_bar в ChanceCardManager после инициализации (если он был инициализирован)
+	if heart_bar:
+		ChanceCardManager.set_heart_bar(heart_bar)
+		print("🎴 HeartBar передан в ChanceCardManager (после инициализации)")
+	
 	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
 	is_game_over = false
 	EventBus.is_game_active = true
@@ -1491,6 +1496,11 @@ func _setup_chance_card_system() -> void:
 	if phase_manager:
 		ChanceCardManager.set_phase_manager(phase_manager)
 		print("🎴 GamePhaseManager передан в ChanceCardManager")
+	
+	# Передаём heart_bar для доступа к жизням
+	if heart_bar:
+		ChanceCardManager.set_heart_bar(heart_bar)
+		print("🎴 HeartBar передан в ChanceCardManager")
 	
 	print("🎴 Система карт шанса настроена")
 

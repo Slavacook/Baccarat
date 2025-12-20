@@ -20,6 +20,9 @@ var storage: ChanceCardStorage = null
 ## GamePhaseManager (передаётся из GameController для доступа к HeartBetManager)
 var phase_manager: GamePhaseManager = null
 
+## HeartBar (передаётся из GameController для доступа к жизням)
+var heart_bar: HeartBar = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -49,6 +52,9 @@ func _setup_event_subscriptions():
 	# Триггеры Heart Bet
 	EventBus.heart_bet_trigger_activated.connect(_on_heart_bet_trigger_activated)
 	
+	# Триггеры Heart Card
+	EventBus.heart_card_triggered.connect(_on_heart_card_triggered)
+	
 	# Запросы показа карты
 	EventBus.chance_card_fullscreen_requested.connect(_on_fullscreen_requested)
 	EventBus.chance_card_storage_clicked.connect(_on_storage_clicked)
@@ -67,6 +73,10 @@ func _initialize_cards():
 	# Heart Bet карта
 	var heart_bet_card = load("res://scripts/chance_cards/implementations/HeartBetChanceCard.gd").new()
 	register_card(heart_bet_card)
+	
+	# Heart Card карта (дополнительное сердце)
+	var heart_card = load("res://scripts/chance_cards/implementations/HeartCardChanceCard.gd").new()
+	register_card(heart_card)
 	
 	print("🎴 Карты инициализированы")
 
@@ -132,6 +142,11 @@ func set_phase_manager(pm: GamePhaseManager):
 	phase_manager = pm
 	print("🎴 GamePhaseManager установлен в ChanceCardManager")
 
+## Установить HeartBar (вызывается из GameController)
+func set_heart_bar(hb: HeartBar):
+	heart_bar = hb
+	print("🎴 HeartBar установлен в ChanceCardManager")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -169,8 +184,8 @@ func _on_card_triggered(card: BaseChanceCard):
 func _on_card_used(card: BaseChanceCard):
 	"""Карта использована"""
 	print("🎴 Карта использована: %s" % card.card_id)
-	# Счётчик уже уменьшён в HeartBetManager.use_chance()
-	# Обновляем хранилище (счётчик обновится через EventBus.chance_count_changed)
+	# Счётчик уже уменьшён в on_use() карты
+	# Обновляем хранилище
 	if storage:
 		storage.update_card_count(card.card_id, card.count)
 
@@ -190,6 +205,29 @@ func _on_heart_bet_trigger_activated(_trigger_name: String):
 		return
 	
 	trigger_card("heart_bet")
+
+func _on_heart_card_triggered():
+	"""Триггер Heart Card активирован (Tie)"""
+	# ПРОВЕРКА: Если Game Over - не показываем карту
+	if not EventBus.is_game_active:
+		print("🎴 ChanceCardManager: Game Over, карта не показывается")
+		return
+	
+	var card = get_card("heart_card")
+	if not card:
+		push_warning("⚠️ ChanceCardManager: карта heart_card не найдена")
+		return
+	
+	# Увеличиваем счётчик
+	card.count += 1
+	print("❤️ Heart Card: счётчик увеличен до %d" % card.count)
+	
+	# Обновляем хранилище
+	if storage:
+		storage.update_card_count("heart_card", card.count)
+	
+	# Показываем карту на весь экран
+	_show_fullscreen(card)
 
 func _on_fullscreen_requested(card_id: String):
 	"""Запрос показа карты на весь экран"""
