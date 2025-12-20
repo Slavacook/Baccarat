@@ -906,6 +906,21 @@ func _validate_winner_selection() -> void:
 	# ВАЖНО: Сохраняем победителя в TableStateManager для триггеров Heart Bet!
 	TableStateManager.set_actual_winner(actual_winner)
 
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ТРИГГЕРОВ HEART BET: сразу после определения победителя
+	# Карта шанса показывается немедленно через EventBus.heart_bet_trigger_activated
+	# ═══════════════════════════════════════════════════════════════════
+	if heart_bet_manager and SaveManager.instance.load_survival_mode() and not was_heart_bet_round and not has_active_heart_bet():
+		var player_hand_ref = hand_manager.get_player_hand_ref()
+		var banker_hand_ref = hand_manager.get_banker_hand_ref()
+		if not player_hand_ref.is_empty() and not banker_hand_ref.is_empty():
+			var player_score = BaccaratRules.hand_value(player_hand_ref)
+			var banker_score = BaccaratRules.hand_value(banker_hand_ref)
+			var is_natural = BaccaratRules.is_natural(player_hand_ref) or BaccaratRules.is_natural(banker_hand_ref)
+			# HeartBetManager.check_triggers() уже эмитит EventBus.heart_bet_trigger_activated
+			# ChanceCardManager автоматически покажет карту через подписку на это событие
+			heart_bet_manager.check_triggers(actual_winner, banker_score, player_score, is_natural)
+
 	if selected_winner != actual_winner:
 		# ❌ Неправильный выбор
 		var error_msg: String
@@ -1097,10 +1112,9 @@ func _complete_round_and_prepare_new_game() -> void:
 		return
 
 	# ═══════════════════════════════════════════════════════════════════
-	# ПРОВЕРКА ТРИГГЕРОВ HEART BET (до сброса раунда!)
+	# ПРОВЕРКА ТРИГГЕРОВ HEART BET перенесена в _validate_winner_selection()
+	# (происходит сразу после определения победителя)
 	# ═══════════════════════════════════════════════════════════════════
-	if heart_bet_manager and SaveManager.instance.load_survival_mode():
-		_check_heart_bet_triggers()
 
 	# Показываем сообщение о завершении
 	_show_round_completion_message()
@@ -1232,13 +1246,9 @@ func _check_heart_bet_triggers() -> void:
 	print("❤️ _check_heart_bet_triggers: player=%d, banker=%d, natural=%s" % [player_score, banker_score, is_natural])
 	
 	# Проверяем триггеры
-	var triggered = heart_bet_manager.check_triggers(winner, banker_score, player_score, is_natural)
-	print("❤️ _check_heart_bet_triggers: triggered=%s" % triggered)
-	
-	if triggered:
-		# Запускаем анимацию карты шанса (вместо простого оверлея)
-		EventBus.heart_bet_trigger_activated.emit(heart_bet_manager.last_trigger_name)
-		print("❤️ Триггер сработал! Показываем карту шанса")
+	# HeartBetManager.check_triggers() уже эмитит EventBus.heart_bet_trigger_activated,
+	# поэтому просто вызываем его - карта покажется автоматически через ChanceCardManager
+	heart_bet_manager.check_triggers(winner, banker_score, player_score, is_natural)
 
 
 func start_heart_bet_selection() -> void:
