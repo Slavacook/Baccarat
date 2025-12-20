@@ -356,9 +356,25 @@ signal chance_card_storage_clicked(card_id: String)
 @warning_ignore("unused_signal")
 signal chance_card_animation_complete(card_id: String)
 
-## Триггер карты Heart Card (срабатывает при Tie)
+## Триггер карты Heart Card (срабатывает при победе банкира с 6)
 @warning_ignore("unused_signal")
 signal heart_card_triggered()
+
+## Триггер карты Heart Bet (шанс сыграть на жизнь - срабатывает при Tie)
+@warning_ignore("unused_signal")
+signal heart_bet_card_triggered()
+
+## Триггер карты Mystery (срабатывает при натуральной победе)
+@warning_ignore("unused_signal")
+signal mystery_card_triggered()
+
+## Триггер карты Revolver (срабатывает при двух парах одновременно)
+@warning_ignore("unused_signal")
+signal revolver_card_triggered()
+
+## Триггер карты Third Card Change (срабатывает когда все 6 карт - картинки)
+@warning_ignore("unused_signal")
+signal third_card_change_triggered()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ (для проверки из RefCounted классов)

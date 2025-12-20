@@ -49,11 +49,15 @@ func _ready():
 
 func _setup_event_subscriptions():
 	"""Подписка на события EventBus"""
-	# Триггеры Heart Bet
-	EventBus.heart_bet_trigger_activated.connect(_on_heart_bet_trigger_activated)
+	# Триггеры карт шанса
+	EventBus.heart_card_triggered.connect(_on_heart_card_triggered)           # Банкир с 6
+	EventBus.heart_bet_card_triggered.connect(_on_heart_bet_card_triggered)   # Tie - шанс сыграть на жизнь
+	EventBus.mystery_card_triggered.connect(_on_mystery_card_triggered)       # Natural win
+	EventBus.revolver_card_triggered.connect(_on_revolver_card_triggered)     # Две пары
+	EventBus.third_card_change_triggered.connect(_on_third_card_change_triggered)  # Все 6 картинки
 	
-	# Триггеры Heart Card
-	EventBus.heart_card_triggered.connect(_on_heart_card_triggered)
+	# Старый триггер Heart Bet (для обратной совместимости)
+	EventBus.heart_bet_trigger_activated.connect(_on_heart_bet_trigger_activated)
 	
 	# Запросы показа карты
 	EventBus.chance_card_fullscreen_requested.connect(_on_fullscreen_requested)
@@ -70,7 +74,7 @@ func _setup_event_subscriptions():
 
 func _initialize_cards():
 	"""Инициализация всех типов карт"""
-	# Heart Bet карта
+	# Heart Bet карта (ставка сердцем)
 	var heart_bet_card = load("res://scripts/chance_cards/implementations/HeartBetChanceCard.gd").new()
 	register_card(heart_bet_card)
 	
@@ -78,7 +82,19 @@ func _initialize_cards():
 	var heart_card = load("res://scripts/chance_cards/implementations/HeartCardChanceCard.gd").new()
 	register_card(heart_card)
 	
-	print("🎴 Карты инициализированы")
+	# Third Card Change карта (смена третьих карт)
+	var third_card_change = load("res://scripts/chance_cards/implementations/ThirdCardChangeChanceCard.gd").new()
+	register_card(third_card_change)
+	
+	# Revolver карта
+	var revolver_card = load("res://scripts/chance_cards/implementations/RevolverCardChanceCard.gd").new()
+	register_card(revolver_card)
+	
+	# Mystery карта (загадочная карта)
+	var mystery_card = load("res://scripts/chance_cards/implementations/MysteryCardChanceCard.gd").new()
+	register_card(mystery_card)
+	
+	print("🎴 Карты инициализированы (%d шт.)" % cards.size())
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -198,7 +214,7 @@ func _on_card_closed(card: BaseChanceCard):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_heart_bet_trigger_activated(_trigger_name: String):
-	"""Триггер Heart Bet активирован"""
+	"""Триггер Heart Bet активирован (старый, для обратной совместимости)"""
 	# ПРОВЕРКА: Если Game Over - не показываем карту
 	if not EventBus.is_game_active:
 		print("🎴 ChanceCardManager: Game Over, карта не показывается")
@@ -207,24 +223,44 @@ func _on_heart_bet_trigger_activated(_trigger_name: String):
 	trigger_card("heart_bet")
 
 func _on_heart_card_triggered():
-	"""Триггер Heart Card активирован (Tie)"""
+	"""Триггер Heart Card активирован (победа банкира с 6)"""
+	_trigger_chance_card("heart_card", "❤️ Heart Card")
+
+func _on_heart_bet_card_triggered():
+	"""Триггер Heart Bet Card активирован (Tie - шанс сыграть на жизнь)"""
+	_trigger_chance_card("heart_bet", "🎰 Heart Bet Card")
+
+func _on_mystery_card_triggered():
+	"""Триггер Mystery Card активирован (натуральная победа)"""
+	_trigger_chance_card("mystery_card", "❓ Mystery Card")
+
+func _on_revolver_card_triggered():
+	"""Триггер Revolver Card активирован (две пары одновременно)"""
+	_trigger_chance_card("revolver_card", "🔫 Revolver Card")
+
+func _on_third_card_change_triggered():
+	"""Триггер Third Card Change активирован (все 6 карт - картинки)"""
+	_trigger_chance_card("third_card_change", "🔄 Third Card Change")
+
+func _trigger_chance_card(card_id: String, log_prefix: String):
+	"""Универсальный обработчик триггера карты шанса"""
 	# ПРОВЕРКА: Если Game Over - не показываем карту
 	if not EventBus.is_game_active:
 		print("🎴 ChanceCardManager: Game Over, карта не показывается")
 		return
 	
-	var card = get_card("heart_card")
+	var card = get_card(card_id)
 	if not card:
-		push_warning("⚠️ ChanceCardManager: карта heart_card не найдена")
+		push_warning("⚠️ ChanceCardManager: карта %s не найдена" % card_id)
 		return
 	
 	# Увеличиваем счётчик
 	card.count += 1
-	print("❤️ Heart Card: счётчик увеличен до %d" % card.count)
+	print("%s: счётчик увеличен до %d" % [log_prefix, card.count])
 	
 	# Обновляем хранилище
 	if storage:
-		storage.update_card_count("heart_card", card.count)
+		storage.update_card_count(card_id, card.count)
 	
 	# Показываем карту на весь экран
 	_show_fullscreen(card)

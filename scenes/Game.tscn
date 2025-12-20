@@ -57,11 +57,14 @@ layer = 128
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 
 [node name="ChanceCardStorage" parent="TopUI" instance=ExtResource("33_chance_storage")]
-offset_left = 46.0
-offset_top = 575.0
-offset_right = 342.0
-offset_bottom = 770.0
-scale = Vector2(0.08, 0.08)
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = -90.0
+offset_right = 300.0
+offset_bottom = -10.0
+grow_vertical = 0
 
 [node name="PayButton" type="TextureButton" parent="TopUI"]
 visible = false

@@ -68,23 +68,35 @@ func add_card_miniature(card: BaseChanceCard):
 			push_warning("⚠️ ChanceCardStorage: Counter не найден в сцене для %s" % card.card_id)
 			return
 	else:
-		# Создаём динамически для других карт (если появятся)
+		# Создаём динамически для других карт
 		miniature_container = Control.new()
 		miniature_container.name = "Miniature_" + card.card_id
-		miniature_container.custom_minimum_size = Vector2(80, 120)
+		miniature_container.custom_minimum_size = Vector2(50, 75)
 		
 		button = TextureButton.new()
 		button.name = "CardButton"
-		button.custom_minimum_size = Vector2(80, 120)
+		button.custom_minimum_size = Vector2(50, 75)
+		button.size = Vector2(50, 75)  # Фиксированный размер
+		button.ignore_texture_size = true  # ВАЖНО: игнорировать размер текстуры
 		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		# Не растягиваем кнопку - используем фиксированный размер
+		button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		
 		counter_label = Label.new()
 		counter_label.name = "Counter"
 		counter_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		counter_label.add_theme_font_size_override("font_size", 16)
-		counter_label.add_theme_color_override("font_color", Color(1, 0.8, 0))
+		counter_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		counter_label.add_theme_font_size_override("font_size", 14)
+		counter_label.add_theme_color_override("font_color", Color(1, 0.9, 0))
 		counter_label.add_theme_color_override("font_outline_color", Color(0, 0, 0))
-		counter_label.add_theme_constant_override("outline_size", 2)
+		counter_label.add_theme_constant_override("outline_size", 3)
+		# Позиционируем счётчик внизу карты
+		counter_label.anchors_preset = Control.PRESET_CENTER_BOTTOM
+		counter_label.offset_top = -18
+		counter_label.offset_bottom = 0
+		counter_label.offset_left = -10
+		counter_label.offset_right = 10
 		
 		miniature_container.add_child(button)
 		miniature_container.add_child(counter_label)
@@ -119,18 +131,18 @@ func update_card_count(card_id: String, count: int):
 			counter.text = str(count)
 			counter.visible = true
 		else:
-			counter.text = ""
-			counter.visible = false
+			counter.text = "0"
+			counter.visible = true  # Счётчик всегда виден
 	
-	# Обновляем видимость миниатюры
+	# Миниатюра ВСЕГДА видна (инвентарь)
 	if miniature["container"]:
-		miniature["container"].visible = (count > 0)
+		miniature["container"].visible = true
 	
-	# Обновляем доступность кнопки
+	# Обновляем визуальное состояние кнопки
 	if button:
 		button.disabled = (count == 0)
 		if count == 0:
-			button.modulate = Color(0.5, 0.5, 0.5, 1.0)
+			button.modulate = Color(0.4, 0.4, 0.4, 0.7)  # Затемнённая и полупрозрачная
 		else:
 			button.modulate = Color.WHITE
 

@@ -362,12 +362,10 @@ func on_tie_button_pressed():
 	TableStateManager.set_actual_winner(actual_winner)
 	
 	# ═══════════════════════════════════════════════════════════════════
-	# ТРИГГЕР HEART CARD: срабатывает при Tie (Игалите)
-	# Карта шанса показывается немедленно через EventBus.heart_card_triggered
+	# ТРИГГЕРЫ КАРТ ШАНСА (только в режиме выживания)
 	# ═══════════════════════════════════════════════════════════════════
 	if SaveManager.instance.load_survival_mode():
-		EventBus.heart_card_triggered.emit()
-		print("❤️ Heart Card триггер сработал! Победитель: Tie (Игалите)")
+		_check_chance_card_triggers(actual_winner)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Если есть активная ставка - разрешаем её и завершаем
@@ -949,12 +947,10 @@ func _validate_winner_selection() -> void:
 	EventBus.action_correct.emit("winner")
 	
 	# ═══════════════════════════════════════════════════════════════════
-	# ТРИГГЕР HEART CARD: срабатывает при Tie (Игалите)
-	# Карта шанса показывается немедленно через EventBus.heart_card_triggered
+	# ТРИГГЕРЫ КАРТ ШАНСА (только в режиме выживания)
 	# ═══════════════════════════════════════════════════════════════════
-	if actual_winner == "Tie" and SaveManager.instance.load_survival_mode():
-		EventBus.heart_card_triggered.emit()
-		print("❤️ Heart Card триггер сработал! Победитель: Tie (Игалите)")
+	if SaveManager.instance.load_survival_mode():
+		_check_chance_card_triggers(actual_winner)
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Если это был Heart Bet раунд (даже с отказом) - пропускаем выплаты
@@ -1325,3 +1321,116 @@ func has_active_heart_bet() -> bool:
 func has_pending_heart_bet() -> bool:
 	"""Проверить, есть ли ожидающий выбор Heart Bet"""
 	return heart_bet_manager != null and (heart_bet_manager.is_pending() or heart_bet_manager.is_selected())
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# 🎴 ТРИГГЕРЫ КАРТ ШАНСА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _check_chance_card_triggers(actual_winner: String) -> void:
+	"""Проверить и активировать триггеры карт шанса после определения победителя
+	
+	Триггеры:
+	- Mystery Card: натуральная победа (8 или 9)
+	- Heart Card: победа банкира с 6 очками
+	- Heart Bet Card: Tie (игалите)
+	- Revolver Card: две пары одновременно (Player Pair + Banker Pair)
+	- Third Card Change: все 6 карт - картинки (J, Q, K)
+	"""
+	var player_hand = hand_manager.get_player_hand_ref()
+	var banker_hand = hand_manager.get_banker_hand_ref()
+	
+	if player_hand.is_empty() or banker_hand.is_empty():
+		print("🎴 _check_chance_card_triggers: руки пустые, пропускаем")
+		return
+	
+	var player_score = BaccaratRules.hand_value(player_hand)
+	var banker_score = BaccaratRules.hand_value(banker_hand)
+	var is_natural = BaccaratRules.is_natural(player_hand) or BaccaratRules.is_natural(banker_hand)
+	
+	print("🎴 Проверка триггеров карт шанса: winner=%s, player=%d, banker=%d, natural=%s" % [actual_winner, player_score, banker_score, is_natural])
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# 1. MYSTERY CARD: натуральная победа (8 или 9)
+	# ═══════════════════════════════════════════════════════════════════
+	if is_natural and actual_winner != "Tie":
+		EventBus.mystery_card_triggered.emit()
+		print("❓ Mystery Card триггер: натуральная победа!")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# 2. HEART CARD: победа банкира с 6 очками
+	# ═══════════════════════════════════════════════════════════════════
+	if actual_winner == "Banker" and banker_score == 6:
+		EventBus.heart_card_triggered.emit()
+		print("❤️ Heart Card триггер: банкир выиграл с 6!")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# 3. HEART BET CARD: Tie (игалите) - шанс сыграть на жизнь
+	# ═══════════════════════════════════════════════════════════════════
+	if actual_winner == "Tie":
+		EventBus.heart_bet_card_triggered.emit()
+		print("🎰 Heart Bet Card триггер: Tie (игалите)!")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# 4. REVOLVER CARD: две пары одновременно (Player Pair + Banker Pair)
+	# ═══════════════════════════════════════════════════════════════════
+	var has_player_pair = _check_pair(player_hand)
+	var has_banker_pair = _check_pair(banker_hand)
+	if has_player_pair and has_banker_pair:
+		EventBus.revolver_card_triggered.emit()
+		print("🔫 Revolver Card триггер: две пары одновременно!")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# 5. THIRD CARD CHANGE: все 6 карт - картинки (J, Q, K)
+	# ═══════════════════════════════════════════════════════════════════
+	if _check_all_face_cards(player_hand, banker_hand):
+		EventBus.third_card_change_triggered.emit()
+		print("🔄 Third Card Change триггер: все 6 карт картинки!")
+
+
+func _check_pair(hand: Array) -> bool:
+	"""Проверить, есть ли пара в руке (первые две карты одного ранга)"""
+	if hand.size() < 2:
+		return false
+	
+	var card1 = hand[0]
+	var card2 = hand[1]
+	
+	# Получаем ранг карты из её данных
+	var rank1 = _get_card_rank(card1)
+	var rank2 = _get_card_rank(card2)
+	
+	return rank1 == rank2 and rank1 != ""
+
+
+func _get_card_rank(card) -> String:
+	"""Получить ранг карты (2-10, J, Q, K, A)"""
+	# card может быть словарём {rank, suit} или строкой
+	if card is Dictionary:
+		return card.get("rank", "")
+	elif card is String:
+		# Парсим из строки типа "8_diamonds" или "queen_spades"
+		var parts = card.split("_")
+		if parts.size() >= 1:
+			return parts[0]
+	return ""
+
+
+func _check_all_face_cards(player_hand: Array, banker_hand: Array) -> bool:
+	"""Проверить, все ли 6 карт - картинки (J, Q, K)
+	
+	Картинки имеют значение 0 очков: Jack, Queen, King, 10
+	"""
+	# Должно быть по 3 карты у каждого (с третьими картами)
+	if player_hand.size() < 3 or banker_hand.size() < 3:
+		return false
+	
+	var all_cards = player_hand + banker_hand
+	var face_ranks = ["jack", "queen", "king", "10", "j", "q", "k"]
+	
+	for card in all_cards:
+		var rank = _get_card_rank(card).to_lower()
+		if rank not in face_ranks:
+			return false
+	
+	return true

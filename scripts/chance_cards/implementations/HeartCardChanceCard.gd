@@ -32,35 +32,16 @@ func _init():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func can_use() -> bool:
-	"""Проверка, можно ли использовать карту"""
-	# Проверяем наличие карт
-	if count <= 0:
-		print("⚠️ HeartCardChanceCard.can_use(): нет доступных карт (count=%d)" % count)
-		return false
-	
-	# Проверяем наличие HeartBar
-	var heart_bar = _get_heart_bar()
-	if not heart_bar:
-		print("⚠️ HeartCardChanceCard.can_use(): HeartBar не найден")
-		return false
-	
-	# Проверяем, активен ли режим выживания
-	if not heart_bar.is_active_mode():
-		print("⚠️ HeartCardChanceCard.can_use(): режим выживания не активен")
-		return false
-	
-	# Проверяем, не достигнут ли максимум жизней
-	if heart_bar.get_lives() >= heart_bar.max_lives:
-		print("⚠️ HeartCardChanceCard.can_use(): достигнут максимум жизней (%d/%d)" % [heart_bar.get_lives(), heart_bar.max_lives])
-		return false
-	
-	return true
+	"""Проверка, можно ли использовать карту - всегда true если есть карты"""
+	# Карта всегда доступна для использования если есть в наличии
+	# Кнопка "Использовать" показывается всегда
+	return count > 0
 
 func on_use() -> void:
 	"""Использовать карту - добавить +1 жизнь"""
-	# ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: проверяем can_use() ещё раз перед использованием
-	if not can_use():
-		push_warning("⚠️ HeartCardChanceCard.on_use(): карту нельзя использовать (повторная проверка failed)")
+	# Проверяем наличие карт
+	if count <= 0:
+		push_warning("⚠️ HeartCardChanceCard.on_use(): нет доступных карт")
 		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
 		return
 	
@@ -71,9 +52,14 @@ func on_use() -> void:
 		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
 		return
 	
-	# Добавляем жизнь
-	heart_bar.add_life(1)
-	print("❤️ HeartCardChanceCard: добавлена 1 жизнь")
+	# Проверяем, не достигнут ли максимум жизней
+	if heart_bar.get_lives() >= heart_bar.max_lives:
+		print("⚠️ HeartCardChanceCard: достигнут максимум жизней, но карта всё равно используется")
+		EventBus.show_toast_info.emit("Максимум жизней!")
+	else:
+		# Добавляем жизнь только если не на максимуме
+		heart_bar.add_life(1)
+		print("❤️ HeartCardChanceCard: добавлена 1 жизнь")
 	
 	# Уменьшаем счётчик через метод базового класса
 	# Обновление хранилища произойдет автоматически через ChanceCardManager._on_card_used()
