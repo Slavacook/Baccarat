@@ -488,7 +488,7 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 		payout_manager.phase_manager = phase_manager  # Обновляем ссылку на phase_manager
 	
 	# Делегируем подготовку выплат в PayoutManager
-	payout_manager.prepare_manual_payouts(actual_winner, ui_manager)
+	payout_manager.prepare_manual_payouts(actual_winner)
 	
 	# Завершаем подготовку - обновляем видимость и сохраняем состояние
 	_finalize_payouts_manual(actual_winner)

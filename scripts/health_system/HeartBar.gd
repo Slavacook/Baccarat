@@ -99,6 +99,9 @@ func lose_life() -> void:
 	_update_visual()
 	lives_changed.emit(current_lives)
 	life_lost.emit(current_lives)
+	# Эмитим EventBus.life_lost для компонентов, которые подписаны на него (например, PayoutOverlay)
+	if EventBus:
+		EventBus.life_lost.emit(current_lives)
 	
 	if current_lives <= 0:
 		_trigger_game_over()
@@ -175,6 +178,9 @@ func forfeit_pledged_heart() -> void:
 	pledged_heart_index = -1
 	lives_changed.emit(current_lives)
 	life_lost.emit(current_lives)
+	# Эмитим EventBus.life_lost для компонентов, которые подписаны на него (например, PayoutOverlay)
+	if EventBus:
+		EventBus.life_lost.emit(current_lives)
 	
 	if current_lives <= 0:
 		_trigger_game_over()

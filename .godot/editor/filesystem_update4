@@ -1,2 +1,5 @@
 res://scripts/GameController.gd
 res://scenes/Game.tscn
+res://scripts/payout/PayoutManager.gd
+res://scripts/health_system/HeartBar.gd
+res://scripts/PayoutOverlay.gd

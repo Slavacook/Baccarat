@@ -76,8 +76,9 @@ func _ready():
 	GameModeManager.mode_changed.connect(_on_mode_changed)
 
 	# Подписываемся на потерю жизни для обновления сердечек
+	# HeartBar - единственный источник истины для жизней
+	# Все обновления идут через EventBus.life_lost
 	EventBus.payout_wrong.connect(_on_payout_wrong_event)
-	EventBus.hint_used.connect(_on_hint_used_event)
 	EventBus.life_lost.connect(_on_life_lost)
 
 	# Получаем номиналы фишек
@@ -705,28 +706,6 @@ func _on_payout_wrong_event(_collected: float, _expected: float):
 	_update_score_display()
 
 	DebugLogger.log_init("PayoutOverlay: сердечки обновлены после потери жизни")
-
-func _on_hint_used_event():
-	"""Обработчик события использования подсказки
-
-	Вызывается когда EventBus.hint_used эмитится.
-	Обновляем отображение сердечек после потери жизни за подсказку.
-	"""
-	DebugLogger.log("💡 DEBUG: _on_hint_used_event вызван!")
-
-	# Обновляем current_lives: подсказка стоит 1 жизнь
-	if is_survival_mode and current_lives > 0:
-		current_lives -= 1
-		DebugLogger.log("💡 DEBUG: current_lives обновлён до %d (после использования подсказки)" % current_lives)
-	
-	# Небольшая задержка чтобы SurvivalUI/StatsManager успел обновить жизни/очки
-	await get_tree().create_timer(0.1).timeout
-	DebugLogger.log("🔍 DEBUG: Прошло 0.1 сек, вызываем _update_score_display()")
-
-	# Обновляем отображение сердечек/очков
-	_update_score_display()
-
-	DebugLogger.log_init("PayoutOverlay: сердечки обновлены после использования подсказки")
 
 func _on_life_lost(remaining_lives: int):
 	"""Обработчик события потери жизни

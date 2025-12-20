@@ -38,7 +38,7 @@ func _init(
 	phase_manager = phase_mgr
 
 ## Подготовка выплат в ручном режиме
-func prepare_manual_payouts(actual_winner: String, ui_manager: UIManager) -> void:
+func prepare_manual_payouts(actual_winner: String) -> void:
 	"""Подготовка выплат в ручном режиме"""
 	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
 	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
