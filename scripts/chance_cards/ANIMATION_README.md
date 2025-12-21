@@ -1,81 +1,100 @@
 # Анимация карт шанса
 
-## 📁 Файлы
+## 📁 Структура файлов
 
-- **`ChanceCardAnimation.gd`** - отдельный файл с логикой анимации
-- **`BaseChanceCardScene.gd`** - использует анимацию через вызовы методов
+```
+scripts/chance_cards/
+├── animators/
+│   ├── BaseCardAnimator.gd          # Базовый абстрактный класс
+│   ├── ScaleFromZeroAnimator.gd     # Масштаб от 0 до 1
+│   ├── ScaleFromStorageAnimator.gd  # Вылет из хранилища
+│   └── FadeAnimator.gd              # Простой fade in/out
+└── BaseChanceCardScene.gd           # Использует аниматоры
+```
 
-## 🎬 Типы анимации
+## 🎬 Типы анимации (Аниматоры)
 
-### Открытие карты:
+### `ScaleFromZeroAnimator` (по умолчанию для открытия)
+- Карта появляется с масштаба 0
+- Плавно увеличивается с эффектом "отскока"
+- Фон появляется плавно
 
-1. **`SCALE_FROM_ZERO`** (по умолчанию) - карта появляется с масштаба 0, плавно увеличивается с эффектом "отскока"
-2. **`SCALE_FROM_STORAGE`** - карта "вылетает" из позиции миниатюры к центру экрана
-3. **`FADE_IN`** - простое появление с прозрачности
+### `ScaleFromStorageAnimator` (по умолчанию для закрытия)
+- Карта "вылетает" из позиции миниатюры к центру экрана
+- При закрытии "улетает" обратно к миниатюре
+- Если позиция хранилища не задана, работает как `ScaleFromZero`
 
-### Закрытие карты:
-
-1. **`SCALE_TO_ZERO`** (по умолчанию) - карта уменьшается до 0 и исчезает
-2. **`SCALE_TO_STORAGE`** - карта "улетает" обратно к миниатюре
-3. **`FADE_OUT`** - простое исчезновение
+### `FadeAnimator`
+- Простое появление/исчезновение
+- Без масштабирования, только прозрачность
 
 ## ⚙️ Настройка
 
-### Изменить тип анимации:
+### Изменить аниматор:
 
-В файле `BaseChanceCardScene.gd`, строки ~70 и ~95:
+В файле `BaseChanceCardScene.gd`, метод `_setup_animators()`:
 
 ```gdscript
-# Для открытия:
-ChanceCardAnimation.animate_open(
-    card_texture,
-    background,
-    ChanceCardAnimation.OpenType.SCALE_FROM_STORAGE,  # ← Изменить здесь
-    storage_pos
-)
+func _setup_animators() -> void:
+    # Можно заменить на любой аниматор:
+    open_animator = FadeAnimator.new()           # Открытие с fade
+    close_animator = ScaleFromZeroAnimator.new() # Закрытие с масштабом
+```
 
-# Для закрытия:
-ChanceCardAnimation.animate_close(
-    card_texture,
-    background,
-    ChanceCardAnimation.CloseType.SCALE_TO_STORAGE,  # ← Изменить здесь
-    storage_pos,
-    func(): _actually_hide_card()
-)
+### Установить аниматор программно:
+
+```gdscript
+# В любом месте после создания сцены
+var scene = BaseChanceCardScene.new()
+scene.set_open_animator(FadeAnimator.new())
+scene.set_close_animator(ScaleFromStorageAnimator.new())
 ```
 
 ### Изменить длительность:
 
-В файле `ChanceCardAnimation.gd`, строки 14-17:
+В файле `BaseCardAnimator.gd`:
 
 ```gdscript
-const OPEN_DURATION: float = 0.4   # Длительность открытия (секунды)
-const CLOSE_DURATION: float = 0.3  # Длительность закрытия (секунды)
+const OPEN_DURATION: float = 0.4           # Длительность открытия
+const CLOSE_DURATION: float = 0.2          # Длительность закрытия
+const BACKGROUND_FADE_DURATION: float = 0.3 # Длительность появления фона
 ```
 
 ## 🚫 Отключение анимации
 
-### Способ 1: Флаг в `BaseChanceCardScene.gd`
+В файле `BaseChanceCardScene.gd`:
 
 ```gdscript
 const USE_ANIMATION: bool = false  # ← Изменить на false
 ```
 
-### Способ 2: Закомментировать вызовы
+## 🆕 Создание нового аниматора
 
-В `BaseChanceCardScene.gd`, строки ~70-75 и ~95-100:
+1. Создайте файл в `animators/`, например `MyCustomAnimator.gd`
+2. Наследуйте от `BaseCardAnimator`
+3. Переопределите методы:
 
 ```gdscript
-# if USE_ANIMATION:
-#     ChanceCardAnimation.animate_open(...)
+class_name MyCustomAnimator
+extends BaseCardAnimator
+
+func prepare_for_open(card_texture: TextureRect, background: ColorRect) -> void:
+    # Установить начальное состояние карты
+    pass
+
+func animate_open(card_texture: TextureRect, background: ColorRect) -> void:
+    # Анимация открытия
+    pass
+
+func animate_close(card_texture: TextureRect, background: ColorRect, on_complete: Callable = Callable()) -> void:
+    # Анимация закрытия
+    # ВАЖНО: вызвать _connect_on_complete(tween, on_complete) в конце!
+    pass
 ```
-
-### Способ 3: Удалить файл
-
-Просто удалите `ChanceCardAnimation.gd` и закомментируйте вызовы в `BaseChanceCardScene.gd`.
 
 ## 📝 Примечания
 
-- Анимация полностью отделена от основной логики
+- **Strategy Pattern**: Каждый тип анимации - отдельный класс, легко расширять
+- **Open/Closed Principle**: Новые аниматоры не требуют изменения существующего кода
 - Все позиции и размеры карты настраиваются через Inspector в сцене
-- Анимация не влияет на финальную позицию карты (она всегда возвращается к исходным значениям)
+- Анимация не влияет на финальную позицию карты (восстанавливается к исходным значениям)

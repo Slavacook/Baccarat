@@ -20,8 +20,14 @@ var close_button: Button = null  # Получаем из сцены или со�
 ## Текущая карта
 var current_card: BaseChanceCard = null
 
-## Включить анимацию (можно отключить, закомментировав вызовы анимации)
+## Включить анимацию (можно отключить для мгновенного показа)
 const USE_ANIMATION: bool = true
+
+## Аниматор для открытия карты (Strategy Pattern)
+var open_animator: BaseCardAnimator = null
+
+## Аниматор для закрытия карты (может отличаться от открытия)
+var close_animator: BaseCardAnimator = null
 
 ## Флаг подписки на изменения состояния игры
 var _is_state_subscribed: bool = false
@@ -39,6 +45,9 @@ var original_card_position: Vector2 = Vector2.ZERO  # ВАЖНО: позиция
 func _ready():
 	layer = 200  # Поверх всего UI
 	hide()
+	
+	# Создаём аниматоры по умолчанию
+	_setup_animators()
 	
 	# Сохраняем исходные значения
 	if card_texture:
@@ -94,6 +103,22 @@ func _ready():
 	if use_button:
 		use_button.text = Localization.t("USE_BUTTON")
 
+## Настроить аниматоры (можно переопределить в наследниках для другого поведения)
+func _setup_animators() -> void:
+	# По умолчанию: открытие с масштабом от 0
+	open_animator = ScaleFromZeroAnimator.new()
+	
+	# По умолчанию: закрытие с улётом к хранилищу
+	close_animator = ScaleFromStorageAnimator.new()
+
+## Установить аниматор открытия
+func set_open_animator(animator: BaseCardAnimator) -> void:
+	open_animator = animator
+
+## Установить аниматор закрытия
+func set_close_animator(animator: BaseCardAnimator) -> void:
+	close_animator = animator
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -113,20 +138,20 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	card_texture.position = original_card_position
 	
 	# ═══════════════════════════════════════════════════════════════════════
-	# ИСПРАВЛЕНИЕ: Устанавливаем начальные значения ДЛЯ АНИМАЦИИ
-	# чтобы карта не "мелькала" в полном размере перед анимацией
+	# ПОДГОТОВКА К АНИМАЦИИ
 	# ═══════════════════════════════════════════════════════════════════════
-	if USE_ANIMATION:
-		# Карта начинает с невидимого состояния
-		card_texture.scale = Vector2.ZERO
-		card_texture.modulate = Color(1, 1, 1, 0)
-		# Фон начинает прозрачным - будем анимировать его появление
-		background.modulate.a = 0.0
+	if USE_ANIMATION and open_animator:
+		# Настраиваем аниматор с целевыми значениями
+		open_animator.set_targets(original_card_scale, original_card_modulate, original_bg_modulate)
+		open_animator.set_storage_position(storage_pos)
+		
+		# Подготавливаем карту к анимации (устанавливает начальное состояние)
+		open_animator.prepare_for_open(card_texture, background)
 	else:
 		# Если анимация выключена - показываем всё сразу
 		card_texture.scale = original_card_scale
 		card_texture.modulate = original_card_modulate
-		background.modulate.a = 1.0
+		background.modulate = original_bg_modulate
 	
 	# Обновляем видимость кнопки на основе возможности использования
 	_update_use_button_visibility()
@@ -155,21 +180,14 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	# ═══════════════════════════════════════════════════════════════════════
 	# АНИМАЦИЯ ОТКРЫТИЯ
 	# ═══════════════════════════════════════════════════════════════════════
-	if USE_ANIMATION:
-		# Анимация затемнения фона (делаем здесь, не в статической функции)
+	if USE_ANIMATION and open_animator:
+		# Анимация фона - напрямую здесь (ПОСЛЕ await), чтобы гарантировать правильное начальное значение
+		background.modulate.a = 0.0  # Явно устанавливаем начальное значение
 		var bg_tween = get_tree().create_tween()
-		bg_tween.tween_property(background, "modulate:a", 1.0, 0.3)  # Плавное появление фона
+		bg_tween.tween_property(background, "modulate:a", 1.0, 0.3)
 		
-		# Анимация карты
-		ChanceCardAnimation.animate_open(
-			card_texture,
-			background,
-			ChanceCardAnimation.OpenType.SCALE_FROM_ZERO,
-			storage_pos,
-			original_card_scale,
-			original_card_modulate,
-			original_bg_modulate
-		)
+		# Анимация карты через аниматор
+		open_animator.animate_open(card_texture, background)
 
 ## Скрыть карту
 func hide_card():
@@ -189,25 +207,25 @@ func hide_card():
 		close_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	# ═══════════════════════════════════════════════════════════════════════
-	# АНИМАЦИЯ ЗАКРЫТИЯ (можно закомментировать для отключения)
+	# АНИМАЦИЯ ЗАКРЫТИЯ
 	# ═══════════════════════════════════════════════════════════════════════
-	if USE_ANIMATION and ChanceCardAnimation.USE_ANIMATION:
+	if USE_ANIMATION and close_animator:
 		# Получаем позицию миниатюры (если нужно для анимации)
 		var storage_pos = Vector2.ZERO
 		if ChanceCardManager.storage:
 			storage_pos = ChanceCardManager.storage.get_storage_position_for_card(current_card.card_id)
 		
+		# Настраиваем аниматор
+		close_animator.set_storage_position(storage_pos)
+		
 		# ВАЖНО: карта должна оставаться видимой во время анимации!
 		# Не вызываем hide() здесь - только после анимации в callback
 		
 		# Анимируем закрытие с callback для фактического скрытия
-		# SCALE_TO_STORAGE - карта "улетает" к миниатюре в хранилище
-		ChanceCardAnimation.animate_close(
+		close_animator.animate_close(
 			card_texture,
 			background,
-			ChanceCardAnimation.CloseType.SCALE_TO_STORAGE,  # Карта улетает к хранилищу
-			storage_pos,
-			Callable(self, "_actually_hide_card")  # Правильный способ передачи метода
+			Callable(self, "_actually_hide_card")
 		)
 		return  # ВАЖНО: выходим, чтобы не вызывать _actually_hide_card() сразу
 	else:
