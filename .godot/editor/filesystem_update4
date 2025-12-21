@@ -3,3 +3,4 @@ res://scripts/chance_cards/animators/BaseCardAnimator.gd
 res://scripts/chance_cards/animators/ScaleFromStorageAnimator.gd
 res://scripts/chance_cards/animators/ScaleFromZeroAnimator.gd
 res://scripts/chance_cards/BaseChanceCardScene.gd
+res://scripts/GamePhaseManager.gd

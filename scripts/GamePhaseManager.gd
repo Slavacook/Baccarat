@@ -227,6 +227,19 @@ func deal_first_four():
 				EventBus.third_card_change_triggered.emit()
 				print("🔄 Third Card Change триггер: две пары при раздаче!")
 			)
+	
+	# ❓ ТРИГГЕР: Пара тузов → Mystery Card (с задержкой 1.5 сек)
+	# Только в режиме выживания
+	if SaveManager.instance.load_survival_mode():
+		var player_hand = hand_manager.get_player_hand_ref()
+		var banker_hand = hand_manager.get_banker_hand_ref()
+		if _check_aces_pair(player_hand) or _check_aces_pair(banker_hand):
+			print("❓ Mystery Card: обнаружена пара тузов, карта через 1.5 сек...")
+			# Задержка 1.5 секунды чтобы игрок успел увидеть пару тузов
+			EventBus.get_tree().create_timer(1.5).timeout.connect(func():
+				EventBus.mystery_card_triggered.emit()
+				print("❓ Mystery Card триггер: пара тузов при раздаче!")
+			)
 
 	# Фишки уже показаны при настройке ставок, не обновляем их здесь
 
@@ -1376,13 +1389,13 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 	"""Проверить и активировать триггеры карт шанса после определения победителя
 	
 	Триггеры (проверяются здесь):
-	- Mystery Card: пара тузов (у игрока или банкира)
 	- Heart Card: победа банкира с 6 очками
 	- Heart Bet Card: Tie (игалите)
 	- Revolver Card: все 6 карт по 0 очков (10, J, Q, K)
 	
 	Триггеры (проверяются в deal_first_four):
 	- Third Card Change: две пары — срабатывает сразу после раздачи
+	- Mystery Card: пара тузов — срабатывает сразу после раздачи
 	"""
 	var player_hand = hand_manager.get_player_hand_ref()
 	var banker_hand = hand_manager.get_banker_hand_ref()
@@ -1397,11 +1410,9 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 	print("🎴 Проверка триггеров карт шанса: winner=%s, player=%d, banker=%d" % [actual_winner, player_score, banker_score])
 	
 	# ═══════════════════════════════════════════════════════════════════
-	# 1. MYSTERY CARD: пара тузов (у игрока или банкира)
+	# 1. MYSTERY CARD: пара тузов — триггер срабатывает в deal_first_four()
+	#    сразу после раздачи карт (не здесь, чтобы выдавать карту раньше)
 	# ═══════════════════════════════════════════════════════════════════
-	if _check_aces_pair(player_hand) or _check_aces_pair(banker_hand):
-		EventBus.mystery_card_triggered.emit()
-		print("❓ Mystery Card триггер: пара тузов!")
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# 2. HEART CARD: победа банкира с 6 очками
