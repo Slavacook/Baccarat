@@ -39,11 +39,17 @@ enum CloseType {
 ## background: ColorRect фона
 ## open_type: тип анимации (по умолчанию SCALE_FROM_ZERO)
 ## storage_pos: позиция миниатюры (для SCALE_FROM_STORAGE)
+## target_scale: целевой масштаб (если null, используется текущий)
+## target_modulate: целевая непрозрачность карты (если null, используется текущая)
+## target_bg_modulate: целевая непрозрачность фона (если null, используется текущая)
 static func animate_open(
 	card_texture: TextureRect,
 	background: ColorRect,
 	open_type: OpenType = OpenType.SCALE_FROM_ZERO,
-	storage_pos: Vector2 = Vector2.ZERO
+	storage_pos: Vector2 = Vector2.ZERO,
+	target_scale: Variant = null,
+	target_modulate: Variant = null,
+	target_bg_modulate: Variant = null
 ) -> void:
 	if not USE_ANIMATION:
 		return
@@ -52,10 +58,25 @@ static func animate_open(
 		push_warning("ChanceCardAnimation: нет card_texture или background")
 		return
 	
-	# Сохраняем исходные значения
-	var original_scale = card_texture.scale
-	var original_modulate = card_texture.modulate
-	var original_bg_modulate = background.modulate
+	# Используем переданные целевые значения или текущие как fallback
+	# ВАЖНО: Явное приведение типов из-за бага с Variant в тернарном операторе
+	var original_scale: Vector2
+	if target_scale != null:
+		original_scale = target_scale
+	else:
+		original_scale = card_texture.scale
+	
+	var original_modulate: Color
+	if target_modulate != null:
+		original_modulate = target_modulate
+	else:
+		original_modulate = card_texture.modulate
+	
+	var original_bg_modulate: Color
+	if target_bg_modulate != null:
+		original_bg_modulate = target_bg_modulate
+	else:
+		original_bg_modulate = background.modulate
 	
 	match open_type:
 		OpenType.SCALE_FROM_ZERO:
@@ -68,28 +89,23 @@ static func animate_open(
 			_animate_fade_in(card_texture, background, original_modulate, original_bg_modulate)
 
 ## Анимация: масштаб от 0 до 1
+## ВАЖНО: Начальные значения карты (scale=0, modulate=0) уже установлены в show_fullscreen()
+## Фон НЕ анимируется - он сразу виден для затемнения
 static func _animate_scale_from_zero(
 	card_texture: TextureRect,
-	background: ColorRect,
+	_background: ColorRect,
 	original_scale: Vector2,
 	original_modulate: Color,
-	original_bg_modulate: Color
+	_original_bg_modulate: Color
 ) -> void:
 	# Устанавливаем pivot_offset в центр карты для масштабирования из центра
-	# pivot_offset работает в локальных координатах (от левого верхнего угла)
 	var card_size = card_texture.size
 	if card_size == Vector2.ZERO:
-		# Если размер ещё не установлен, вычисляем из offset
 		var width = card_texture.offset_right - card_texture.offset_left
 		var height = card_texture.offset_bottom - card_texture.offset_top
 		card_texture.pivot_offset = Vector2(width / 2.0, height / 2.0)
 	else:
 		card_texture.pivot_offset = card_size / 2.0
-	
-	# Начальное состояние
-	card_texture.scale = Vector2.ZERO
-	card_texture.modulate = Color(1, 1, 1, 0)
-	background.modulate = Color(1, 1, 1, 0)
 	
 	# Создаём твин
 	var tween = card_texture.get_tree().create_tween()
@@ -101,21 +117,21 @@ static func _animate_scale_from_zero(
 	# Анимация прозрачности карты
 	tween.tween_property(card_texture, "modulate", original_modulate, OPEN_DURATION * 0.6)
 	
-	# Анимация фона
-	tween.tween_property(background, "modulate", original_bg_modulate, OPEN_DURATION * 0.4)
+	# Фон НЕ анимируем - он уже виден
 
 ## Анимация: карта "вылетает" из позиции миниатюры
+## Фон НЕ анимируется - он сразу виден
 static func _animate_scale_from_storage(
 	card_texture: TextureRect,
-	background: ColorRect,
+	_background: ColorRect,
 	storage_pos: Vector2,
 	original_scale: Vector2,
 	original_modulate: Color,
-	original_bg_modulate: Color
+	_original_bg_modulate: Color
 ) -> void:
 	if storage_pos == Vector2.ZERO:
 		# Если позиция не указана, используем простую анимацию
-		_animate_scale_from_zero(card_texture, background, original_scale, original_modulate, original_bg_modulate)
+		_animate_scale_from_zero(card_texture, _background, original_scale, original_modulate, _original_bg_modulate)
 		return
 	
 	# Получаем текущую позицию карты (в глобальных координатах)
@@ -123,10 +139,8 @@ static func _animate_scale_from_storage(
 	var _viewport_rect = viewport.get_visible_rect()
 	var card_center_global = card_texture.get_global_rect().get_center()
 	
-	# Начальное состояние: карта в позиции миниатюры, маленькая
+	# Для этой анимации карта начинает маленькой в позиции хранилища
 	card_texture.scale = Vector2(0.1, 0.1)
-	card_texture.modulate = original_modulate
-	background.modulate = Color(1, 1, 1, 0)
 	
 	# Вычисляем смещение для анимации
 	var start_pos = storage_pos
@@ -147,27 +161,23 @@ static func _animate_scale_from_storage(
 	# Анимация масштаба
 	tween.tween_property(card_texture, "scale", original_scale, OPEN_DURATION).set_ease(Tween.EASE_OUT).set_trans(Tween.TRANS_BACK)
 	
-	# Анимация фона
-	tween.tween_property(background, "modulate", original_bg_modulate, OPEN_DURATION * 0.4)
+	# Фон НЕ анимируем - он уже виден
 
 ## Анимация: простое появление (fade in)
+## Фон НЕ анимируется - он сразу виден
 static func _animate_fade_in(
 	card_texture: TextureRect,
-	background: ColorRect,
+	_background: ColorRect,
 	original_modulate: Color,
-	original_bg_modulate: Color
+	_original_bg_modulate: Color
 ) -> void:
-	# Начальное состояние
-	card_texture.modulate = Color(1, 1, 1, 0)
-	background.modulate = Color(1, 1, 1, 0)
-	
 	# Создаём твин
 	var tween = card_texture.get_tree().create_tween()
-	tween.set_parallel(true)
 	
-	# Анимация прозрачности
+	# Анимация прозрачности карты
 	tween.tween_property(card_texture, "modulate", original_modulate, OPEN_DURATION)
-	tween.tween_property(background, "modulate", original_bg_modulate, OPEN_DURATION * 0.6)
+	
+	# Фон НЕ анимируем - он уже виден
 
 # ═══════════════════════════════════════════════════════════════════════════
 # АНИМАЦИЯ ЗАКРЫТИЯ

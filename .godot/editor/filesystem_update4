@@ -1,9 +1,3 @@
-res://scripts/chance_cards/ChanceCardManager.gd
-res://scripts/chance_cards/implementations/HeartBetChanceCard.gd
+res://scripts/chance_cards/BaseChanceCardScene.gd
+res://scripts/chance_cards/ChanceCardAnimation.gd
 res://scenes/chance_cards/ChanceCardStorage.tscn
-res://scripts/GamePhaseManager.gd
-res://scripts/HandManager.gd
-res://scripts/UIManager.gd
-res://scripts/ui/CardUIManager.gd
-res://scripts/chance_cards/BaseChanceCard.gd
-res://scripts/heart_bet/HeartBetTriggerSystem.gd

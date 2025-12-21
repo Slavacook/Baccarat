@@ -29,7 +29,7 @@ var _is_state_subscribed: bool = false
 ## Сохраняем исходные значения для восстановления после анимации
 var original_card_scale: Vector2 = Vector2.ONE
 var original_card_modulate: Color = Color.WHITE
-var original_bg_modulate: Color = Color(1, 1, 1, 0.7)
+var original_bg_modulate: Color = Color.WHITE  # modulate фона (цвет затемнения задаётся в сцене)
 var original_card_position: Vector2 = Vector2.ZERO  # ВАЖНО: позиция тоже должна восстанавливаться!
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -109,11 +109,24 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	# Настраиваем карту
 	card_texture.texture = card.card_texture
 	
-	# Восстанавливаем исходные значения (на случай если они были изменены анимацией)
-	card_texture.position = original_card_position  # ВАЖНО: восстанавливаем позицию!
-	card_texture.scale = original_card_scale
-	card_texture.modulate = original_card_modulate
-	background.modulate = original_bg_modulate
+	# Восстанавливаем позицию
+	card_texture.position = original_card_position
+	
+	# ═══════════════════════════════════════════════════════════════════════
+	# ИСПРАВЛЕНИЕ: Устанавливаем начальные значения ДЛЯ АНИМАЦИИ
+	# чтобы карта не "мелькала" в полном размере перед анимацией
+	# ═══════════════════════════════════════════════════════════════════════
+	if USE_ANIMATION:
+		# Карта начинает с невидимого состояния
+		card_texture.scale = Vector2.ZERO
+		card_texture.modulate = Color(1, 1, 1, 0)
+		# Фон начинает прозрачным - будем анимировать его появление
+		background.modulate.a = 0.0
+	else:
+		# Если анимация выключена - показываем всё сразу
+		card_texture.scale = original_card_scale
+		card_texture.modulate = original_card_modulate
+		background.modulate.a = 1.0
 	
 	# Обновляем видимость кнопки на основе возможности использования
 	_update_use_button_visibility()
@@ -140,14 +153,22 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 		close_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	
 	# ═══════════════════════════════════════════════════════════════════════
-	# АНИМАЦИЯ ОТКРЫТИЯ (можно закомментировать для отключения)
+	# АНИМАЦИЯ ОТКРЫТИЯ
 	# ═══════════════════════════════════════════════════════════════════════
 	if USE_ANIMATION:
+		# Анимация затемнения фона (делаем здесь, не в статической функции)
+		var bg_tween = get_tree().create_tween()
+		bg_tween.tween_property(background, "modulate:a", 1.0, 0.3)  # Плавное появление фона
+		
+		# Анимация карты
 		ChanceCardAnimation.animate_open(
 			card_texture,
 			background,
-			ChanceCardAnimation.OpenType.SCALE_FROM_ZERO,  # Изменить тип здесь
-			storage_pos
+			ChanceCardAnimation.OpenType.SCALE_FROM_ZERO,
+			storage_pos,
+			original_card_scale,
+			original_card_modulate,
+			original_bg_modulate
 		)
 
 ## Скрыть карту
