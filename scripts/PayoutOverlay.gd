@@ -129,10 +129,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	
 	if event is InputEventKey and event.pressed and not event.echo:
 		if event.keycode == KEY_SPACE:
-			# Space = нажать кнопку "Выплатить"
-			if not payout_button.disabled:
+			# ВСЕГДА поглощаем пробел когда overlay видим (защита от двойного нажатия)
+			get_viewport().set_input_as_handled()
+			
+			# Вызываем обработчик только если кнопка не заблокирована
+			if not is_button_blocked and not payout_button.disabled:
 				_on_payout_pressed()
-				get_viewport().set_input_as_handled()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -185,11 +187,14 @@ func _on_total_changed(new_total: float):
 
 # ← Обработка нажатия кнопки "Выплатить"
 func _on_payout_pressed():
+	# ЗАЩИТА: Блокируем СРАЗУ, до любых вычислений (защита от двойного нажатия)
 	if is_button_blocked:
 		return
+	
+	is_button_blocked = true
+	payout_button.disabled = true
 
 	var collected_total: float = stack_manager.get_total()
-
 	var is_correct: bool = validator.validate(collected_total, expected_payout)
 
 	if is_correct:
@@ -202,6 +207,7 @@ func _on_payout_pressed():
 		EventBus.payout_wrong.emit(collected_total, expected_payout)
 
 		# Показываем анимацию ошибки (попап не закрывается)
+		# После анимации ошибки блокировка снимется внутри _show_error_animation
 		_show_error_animation(collected_total)
 
 # ← Обработка кнопки подсказки
@@ -423,6 +429,7 @@ func _create_chip_buttons():
 		var button: TextureButton = TextureButton.new()
 		button.custom_minimum_size = GameConstants.CHIP_BUTTON_SIZE
 		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		button.focus_mode = Control.FOCUS_NONE  # Не получает фокус (Space не активирует)
 
 		# Загружаем текстуру фишки
 		var denom_str: String = str(int(denomination)) if denomination >= 1 else str(denomination)
@@ -767,6 +774,10 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	# Сбрасываем состояние подсказки для нового окна выплат
 	hint_purchased = false
 	_update_hint_button_style(false)  # Красная кнопка (не куплена)
+	
+	# ВАЖНО: Сбрасываем блокировку кнопки для нового окна
+	is_button_blocked = false
+	payout_button.disabled = false
 
 	# Обновляем отображение жизней/очков
 	_update_score_display()
@@ -776,7 +787,7 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	# Установить фокус на первую кнопку флота
 	if chip_fleet_container and chip_fleet_container.get_child_count() > 0:
 		var first_chip_button = chip_fleet_container.get_child(0)
-		if first_chip_button:
+		if first_chip_button and first_chip_button.focus_mode != Control.FOCUS_NONE:
 			first_chip_button.grab_focus()
 
 	DebugLogger.log("💰 PayoutOverlay показан: %s, stake=%.1f, payout=%.1f" % [winner, stake, payout])
@@ -788,6 +799,10 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	Эмитит сигнал payout_completed и скрывает overlay
 	ВАЖНО: Вызывается ПОСЛЕ того, как все анимации оповещений завершены
 	"""
+	# Сбрасываем фокус чтобы следующий Space не активировал последнюю кнопку
+	if get_viewport():
+		get_viewport().gui_release_focus()
+	
 	# ВАЖНО: Убеждаемся, что FeedbackContainer уже скрыт перед эмитом сигнала
 	if feedback_container:
 		feedback_container.visible = false

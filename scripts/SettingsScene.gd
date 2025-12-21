@@ -155,11 +155,13 @@ func open_settings():
 
 	# Показываем окно
 	show()
+	EventBus.settings_opened.emit()
 	print("⚙️  Окно настроек открыто")
 
 func close_settings():
 	"""Закрыть окно настроек"""
 	hide()
+	EventBus.settings_closed.emit()
 	print("⚙️  Окно настроек закрыто")
 
 # ═══════════════════════════════════════════════════════════════════════════

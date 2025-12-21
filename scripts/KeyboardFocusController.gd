@@ -37,6 +37,9 @@ var is_active: bool = false
 ## Ссылка на FocusFrameUI для визуализации
 var focus_frame: FocusFrameUI = null
 
+## Флаг открытых настроек (блокирует весь ввод)
+var _settings_open: bool = false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -49,6 +52,9 @@ func _ready() -> void:
 	# Подписываемся на сигнал видимости навигации (фаза выплат)
 	if EventBus:
 		EventBus.navigation_arrows_visibility_changed.connect(_on_navigation_visibility_changed)
+		# Подписываемся на открытие/закрытие настроек (блокировка ввода)
+		EventBus.settings_opened.connect(_on_settings_opened)
+		EventBus.settings_closed.connect(_on_settings_closed)
 	
 	print("⌨️ KeyboardFocusController инициализирован (новая логика навигации)")
 
@@ -61,6 +67,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	
 	if not event.pressed or event.echo:
+		return
+	
+	# Блокируем весь ввод когда настройки открыты
+	if _settings_open:
 		return
 	
 	# Space работает всегда (и в фазе раздачи, и в фазе выплат)
@@ -385,3 +395,15 @@ func _on_navigation_visibility_changed(visible: bool) -> void:
 		var state = GameStateManager.get_current_state()
 		if state == GameStateManager.GameState.WAITING:
 			enable()
+
+
+func _on_settings_opened() -> void:
+	"""Блокировка ввода когда настройки открыты"""
+	_settings_open = true
+	print("⌨️ KeyboardFocusController: ввод заблокирован (настройки открыты)")
+
+
+func _on_settings_closed() -> void:
+	"""Разблокировка ввода когда настройки закрыты"""
+	_settings_open = false
+	print("⌨️ KeyboardFocusController: ввод разблокирован (настройки закрыты)")

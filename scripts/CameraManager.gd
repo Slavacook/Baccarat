@@ -137,10 +137,12 @@ func _zoom_up() -> void:
 		_zoom_area(target)
 
 func _zoom_down() -> void:
-	"""Вертикальная навигация вниз: из областей → карты"""
+	"""Вертикальная навигация вниз: из областей → карты, с карт → общий план"""
 	var target = _get_target_area_by_direction("down")
-	if target == 0 and current_area > 0:
+	if target == 0:
 		_zoom_in()
+	elif target == -1:
+		_zoom_out()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЙ (внутренняя логика)
@@ -155,7 +157,7 @@ func _get_target_area_by_direction(direction: String) -> int:
 		direction: "left", "right", "up", "down"
 	
 	Returns:
-		Целевая область (1-3) или 0 для карт/общего плана
+		Целевая область (1-3), 0 для карт, -1 для общего плана
 	"""
 	match direction:
 		"left":
@@ -176,7 +178,7 @@ func _get_target_area_by_direction(direction: String) -> int:
 				1, 2, 3: return current_area  # из областей → остаётся
 		"down":
 			match current_area:
-				0: return 0  # карты → остаётся
+				0: return -1  # карты → общий план
 				1, 2, 3: return 0  # из областей → карты
 		_:
 			return 0
@@ -189,11 +191,11 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 	Используется для предсказания состояния стрелок на основе целевой области.
 	
 	Args:
-		area: Исходная область (0 = карты, 1-3 = области ставок)
+		area: Исходная область (0 = карты, 1-3 = области ставок, -1 = общий план)
 		direction: "left", "right", "up", "down"
 	
 	Returns:
-		Целевая область (1-3) или 0 для карт/общего плана
+		Целевая область (1-3), 0 для карт, -1 для общего плана
 	"""
 	match direction:
 		"left":
@@ -214,7 +216,7 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 				1, 2, 3: return area  # из областей → остаётся
 		"down":
 			match area:
-				0: return 0  # карты → остаётся
+				0: return -1  # карты → общий план
 				1, 2, 3: return 0  # из областей → карты
 		_:
 			return 0

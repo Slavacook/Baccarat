@@ -1,3 +1,5 @@
-res://scripts/UIManager.gd
-res://scripts/ui/ButtonUIManager.gd
+res://scripts/ChipVisualManager.gd
+res://scripts/PayoutOverlay.gd
 res://scenes/Game.tscn
+res://scripts/DebugLogger.gd
+res://scripts/GameController.gd

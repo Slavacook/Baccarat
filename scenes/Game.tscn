@@ -1,4 +1,4 @@
-[gd_scene load_steps=35 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=40 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -34,6 +34,11 @@
 [ext_resource type="Texture2D" uid="uid://deffdpgc1k68v" path="res://assets/ui/buttons/right.PNG" id="29_right"]
 [ext_resource type="PackedScene" uid="uid://c8heartbetui1" path="res://scenes/heart_bet/HeartBetUI.tscn" id="30_heartbet"]
 [ext_resource type="PackedScene" uid="uid://c6bsv6esin8nb" path="res://scenes/chance_cards/ChanceCardStorage.tscn" id="33_chance_storage"]
+[ext_resource type="Texture2D" uid="uid://bpikfmdscv7ar" path="res://assets/ui/hands/богач.png" id="35_m1oc7"]
+[ext_resource type="Texture2D" uid="uid://r1ulfas4ff4x" path="res://assets/ui/hands/дама.png" id="36_1fiys"]
+[ext_resource type="Texture2D" uid="uid://gb4i0duocycl" path="res://assets/ui/hands/руки татуки3.png" id="37_m2g6u"]
+[ext_resource type="Texture2D" uid="uid://cyxtjdpvywsup" path="res://assets/ui/hands/черт2.png" id="38_27c7x"]
+[ext_resource type="Texture2D" uid="uid://cpk4qxpcoqbub" path="res://assets/ui/hands/поц курит.png" id="39_ho5ir"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -682,6 +687,61 @@ offset_left = 8.0
 offset_top = -57.0
 offset_right = 1162.0
 offset_bottom = 593.0
+
+[node name="hands" type="Node2D" parent="."]
+
+[node name="hand1" type="TextureRect" parent="hands"]
+offset_left = -1413.0001
+offset_top = 602.99994
+offset_right = 122.99988
+offset_bottom = 1627.0
+rotation = -0.9512044
+scale = Vector2(0.6, 0.6)
+mouse_filter = 2
+texture = ExtResource("35_m1oc7")
+
+[node name="hand2" type="TextureRect" parent="hands"]
+offset_left = -861.0
+offset_top = -270.00003
+offset_right = 675.0
+offset_bottom = 754.0
+rotation = -0.27750736
+scale = Vector2(0.47, 0.47)
+mouse_filter = 2
+texture = ExtResource("36_1fiys")
+
+[node name="hand3" type="TextureRect" parent="hands"]
+offset_left = -176.0
+offset_top = -388.0
+offset_right = 1360.0
+offset_bottom = 636.0
+scale = Vector2(0.5, 0.5)
+mouse_filter = 2
+texture = ExtResource("37_m2g6u")
+
+[node name="hand4" type="TextureRect" parent="hands"]
+offset_left = 497.0
+offset_top = -344.0
+offset_right = 2033.0
+offset_bottom = 680.0
+scale = Vector2(0.5, 0.5)
+mouse_filter = 2
+texture = ExtResource("38_27c7x")
+
+[node name="hand5" type="TextureRect" parent="hands"]
+offset_left = 1303.9999
+offset_top = -482.0
+offset_right = 2840.0
+offset_bottom = 542.0
+rotation = 0.50963616
+scale = Vector2(0.5, 0.5)
+mouse_filter = 2
+texture = ExtResource("39_ho5ir")
+
+[node name="hand6" type="TextureRect" parent="hands"]
+offset_right = 40.0
+offset_bottom = 40.0
+mouse_filter = 2
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]

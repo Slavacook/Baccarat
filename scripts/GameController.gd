@@ -66,6 +66,7 @@ var survival_rounds_completed: int = 0
 var is_survival_mode: bool = true  # Всегда включён (сердца + деньги)
 var is_table_prepared_for_new_game: bool = false
 var is_game_over: bool = false  # Флаг Game Over для блокировки процессов
+var is_payout_processing: bool = false  # Флаг обработки выплаты (защита от спама Space)
 
 # Добавляем FlipCard ссылки
 # Массивы для ссылок на flip-анимации и карты:
@@ -127,6 +128,9 @@ func _ready():
 		EventBus.guest_bets_show_requested.connect(_on_guest_bets_show_requested)
 		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
 		EventBus.heart_bet_declined.connect(_on_heart_bet_declined)
+		
+		# Настройки: включаем action_button при закрытии
+		EventBus.settings_closed.connect(_on_settings_closed)
 		
 		# Heart Bet: триггеры обрабатываются через ChanceCardManager
 		# Старые сигналы оставлены для обратной совместимости
@@ -774,13 +778,27 @@ func _on_settings_button_pressed():
 		if settings_scene.visible:
 			DebugLogger.log("  → Закрываем настройки")
 			settings_scene.close_settings()
+			# Кнопка "Карты" включится через сигнал settings_closed
 		else:
 			# Настройки можно открыть в любое время
 			# Защита от удаления ставок во время раздачи реализована в _on_guest_settings_changed()
 			DebugLogger.log("  → Открываем настройки")
 			settings_scene.open_settings()
+			# Отключаем кнопку "Карты" чтобы случайно не нажать
+			# Напрямую disabled = true (не через disable_action_button который только для "complete")
+			if ui_manager and ui_manager.button_ui and ui_manager.button_ui.action_button:
+				ui_manager.button_ui.action_button.disabled = true
+				DebugLogger.log("⚙️ Кнопка 'Карты' отключена (настройки открыты)")
 	else:
 		DebugLogger.log("  ❌ ОШИБКА: settings_scene = null!")
+
+func _on_settings_closed():
+	"""Обработчик закрытия настроек — включаем кнопку 'Карты' обратно"""
+	# Напрямую disabled = false (не через enable_action_button)
+	if ui_manager and ui_manager.button_ui and ui_manager.button_ui.action_button:
+		ui_manager.button_ui.action_button.disabled = false
+		DebugLogger.log("⚙️ Настройки закрыты → кнопка 'Карты' включена")
+
 
 func _on_mode_changed(mode: String):
 	DebugLogger.log("Режим игры изменён на: %s" % mode)
@@ -1120,6 +1138,8 @@ func _request_camera_target_area(direction: String) -> void:
 		if dir == direction:
 			if area > 0:
 				EventBus.camera_zoom_requested.emit("area_%d" % area)
+			elif area == -1:
+				EventBus.camera_zoom_requested.emit("out")
 			else:
 				EventBus.camera_zoom_requested.emit("in")
 			_update_arrows_state()
@@ -1587,7 +1607,24 @@ func _on_chip_clicked(bet_type: String):
 
 func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	"""Обработчик клика на конкретную фишку (с position_index)"""
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ЗАЩИТА: Блокировка во время обработки выплаты (защита от спама Space)
+	# ═══════════════════════════════════════════════════════════════════
+	if is_payout_processing:
+		DebugLogger.log("⏸️  Клик на %s[%d] заблокирован (идёт обработка выплаты)" % [bet_type, position_index])
+		return
+	
 	DebugLogger.log("🖱️  Клик на фишку: %s[%d]" % [bet_type, position_index])
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ЗАЩИТА: Проверяем что фишка существует (защита от множественных кликов)
+	# ═══════════════════════════════════════════════════════════════════
+	if chip_visual_manager:
+		var chip = chip_visual_manager.get_chip_instance(bet_type, position_index)
+		if not chip:
+			DebugLogger.log("⏸️  Фишка %s[%d] не найдена (уже обработана), игнорируем клик" % [bet_type, position_index])
+			return
 	
 	# Проверяем что менеджеры инициализированы
 	if not payout_queue_manager or not bet_collection_manager:
@@ -1702,6 +1739,9 @@ func _show_payout_overlay_instance(bet_type: String, position_index: int, stake:
 	if not payout_overlay:
 		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
 		return
+	
+	# ЗАЩИТА: Блокируем обработку других кликов пока открыт PayoutOverlay
+	is_payout_processing = true
 
 	DebugLogger.log("💰 Показываем PayoutOverlay: %s[%d], stake=%.1f, payout=%.1f" % [bet_type, position_index, stake, payout])
 
@@ -1900,6 +1940,21 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 			# Карты остаются на столе, пользователь нажимает "Завершить" для новой раздачи
 		else:
 			DebugLogger.log("  ⏳ Есть еще неоплаченные выплаты, ждем клика на следующую фишку")
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# СНЯТИЕ БЛОКИРОВКИ (с задержкой для защиты от спама Space)
+	# ═══════════════════════════════════════════════════════════════════
+	_release_payout_processing_lock()
+
+
+func _release_payout_processing_lock():
+	"""Снять блокировку обработки выплат с небольшой задержкой"""
+	# Ждём несколько кадров чтобы все нажатия Space успели "затухнуть"
+	await get_tree().process_frame
+	await get_tree().process_frame
+	await get_tree().process_frame
+	is_payout_processing = false
+	DebugLogger.log("🔓 Блокировка выплат снята")
 
 
 func _restore_cards_ui():

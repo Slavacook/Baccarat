@@ -1,6 +1,7 @@
+TextureRect
+Node2D
 TextureButton
 Button
-TextureRect
 Control
 Label
 HBoxContainer
@@ -11,4 +12,3 @@ HSeparator
 OptionButton
 CheckBox
 MarginContainer
-PanelContainer

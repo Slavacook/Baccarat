@@ -740,6 +740,7 @@ func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[
 			original_chip.texture_normal = texture
 			original_chip.position = ALTERNATIVE_POSITIONS[bet_type][pos_idx]
 			original_chip.visible = true
+			original_chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 			
 			chip_instance = ChipInstance.new(bet_type, pos_idx, original_chip, true)
 			chip_instance.stake = stake
@@ -788,6 +789,7 @@ func _create_chip_copy(bet_type: String, position_index: int, texture: Texture2D
 	new_chip.scale = original_chip.scale
 	new_chip.modulate = original_chip.modulate
 	new_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	new_chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 	new_chip.visible = true
 	
 	# Подключаем сигнал с индексом

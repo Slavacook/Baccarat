@@ -15,6 +15,9 @@ extends Node
 ## Активна ли навигация (стрелки видны на экране = фаза выплат)
 var is_navigation_active: bool = false
 
+## Флаг открытых настроек (блокирует весь ввод)
+var _settings_open: bool = false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -25,6 +28,9 @@ func _ready() -> void:
 		EventBus.navigation_arrows_visibility_changed.connect(_on_navigation_visibility_changed)
 		# Подписываемся на ответы от CameraManager
 		EventBus.camera_target_area_received.connect(_on_target_area_received)
+		# Подписываемся на открытие/закрытие настроек
+		EventBus.settings_opened.connect(func(): _settings_open = true)
+		EventBus.settings_closed.connect(func(): _settings_open = false)
 	
 	print("⌨️ KeyboardNavigationController инициализирован (фаза выплат: стрелки + WASD для камеры)")
 
@@ -33,6 +39,10 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Блокируем ввод когда настройки открыты
+	if _settings_open:
+		return
+	
 	# Обрабатываем только когда навигация активна
 	if not is_navigation_active:
 		return
@@ -77,15 +87,18 @@ func _handle_target_area_response(direction: String, target_area: int) -> void:
 	
 	Args:
 		direction: Направление запроса
-		target_area: Целевая область (0 = карты, 1-3 = области ставок)
+		target_area: Целевая область (-1 = общий план, 0 = карты, 1-3 = области ставок)
 	"""
 	if target_area > 0:
 		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+	elif target_area == -1:
+		EventBus.camera_zoom_requested.emit("out")
 	else:
 		EventBus.camera_zoom_requested.emit("in")
 	
 	var key_name = direction.capitalize()
-	print("⌨️ Клавиша %s → area_%d" % [key_name, target_area])
+	var target_name = "out" if target_area == -1 else ("area_%d" % target_area if target_area > 0 else "in")
+	print("⌨️ Клавиша %s → %s" % [key_name, target_name])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
