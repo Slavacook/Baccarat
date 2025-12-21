@@ -1400,13 +1400,23 @@ func _check_pair(hand: Array) -> bool:
 	var rank1 = _get_card_rank(card1)
 	var rank2 = _get_card_rank(card2)
 	
-	return rank1 == rank2 and rank1 != ""
+	var is_pair = rank1 == rank2 and rank1 != ""
+	print("🎴 _check_pair: card1=%s, card2=%s, rank1=%s, rank2=%s, is_pair=%s" % [
+		card1.card_to_string() if card1 is Card else str(card1),
+		card2.card_to_string() if card2 is Card else str(card2),
+		rank1, rank2, is_pair
+	])
+	
+	return is_pair
 
 
 func _get_card_rank(card) -> String:
 	"""Получить ранг карты (2-10, J, Q, K, A)"""
-	# card может быть словарём {rank, suit} или строкой
-	if card is Dictionary:
+	# card — объект Card с полем value (1=A, 2-10, 11=J, 12=Q, 13=K)
+	if card is Card:
+		return str(card.value)  # Возвращаем value как строку для сравнения
+	# Fallback: card может быть словарём {rank, suit} или строкой
+	elif card is Dictionary:
 		return card.get("rank", "")
 	elif card is String:
 		# Парсим из строки типа "8_diamonds" или "queen_spades"
@@ -1420,13 +1430,16 @@ func _check_all_face_cards(player_hand: Array, banker_hand: Array) -> bool:
 	"""Проверить, все ли 6 карт - картинки (J, Q, K)
 	
 	Картинки имеют значение 0 очков: Jack, Queen, King, 10
+	Card.value: 10=10, 11=J, 12=Q, 13=K
 	"""
 	# Должно быть по 3 карты у каждого (с третьими картами)
 	if player_hand.size() < 3 or banker_hand.size() < 3:
 		return false
 	
 	var all_cards = player_hand + banker_hand
-	var face_ranks = ["jack", "queen", "king", "10", "j", "q", "k"]
+	# Для объектов Card: 10, 11(J), 12(Q), 13(K)
+	# Для строк/словарей: jack, queen, king, 10, j, q, k
+	var face_ranks = ["jack", "queen", "king", "10", "j", "q", "k", "11", "12", "13"]
 	
 	for card in all_cards:
 		var rank = _get_card_rank(card).to_lower()

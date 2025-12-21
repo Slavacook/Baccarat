@@ -34,6 +34,7 @@ GuestStatsManager="*res://scripts/autoload/GuestStatsManager.gd"
 PayoutContextManager="*res://scripts/PayoutContextManager.gd"
 TableStateManager="*res://scripts/autoload/TableStateManager.gd"
 KeyboardNavigationController="*res://scripts/KeyboardNavigationController.gd"
+TestCardsManager="*res://scripts/autoload/TestCardsManager.gd"
 
 [display]
 

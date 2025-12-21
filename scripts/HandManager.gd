@@ -26,9 +26,30 @@ func deal_first_four(deck: Deck) -> void:
 
 	Args:
 		deck: Колода для взятия карт
+	
+	Note:
+		Если включён TestCardsManager, используются заданные тестовые карты
 	"""
-	_player_hand = [deck.draw(), deck.draw()]
-	_banker_hand = [deck.draw(), deck.draw()]
+	# Проверяем тестовые карты (для отладки триггеров)
+	var p1 = TestCardsManager.get_test_card("player1")
+	var p2 = TestCardsManager.get_test_card("player2")
+	var b1 = TestCardsManager.get_test_card("banker1")
+	var b2 = TestCardsManager.get_test_card("banker2")
+	
+	_player_hand = [
+		p1 if p1 else deck.draw(),
+		p2 if p2 else deck.draw()
+	]
+	_banker_hand = [
+		b1 if b1 else deck.draw(),
+		b2 if b2 else deck.draw()
+	]
+	
+	# Лог для отладки
+	if TestCardsManager.enabled:
+		print("🧪 Тестовые карты раздаются:")
+		print("   Player: %s, %s" % [_player_hand[0].card_to_string(), _player_hand[1].card_to_string()])
+		print("   Banker: %s, %s" % [_banker_hand[0].card_to_string(), _banker_hand[1].card_to_string()])
 
 
 func add_player_card(card: Card) -> void:

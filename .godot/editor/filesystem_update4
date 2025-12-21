@@ -1,1 +1,3 @@
+res://scripts/chance_cards/ChanceCardManager.gd
+res://scripts/chance_cards/implementations/HeartBetChanceCard.gd
 res://scenes/chance_cards/ChanceCardStorage.tscn

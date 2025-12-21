@@ -237,6 +237,23 @@ text = "Тигр"
 layout_mode = 2
 text = "Леопард"
 
+[node name="HSeparator5" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
+[node name="TestCardsSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TestCardsLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TestCardsSection"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ТЕСТИРОВАНИЕ"
+
+[node name="TestCardsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TestCardsSection"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "🧪 Тестовые карты"
+
 [node name="HSeparator4" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
 

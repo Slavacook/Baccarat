@@ -30,6 +30,7 @@ var _is_state_subscribed: bool = false
 var original_card_scale: Vector2 = Vector2.ONE
 var original_card_modulate: Color = Color.WHITE
 var original_bg_modulate: Color = Color(1, 1, 1, 0.7)
+var original_card_position: Vector2 = Vector2.ZERO  # ВАЖНО: позиция тоже должна восстанавливаться!
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -43,6 +44,7 @@ func _ready():
 	if card_texture:
 		original_card_scale = card_texture.scale
 		original_card_modulate = card_texture.modulate
+		original_card_position = card_texture.position  # ВАЖНО: сохраняем позицию!
 		# Устанавливаем pivot_offset в центр карты для масштабирования из центра
 		# pivot_offset работает в локальных координатах (от левого верхнего угла)
 		await get_tree().process_frame  # Ждём, пока размер установится
@@ -50,6 +52,8 @@ func _ready():
 		if card_size != Vector2.ZERO:
 			# Устанавливаем pivot в центр размера карты
 			card_texture.pivot_offset = card_size / 2.0
+		# Обновляем позицию после ожидания кадра (на случай если она изменилась)
+		original_card_position = card_texture.position
 	if background:
 		original_bg_modulate = background.modulate
 	
@@ -106,6 +110,7 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	card_texture.texture = card.card_texture
 	
 	# Восстанавливаем исходные значения (на случай если они были изменены анимацией)
+	card_texture.position = original_card_position  # ВАЖНО: восстанавливаем позицию!
 	card_texture.scale = original_card_scale
 	card_texture.modulate = original_card_modulate
 	background.modulate = original_bg_modulate
@@ -175,10 +180,11 @@ func hide_card():
 		# Не вызываем hide() здесь - только после анимации в callback
 		
 		# Анимируем закрытие с callback для фактического скрытия
+		# SCALE_TO_STORAGE - карта "улетает" к миниатюре в хранилище
 		ChanceCardAnimation.animate_close(
 			card_texture,
 			background,
-			ChanceCardAnimation.CloseType.SCALE_TO_ZERO,  # Изменить тип здесь
+			ChanceCardAnimation.CloseType.SCALE_TO_STORAGE,  # Карта улетает к хранилищу
 			storage_pos,
 			Callable(self, "_actually_hide_card")  # Правильный способ передачи метода
 		)
@@ -196,6 +202,7 @@ func _actually_hide_card():
 		_is_state_subscribed = false
 	
 	# Восстанавливаем исходные значения перед скрытием
+	card_texture.position = original_card_position  # ВАЖНО: восстанавливаем позицию!
 	card_texture.scale = original_card_scale
 	card_texture.modulate = original_card_modulate
 	background.modulate = original_bg_modulate

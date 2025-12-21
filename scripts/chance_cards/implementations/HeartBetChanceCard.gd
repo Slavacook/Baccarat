@@ -65,16 +65,19 @@ func can_use() -> bool:
 
 func on_use() -> void:
 	"""Использовать карту - вызвать HeartBetManager.use_chance()"""
-	# ДОПОЛНИТЕЛЬНАЯ ПРОВЕРКА: проверяем can_use() ещё раз перед использованием
-	# (на случай если состояние изменилось между открытием карты и нажатием кнопки)
-	if not can_use():
-		push_warning("⚠️ HeartBetChanceCard.on_use(): карту нельзя использовать (повторная проверка failed)")
+	# УБРАЛИ повторную проверку can_use() - она вызывала проблемы
+	# т.к. состояние игры могло измениться между показом карты и нажатием кнопки.
+	# Кнопка "Использовать" уже проверяет can_use() при отображении.
+	
+	if count <= 0:
+		push_warning("⚠️ HeartBetChanceCard.on_use(): нет доступных шансов")
 		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
 		return
 	
 	var phase_manager = _get_phase_manager()
 	if not phase_manager or not phase_manager.heart_bet_manager:
 		push_error("⚠️ HeartBetChanceCard: HeartBetManager не найден")
+		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
 		return
 	
 	var hb_manager = phase_manager.heart_bet_manager
@@ -85,6 +88,8 @@ func on_use() -> void:
 		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
 	else:
 		print("❤️ HeartBetChanceCard: шанс использован успешно")
+		# Уменьшаем счётчик карты
+		remove_count(1)
 
 func get_card_name() -> String:
 	"""Получить имя карты для локализации"""

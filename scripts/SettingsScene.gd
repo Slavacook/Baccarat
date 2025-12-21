@@ -46,6 +46,9 @@ signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выж
 @onready var tiger_button: Button = find_child("TigerButton", true, false)
 @onready var leopard_button: Button = find_child("LeopardButton", true, false)
 
+# === РАЗДЕЛ 7: ТЕСТОВЫЕ КАРТЫ (для отладки) ===
+@onready var test_cards_button: Button = find_child("TestCardsButton", true, false)
+
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 @onready var apply_button: Button = find_child("ApplyButton", true, false)
 @onready var cancel_button: Button = find_child("CancelButton", true, false)
@@ -125,6 +128,10 @@ func _connect_signals():
 		tiger_button.pressed.connect(_on_tiger_pressed)
 	if leopard_button:
 		leopard_button.pressed.connect(_on_leopard_pressed)
+	
+	# Тестовые карты
+	if test_cards_button:
+		test_cards_button.pressed.connect(_on_test_cards_pressed)
 
 	# Управляющие кнопки
 	if apply_button:
@@ -444,6 +451,37 @@ func _on_leopard_pressed():
 	_update_card_back_buttons()
 	EventBus.card_back_style_changed.emit("leopard")
 	print("🎴 Рубашка карт изменена: Леопард")
+
+# === ТЕСТОВЫЕ КАРТЫ ===
+func _on_test_cards_pressed():
+	"""Открыть попап настройки тестовых карт"""
+	# Ищем или создаём попап
+	var game_scene = get_tree().get_first_node_in_group("game")
+	if not game_scene:
+		game_scene = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
+	
+	var test_popup = null
+	if game_scene:
+		test_popup = game_scene.get_node_or_null("TestCardsPopup")
+	
+	if not test_popup:
+		# Создаём попап программно (скрипт создаёт UI сам)
+		var popup_script = load("res://scripts/popups/TestCardsPopup.gd")
+		if popup_script:
+			test_popup = CanvasLayer.new()
+			test_popup.name = "TestCardsPopup"
+			test_popup.set_script(popup_script)
+			if game_scene:
+				game_scene.add_child(test_popup)
+			else:
+				get_tree().root.add_child(test_popup)
+		else:
+			push_error("SettingsScene: не удалось загрузить TestCardsPopup.gd")
+			return
+	
+	if test_popup and test_popup.has_method("open_popup"):
+		test_popup.open_popup()
+		print("🧪 Открыт попап тестовых карт")
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 func _on_apply_pressed():

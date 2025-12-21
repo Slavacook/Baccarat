@@ -23,6 +23,12 @@ var phase_manager: GamePhaseManager = null
 ## HeartBar (передаётся из GameController для доступа к жизням)
 var heart_bar: HeartBar = null
 
+## Очередь карт для последовательного показа (когда несколько триггеров срабатывают одновременно)
+var _card_queue: Array[BaseChanceCard] = []
+
+## Флаг: карта сейчас показывается на экране
+var _is_showing_card: bool = false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -65,6 +71,9 @@ func _setup_event_subscriptions():
 	
 	# Изменение счётчика шансов
 	EventBus.chance_count_changed.connect(_on_chance_count_changed)
+	
+	# Закрытие popup карты - для показа следующей из очереди
+	EventBus.chance_card_popup_closed.connect(_on_popup_closed)
 	
 	print("🎴 ChanceCardManager: подписки на события установлены")
 
@@ -168,7 +177,17 @@ func set_heart_bar(hb: HeartBar):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _show_fullscreen(card: BaseChanceCard):
-	"""Показать карту на весь экран"""
+	"""Показать карту на весь экран (или добавить в очередь)"""
+	# Если уже показывается карта - добавляем в очередь
+	if _is_showing_card:
+		_card_queue.append(card)
+		print("🎴 Карта %s добавлена в очередь (всего в очереди: %d)" % [card.card_id, _card_queue.size()])
+		return
+	
+	_actually_show_fullscreen(card)
+
+func _actually_show_fullscreen(card: BaseChanceCard):
+	"""Фактически показать карту на весь экран"""
 	# Создаём сцену если её ещё нет
 	if not fullscreen_scene:
 		var scene_path = "res://scenes/chance_cards/BaseChanceCardScene.tscn"
@@ -186,12 +205,27 @@ func _show_fullscreen(card: BaseChanceCard):
 			push_error("⚠️ BaseChanceCardScene.tscn не найден")
 			return
 	
+	# Устанавливаем флаг показа
+	_is_showing_card = true
+	
 	# Получаем позицию хранилища для анимации ухода
 	var storage_pos = Vector2.ZERO
 	if storage:
 		storage_pos = storage.get_storage_position_for_card(card.card_id)
 	
 	fullscreen_scene.show_fullscreen(card, storage_pos)
+
+func _on_popup_closed():
+	"""Popup карты закрыт - показываем следующую из очереди"""
+	_is_showing_card = false
+	
+	# Показываем следующую карту из очереди если есть
+	if _card_queue.size() > 0:
+		var next_card = _card_queue.pop_front()
+		print("🎴 Показываем следующую карту из очереди: %s (осталось: %d)" % [next_card.card_id, _card_queue.size()])
+		# Небольшая задержка для плавности
+		await get_tree().create_timer(0.3).timeout
+		_actually_show_fullscreen(next_card)
 
 func _on_card_triggered(card: BaseChanceCard):
 	"""Карта активирована триггером"""
@@ -229,6 +263,12 @@ func _on_heart_card_triggered():
 func _on_heart_bet_card_triggered():
 	"""Триггер Heart Bet Card активирован (Tie - шанс сыграть на жизнь)"""
 	_trigger_chance_card("heart_bet", "🎰 Heart Bet Card")
+	
+	# ВАЖНО: Синхронизируем счётчик с HeartBetManager
+	# (он проверяет свой chance_count в use_chance())
+	if phase_manager and phase_manager.heart_bet_manager:
+		phase_manager.heart_bet_manager.chance_count += 1
+		print("🎰 HeartBetManager.chance_count синхронизирован: %d" % phase_manager.heart_bet_manager.chance_count)
 
 func _on_mystery_card_triggered():
 	"""Триггер Mystery Card активирован (натуральная победа)"""

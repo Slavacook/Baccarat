@@ -15,13 +15,18 @@ func _init():
 
 ## Зарегистрировать стандартные триггеры
 func _register_default_triggers() -> void:
-	# Победа банкира с 6 (Super6) - основной триггер
-	triggers.append(BankerSixTrigger.new())
+	# УБРАЛИ ВСЕ ТРИГГЕРЫ - теперь карты шансов управляются через
+	# _check_chance_card_triggers в GamePhaseManager:
+	# - Heart Card: победа банкира с 6 → heart_card_triggered
+	# - Heart Bet Card: Tie → heart_bet_card_triggered
+	# - Mystery Card: натуральная победа → mystery_card_triggered
+	# - Revolver Card: две пары → revolver_card_triggered
+	# - Third Card Change: все 6 картинки → third_card_change_triggered
 	
-	# Натуральная победа - для тестов (настраиваемый)
-	triggers.append(NaturalWinTrigger.new())
+	# triggers.append(BankerSixTrigger.new())  # Заменён на Heart Card триггер
+	# triggers.append(NaturalWinTrigger.new())  # Заменён на Mystery Card триггер
 	
-	print("🎰 HeartBetTriggerSystem: зарегистрировано %d триггеров" % triggers.size())
+	print("🎰 HeartBetTriggerSystem: триггеры отключены (управление через _check_chance_card_triggers)")
 
 
 ## Проверить все триггеры
