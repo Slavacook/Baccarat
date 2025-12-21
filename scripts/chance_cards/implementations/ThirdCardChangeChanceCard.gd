@@ -11,9 +11,6 @@ extends BaseChanceCard
 func _init():
 	card_id = "third_card_change"
 	
-	# Высокий приоритет — показывается первой (чтобы можно было убрать третьи карты)
-	priority = 100
-	
 	# Загружаем текстуру карты
 	if ResourceLoader.exists("res://assets/ui/chance_card/change_3card.png"):
 		card_texture = load("res://assets/ui/chance_card/change_3card.png")

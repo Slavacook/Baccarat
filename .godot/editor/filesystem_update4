@@ -6,3 +6,4 @@ res://scripts/HandManager.gd
 res://scripts/UIManager.gd
 res://scripts/ui/CardUIManager.gd
 res://scripts/chance_cards/BaseChanceCard.gd
+res://scripts/heart_bet/HeartBetTriggerSystem.gd

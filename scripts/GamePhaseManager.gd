@@ -218,6 +218,15 @@ func deal_first_four():
 			pair_betting_manager.has_player_pair(),
 			pair_betting_manager.has_banker_pair()
 		])
+		
+		# 🔄 ТРИГГЕР: Две пары → Third Card Change (с задержкой 1.5 сек)
+		if pair_betting_manager.has_player_pair() and pair_betting_manager.has_banker_pair():
+			print("🔄 Third Card Change: обнаружены две пары, карта через 1.5 сек...")
+			# Задержка 1.5 секунды чтобы игрок успел увидеть пары
+			EventBus.get_tree().create_timer(1.5).timeout.connect(func():
+				EventBus.third_card_change_triggered.emit()
+				print("🔄 Third Card Change триггер: две пары при раздаче!")
+			)
 
 	# Фишки уже показаны при настройке ставок, не обновляем их здесь
 
@@ -1366,12 +1375,14 @@ func has_pending_heart_bet() -> bool:
 func _check_chance_card_triggers(actual_winner: String) -> void:
 	"""Проверить и активировать триггеры карт шанса после определения победителя
 	
-	Триггеры:
-	- Mystery Card: натуральная победа (8 или 9)
+	Триггеры (проверяются здесь):
+	- Mystery Card: пара тузов (у игрока или банкира)
 	- Heart Card: победа банкира с 6 очками
 	- Heart Bet Card: Tie (игалите)
-	- Revolver Card: две пары одновременно (Player Pair + Banker Pair)
-	- Third Card Change: все 6 карт - картинки (J, Q, K)
+	- Revolver Card: все 6 карт по 0 очков (10, J, Q, K)
+	
+	Триггеры (проверяются в deal_first_four):
+	- Third Card Change: две пары — срабатывает сразу после раздачи
 	"""
 	var player_hand = hand_manager.get_player_hand_ref()
 	var banker_hand = hand_manager.get_banker_hand_ref()
@@ -1382,16 +1393,15 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 	
 	var player_score = BaccaratRules.hand_value(player_hand)
 	var banker_score = BaccaratRules.hand_value(banker_hand)
-	var is_natural = BaccaratRules.is_natural(player_hand) or BaccaratRules.is_natural(banker_hand)
 	
-	print("🎴 Проверка триггеров карт шанса: winner=%s, player=%d, banker=%d, natural=%s" % [actual_winner, player_score, banker_score, is_natural])
+	print("🎴 Проверка триггеров карт шанса: winner=%s, player=%d, banker=%d" % [actual_winner, player_score, banker_score])
 	
 	# ═══════════════════════════════════════════════════════════════════
-	# 1. MYSTERY CARD: натуральная победа (8 или 9)
+	# 1. MYSTERY CARD: пара тузов (у игрока или банкира)
 	# ═══════════════════════════════════════════════════════════════════
-	if is_natural and actual_winner != "Tie":
+	if _check_aces_pair(player_hand) or _check_aces_pair(banker_hand):
 		EventBus.mystery_card_triggered.emit()
-		print("❓ Mystery Card триггер: натуральная победа!")
+		print("❓ Mystery Card триггер: пара тузов!")
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# 2. HEART CARD: победа банкира с 6 очками
@@ -1408,20 +1418,16 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 		print("🎰 Heart Bet Card триггер: Tie (игалите)!")
 	
 	# ═══════════════════════════════════════════════════════════════════
-	# 4. REVOLVER CARD: две пары одновременно (Player Pair + Banker Pair)
+	# 4. REVOLVER CARD: все 6 карт по 0 очков (10, J, Q, K)
 	# ═══════════════════════════════════════════════════════════════════
-	var has_player_pair = _check_pair(player_hand)
-	var has_banker_pair = _check_pair(banker_hand)
-	if has_player_pair and has_banker_pair:
+	if _check_all_zero_cards(player_hand, banker_hand):
 		EventBus.revolver_card_triggered.emit()
-		print("🔫 Revolver Card триггер: две пары одновременно!")
+		print("🔫 Revolver Card триггер: все 6 карт по 0 очков!")
 	
 	# ═══════════════════════════════════════════════════════════════════
-	# 5. THIRD CARD CHANGE: все 6 карт - картинки (J, Q, K)
+	# 5. THIRD CARD CHANGE: две пары — триггер срабатывает в deal_first_four()
+	#    сразу после раздачи карт (не здесь, чтобы не дублировать)
 	# ═══════════════════════════════════════════════════════════════════
-	if _check_all_face_cards(player_hand, banker_hand):
-		EventBus.third_card_change_triggered.emit()
-		print("🔄 Third Card Change триггер: все 6 карт картинки!")
 
 
 func _check_pair(hand: Array) -> bool:
@@ -1462,24 +1468,47 @@ func _get_card_rank(card) -> String:
 	return ""
 
 
-func _check_all_face_cards(player_hand: Array, banker_hand: Array) -> bool:
-	"""Проверить, все ли 6 карт - картинки (J, Q, K)
+func _check_aces_pair(hand: Array) -> bool:
+	"""Проверить, есть ли пара тузов в руке (первые две карты - тузы)
 	
-	Картинки имеют значение 0 очков: Jack, Queen, King, 10
-	Card.value: 10=10, 11=J, 12=Q, 13=K
+	Card.value: 1 = Ace
+	"""
+	if hand.size() < 2:
+		return false
+	
+	var card1 = hand[0]
+	var card2 = hand[1]
+	
+	# Для объектов Card: value == 1 означает туз
+	if card1 is Card and card2 is Card:
+		var is_aces = card1.value == 1 and card2.value == 1
+		if is_aces:
+			print("🎴 _check_aces_pair: найдена пара тузов!")
+		return is_aces
+	
+	return false
+
+
+func _check_all_zero_cards(player_hand: Array, banker_hand: Array) -> bool:
+	"""Проверить, все ли 6 карт дают 0 очков (10, J, Q, K)
+	
+	Card.value: 10=10, 11=J, 12=Q, 13=K - все дают 0 очков в баккаре
 	"""
 	# Должно быть по 3 карты у каждого (с третьими картами)
 	if player_hand.size() < 3 or banker_hand.size() < 3:
 		return false
 	
 	var all_cards = player_hand + banker_hand
-	# Для объектов Card: 10, 11(J), 12(Q), 13(K)
-	# Для строк/словарей: jack, queen, king, 10, j, q, k
-	var face_ranks = ["jack", "queen", "king", "10", "j", "q", "k", "11", "12", "13"]
+	# Карты с 0 очков: 10, J(11), Q(12), K(13)
+	var zero_values = [10, 11, 12, 13]
 	
 	for card in all_cards:
-		var rank = _get_card_rank(card).to_lower()
-		if rank not in face_ranks:
+		if card is Card:
+			if card.value not in zero_values:
+				return false
+		else:
+			# Fallback для других типов
 			return false
 	
+	print("🎴 _check_all_zero_cards: все 6 карт по 0 очков!")
 	return true

@@ -56,11 +56,11 @@ func _ready():
 func _setup_event_subscriptions():
 	"""Подписка на события EventBus"""
 	# Триггеры карт шанса
-	EventBus.heart_card_triggered.connect(_on_heart_card_triggered)           # Банкир с 6
-	EventBus.heart_bet_card_triggered.connect(_on_heart_bet_card_triggered)   # Tie - шанс сыграть на жизнь
-	EventBus.mystery_card_triggered.connect(_on_mystery_card_triggered)       # Natural win
-	EventBus.revolver_card_triggered.connect(_on_revolver_card_triggered)     # Две пары
-	EventBus.third_card_change_triggered.connect(_on_third_card_change_triggered)  # Все 6 картинки
+	EventBus.heart_card_triggered.connect(_on_heart_card_triggered)           # Банкир выиграл с 6
+	EventBus.heart_bet_card_triggered.connect(_on_heart_bet_card_triggered)   # Tie (игалите)
+	EventBus.mystery_card_triggered.connect(_on_mystery_card_triggered)       # Пара тузов
+	EventBus.revolver_card_triggered.connect(_on_revolver_card_triggered)     # Все 6 карт по 0 очков
+	EventBus.third_card_change_triggered.connect(_on_third_card_change_triggered)  # Две пары
 	
 	# Старый триггер Heart Bet (для обратной совместимости)
 	EventBus.heart_bet_trigger_activated.connect(_on_heart_bet_trigger_activated)
@@ -178,26 +178,13 @@ func set_heart_bar(hb: HeartBar):
 
 func _show_fullscreen(card: BaseChanceCard):
 	"""Показать карту на весь экран (или добавить в очередь)"""
-	# Если уже показывается карта - добавляем в очередь с учётом приоритета
+	# Если уже показывается карта - добавляем в очередь
 	if _is_showing_card:
-		_insert_by_priority(card)
-		print("🎴 Карта %s (приоритет %d) добавлена в очередь (всего в очереди: %d)" % [card.card_id, card.priority, _card_queue.size()])
+		_card_queue.append(card)
+		print("🎴 Карта %s добавлена в очередь (всего в очереди: %d)" % [card.card_id, _card_queue.size()])
 		return
 	
 	_actually_show_fullscreen(card)
-
-
-func _insert_by_priority(card: BaseChanceCard):
-	"""Вставить карту в очередь с учётом приоритета (чем выше priority — тем раньше)"""
-	# Ищем позицию для вставки
-	var insert_pos = _card_queue.size()  # По умолчанию в конец
-	
-	for i in range(_card_queue.size()):
-		if card.priority > _card_queue[i].priority:
-			insert_pos = i
-			break
-	
-	_card_queue.insert(insert_pos, card)
 
 func _actually_show_fullscreen(card: BaseChanceCard):
 	"""Фактически показать карту на весь экран"""
@@ -284,15 +271,15 @@ func _on_heart_bet_card_triggered():
 		print("🎰 HeartBetManager.chance_count синхронизирован: %d" % phase_manager.heart_bet_manager.chance_count)
 
 func _on_mystery_card_triggered():
-	"""Триггер Mystery Card активирован (натуральная победа)"""
+	"""Триггер Mystery Card активирован (пара тузов)"""
 	_trigger_chance_card("mystery_card", "❓ Mystery Card")
 
 func _on_revolver_card_triggered():
-	"""Триггер Revolver Card активирован (две пары одновременно)"""
+	"""Триггер Revolver Card активирован (все 6 карт по 0 очков)"""
 	_trigger_chance_card("revolver_card", "🔫 Revolver Card")
 
 func _on_third_card_change_triggered():
-	"""Триггер Third Card Change активирован (все 6 карт - картинки)"""
+	"""Триггер Third Card Change активирован (две пары одновременно)"""
 	_trigger_chance_card("third_card_change", "🔄 Third Card Change")
 
 func _trigger_chance_card(card_id: String, log_prefix: String):
