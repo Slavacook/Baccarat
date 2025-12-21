@@ -340,7 +340,7 @@ static func _restore_chips_from_table_state(_controller: Node2D, result: Diction
 	DebugLogger.log_restore("✅ Все фишки восстановлены (%d ставок)" % TableStateManager.get_bets().size())
 
 
-static func _setup_event_subscriptions(controller: Node2D, _result: Dictionary) -> void:
+static func _setup_event_subscriptions(controller: Node2D, result: Dictionary) -> void:
 	"""Подписка на события EventBus"""
 	GameStateManager.state_changed.connect(controller._on_game_state_changed)
 	DebugLogger.log_game_flow("GameStateManager инициализирован")
@@ -352,6 +352,12 @@ static func _setup_event_subscriptions(controller: Node2D, _result: Dictionary) 
 	EventBus.card_back_style_changed.connect(controller._on_card_back_style_changed)
 	EventBus.position_mode_changed.connect(controller._on_position_mode_changed)
 	DebugLogger.log_init("Подписки на EventBus события установлены (payouts, flags, settings, card backs, position mode)")
+	
+	# Подписки на клавиатурное управление фокусом
+	var phase_manager: GamePhaseManager = result["phase_manager"]
+	EventBus.keyboard_action_requested.connect(phase_manager.on_action_pressed)
+	EventBus.focus_activated.connect(controller._on_focus_activated)
+	DebugLogger.log_init("Подписки на клавиатурное управление установлены (keyboard_action_requested, focus_activated)")
 
 
 static func _finalize_setup(controller: Node2D, result: Dictionary) -> void:
@@ -390,6 +396,9 @@ static func _finalize_setup(controller: Node2D, result: Dictionary) -> void:
 	else:
 		if controller.USE_OVERLAY_PAYOUT:
 			DebugLogger.log_warning("⚠️ PayoutOverlay НЕ НАЙДЕН в Game.tscn (но USE_OVERLAY_PAYOUT=true)")
+	
+	# Создаём FocusFrame для клавиатурного управления
+	_setup_focus_frame(controller)
 
 
 static func _setup_fixed_ui(controller: Node2D) -> void:
@@ -471,3 +480,26 @@ static func _check_payout_return(controller: Node2D, _result: Dictionary) -> voi
 	if GameDataManager.get_payout_winner() != "":
 		controller._handle_automatic_mode_payout_return()
 		return
+
+
+static func _setup_focus_frame(controller: Node2D) -> void:
+	"""Создание FocusFrame для клавиатурного управления
+	
+	FocusFrame создаётся на уровне основной сцены (не в TopUI),
+	чтобы он двигался вместе с камерой и элементами стола.
+	"""
+	# Проверяем, нет ли уже FocusFrame в сцене (добавлен вручную в редакторе)
+	var existing_frame = controller.find_child("FocusFrame", true, false)
+	if existing_frame:
+		DebugLogger.log_init("🔲 FocusFrame найден в сцене (настроен вручную)")
+		return
+	
+	# Создаём FocusFrame программно на уровне основной сцены
+	var focus_frame: FocusFrameUI = FocusFrameUI.new()
+	focus_frame.name = "FocusFrame"
+	
+	# Добавляем на уровень основной сцены (не в TopUI!)
+	# Это позволяет рамке двигаться вместе с камерой
+	controller.add_child(focus_frame)
+	
+	DebugLogger.log_init("🔲 FocusFrame создан на уровне основной сцены (двигается с камерой)")

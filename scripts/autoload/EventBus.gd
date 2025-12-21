@@ -377,6 +377,29 @@ signal revolver_card_triggered()
 signal third_card_change_triggered()
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ⌨️ КЛАВИАТУРНОЕ УПРАВЛЕНИЕ И ФОКУС
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Фокус изменился на другой элемент
+## target: "BankerThird", "PlayerThird", "BankerMarker", "PlayerMarker", "TieButton", "None"
+@warning_ignore("unused_signal")
+signal focus_changed(target: String)
+
+## Элемент в фокусе активирован (двойное нажатие)
+## target: "BankerThird", "PlayerThird", "BankerMarker", "PlayerMarker", "TieButton"
+@warning_ignore("unused_signal")
+signal focus_activated(target: String)
+
+## Запрос нажатия кнопки Action (Space)
+@warning_ignore("unused_signal")
+signal keyboard_action_requested()
+
+## Управление фокусом активировано/деактивировано
+## enabled: true = фаза раздачи карт, false = фаза сбора фишек
+@warning_ignore("unused_signal")
+signal focus_control_enabled(enabled: bool)
+
+# ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ (для проверки из RefCounted классов)
 # ═══════════════════════════════════════════════════════════════════════════
 

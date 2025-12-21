@@ -2057,3 +2057,55 @@ func _update_guest_balance_on_collect(bet_type: String, position_index: int) -> 
 			return
 	
 	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# КЛАВИАТУРНОЕ УПРАВЛЕНИЕ ФОКУСОМ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_focus_activated(target: String) -> void:
+	"""Обработчик активации элемента через клавиатурный фокус
+	
+	Вызывается когда пользователь дважды нажал клавишу для активации элемента.
+	
+	Args:
+		target: Имя активированного элемента:
+			- "BankerThird" - третья карта банкиру
+			- "PlayerThird" - третья карта игроку
+			- "BankerMarker" - маркер банкира
+			- "PlayerMarker" - маркер игрока  
+			- "TieButton" - кнопка ничьи
+	"""
+	match target:
+		"BankerThird":
+			# Активируем toggle третьей карты банкира
+			if phase_manager:
+				phase_manager.on_banker_third_toggled(true)
+				DebugLogger.log("⌨️ Активирован BankerThird через клавиатуру")
+		
+		"PlayerThird":
+			# Активируем toggle третьей карты игрока
+			if phase_manager:
+				phase_manager.on_player_third_toggled(true)
+				DebugLogger.log("⌨️ Активирован PlayerThird через клавиатуру")
+		
+		"BankerMarker":
+			# Активируем маркер банкира
+			if winner_selection_manager:
+				winner_selection_manager.toggle_winner("Banker")
+				DebugLogger.log("⌨️ Активирован BankerMarker через клавиатуру")
+		
+		"PlayerMarker":
+			# Активируем маркер игрока
+			if winner_selection_manager:
+				winner_selection_manager.toggle_winner("Player")
+				DebugLogger.log("⌨️ Активирован PlayerMarker через клавиатуру")
+		
+		"TieButton":
+			# Активируем кнопку Tie
+			if phase_manager:
+				phase_manager.on_tie_button_pressed()
+				DebugLogger.log("⌨️ Активирован TieButton через клавиатуру")
+		
+		_:
+			DebugLogger.log_warning("⚠️ Неизвестная цель фокуса: %s" % target)
