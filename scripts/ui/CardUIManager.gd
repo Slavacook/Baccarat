@@ -166,3 +166,9 @@ func _show_initial_backs():
 	player_card2.visible = true
 	banker_card1.visible = true
 	banker_card2.visible = true
+
+
+func hide_third_cards():
+	"""Скрыть только третьи карты (для Third Card Change)"""
+	player_card3.visible = false
+	banker_card3.visible = false

@@ -178,13 +178,26 @@ func set_heart_bar(hb: HeartBar):
 
 func _show_fullscreen(card: BaseChanceCard):
 	"""Показать карту на весь экран (или добавить в очередь)"""
-	# Если уже показывается карта - добавляем в очередь
+	# Если уже показывается карта - добавляем в очередь с учётом приоритета
 	if _is_showing_card:
-		_card_queue.append(card)
-		print("🎴 Карта %s добавлена в очередь (всего в очереди: %d)" % [card.card_id, _card_queue.size()])
+		_insert_by_priority(card)
+		print("🎴 Карта %s (приоритет %d) добавлена в очередь (всего в очереди: %d)" % [card.card_id, card.priority, _card_queue.size()])
 		return
 	
 	_actually_show_fullscreen(card)
+
+
+func _insert_by_priority(card: BaseChanceCard):
+	"""Вставить карту в очередь с учётом приоритета (чем выше priority — тем раньше)"""
+	# Ищем позицию для вставки
+	var insert_pos = _card_queue.size()  # По умолчанию в конец
+	
+	for i in range(_card_queue.size()):
+		if card.priority > _card_queue[i].priority:
+			insert_pos = i
+			break
+	
+	_card_queue.insert(insert_pos, card)
 
 func _actually_show_fullscreen(card: BaseChanceCard):
 	"""Фактически показать карту на весь экран"""

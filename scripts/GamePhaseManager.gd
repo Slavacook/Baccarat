@@ -893,6 +893,42 @@ func _update_game_state_manager():
 		banker_third_card
 	)
 
+
+func remove_third_cards_and_recalculate() -> void:
+	"""Убрать третьи карты и пересчитать состояние игры (для Third Card Change)
+	
+	Используется картой Third Card Change для:
+	1. Удаления третьих карт из рук
+	2. Скрытия третьих карт в UI (и текстуры карт, и тумблеры)
+	3. Сброса флагов выбора
+	4. Пересчёта состояния игры (возврат к фазе заказа третьих карт)
+	"""
+	print("🔄 Third Card Change: убираем третьи карты...")
+	
+	# Сбрасываем флаги выбора третьих карт
+	player_third_selected = false
+	banker_third_selected = false
+	
+	# Убираем карты из hand_manager
+	hand_manager.remove_third_cards()
+	
+	# Скрываем текстуры третьих карт на столе
+	ui.hide_third_cards()
+	
+	# Показываем тумблеры "?" для заказа новых третьих карт
+	ui.update_player_third_card_ui("?")
+	ui.update_banker_third_card_ui("?")
+	
+	# Пересчитываем состояние игры
+	_update_game_state_manager()
+	
+	var new_state = GameStateManager.get_state_name(GameStateManager.current_state)
+	print("🔄 Third Card Change: третьи карты убраны, новое состояние: %s" % new_state)
+	
+	# Показываем уведомление
+	EventBus.show_toast_info.emit("Третьи карты убраны! Заказывайте заново.")
+
+
 # ========================================
 # ВАЛИДАЦИЯ ВЫБОРА ПОБЕДИТЕЛЯ (новая логика)
 # ========================================
