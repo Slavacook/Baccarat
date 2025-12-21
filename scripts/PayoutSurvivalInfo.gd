@@ -1,5 +1,6 @@
 # res://scripts/PayoutSurvivalInfo.gd
-# Компонент для отображения жизней (survival mode) или очков (normal mode) в PayoutOverlay
+# Компонент для отображения денег и жизней в PayoutOverlay
+# Формат: [ 💰 1250 ]  [ ♥ 7 ]
 class_name PayoutSurvivalInfo
 extends HBoxContainer
 
@@ -15,11 +16,16 @@ extends HBoxContainer
 # ═══════════════════════════════════════════════════════════════════════════
 
 const MAX_LIVES = 7
-const HEART_SIZE = 24  # ← Размер одного сердечка
+const HEART_SIZE = 24  # Размер одного сердечка
 
-var single_heart: TextureRect  # ← Одно сердце
-var lives_count_label: Label   # ← Label с количеством жизней
+var single_heart: TextureRect  # Одно сердце
+var lives_count_label: Label   # Label с количеством жизней
 var heart_full: Texture2D
+
+# Контейнер для денег
+var money_container: HBoxContainer
+var money_icon: TextureRect
+var money_label: Label
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НОВАЯ СИСТЕМА: LabelHeartVisual
@@ -37,10 +43,15 @@ func _ready():
 	heart_full = preload("res://assets/ui/heart.png")
 
 	# Устанавливаем минимальное расстояние между элементами
+	add_theme_constant_override("separation", 16)  # Расстояние между деньгами и сердцами
+
 	if lives_container:
 		lives_container.add_theme_constant_override("separation", 4)
 
-	# Создаём одно сердце и Label с количеством жизней
+	# Создаём контейнер для денег (слева)
+	_create_money_display()
+
+	# Создаём одно сердце и Label с количеством жизней (справа)
 	_create_single_heart_display()
 	
 	# Инициализируем LabelHeartVisual
@@ -51,9 +62,34 @@ func _ready():
 			heart_full
 		)
 
-	# Начальное состояние (скрыто до первого update)
-	lives_container.visible = false
-	score_label.visible = false
+	# Скрываем старый score_label (теперь используем money_label)
+	if score_label:
+		score_label.visible = false
+
+	# Показываем оба контейнера
+	if money_container:
+		money_container.visible = true
+	if lives_container:
+		lives_container.visible = true
+
+# ═══════════════════════════════════════════════════════════════════════════
+# СОЗДАНИЕ ОТОБРАЖЕНИЯ ДЕНЕГ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _create_money_display():
+	"""Создать отображение денег: иконка + сумма"""
+	money_container = HBoxContainer.new()
+	money_container.add_theme_constant_override("separation", 4)
+	
+	# Вставляем в начало (перед lives_container)
+	add_child(money_container)
+	move_child(money_container, 0)
+	
+	# Лейбл чаевых
+	money_label = Label.new()
+	money_label.text = "Чаевые: 0"
+	money_label.add_theme_font_size_override("font_size", 20)
+	money_container.add_child(money_label)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОЗДАНИЕ ОТОБРАЖЕНИЯ ЖИЗНЕЙ
@@ -79,28 +115,26 @@ func _create_single_heart_display():
 # ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func update_display(is_survival_mode: bool, current_lives: int, score: int):
-	"""Обновить отображение на основе текущего режима
-
+func update_display(_is_survival_mode: bool, current_lives: int, money: int):
+	"""Обновить отображение денег и жизней
+	
 	Args:
-		is_survival_mode: Активен ли survival mode
-		current_lives: Текущее количество жизней (для survival mode)
-		score: Текущий счёт (для обычного режима)
+		_is_survival_mode: Игнорируется (теперь всегда показываем оба)
+		current_lives: Текущее количество жизней
+		money: Текущее количество денег
 	"""
-	print("🔍 PayoutSurvivalInfo.update_display вызван: survival=%s, lives=%d, score=%d" % [is_survival_mode, current_lives, score])
+	# Всегда показываем оба элемента
+	_update_money(money)
+	_update_hearts(current_lives)
 
-	if is_survival_mode:
-		# Показываем сердечки, скрываем очки
-		print("  → Показываем сердечки")
-		lives_container.visible = true
-		score_label.visible = false
-		_update_hearts(current_lives)
-	else:
-		# Показываем очки, скрываем сердечки
-		print("  → Показываем очки")
-		lives_container.visible = false
-		score_label.visible = true
-		_update_score(score)
+func _update_money(money: int):
+	"""Обновить отображение денег
+	
+	Args:
+		money: Количество денег
+	"""
+	if money_label:
+		money_label.text = "Чаевые: %d" % money
 
 func _update_hearts(current_lives: int):
 	"""Обновить отображение: одно сердце и количество жизней
@@ -109,7 +143,6 @@ func _update_hearts(current_lives: int):
 		current_lives: Текущее количество жизней (0-7)
 	"""
 	var clamped_lives = clamp(current_lives, 0, MAX_LIVES)
-	print("  → _update_hearts: current_lives=%d, clamped=%d" % [current_lives, clamped_lives])
 
 	# Используем LabelHeartVisual для обновления
 	if heart_visual:
@@ -121,16 +154,6 @@ func _update_hearts(current_lives: int):
 		if single_heart:
 			single_heart.texture = heart_full
 
-	print("  ✅ Отображение жизней обновлено: ♥ %d" % clamped_lives)
-
-func _update_score(score: int):
-	"""Обновить счёт в обычном режиме
-
-	Args:
-		score: Количество очков
-	"""
-	score_label.text = "Очки: %d" % score
-
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКА РАЗМЕРА СЕРДЕЧКА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -140,12 +163,6 @@ func set_heart_size(pixel_size: int):
 
 	Args:
 		pixel_size: Новый размер в пикселях
-
-	Примечание:
-		Вызовите этот метод ПЕРЕД _ready() если хотите изменить размер.
-		Или вызовите после _ready() для динамического изменения.
 	"""
 	if single_heart:
 		single_heart.custom_minimum_size = Vector2(pixel_size, pixel_size)
-
-	print("♥️  Размер сердечка изменён на %d px" % pixel_size)

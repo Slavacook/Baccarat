@@ -100,8 +100,8 @@ static func _initialize_core_managers(controller: Node2D, result: Dictionary) ->
 
 	result["game_over_popup"] = controller.get_node("GameOverScene")
 
-	# Подписываемся на Game Over по очкам
-	SaveManager.instance.score_game_over.connect(controller._on_score_game_over)
+	# Game Over теперь только через сердца (HeartBar.game_over)
+	# score_game_over удалён - деньги не вызывают game over
 
 
 static func _setup_settings_and_mode(controller: Node2D, result: Dictionary) -> void:
@@ -112,7 +112,7 @@ static func _setup_settings_and_mode(controller: Node2D, result: Dictionary) -> 
 		var settings_scene: Node = controller.get_node("SettingsScene")
 		settings_scene.mode_changed.connect(controller._on_mode_changed)
 		settings_scene.language_changed.connect(controller._on_language_changed)
-		settings_scene.survival_mode_changed.connect(controller._on_survival_mode_changed)
+		# survival_mode_changed удалён - режим выживания всегда включён
 		result["settings_scene"] = settings_scene
 		DebugLogger.log_init("SettingsScene подключен к GameController")
 	else:

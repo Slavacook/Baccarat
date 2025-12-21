@@ -119,6 +119,22 @@ func _ready():
 	_update_score_display()
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТКА КЛАВИАТУРЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _unhandled_input(event: InputEvent) -> void:
+	# Обрабатываем только когда overlay видим
+	if not visible:
+		return
+	
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_SPACE:
+			# Space = нажать кнопку "Выплатить"
+			if not payout_button.disabled:
+				_on_payout_pressed()
+				get_viewport().set_input_as_handled()
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 

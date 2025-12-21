@@ -3,12 +3,11 @@ extends Node
 
 static var instance: SaveManager
 
-signal score_game_over()  # ← Сигнал когда очки достигли 0
-
 const SAVE_PATH = "user://baccarat_stats.save"
 const SETTINGS_PATH = "user://baccarat_settings.save"
 
-var score: int = 10  # ← Очки (начальное значение 10)
+## Деньги (начальное значение 0, копятся за правильные действия)
+var score: int = 0
 
 func _init():
 	if instance == null:
@@ -32,34 +31,25 @@ func load_data():
 			var data = file.get_var()
 			file.close()
 			if data is Dictionary:
-				score = data.get("score", 10)  # ← По умолчанию 10 очков
+				score = data.get("score", 0)  # По умолчанию 0 денег
 
 func get_data() -> Dictionary:
 	return {"score": score}
 
 func reset_stats():
-	score = 10  # ← Начальный счёт при сбросе
+	"""Сброс денег на 0 (при Game Over или новой игре)"""
+	score = 0
 	save_data()
 
-# ← Управление очками
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ ДЕНЬГАМИ
+# ═══════════════════════════════════════════════════════════════════════════
+
 func add_score(points: int):
+	"""Добавить деньги за правильные действия"""
 	score += points
 	save_data()
-
-func subtract_score(points: int) -> bool:
-	score -= points
-	
-	# ← Очки не могут уйти в минус - если меньше 0, устанавливаем 0
-	if score < 0:
-		score = 0
-	
-	save_data()
-
-	# ← Проверка Game Over (очки == 0)
-	if score == 0:
-		score_game_over.emit()
-		return true  # Game Over
-	return false  # Продолжаем игру
+	print("💰 Деньги: +%d → %d" % [points, score])
 
 # ← Управление настройками игры
 func save_settings(settings: Dictionary):
@@ -91,14 +81,13 @@ func load_game_mode() -> String:
 	var settings = load_settings()
 	return settings.get("game_mode", "junket")
 
-func save_survival_mode(enabled: bool):
-	var settings = load_settings()
-	settings["survival_mode"] = enabled
-	save_settings(settings)
+func save_survival_mode(_enabled: bool):
+	"""DEPRECATED: Режим выживания теперь всегда включён"""
+	pass  # Ничего не делаем, режим всегда включён
 
 func load_survival_mode() -> bool:
-	var settings = load_settings()
-	return settings.get("survival_mode", true)  # По умолчанию survival mode
+	"""Режим выживания всегда включён (сердца + деньги)"""
+	return true  # Всегда true
 
 # ← Настройки языка
 func save_language(lang: String):

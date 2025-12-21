@@ -1,13 +1,6 @@
-res://scripts/KeyboardFocusController.gd
-res://scenes/chance_cards/ChanceCardStorage.tscn
 res://scripts/GameInitializer.gd
-res://scripts/ui/FocusFrameUI.gd
 res://scenes/Game.tscn
 res://scripts/GameController.gd
-res://scripts/ui/ButtonUIManager.gd
-res://scripts/WinnerSelectionManager.gd
-res://scripts/autoload/EventBus.gd
-res://scripts/ui/MarkerUIManager.gd
-res://scripts/UIManager.gd
-res://scripts/GamePhaseManager.gd
-res://scripts/chance_cards/ChanceCardManager.gd
+res://scripts/StatsManager.gd
+res://scripts/PayoutSurvivalInfo.gd
+res://scripts/PayoutOverlay.gd

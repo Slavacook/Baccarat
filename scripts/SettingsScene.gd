@@ -10,7 +10,6 @@ extends CanvasLayer
 
 signal mode_changed(mode: String)  # "junket" или "classic"
 signal language_changed(lang: String)  # "ru" или "en"
-signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выживания
 
 # ═══════════════════════════════════════════════════════════════════════════
 # UI УЗЛЫ (ищем по имени через find_child)
@@ -19,7 +18,7 @@ signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выж
 # Заголовок
 @onready var title_label: Label = find_child("TitleLabel", true, false)
 
-# === РАЗДЕЛ 1: РЕЖИМ ВЫЖИВАНИЯ ===
+# === РАЗДЕЛ 1: РЕЖИМ ВЫЖИВАНИЯ === (DEPRECATED - скрыт)
 @onready var survival_checkbox: CheckBox = find_child("SurvivalCheckbox", true, false)
 
 # === РАЗДЕЛ 2: РЕЖИМ ИГРЫ ===
@@ -57,7 +56,6 @@ signal survival_mode_changed(enabled: bool)  # вкл/выкл режим выж
 # СОХРАНЁННЫЕ ЗНАЧЕНИЯ (для кнопки "Отменить")
 # ═══════════════════════════════════════════════════════════════════════════
 
-var saved_survival_mode: bool
 var saved_game_mode: String
 var saved_language: String
 var saved_card_back_style: String
@@ -76,6 +74,14 @@ func _ready():
 	# Скрываем при старте
 	hide()
 
+	# Скрываем чекбокс режима выживания (теперь всегда включён)
+	if survival_checkbox:
+		survival_checkbox.visible = false
+		# Также скрываем родительский контейнер если есть
+		var parent = survival_checkbox.get_parent()
+		if parent and parent.name.contains("Survival"):
+			parent.visible = false
+
 	# Подключаем сигналы кнопок
 	_connect_signals()
 
@@ -87,10 +93,6 @@ func _ready():
 
 func _connect_signals():
 	"""Подключение всех сигналов UI элементов"""
-	# Режим выживания
-	if survival_checkbox:
-		survival_checkbox.toggled.connect(_on_survival_toggled)
-
 	# Режим игры
 	if junket_button:
 		junket_button.pressed.connect(_on_junket_pressed)
@@ -160,21 +162,12 @@ func close_settings():
 	hide()
 	print("⚙️  Окно настроек закрыто")
 
-func set_survival_mode(enabled: bool):
-	"""Установить режим выживания (вызывается из GameController)"""
-	saved_survival_mode = enabled
-	if survival_checkbox:
-		survival_checkbox.button_pressed = enabled
-
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - СОХРАНЕНИЕ/ЗАГРУЗКА
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _save_current_values():
 	"""Сохранить текущие значения настроек для возможности отмены"""
-	# Получаем текущий режим выживания из SaveManager
-	saved_survival_mode = SaveManager.load_survival_mode()
-
 	# Получаем текущий режим игры из GameModeManager
 	saved_game_mode = GameModeManager.get_mode_string()
 
@@ -190,10 +183,6 @@ func _save_current_values():
 
 func _load_current_values():
 	"""Загрузить текущие значения из менеджеров в UI"""
-	# Режим выживания - загружаем из SaveManager
-	if survival_checkbox:
-		survival_checkbox.button_pressed = SaveManager.load_survival_mode()
-
 	# Режим игры - загружаем из GameModeManager
 	var current_mode = GameModeManager.get_mode_string()
 	_update_mode_buttons(current_mode)
@@ -223,9 +212,6 @@ func _load_current_values():
 
 func _restore_saved_values():
 	"""Восстановить сохранённые значения (для кнопки "Отменить")"""
-	# Режим выживания - эмитим сигнал для GameController
-	survival_mode_changed.emit(saved_survival_mode)
-
 	# Режим игры - эмитим сигнал для GameController
 	mode_changed.emit(saved_game_mode)
 
@@ -261,9 +247,6 @@ func _update_texts():
 		apply_button.text = Localization.t("SETTINGS_BUTTON_APPLY")
 	if cancel_button:
 		cancel_button.text = Localization.t("SETTINGS_BUTTON_CANCEL")
-
-	if survival_checkbox:
-		survival_checkbox.text = Localization.t("SETTINGS_SURVIVAL_CHECKBOX")
 
 	# Рубашка карт
 	if tiger_button:
@@ -335,12 +318,6 @@ func _setup_bet_size_options():
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# === РЕЖИМ ВЫЖИВАНИЯ ===
-func _on_survival_toggled(pressed: bool):
-	"""Обработка переключения режима выживания"""
-	survival_mode_changed.emit(pressed)
-	print("💔 Режим выживания: %s" % ("ВКЛ" if pressed else "ВЫКЛ"))
-
 # === РЕЖИМ ИГРЫ ===
 func _on_junket_pressed():
 	"""Обработка нажатия кнопки Junket"""
@@ -386,6 +363,7 @@ func _on_guest_settings_pressed():
 	if guest_popup and guest_popup.has_method("open_popup"):
 		guest_popup.open_popup()
 		print("👥 Открыт попап настроек гостей")
+
 func _on_bet_player_toggled(pressed: bool):
 	"""Обработка переключения ставки Player"""
 	PayoutSettingsManager.toggle_player(pressed)

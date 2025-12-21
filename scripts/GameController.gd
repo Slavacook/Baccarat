@@ -63,7 +63,7 @@ var heart_bar: HeartBar = null
 # ═══════════════════════════════════════════════════════════════════════════
 
 var survival_rounds_completed: int = 0
-var is_survival_mode: bool = false
+var is_survival_mode: bool = true  # Всегда включён (сердца + деньги)
 var is_table_prepared_for_new_game: bool = false
 var is_game_over: bool = false  # Флаг Game Over для блокировки процессов
 
@@ -731,40 +731,7 @@ func _on_survival_game_over(_rounds: int):
 	# 5. Показываем UI
 	game_over_popup.show_game_over(survival_rounds_completed)
 
-func _on_score_game_over():
-	if is_game_over:
-		return  # Уже в Game Over
-	
-	is_game_over = true
-	EventBus.is_game_active = false  # Синхронизируем с EventBus
-	DebugLogger.log_game_flow("GAME OVER! Очки достигли 0")
-
-	# 1. Сбрасываем шансы (чтобы не переходили в новую игру)
-	if phase_manager and phase_manager.heart_bet_manager:
-		phase_manager.heart_bet_manager.force_reset()
-		DebugLogger.log("❤️ Шансы сброшены при Game Over")
-
-	# 2. Закрываем окно выплат, если оно открыто
-	if payout_overlay and payout_overlay.visible:
-		payout_overlay.hide()
-		DebugLogger.log_payout("PayoutOverlay закрыт при Game Over")
-
-	# 3. Зум аут до общего плана при Game Over
-	camera_zoom_out()
-	EventBus.camera_first_deal_set_requested.emit(true)  # Следующая раздача будет первой (с зумом)
-
-	# 4. Уведомляем все системы через EventBus
-	var final_score = SaveManager.instance.score
-	EventBus.game_over.emit(0)  # 0 для режима без выживания
-
-	# 5. Показываем UI
-	game_over_popup.show_game_over_score(final_score)
-	
-	# 6. Сбрасываем очки на 10 после геймовера (в режиме без сердечек)
-	if not SaveManager.instance.load_survival_mode():
-		SaveManager.instance.score = 10
-		SaveManager.instance.save_data()
-		DebugLogger.log("🔄 Очки сброшены на 10 после геймовера")
+# _on_score_game_over удалён - Game Over теперь только через сердца (HeartBar)
 
 func _on_restart_game():
 	# Сбрасываем флаг Game Over
@@ -837,35 +804,18 @@ func _on_language_changed(_lang: String):
 		var state = "!" if phase_manager.banker_third_selected else "?"
 		ui_manager.update_banker_third_card_ui(state)
 
-func _on_survival_mode_changed(enabled: bool):
-	is_survival_mode = enabled
-	SaveManager.save_survival_mode(enabled)
-	if enabled:
-		survival_ui.activate()
-		ui_manager.stats_label.visible = false
-		DebugLogger.log("Режим выживания включён")
-	else:
-		survival_ui.deactivate()
-		ui_manager.stats_label.visible = true
-		DebugLogger.log("Режим выживания выключен")
-
-	# ← Обновляем отображение статистики (переключаемся между очками и правильно/ошибки)
-	StatsManager.instance.update_stats()
+func _on_survival_mode_changed(_enabled: bool):
+	"""DEPRECATED: Режим выживания теперь всегда включён"""
+	# Ничего не делаем - режим всегда включён
+	pass
 
 func _load_survival_mode_setting():
-	var enabled = SaveManager.load_survival_mode()
-	is_survival_mode = enabled
-	if settings_scene:
-		settings_scene.set_survival_mode(enabled)
-	if survival_ui:  # ← Проверяем, что survival_ui инициализирован
-		if enabled:
-			survival_ui.activate()
-			if ui_manager:
-				ui_manager.stats_label.visible = false
-		else:
-			survival_ui.deactivate()
-			if ui_manager:
-				ui_manager.stats_label.visible = true
+	"""Активировать режим выживания (теперь всегда включён)"""
+	is_survival_mode = true  # Всегда true
+	if survival_ui:
+		survival_ui.activate()
+	# StatsLabel показывает деньги (управляется в StatsManager)
+	DebugLogger.log("Режим выживания активирован (сердца + деньги)")
 
 func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
@@ -1035,10 +985,7 @@ func _restore_automatic_mode_state() -> void:
 			heart_bar.deactivate()
 	elif survival_ui:
 		survival_ui.set_lives(GameDataManager.get_survival_lives())
-		if GameDataManager.is_survival_active():
-			survival_ui.activate()
-		else:
-			survival_ui.deactivate()
+		survival_ui.activate()  # Всегда активен
 	
 	# Восстанавливаем камеру на общий план (без анимации)
 	if camera_manager:
