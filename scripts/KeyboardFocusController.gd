@@ -222,7 +222,7 @@ func _set_focus(target: FocusTarget) -> void:
 
 
 func _activate_current_focus() -> void:
-	"""Активировать элемент в текущем фокусе"""
+	"""Активировать элемент в текущем фокусе и сбросить фокус"""
 	if current_focus == FocusTarget.NONE:
 		return
 	
@@ -230,6 +230,9 @@ func _activate_current_focus() -> void:
 	EventBus.focus_activated.emit(target_name)
 	
 	print("⌨️ Активация: %s" % target_name)
+	
+	# Сбрасываем фокус после активации (следующий Space = кнопка "Карты")
+	_clear_focus()
 
 
 func _clear_focus() -> void:

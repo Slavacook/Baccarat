@@ -1464,9 +1464,11 @@ func _on_guest_bets_hide_requested() -> void:
 
 func _on_guest_bets_show_requested() -> void:
 	"""Показать ставки гостей после завершения Heart Bet раздачи"""
-	if chip_visual_manager:
-		chip_visual_manager.show_all_guest_chips()
-		print("❤️ GameController: ставки гостей восстановлены")
+	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
+	# потому что фишки (узлы) могли быть удалены во время Heart Bet раунда
+	if phase_manager:
+		phase_manager._show_guest_bets()
+		print("❤️ GameController: фишки ставок гостей пересозданы")
 
 
 func _on_heart_bet_declined() -> void:
@@ -1475,10 +1477,12 @@ func _on_heart_bet_declined() -> void:
 	if phase_manager and phase_manager.guest_bet_storage:
 		phase_manager.guest_bet_storage.restore_all_bets()
 	
-	# Показываем ставки гостей
-	if chip_visual_manager:
-		chip_visual_manager.show_all_guest_chips()
-		print("❤️ GameController: ставки гостей восстановлены после отказа от карты")
+	# Пересоздаём фишки ставок гостей
+	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
+	# потому что фишки (узлы) могли быть удалены
+	if phase_manager:
+		phase_manager._show_guest_bets()
+		print("❤️ GameController: фишки ставок гостей пересозданы после отказа от карты")
 
 
 func _on_heart_bet_round_complete() -> void:
@@ -1535,10 +1539,12 @@ func _on_heart_bet_round_complete() -> void:
 	if phase_manager and phase_manager.guest_bet_storage:
 		phase_manager.guest_bet_storage.restore_all_bets()
 	
-	# Восстанавливаем ВИДИМОСТЬ ставок гостей ТОЛЬКО если НЕ было Tie draw
-	if not was_tie_draw and chip_visual_manager:
-		chip_visual_manager.show_all_guest_chips()
-		print("❤️ Видимость ставок гостей восстановлена")
+	# Восстанавливаем ФИШКИ ставок гостей ТОЛЬКО если НЕ было Tie draw
+	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
+	# потому что фишки (узлы) могли быть удалены во время Heart Bet раунда
+	if not was_tie_draw and phase_manager:
+		phase_manager._show_guest_bets()
+		print("❤️ Фишки ставок гостей пересозданы")
 	elif was_tie_draw:
 		print("❤️ Tie draw: ставки гостей НЕ показываются, игра переходит к новой раздаче")
 	
@@ -2046,9 +2052,9 @@ func _on_focus_activated(target: String) -> void:
 				DebugLogger.log("⌨️ Активирован PlayerMarker через клавиатуру")
 		
 		"TieMarker":
-			# Активируем маркер Tie
-			if phase_manager:
-				phase_manager.on_tie_button_pressed()
+			# Активируем маркер Tie (toggle как и другие маркеры)
+			if winner_selection_manager:
+				winner_selection_manager.toggle_winner("Tie")
 				DebugLogger.log("⌨️ Активирован TieMarker через клавиатуру")
 		
 		_:

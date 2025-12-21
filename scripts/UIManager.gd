@@ -16,7 +16,7 @@ signal banker_third_toggled(selected: bool)
 signal winner_selected(winner: String)
 signal help_button_pressed()
 signal lang_button_pressed()
-signal tie_button_pressed()
+# TieMarker теперь обрабатывается через WinnerSelectionManager
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СПЕЦИАЛИЗИРОВАННЫЕ МЕНЕДЖЕРЫ
@@ -41,7 +41,7 @@ var tie_chip: TextureButton
 
 # ← Эти ссылки сохранены для внешнего доступа (GameController, GamePhaseManager)
 var action_button: TextureButton
-var tie_button: TextureButton  # TieMarker теперь TextureButton
+# TieMarker теперь управляется через WinnerSelectionManager
 var help_button: Button
 var player_third_toggle: TextureRect
 var banker_third_toggle: TextureRect
@@ -89,7 +89,7 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 
 	# Эти ссылки используются для прямого доступа извне
 	action_button = button_ui.action_button
-	tie_button = button_ui.tie_button
+	# TieMarker теперь в WinnerSelectionManager
 	help_button = button_ui.help_button
 	player_third_toggle = toggle_ui.player_third_toggle
 	banker_third_toggle = toggle_ui.banker_third_toggle
@@ -110,9 +110,7 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	button_ui.action_button_pressed.connect(
 		func(): action_button_pressed.emit()
 	)
-	button_ui.tie_button_pressed.connect(
-		func(): tie_button_pressed.emit()
-	)
+	# TieMarker теперь обрабатывается через WinnerSelectionManager
 	button_ui.help_button_pressed.connect(
 		func(): help_button_pressed.emit()
 	)
@@ -211,27 +209,10 @@ func update_lang_button():
 	button_ui.update_lang_button()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ TIE BUTTON (→ ButtonUIManager)
+# TieMarker теперь управляется через WinnerSelectionManager
+# (show/hide/enable/disable методы удалены)
 # ═══════════════════════════════════════════════════════════════════════════
 
-func show_tie_button():
-	"""Показать кнопку Игалите (после раздачи карт)"""
-	button_ui.show_tie_button()
-
-
-func hide_tie_button():
-	"""Скрыть кнопку Игалите (после завершения раунда)"""
-	button_ui.hide_tie_button()
-
-
-func enable_tie_button():
-	"""Активировать кнопку Игалите (когда маркеры Player/Banker не выбраны)"""
-	button_ui.enable_tie_button()
-
-
-func disable_tie_button():
-	"""Деактивировать кнопку Игалите (когда выбран маркер Player или Banker)"""
-	button_ui.disable_tie_button()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СБРОС UI К НАЧАЛЬНОМУ СОСТОЯНИЮ

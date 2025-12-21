@@ -161,14 +161,18 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 	var winner_selection_manager: WinnerSelectionManager = WinnerSelectionManager.new()
 	var player_marker: Node = controller.get_node_or_null("PlayerMarker")
 	var banker_marker: Node = controller.get_node_or_null("BankerMarker")
+	var tie_marker: Node = controller.get_node_or_null("TieMarker")
 
 	if player_marker and banker_marker:
-		winner_selection_manager.setup(player_marker, banker_marker)
+		winner_selection_manager.setup(player_marker, banker_marker, tie_marker)
 		winner_selection_manager.winner_toggled.connect(controller._on_winner_toggled)
 		# Отключаем фокус для маркеров, чтобы они не реагировали на пробел
 		player_marker.focus_mode = Control.FOCUS_NONE
 		banker_marker.focus_mode = Control.FOCUS_NONE
-		DebugLogger.log_init("WinnerSelectionManager инициализирован (Player, Banker)")
+		if tie_marker:
+			tie_marker.focus_mode = Control.FOCUS_NONE
+		var marker_list = "Player, Banker" + (", Tie" if tie_marker else "")
+		DebugLogger.log_init("WinnerSelectionManager инициализирован (%s)" % marker_list)
 	
 	# Отключаем фокус для кнопки "Карты", чтобы она не реагировала на пробел
 	var ui_manager: UIManager = result.get("ui_manager")
@@ -219,7 +223,7 @@ static func _connect_ui_signals(controller: Node2D, result: Dictionary) -> void:
 	ui_manager.action_button_pressed.connect(phase_manager.on_action_pressed)
 	ui_manager.player_third_toggled.connect(phase_manager.on_player_third_toggled)
 	ui_manager.banker_third_toggled.connect(phase_manager.on_banker_third_toggled)
-	ui_manager.tie_button_pressed.connect(phase_manager.on_tie_button_pressed)
+	# TieMarker теперь обрабатывается через WinnerSelectionManager.winner_toggled
 	ui_manager.help_button_pressed.connect(controller._on_help_button_pressed)
 	ui_manager.lang_button_pressed.connect(controller._on_lang_button_pressed)
 

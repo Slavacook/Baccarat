@@ -29,6 +29,10 @@ const MARKER_TEXTURES = {
 	"Banker": {
 		"normal": "res://assets/ui/banker_marker.png",
 		"active": "res://assets/ui/banker_marker_wins.png"
+	},
+	"Tie": {
+		"normal": "res://assets/ui/Tie.png",
+		"active": "res://assets/ui/Tie_win.png"
 	}
 }
 
@@ -36,13 +40,19 @@ const MARKER_TEXTURES = {
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func setup(player_marker: TextureButton, banker_marker: TextureButton):
+func setup(player_marker: TextureButton, banker_marker: TextureButton, tie_marker: TextureButton = null):
 	"""Настройка ссылок на маркеры и подключение сигналов
 
-	Примечание: Маркер "Tie" удалён - теперь используется маркер TieMarker
+	Параметры:
+		player_marker: маркер игрока
+		banker_marker: маркер банкира
+		tie_marker: маркер ничьи (опционально)
 	"""
 	marker_nodes["Player"] = player_marker
 	marker_nodes["Banker"] = banker_marker
+	
+	if tie_marker:
+		marker_nodes["Tie"] = tie_marker
 
 	# Подключаем сигналы к каждому маркеру
 	for winner_type in marker_nodes.keys():
@@ -50,7 +60,8 @@ func setup(player_marker: TextureButton, banker_marker: TextureButton):
 		# Отключаем автоматическое поведение TextureButton
 		marker.pressed.connect(_on_marker_clicked.bind(winner_type))
 
-	print("✅ WinnerSelectionManager: маркеры настроены (Player, Banker)")
+	var marker_list = ", ".join(marker_nodes.keys())
+	print("✅ WinnerSelectionManager: маркеры настроены (%s)" % marker_list)
 
 
 # ═══════════════════════════════════════════════════════════════════════════

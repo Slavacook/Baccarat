@@ -12,7 +12,6 @@ extends RefCounted
 signal action_button_pressed()
 signal help_button_pressed()
 signal lang_button_pressed()
-signal tie_button_pressed()
 signal collect_button_toggled(enabled: bool)
 signal pay_button_toggled(enabled: bool)
 
@@ -22,9 +21,9 @@ signal pay_button_toggled(enabled: bool)
 
 var action_button: TextureButton  # Главная кнопка "Карты" / "Подтвердить" / "Завершить"
 var action_button_broken: TextureButton  # Кнопка с broken текстурой (подмена при неоплаченных ставках)
-var tie_button: TextureButton     # Маркер "Игалите" (появляется после раздачи)
 var help_button: Button           # Кнопка помощи
 var lang_button: Button           # Кнопка смены языка (опционально)
+# TieMarker теперь управляется через WinnerSelectionManager
 
 # Кнопки управления сбором/оплатой ставок
 var collect_button: TextureButton  # Кнопка "Забрать" (toggle)
@@ -89,11 +88,8 @@ func _init(scene: Node):
 	else:
 		print("⚠️  ButtonUIManager: CardsButtonBroken НЕ найдена в сцене!")
 
-	# Tie marker (всегда виден, находится на уровне стола)
-	if scene.has_node("TieMarker"):
-		tie_button = scene.get_node("TieMarker")
-		tie_button.pressed.connect(func(): tie_button_pressed.emit())
-		# TieMarker всегда виден, не скрывается
+	# TieMarker теперь обрабатывается через WinnerSelectionManager
+	# (подключение там же, как и для PlayerMarker/BankerMarker)
 
 	# Lang button опционально (может отсутствовать в некоторых сценах)
 	if scene.has_node("LangButton"):
@@ -219,34 +215,9 @@ func update_lang_button():
 		lang_button.text = Localization.get_lang().to_upper()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# УПРАВЛЕНИЕ TIE BUTTON
+# TieMarker теперь управляется через WinnerSelectionManager
+# (show/hide/enable/disable методы удалены)
 # ═══════════════════════════════════════════════════════════════════════════
-
-func show_tie_button():
-	"""Показать маркер Игалите (при раздаче карт)"""
-	if tie_button:
-		tie_button.visible = true
-		# TextureButton использует текстуры, не текст
-
-
-func hide_tie_button():
-	"""Скрыть маркер Игалите (после завершения раундa)"""
-	if tie_button:
-		tie_button.visible = false
-
-
-func enable_tie_button():
-	"""Активировать маркер Игалите (когда маркеры Player/Banker не выбраны)"""
-	if tie_button:
-		tie_button.visible = true   # при активации возвращаем на экран
-		tie_button.disabled = false
-
-
-func disable_tie_button():
-	"""Деактивировать маркер Игалите (когда выбран маркер Player или Banker)"""
-	if tie_button:
-		tie_button.disabled = true
-		tie_button.visible = false  # скрываем полностью, а не просто делаем полупрозрачной
 
 
 # ═══════════════════════════════════════════════════════════════════════════
