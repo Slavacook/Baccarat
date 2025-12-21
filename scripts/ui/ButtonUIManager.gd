@@ -22,7 +22,7 @@ signal pay_button_toggled(enabled: bool)
 
 var action_button: TextureButton  # Главная кнопка "Карты" / "Подтвердить" / "Завершить"
 var action_button_broken: TextureButton  # Кнопка с broken текстурой (подмена при неоплаченных ставках)
-var tie_button: Button            # Кнопка "Игалите" (появляется после раздачи)
+var tie_button: TextureButton     # Маркер "Игалите" (появляется после раздачи)
 var help_button: Button           # Кнопка помощи
 var lang_button: Button           # Кнопка смены языка (опционально)
 
@@ -89,11 +89,11 @@ func _init(scene: Node):
 	else:
 		print("⚠️  ButtonUIManager: CardsButtonBroken НЕ найдена в сцене!")
 
-	# Tie button (появляется при раздаче, скрыта по умолчанию)
-	if scene.has_node("TieButton"):
-		tie_button = scene.get_node("TieButton")
+	# Tie marker (всегда виден, находится на уровне стола)
+	if scene.has_node("TieMarker"):
+		tie_button = scene.get_node("TieMarker")
 		tie_button.pressed.connect(func(): tie_button_pressed.emit())
-		tie_button.visible = false  # Скрыта до начала раздачи
+		# TieMarker всегда виден, не скрывается
 
 	# Lang button опционально (может отсутствовать в некоторых сценах)
 	if scene.has_node("LangButton"):
@@ -223,28 +223,27 @@ func update_lang_button():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_tie_button():
-	"""Показать кнопку Игалите (при раздаче карт)"""
+	"""Показать маркер Игалите (при раздаче карт)"""
 	if tie_button:
 		tie_button.visible = true
-		# Обновляем текст при показе (на случай смены языка)
-		tie_button.text = Localization.t("TIE_BUTTON")
+		# TextureButton использует текстуры, не текст
 
 
 func hide_tie_button():
-	"""Скрыть кнопку Игалите (после завершения раундa)"""
+	"""Скрыть маркер Игалите (после завершения раундa)"""
 	if tie_button:
 		tie_button.visible = false
 
 
 func enable_tie_button():
-	"""Активировать кнопку Игалите (когда маркеры Player/Banker не выбраны)"""
+	"""Активировать маркер Игалите (когда маркеры Player/Banker не выбраны)"""
 	if tie_button:
 		tie_button.visible = true   # при активации возвращаем на экран
 		tie_button.disabled = false
 
 
 func disable_tie_button():
-	"""Деактивировать кнопку Игалите (когда выбран маркер Player или Banker)"""
+	"""Деактивировать маркер Игалите (когда выбран маркер Player или Banker)"""
 	if tie_button:
 		tie_button.disabled = true
 		tie_button.visible = false  # скрываем полностью, а не просто делаем полупрозрачной

@@ -96,6 +96,9 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	player_third_selected = false
 	banker_third_selected = false
 	was_heart_bet_round = false  # Сбрасываем флаг Heart Bet раунда
+	
+	# Сбрасываем список показанных карт шансов (для нового раунда)
+	ChanceCardManager.reset_shown_cards()
 	ui.reset_ui()
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -103,8 +106,7 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	ui.update_banker_third_card_ui("?")
 	ui.enable_action_button()
 
-	# Скрываем кнопку Игалите при сбросе
-	ui.hide_tie_button()
+	# TieMarker всегда виден (не скрывается)
 
 	# Инвалидируем кэш GameStateManager (важно даже при update_state=false)
 	GameStateManager._cache_hash = -1
@@ -202,9 +204,7 @@ func deal_first_four():
 	ui.show_first_four_cards(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	ui.set_action_button_state("confirm")
 
-	# Показываем кнопку Игалите (активна только когда маркеры не выбраны)
-	ui.show_tie_button()
-	ui.enable_tie_button()
+	# TieMarker всегда виден (не нужно показывать/скрывать)
 
 	# Проверяем пары (молча, без оповещений)
 	if pair_betting_manager:

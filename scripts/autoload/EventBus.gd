@@ -381,12 +381,12 @@ signal third_card_change_triggered()
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Фокус изменился на другой элемент
-## target: "BankerThird", "PlayerThird", "BankerMarker", "PlayerMarker", "TieButton", "None"
+## target: "BankerThird", "PlayerThird", "BankerMarker", "PlayerMarker", "TieMarker", "None"
 @warning_ignore("unused_signal")
 signal focus_changed(target: String)
 
 ## Элемент в фокусе активирован (двойное нажатие)
-## target: "BankerThird", "PlayerThird", "BankerMarker", "PlayerMarker", "TieButton"
+## target: "BankerThird", "PlayerThird", "BankerMarker", "PlayerMarker", "TieMarker"
 @warning_ignore("unused_signal")
 signal focus_activated(target: String)
 

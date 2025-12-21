@@ -22,7 +22,7 @@ signal winner_selected(winner: String)
 
 var player_marker: Control
 var banker_marker: Control
-# tie_marker удалён - теперь используется кнопка TieButton
+# tie_marker удалён - теперь используется маркер TieMarker
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -37,7 +37,7 @@ func _init(scene: Node):
 	# Получаем ссылки на UI узлы маркеров
 	player_marker = scene.get_node("PlayerMarker")
 	banker_marker = scene.get_node("BankerMarker")
-	# tie_marker удалён - теперь используется кнопка TieButton
+	# tie_marker удалён - теперь используется маркер TieMarker
 
 	# Маркеры управляются через WinnerSelectionManager (GameController)
 

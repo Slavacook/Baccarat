@@ -1401,16 +1401,13 @@ func _on_position_mode_changed(_mode: int):
 func _on_winner_toggled(winner: String, selected: bool):
 	if selected:
 		DebugLogger.log("🎯 Выбран: %s" % winner)
-		# Деактивируем кнопку Игалите когда выбран маркер Player или Banker
-		ui_manager.disable_tie_button()
+		# TieMarker всегда виден (не деактивируется)
 		# Отменяем заказ третьих карт при активации маркера
 		if phase_manager:
 			phase_manager.cancel_third_card_orders()
 	else:
 		DebugLogger.log("🎯 Снят выбор: %s" % winner)
-		# Активируем кнопку Игалите если ни один маркер не выбран
-		if not winner_selection_manager.is_winner_selected():
-			ui_manager.enable_tie_button()
+		# TieMarker всегда виден и доступен (не нужно активировать/деактивировать)
 
 
 func _on_camera_zoom_completed(_zoom_type: String) -> void:
@@ -2074,7 +2071,7 @@ func _on_focus_activated(target: String) -> void:
 			- "PlayerThird" - третья карта игроку
 			- "BankerMarker" - маркер банкира
 			- "PlayerMarker" - маркер игрока  
-			- "TieButton" - кнопка ничьи
+			- "TieMarker" - маркер ничьи
 	"""
 	match target:
 		"BankerThird":
@@ -2101,11 +2098,11 @@ func _on_focus_activated(target: String) -> void:
 				winner_selection_manager.toggle_winner("Player")
 				DebugLogger.log("⌨️ Активирован PlayerMarker через клавиатуру")
 		
-		"TieButton":
-			# Активируем кнопку Tie
+		"TieMarker":
+			# Активируем маркер Tie
 			if phase_manager:
 				phase_manager.on_tie_button_pressed()
-				DebugLogger.log("⌨️ Активирован TieButton через клавиатуру")
+				DebugLogger.log("⌨️ Активирован TieMarker через клавиатуру")
 		
 		_:
 			DebugLogger.log_warning("⚠️ Неизвестная цель фокуса: %s" % target)

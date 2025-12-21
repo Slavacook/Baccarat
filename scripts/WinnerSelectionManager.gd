@@ -39,7 +39,7 @@ const MARKER_TEXTURES = {
 func setup(player_marker: TextureButton, banker_marker: TextureButton):
 	"""Настройка ссылок на маркеры и подключение сигналов
 
-	Примечание: Маркер "Tie" удалён - теперь используется кнопка TieButton
+	Примечание: Маркер "Tie" удалён - теперь используется маркер TieMarker
 	"""
 	marker_nodes["Player"] = player_marker
 	marker_nodes["Banker"] = banker_marker

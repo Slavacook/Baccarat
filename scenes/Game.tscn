@@ -1,4 +1,4 @@
-[gd_scene load_steps=33 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=35 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
@@ -23,8 +23,10 @@
 [ext_resource type="Texture2D" uid="uid://bi8p5atnji7jw" path="res://assets/ui/error.png" id="18_sv1m6"]
 [ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="21_a8wo8"]
 [ext_resource type="Texture2D" uid="uid://bvepwtmlt4ecj" path="res://assets/ui/buttons/complete_button_broken.png" id="22_broken"]
+[ext_resource type="Texture2D" uid="uid://pjrcoee4fq31" path="res://assets/ui/Tie.png" id="23_naigu"]
 [ext_resource type="Script" uid="uid://ctrkmnbi413ic" path="res://scripts/ui/PayButton.gd" id="23_paybutton"]
 [ext_resource type="Script" uid="uid://c8nuey0a3cflc" path="res://scripts/ui/AreaButton.gd" id="24_area_btn"]
+[ext_resource type="Texture2D" uid="uid://bpjf6tt0ch2bw" path="res://assets/ui/Tie_win.png" id="24_m1oc7"]
 [ext_resource type="Texture2D" uid="uid://f7fhlbo4np5f" path="res://assets/ui/buttons/area_1_button.PNG" id="25_area1"]
 [ext_resource type="Texture2D" uid="uid://bwy60524m1av6" path="res://assets/ui/buttons/area_2_button.PNG" id="26_area2"]
 [ext_resource type="Texture2D" uid="uid://who34v62dlhi" path="res://assets/ui/buttons/area_3_button.PNG" id="27_area3"]
@@ -45,9 +47,9 @@ anchors_preset = 5
 anchor_left = 0.5
 anchor_right = 0.5
 offset_left = -254.0
-offset_top = 500.0
+offset_top = 400.0
 offset_right = 272.0
-offset_bottom = 600.0
+offset_bottom = 500.0
 grow_horizontal = 2
 mouse_filter = 2
 
@@ -55,6 +57,9 @@ mouse_filter = 2
 layer = 128
 
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
+visible = true
+offset_top = 600.0
+offset_bottom = 650.0
 
 [node name="ChanceCardStorage" parent="TopUI" instance=ExtResource("33_chance_storage")]
 anchors_preset = 2
@@ -370,6 +375,16 @@ texture_normal = ExtResource("7_3xj3m")
 texture_pressed = ExtResource("8_mcffj")
 texture_hover = ExtResource("8_mcffj")
 
+[node name="TieMarker" type="TextureButton" parent="."]
+offset_left = 540.0
+offset_top = 300.0
+offset_right = 1040.0
+offset_bottom = 800.0
+scale = Vector2(0.2, 0.2)
+texture_normal = ExtResource("23_naigu")
+texture_pressed = ExtResource("24_m1oc7")
+texture_hover = ExtResource("24_m1oc7")
+
 [node name="HelpButton" type="Button" parent="."]
 custom_minimum_size = Vector2(40, 40)
 offset_left = 80.0
@@ -435,13 +450,6 @@ offset_left = 656.0
 offset_top = 207.0
 offset_right = 696.0
 offset_bottom = 247.0
-
-[node name="TieButton" type="Button" parent="."]
-offset_left = 494.0
-offset_top = 557.0
-offset_right = 671.0
-offset_bottom = 632.0
-text = "Игалите"
 
 [node name="Area1Button" type="TextureButton" parent="."]
 visible = false

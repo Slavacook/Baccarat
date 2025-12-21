@@ -29,6 +29,12 @@ var _card_queue: Array[BaseChanceCard] = []
 ## Флаг: карта сейчас показывается на экране
 var _is_showing_card: bool = false
 
+## Флаг: блокировка очереди (при закрытии через клавиатуру)
+var _queue_blocked: bool = false
+
+## Карты, уже показанные в текущем раунде (чтобы не показывать повторно)
+var _shown_this_round: Dictionary = {}  # card_id -> true
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -176,8 +182,23 @@ func set_heart_bar(hb: HeartBar):
 # ПРИВАТНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _show_fullscreen(card: BaseChanceCard):
-	"""Показать карту на весь экран (или добавить в очередь)"""
+func _show_fullscreen(card: BaseChanceCard, force: bool = false):
+	"""Показать карту на весь экран (или добавить в очередь)
+	
+	Args:
+		card: Карта для показа
+		force: Принудительный показ (из инвентаря), игнорирует проверку "уже показана"
+	"""
+	# Блокировка очереди активна - игнорируем запрос (закрытие через клавиатуру)
+	if _queue_blocked:
+		print("🎴 Карта %s игнорируется (очередь заблокирована)" % card.card_id)
+		return
+	
+	# Карта уже показывалась в этом раунде - не показываем повторно (если не force)
+	if not force and _shown_this_round.has(card.card_id):
+		print("🎴 Карта %s уже показывалась в этом раунде" % card.card_id)
+		return
+	
 	# Если уже показывается карта - добавляем в очередь
 	if _is_showing_card:
 		_card_queue.append(card)
@@ -208,6 +229,9 @@ func _actually_show_fullscreen(card: BaseChanceCard):
 	# Устанавливаем флаг показа
 	_is_showing_card = true
 	
+	# Отмечаем что карта показана в этом раунде
+	_shown_this_round[card.card_id] = true
+	
 	# Получаем позицию хранилища для анимации ухода
 	var storage_pos = Vector2.ZERO
 	if storage:
@@ -218,6 +242,13 @@ func _actually_show_fullscreen(card: BaseChanceCard):
 func _on_popup_closed():
 	"""Popup карты закрыт - показываем следующую из очереди"""
 	_is_showing_card = false
+	
+	# Если очередь заблокирована - сбрасываем и не показываем следующую
+	if _queue_blocked:
+		_queue_blocked = false
+		_card_queue.clear()  # Очищаем очередь
+		print("🎴 Очередь разблокирована и очищена")
+		return
 	
 	# Показываем следующую карту из очереди если есть
 	if _card_queue.size() > 0:
@@ -242,6 +273,33 @@ func _on_card_used(card: BaseChanceCard):
 func _on_card_closed(card: BaseChanceCard):
 	"""Карта закрыта без использования"""
 	print("🎴 Карта закрыта: %s" % card.card_id)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ ВНЕШНЕГО ДОСТУПА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func is_card_showing() -> bool:
+	"""Проверить, открыта ли карта шанса на экране"""
+	return _is_showing_card and fullscreen_scene != null and fullscreen_scene.visible
+
+
+func close_current_card() -> void:
+	"""Закрыть текущую открытую карту шанса (если открыта, через клавиатуру)
+	
+	Блокирует очередь, чтобы карта не показывалась снова после закрытия.
+	"""
+	if is_card_showing() and fullscreen_scene:
+		_queue_blocked = true  # Блокируем очередь до завершения закрытия
+		fullscreen_scene.close_card()
+
+
+func reset_shown_cards() -> void:
+	"""Сбросить список показанных карт (вызывается при начале нового раунда)
+	
+	После сброса карты снова смогут показываться при срабатывании триггеров.
+	"""
+	_shown_this_round.clear()
+	print("🎴 Список показанных карт сброшен (новый раунд)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
@@ -312,8 +370,10 @@ func _on_fullscreen_requested(card_id: String):
 		_show_fullscreen(card)
 
 func _on_storage_clicked(card_id: String):
-	"""Клик на миниатюру в хранилище"""
-	_on_fullscreen_requested(card_id)
+	"""Клик на миниатюру в хранилище - показать принудительно (из инвентаря)"""
+	var card = get_card(card_id)
+	if card:
+		_show_fullscreen(card, true)  # force=true - из инвентаря всегда показываем
 
 func _on_chance_count_changed(count: int):
 	"""Счётчик шансов изменился (для Heart Bet)"""

@@ -41,7 +41,7 @@ var tie_chip: TextureButton
 
 # ← Эти ссылки сохранены для внешнего доступа (GameController, GamePhaseManager)
 var action_button: TextureButton
-var tie_button: Button
+var tie_button: TextureButton  # TieMarker теперь TextureButton
 var help_button: Button
 var player_third_toggle: TextureRect
 var banker_third_toggle: TextureRect

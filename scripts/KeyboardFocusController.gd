@@ -21,7 +21,7 @@ enum FocusTarget {
 	PLAYER_THIRD,   # Третья карта игроку (D из NONE)
 	BANKER_MARKER,  # Маркер банкира (W из BANKER_THIRD)
 	PLAYER_MARKER,  # Маркер игрока (W из PLAYER_THIRD)
-	TIE_BUTTON      # Кнопка Игалите (W из NONE, центр между маркерами)
+	TIE_MARKER      # Маркер Игалите (W из NONE, центр между маркерами)
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -97,9 +97,18 @@ func _unhandled_input(event: InputEvent) -> void:
 func _handle_space_press() -> void:
 	"""Space - универсальная активация
 	
-	Если есть фокус → активирует элемент в фокусе
-	Если нет фокуса → нажимает кнопку 'Карты'
+	Приоритет:
+	1. Если открыта карта шанса → закрыть её
+	2. Если есть фокус → активирует элемент в фокусе
+	3. Если нет фокуса → нажимает кнопку 'Карты'
 	"""
+	# Проверяем, открыта ли карта шанса
+	if ChanceCardManager and ChanceCardManager.is_card_showing():
+		ChanceCardManager.close_current_card()
+		print("⌨️ Space → Закрыта карта шанса")
+		return
+	
+	# Обычная логика
 	if current_focus == FocusTarget.NONE:
 		# Нет фокуса → кнопка "Карты"
 		EventBus.keyboard_action_requested.emit()
@@ -115,8 +124,8 @@ func _handle_a_press() -> void:
 	Таблица переходов:
 	  NONE → BANKER_THIRD
 	  PLAYER_THIRD → BANKER_THIRD
-	  PLAYER_MARKER → TIE_BUTTON
-	  TIE_BUTTON → BANKER_MARKER
+	  PLAYER_MARKER → TIE_MARKER
+	  TIE_MARKER → BANKER_MARKER
 	  Остальные → без изменений
 	"""
 	match current_focus:
@@ -125,8 +134,8 @@ func _handle_a_press() -> void:
 		FocusTarget.PLAYER_THIRD:
 			_set_focus(FocusTarget.BANKER_THIRD)
 		FocusTarget.PLAYER_MARKER:
-			_set_focus(FocusTarget.TIE_BUTTON)
-		FocusTarget.TIE_BUTTON:
+			_set_focus(FocusTarget.TIE_MARKER)
+		FocusTarget.TIE_MARKER:
 			_set_focus(FocusTarget.BANKER_MARKER)
 		# BANKER_THIRD, BANKER_MARKER → остаются на месте
 
@@ -137,8 +146,8 @@ func _handle_d_press() -> void:
 	Таблица переходов:
 	  NONE → PLAYER_THIRD
 	  BANKER_THIRD → PLAYER_THIRD
-	  BANKER_MARKER → TIE_BUTTON
-	  TIE_BUTTON → PLAYER_MARKER
+	  BANKER_MARKER → TIE_MARKER
+	  TIE_MARKER → PLAYER_MARKER
 	  Остальные → без изменений
 	"""
 	match current_focus:
@@ -147,8 +156,8 @@ func _handle_d_press() -> void:
 		FocusTarget.BANKER_THIRD:
 			_set_focus(FocusTarget.PLAYER_THIRD)
 		FocusTarget.BANKER_MARKER:
-			_set_focus(FocusTarget.TIE_BUTTON)
-		FocusTarget.TIE_BUTTON:
+			_set_focus(FocusTarget.TIE_MARKER)
+		FocusTarget.TIE_MARKER:
 			_set_focus(FocusTarget.PLAYER_MARKER)
 		# PLAYER_THIRD, PLAYER_MARKER → остаются на месте
 
@@ -157,19 +166,19 @@ func _handle_w_press() -> void:
 	"""W - навигация вверх (к маркерам / Игалите)
 	
 	Таблица переходов:
-	  NONE → TIE_BUTTON
+	  NONE → TIE_MARKER
 	  BANKER_THIRD → BANKER_MARKER
 	  PLAYER_THIRD → PLAYER_MARKER
 	  Остальные → без изменений
 	"""
 	match current_focus:
 		FocusTarget.NONE:
-			_set_focus(FocusTarget.TIE_BUTTON)
+			_set_focus(FocusTarget.TIE_MARKER)
 		FocusTarget.BANKER_THIRD:
 			_set_focus(FocusTarget.BANKER_MARKER)
 		FocusTarget.PLAYER_THIRD:
 			_set_focus(FocusTarget.PLAYER_MARKER)
-		# BANKER_MARKER, PLAYER_MARKER, TIE_BUTTON → остаются на месте
+		# BANKER_MARKER, PLAYER_MARKER, TIE_MARKER → остаются на месте
 
 
 func _handle_s_press() -> void:
@@ -180,7 +189,7 @@ func _handle_s_press() -> void:
 	  PLAYER_MARKER → PLAYER_THIRD
 	  BANKER_THIRD → NONE
 	  PLAYER_THIRD → NONE
-	  TIE_BUTTON → NONE
+	  TIE_MARKER → NONE
 	  NONE → без изменений
 	"""
 	match current_focus:
@@ -188,7 +197,7 @@ func _handle_s_press() -> void:
 			_set_focus(FocusTarget.BANKER_THIRD)
 		FocusTarget.PLAYER_MARKER:
 			_set_focus(FocusTarget.PLAYER_THIRD)
-		FocusTarget.BANKER_THIRD, FocusTarget.PLAYER_THIRD, FocusTarget.TIE_BUTTON:
+		FocusTarget.BANKER_THIRD, FocusTarget.PLAYER_THIRD, FocusTarget.TIE_MARKER:
 			_clear_focus()
 		# NONE → без изменений
 
@@ -247,8 +256,8 @@ func _get_target_name(target: FocusTarget) -> String:
 			return "BankerMarker"
 		FocusTarget.PLAYER_MARKER:
 			return "PlayerMarker"
-		FocusTarget.TIE_BUTTON:
-			return "TieButton"
+		FocusTarget.TIE_MARKER:
+			return "TieMarker"
 		_:
 			return "None"
 
@@ -313,8 +322,8 @@ func _get_node_for_focus(target: FocusTarget) -> Control:
 				return marker
 			return root.get_node_or_null("PlayerZone/PlayerMarker")
 		
-		FocusTarget.TIE_BUTTON:
-			return root.find_child("TieButton", true, false)
+		FocusTarget.TIE_MARKER:
+			return root.find_child("TieMarker", true, false)
 		
 		_:
 			return null
