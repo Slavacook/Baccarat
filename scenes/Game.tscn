@@ -1,7 +1,6 @@
-[gd_scene load_steps=40 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=38 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
-[ext_resource type="Texture2D" uid="uid://csqohix558l5u" path="res://assets/ui/table_background.png" id="1_qbsmt"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
 [ext_resource type="Texture2D" uid="uid://b0ddti5pm57ub" path="res://assets/ui/buttons/take_button_4.png" id="4_attvq"]
 [ext_resource type="PackedScene" path="res://scenes/GameOverScene.tscn" id="4_gameover"]
@@ -11,7 +10,6 @@
 [ext_resource type="Texture2D" uid="uid://b5w6jvx0owvhw" path="res://assets/ui/player_marker_wins.png" id="6_qy1jj"]
 [ext_resource type="Texture2D" uid="uid://ychwh6o6frhy" path="res://assets/ui/banker_marker.png" id="7_3xj3m"]
 [ext_resource type="PackedScene" uid="uid://6nt8xcinibd0" path="res://scenes/flip_card.tscn" id="7_sv1m6"]
-[ext_resource type="Texture2D" uid="uid://b6oj16k73oxel" path="res://assets/ui/tables/table_green_2.png" id="8_a85ww"]
 [ext_resource type="Texture2D" uid="uid://cdadbsgspc1fn" path="res://assets/ui/tables/table_green_3.png" id="8_attvq"]
 [ext_resource type="Texture2D" uid="uid://bec6luc7qioix" path="res://assets/ui/buttons/down.png" id="8_i4jil"]
 [ext_resource type="Texture2D" uid="uid://tutby4vxvi2x" path="res://assets/ui/banker_marker_wins.png" id="8_mcffj"]
@@ -175,23 +173,7 @@ grow_vertical = 2
 scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("9_jai3c")
 
-[node name="Background" type="TextureRect" parent="."]
-visible = false
-offset_right = 1920.0
-offset_bottom = 1080.0
-scale = Vector2(0.6, 0.6)
-texture = ExtResource("1_qbsmt")
-
-[node name="Background2" type="TextureRect" parent="."]
-offset_left = -1708.0
-offset_top = -620.0
-offset_right = 4692.0
-offset_bottom = 2068.0
-scale = Vector2(0.72, 0.72)
-texture = ExtResource("8_a85ww")
-
 [node name="Background3" type="TextureRect" parent="."]
-modulate = Color(1, 1, 1, 0.5882353)
 offset_left = -1708.0
 offset_top = -620.0
 offset_right = 4692.0
