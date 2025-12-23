@@ -69,6 +69,9 @@ var third_card_ui_handler: ThirdCardUIHandler = null
 ## Исполнитель действий для третьих карт
 var third_card_action_executor: ThirdCardActionExecutor = null
 
+## Исполнитель действий для выбора победителя
+var winner_action_executor: WinnerActionExecutor = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -186,6 +189,10 @@ func _init(
 	# Инициализируем исполнитель действий для третьих карт
 	third_card_action_executor = ThirdCardActionExecutor.new()
 	DebugLogger.log("✅ ThirdCardActionExecutor инициализирован в GamePhaseManager")
+	
+	# Инициализируем исполнитель действий для выбора победителя
+	winner_action_executor = WinnerActionExecutor.new()
+	DebugLogger.log("✅ WinnerActionExecutor инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1157,11 +1164,14 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		result: Результат валидации от WinnerSelectionValidator
 		actual_winner: Фактический победитель (уже определён)
 	"""
+	# Используем исполнитель для получения инструкций
+	var instructions = winner_action_executor.get_action_instructions(result, actual_winner)
+	
 	# Если валидация не прошла - показываем ошибку
-	if not result.get("is_valid", false):
-		var error_type = result.get("error_type", "")
-		var error_message = result.get("error_message", "")
-		var error_params = result.get("error_message_params", [])
+	if instructions.get("should_show_error", false):
+		var error_type = instructions.get("error_type", "")
+		var error_message = instructions.get("error_message", "")
+		var error_params = instructions.get("error_params", [])
 		
 		# Используем форматтер для форматирования сообщения об ошибке
 		var message_text = validation_error_formatter.format_winner_selection_error(
@@ -1171,17 +1181,18 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		EventBus.show_toast_error.emit(message_text)
 		EventBus.action_error.emit(error_type, message_text)
 		# Сбрасываем выбор маркера
-		if winner_selection_manager:
+		if instructions.get("should_reset_winner_selection", false) and winner_selection_manager:
 			winner_selection_manager.reset()
 		return
 	
 	# ✅ Правильный выбор!
-	EventBus.action_correct.emit("winner")
+	if instructions.get("should_emit_correct", false):
+		EventBus.action_correct.emit("winner")
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ТРИГГЕРЫ КАРТ ШАНСА (только в режиме выживания)
 	# ═══════════════════════════════════════════════════════════════════
-	if SaveManager.instance.load_survival_mode():
+	if instructions.get("should_check_chance_card_triggers", false) and SaveManager.instance.load_survival_mode():
 		_check_chance_card_triggers(actual_winner)
 	
 	# ═══════════════════════════════════════════════════════════════════
@@ -1210,9 +1221,10 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		return
 
 	# Меняем кнопку на "complete" (готовность к выплатам)
-	ui.set_action_button_state("complete")
-	# Активируем кнопку при переходе в стадию выплат
-	ui.enable_action_button()
+	if instructions.get("should_update_button_state", false):
+		ui.set_action_button_state(instructions.get("button_state", "complete"))
+		# Активируем кнопку при переходе в стадию выплат
+		ui.enable_action_button()
 
 	# Показываем кнопки Collect/Pay после определения победителя
 	if ui.button_ui:
