@@ -30,6 +30,9 @@ var heart_bet_manager: HeartBetManager = null
 ## Карточный дилер (раздача карт)
 var card_dealer: CardDealer = null
 
+## Валидатор действий третьих карт
+var third_card_validator: ThirdCardActionValidator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -88,6 +91,10 @@ func _init(
 	# Инициализируем карточного дилера
 	card_dealer = CardDealer.new()
 	DebugLogger.log("🎴 CardDealer инициализирован в GamePhaseManager")
+	
+	# Инициализируем валидатор действий третьих карт
+	third_card_validator = ThirdCardActionValidator.new()
+	DebugLogger.log("✅ ThirdCardActionValidator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -441,57 +448,87 @@ func on_tie_button_pressed():
 # ========================================
 
 func _validate_and_execute_third_cards() -> void:
+	# Используем валидатор для чистой логики валидации
 	var ps: int = hand_manager.get_player_initial_score()
 	var bs: int = hand_manager.get_banker_initial_score()
-
-	# Проверка натуральных или особых комбинаций (8-9, 6v6, 7v7)
-	if BaccaratRules.has_natural_or_no_third(ps, bs):
-		_handle_natural_case()
-		return
-
-	var player_draw: bool = ps <= 5
-	var banker_draw_always: bool = bs <= 2
-
-	# State 2: Карта каждому (банкир 0-2, игрок 0-5)
-	if banker_draw_always and player_draw:
-		_handle_card_to_each()
-		return
-
-	# State 3.1: Карта игроку (банкир 7 стоит)
-	if player_draw and bs == 7:
-		_handle_card_to_player_with_banker_7(ps, bs)
-		return
-
-	# State 3.2: Карта игроку (банкир 3-6 решает потом)
-	if player_draw and bs >= 3 and bs <= 6:
-		_handle_card_to_player_with_banker_3_6(ps)
-		return
-
-	# State 4: Карта банкиру (игрок 6-7 стоит)
-	var banker_draw: bool = _should_banker_draw()
-	if not player_draw and banker_draw:
-		_handle_card_to_banker_only(ps, bs)
-		return
-
-	# Fallback: оба стоят
-	# Проверяем, не пытается ли игрок заказать карты когда оба должны стоять
-	if player_third_selected or banker_third_selected:
-		if player_third_selected:
-			EventBus.show_toast_error.emit(Localization.t("ERR_PLAYER_NO_DRAW", [ps]))
-			EventBus.action_error.emit("player_wrong", "")
-			ui.update_player_third_card_ui("?")
-			player_third_selected = false
-		if banker_third_selected:
-			EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_NO_DRAW", [bs]))
-			EventBus.action_error.emit("banker_wrong", "")
-			ui.update_banker_third_card_ui("?")
-			banker_third_selected = false
-		return
-
-	complete_game()
+	var has_player_third = hand_manager.has_player_third_card()
+	var player_third_card = hand_manager.get_player_third_card()
+	
+	var validation_result = third_card_validator.validate_third_card_action(
+		ps, bs,
+		player_third_selected, banker_third_selected,
+		has_player_third, player_third_card
+	)
+	
+	# Обрабатываем результат валидации
+	_handle_validation_result(validation_result, ps, bs)
 
 # ========================================
-# ОБРАБОТЧИКИ ДЛЯ КАЖДОГО СЦЕНАРИЯ
+# ОБРАБОТКА РЕЗУЛЬТАТОВ ВАЛИДАЦИИ
+# ========================================
+
+func _handle_validation_result(result: Dictionary, player_score: int, banker_score: int) -> void:
+	"""Обработать результат валидации от ThirdCardActionValidator
+	
+	Args:
+		result: Результат валидации от валидатора
+		player_score: Очки игрока (для сообщений об ошибках)
+		banker_score: Очки банкира (для сообщений об ошибках)
+	"""
+	# Сбрасываем выборы если нужно
+	if result.get("should_reset_player", false):
+		player_third_selected = false
+		ui.update_player_third_card_ui("?")
+	
+	if result.get("should_reset_banker", false):
+		banker_third_selected = false
+		ui.update_banker_third_card_ui("?")
+	
+	# Если валидация не прошла - показываем ошибку
+	if not result.get("is_valid", false):
+		var error_type = result.get("error_type", "")
+		var error_message = result.get("error_message", "")
+		
+		# Форматируем сообщение об ошибке с параметрами если нужно
+		var message_text = error_message
+		if error_message == "ERR_PLAYER_NO_DRAW" or error_message == "ERR_PLAYER_MUST_DRAW":
+			message_text = Localization.t(error_message, [player_score])
+		elif error_message == "ERR_BANKER_NO_DRAW" or error_message == "ERR_BANKER_MUST_DRAW":
+			message_text = Localization.t(error_message, [banker_score])
+		else:
+			message_text = Localization.t(error_message)
+		
+		EventBus.show_toast_error.emit(message_text)
+		EventBus.action_error.emit(error_type, message_text)
+		return
+	
+	# Валидация прошла - выполняем действие
+	var action = result.get("action", "complete")
+	match action:
+		"draw_both":
+			draw_player_third()
+			draw_banker_third()
+			complete_game()
+		"draw_player":
+			draw_player_third()
+			# Проверяем нужно ли ждать решения банкира (сценарий 3.2: банкир 3-6)
+			if result.get("needs_banker_decision", false):
+				_handle_banker_after_player()
+			else:
+				complete_game()
+		"draw_banker":
+			draw_banker_third()
+			complete_game()
+		"wait_banker":
+			# Игрок взял карту, ждём решения банкира
+			_handle_banker_after_player()
+		"complete":
+			complete_game()
+		_:
+			complete_game()
+
+# ========================================
+# ОБРАБОТЧИКИ ДЛЯ КАЖДОГО СЦЕНАРИЯ (DEPRECATED - используются через валидатор)
 # ========================================
 
 # Натуральная 8-9 или особые комбинации (6v6, 7v7, 6v7, 7v6)
@@ -591,25 +628,56 @@ func _handle_banker_after_player():
 		complete_game()
 
 func _validate_banker_after_player():
+	# Используем валидатор для чистой логики
 	var bs: int = hand_manager.get_banker_initial_score()
-	var banker_draw: bool = _should_banker_draw()
-	if banker_draw:
-		if not banker_third_selected:
-			EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_MUST_DRAW", [bs]))
-			EventBus.action_error.emit("banker_wrong", "")
-			ui.update_banker_third_card_ui("?")
-			banker_third_selected = true
-			return
-		draw_banker_third()
-		complete_game()
-	else:
-		if banker_third_selected:
-			EventBus.show_toast_error.emit(Localization.t("ERR_BANKER_NO_DRAW", [bs]))
-			EventBus.action_error.emit("banker_wrong", "")
-			ui.update_banker_third_card_ui("?")
-			banker_third_selected = false
-			return
-		complete_game()
+	var has_player_third = hand_manager.has_player_third_card()
+	var player_third_card = hand_manager.get_player_third_card()
+	
+	var validation_result = third_card_validator.validate_banker_after_player(
+		bs, banker_third_selected, has_player_third, player_third_card
+	)
+	
+	# Обрабатываем результат валидации
+	_handle_banker_validation_result(validation_result, bs)
+
+func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> void:
+	"""Обработать результат валидации банкира после игрока
+	
+	Args:
+		result: Результат валидации от валидатора
+		banker_score: Очки банкира (для сообщений об ошибках)
+	"""
+	# Сбрасываем выбор если нужно
+	if result.get("should_reset_banker", false):
+		banker_third_selected = false
+		ui.update_banker_third_card_ui("?")
+	elif result.get("action") == "wait_banker" and not banker_third_selected:
+		# Банкир должен взять карту, но не выбрал - устанавливаем флаг
+		banker_third_selected = true
+	
+	# Если валидация не прошла - показываем ошибку
+	if not result.get("is_valid", false):
+		var error_type = result.get("error_type", "")
+		var error_message = result.get("error_message", "")
+		var message_text = Localization.t(error_message, [banker_score])
+		
+		EventBus.show_toast_error.emit(message_text)
+		EventBus.action_error.emit(error_type, message_text)
+		return
+	
+	# Валидация прошла - выполняем действие
+	var action = result.get("action", "complete")
+	match action:
+		"draw_banker":
+			draw_banker_third()
+			complete_game()
+		"complete":
+			complete_game()
+		"wait_banker":
+			# Ждём выбора банкира (ничего не делаем, состояние уже обновлено)
+			pass
+		_:
+			complete_game()
 
 func _restore_active_bet_chips() -> void:
 	"""Восстановить ВСЕ фишки из TableStateManager для новой раздачи

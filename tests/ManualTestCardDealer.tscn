@@ -1,7 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://test_card_dealer"]
+[gd_scene load_steps=2 format=3 uid="uid://dyfsjbvt24jqk"]
 
-[ext_resource type="Script" path="res://tests/manual_test_CardDealer.gd" id="1_manual_test"]
+[ext_resource type="Script" uid="uid://dk36ori1w7it3" path="res://tests/manual_test_CardDealer.gd" id="1_manual_test"]
 
 [node name="ManualTestCardDealer" type="Node"]
 script = ExtResource("1_manual_test")
-

@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1766453264
+::res://::1766454914
 CLAUDE.md::TextFile::-1::1765937705::0::1::::<><><>0<>0<><>::
 CLEANUP_REPORT.md::TextFile::-1::1765878385::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1766352500::0::1::::<><><>0<>0<><>::
@@ -265,7 +265,7 @@ ChanceCardStorage.tscn::PackedScene::6951891940693214951::1766301751::0::1::::<>
 HeartBetUI.tscn::PackedScene::7103767641990542386::1766026399::0::1::::<><><>0<>0<><>::uid://bgncl0lhk41q0::::res://scripts/heart_bet/HeartBetUI.gd
 ::res://scenes/popups/::1765895084
 GuestSettingsPopup.tscn::PackedScene::1497800218846774367::1765929999::0::1::::<><><>0<>0<><>::res://scripts/popups/GuestSettingsPopup.gd
-::res://scripts/::1766453188
+::res://scripts/::1766454387
 BaccaratRules.gd::GDScript::5836862682016780837::1765979202::0::1::::BaccaratRules<>RefCounted<><>0<>0<><>::
 BetCollectionPhaseManager.gd::GDScript::5658197585948415147::1766152103::0::1::::BetCollectionPhaseManager<>RefCounted<><>0<>0<><>::
 BetPopup.gd::GDScript::4186871779109626763::1765928393::0::1::::<>PopupPanel<><>0<>0<><>::
@@ -286,7 +286,7 @@ GameDataManager.gd::GDScript::3173968144031983268::1766128355::0::1::::<>Node<><
 GameInitializer.gd::GDScript::7528074775368441392::1766313473::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
 GameModeManager.gd::GDScript::5355736345804787176::1765878366::0::1::::<>Node<><>0<>0<><>::
 GameOverScene.gd::GDScript::-1::1765878366::0::1::::<>CanvasLayer<><>0<>0<><>::
-GamePhaseManager.gd::GDScript::1038087620930647068::1766453033::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
+GamePhaseManager.gd::GDScript::1038087620930647068::1766454889::0::1::::GamePhaseManager<>RefCounted<><>0<>1<><>::
 GamePhaseManager_refactored_method.gd::GDScript::-1::1765878366::0::1::::<>RefCounted<><>0<>0<><>::
 GuestBetFactory.gd::GDScript::7378832181832205610::1766192194::0::1::::GuestBetFactory<>RefCounted<><>0<>0<><>::
 GuestBetStorage.gd::GDScript::7752683457361897967::1766133433::0::1::::GuestBetStorage<>RefCounted<><>0<>0<><>::
@@ -308,6 +308,7 @@ SaveManager.gd::GDScript::8627907365010767779::1766308897::0::1::::<>Node<><>0<>
 SettingsScene.gd::GDScript::9154780136968585584::1766452426::0::1::::<>CanvasLayer<><>0<>0<><>::
 StatsManager.gd::GDScript::7422061842198344417::1766310531::0::1::::<>Node<><>0<>0<><>::
 SurvivalModeUI.gd::GDScript::6868350488718170528::1766118147::0::1::::<>Control<><>0<>0<><>::
+ThirdCardActionValidator.gd::GDScript::2503527279038123926::1766454574::0::1::::ThirdCardActionValidator<>RefCounted<><>0<>0<><>::
 Toast.gd::GDScript::6819915181880335807::1765878366::0::1::::<>PanelContainer<><>0<>0<><>::
 ToastManager.gd::GDScript::2410074093126528627::1765877564::0::1::::<>Node<><>0<>0<><>::
 ToastPool.gd::GDScript::5388200129698335381::1765877564::0::1::::ToastPool<>RefCounted<><>0<>0<><>::
@@ -404,10 +405,13 @@ PayoutToggleManager.gd::GDScript::3326742113003124411::1765878366::0::1::::Payou
 ToggleUIManager.gd::GDScript::6934597452681620777::1765878366::0::1::::ToggleUIManager<>RefCounted<><>0<>0<><>::
 ::res://scripts/validators/::1765884210
 DefaultBetCollectionValidator.gd::GDScript::3455400197945027953::1766125241::0::1::::DefaultBetCollectionValidator<>IBetCollectionValidator<><>0<>0<><>::
-::res://tests/::1766453201
-ManualTestCardDealer.tscn::PackedScene::-1::1766453204::0::1::::<><><>0<>0<><>::res://tests/manual_test_CardDealer.gd
-manual_test_CardDealer.gd::GDScript::7920861198931105506::1766453204::0::1::::<>Node<><>0<>0<><>::
+::res://tests/::1766454904
+ManualTestCardDealer.tscn::PackedScene::8855225251042067462::1766454904::0::1::::<><><>0<>0<><>::uid://dk36ori1w7it3::::res://tests/manual_test_CardDealer.gd
+ManualTestThirdCardActionValidator.tscn::PackedScene::-1::1766454574::0::1::::<><><>0<>0<><>::res://tests/manual_test_ThirdCardActionValidator.gd
+manual_test_CardDealer.gd::GDScript::7920861198931105506::1766453993::0::1::::<>Node<><>0<>0<><>::
+manual_test_ThirdCardActionValidator.gd::GDScript::969494627580145284::1766454574::0::1::::<>Node<><>0<>0<><>::
 test_CardDealer.gd::GDScript::5921106575757175163::1766453204::0::1::::<>GutTest<><>0<>0<><>::
+test_ThirdCardActionValidator.gd::GDScript::1249351765467913482::1766454574::0::1::::<>GutTest<><>0<>0<><>::
 ::res://tools/::1765878367
 actually_used_files.txt::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 ANALYSIS_SUMMARY.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
