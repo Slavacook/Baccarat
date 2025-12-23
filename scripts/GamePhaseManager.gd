@@ -51,6 +51,12 @@ var bet_filter_manager: BetFilterManager = null
 ## Координатор отображения ставок гостей
 var guest_bet_display_coordinator: GuestBetDisplayCoordinator = null
 
+## Форматтер сообщений победы
+var victory_message_formatter: VictoryMessageFormatter = null
+
+## Координатор сброса состояния игры
+var game_state_reset_coordinator: GameStateResetCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -146,6 +152,14 @@ func _init(
 	# Инициализируем координатор отображения ставок гостей
 	guest_bet_display_coordinator = GuestBetDisplayCoordinator.new()
 	DebugLogger.log("✅ GuestBetDisplayCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем форматтер сообщений победы
+	victory_message_formatter = VictoryMessageFormatter.new()
+	DebugLogger.log("✅ VictoryMessageFormatter инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор сброса состояния игры
+	game_state_reset_coordinator = GameStateResetCoordinator.new()
+	DebugLogger.log("✅ GameStateResetCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -157,59 +171,68 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 		update_state: Обновлять ли GameStateManager (false при подготовке к новой игре)
 		keep_guest_bets: Сохранять ли ставки гостей (true при Heart Bet)
 	"""
-	hand_manager.reset()
-	player_third_selected = false
-	banker_third_selected = false
-	was_heart_bet_round = false  # Сбрасываем флаг Heart Bet раунда
+	# Используем координатор для получения инструкций
+	var instructions = game_state_reset_coordinator.get_reset_instructions(update_state, keep_guest_bets)
 	
-	# Сбрасываем список показанных карт шансов (для нового раунда)
-	ChanceCardManager.reset_shown_cards()
-	ui.reset_ui()
-	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-	ui.set_action_button_state("start")
-	ui.update_player_third_card_ui("?")
-	ui.update_banker_third_card_ui("?")
-	ui.enable_action_button()
+	# Сброс рук и флагов
+	if instructions.get("should_reset_hands", false):
+		hand_manager.reset()
+		player_third_selected = false
+		banker_third_selected = false
+		was_heart_bet_round = false  # Сбрасываем флаг Heart Bet раунда
+	
+	# Сброс UI
+	if instructions.get("should_reset_ui", false):
+		# Сбрасываем список показанных карт шансов (для нового раунда)
+		ChanceCardManager.reset_shown_cards()
+		ui.reset_ui()
+		ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+		ui.set_action_button_state("start")
+		ui.update_player_third_card_ui("?")
+		ui.update_banker_third_card_ui("?")
+		ui.enable_action_button()
+		# TieMarker всегда виден (не скрывается)
 
-	# TieMarker всегда виден (не скрывается)
+	# Инвалидация кэша
+	if instructions.get("should_invalidate_cache", false):
+		GameStateManager._cache_hash = -1
+		DebugLogger.log("🔄 Кэш GameStateManager инвалидирован")
 
-	# Инвалидируем кэш GameStateManager (важно даже при update_state=false)
-	GameStateManager._cache_hash = -1
-	DebugLogger.log("🔄 Кэш GameStateManager инвалидирован")
-
-	if update_state:
+	# Обновление состояния
+	if instructions.get("should_update_state", false):
 		_update_game_state_manager()
 
-	# Очищаем PayoutQueueManager и фишки для нового раунда
+	# Очистка фишек
 	payout_queue_manager = null
-	# При Heart Bet НЕ очищаем фишки гостей - они будут восстановлены
-	if chip_visual_manager:
-		if not keep_guest_bets:
-			chip_visual_manager.hide_all_chips()
-			chip_visual_manager.clear_all_active_chips()  # Важно для REALISTIC режима!
-		else:
-			DebugLogger.log("❤️ Фишки гостей НЕ очищены (Heart Bet)")
-	if winner_selection_manager:
-		winner_selection_manager.reset()
-	# Очищаем TableStateManager (полное состояние стола)
-	TableStateManager.clear_state()
+	if instructions.get("should_clear_chips", false) and chip_visual_manager:
+		chip_visual_manager.hide_all_chips()
+		chip_visual_manager.clear_all_active_chips()  # Важно для REALISTIC режима!
+	elif chip_visual_manager and not instructions.get("should_clear_chips", true):
+		DebugLogger.log("❤️ Фишки гостей НЕ очищены (Heart Bet)")
 	
-	# Сбрасываем BetCollectionPhaseManager и кнопки collect/pay
-	if bet_collection_manager:
-		bet_collection_manager.reset()
-	if ui and ui.button_ui:
-		ui.button_ui.reset_collect_pay_buttons()
+	# Сброс менеджеров
+	if instructions.get("should_reset_managers", false):
+		if winner_selection_manager:
+			winner_selection_manager.reset()
+		# Очищаем TableStateManager (полное состояние стола)
+		TableStateManager.clear_state()
+		# Сбрасываем BetCollectionPhaseManager и кнопки collect/pay
+		if bet_collection_manager:
+			bet_collection_manager.reset()
+		if ui and ui.button_ui:
+			ui.button_ui.reset_collect_pay_buttons()
 
-	# Очищаем ставки гостей после завершения раунда (НЕ при Heart Bet!)
-	if guest_bet_storage and not keep_guest_bets:
+	# Очистка ставок гостей
+	if instructions.get("should_clear_guest_bets", false) and guest_bet_storage:
 		guest_bet_storage.clear_all_bets()
 		DebugLogger.log("🗑️ Ставки гостей очищены после завершения раунда")
-	elif keep_guest_bets:
+	elif guest_bet_storage and not instructions.get("should_clear_guest_bets", true):
 		DebugLogger.log("❤️ Ставки гостей сохранены (Heart Bet)")
 
-	# Скрываем кнопки областей и стрелки навигации
-	EventBus.area_buttons_visibility_changed.emit(false)
-	EventBus.navigation_arrows_visibility_changed.emit(false)
+	# Скрытие UI элементов
+	if instructions.get("should_hide_ui_elements", false):
+		EventBus.area_buttons_visibility_changed.emit(false)
+		EventBus.navigation_arrows_visibility_changed.emit(false)
 
 	DebugLogger.log("🔄 Сброс раунда: очищены выплаты, фишки, маркеры, TableStateManager и режимы collect/pay")
 
@@ -1167,7 +1190,9 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		ui.button_ui.show_collect_pay_buttons()
 
 	# Показываем toast с результатом (кто выиграл и с какими картами)
-	var victory_msg = _format_victory_toast(actual_winner)
+	var player_score = hand_manager.get_player_score()
+	var banker_score = hand_manager.get_banker_score()
+	var victory_msg = victory_message_formatter.format_victory_message(actual_winner, player_score, banker_score)
 	EventBus.show_toast_success.emit(victory_msg)
 
 	# Возвращаем камеру на общий план и показываем кнопки областей
@@ -1178,28 +1203,15 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	# Вызываем метод формирования очереди выплат через EventBus
 	EventBus.manual_payout_requested.emit(actual_winner)
 
+# DEPRECATED: Используйте victory_message_formatter.format_victory_message()
 func _format_victory_toast(winner: String) -> String:
-	"""Форматирование сообщения победы"""
+	"""Форматирование сообщения победы
+	
+	DEPRECATED: Используйте victory_message_formatter.format_victory_message()
+	"""
 	var player_score = hand_manager.get_player_score()
 	var banker_score = hand_manager.get_banker_score()
-
-	if winner == "Tie":
-		return "Игалите"
-
-	var winner_text = ""
-	var winner_score = 0
-	var loser_score = 0
-
-	if winner == "Player":
-		winner_text = Localization.t("PLAYER")
-		winner_score = player_score
-		loser_score = banker_score
-	else:  # Banker
-		winner_text = Localization.t("BANKER")
-		winner_score = banker_score
-		loser_score = player_score
-
-	return "Выиграл %s: %d vs %d" % [winner_text, winner_score, loser_score]
+	return victory_message_formatter.format_victory_message(winner, player_score, banker_score)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # РЕФАКТОРЕННЫЕ HELPER МЕТОДЫ (из on_action_pressed)
