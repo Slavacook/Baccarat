@@ -57,6 +57,9 @@ var victory_message_formatter: VictoryMessageFormatter = null
 ## Координатор сброса состояния игры
 var game_state_reset_coordinator: GameStateResetCoordinator = null
 
+## Форматтер ошибок валидации
+var validation_error_formatter: ValidationErrorFormatter = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -160,6 +163,10 @@ func _init(
 	# Инициализируем координатор сброса состояния игры
 	game_state_reset_coordinator = GameStateResetCoordinator.new()
 	DebugLogger.log("✅ GameStateResetCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем форматтер ошибок валидации
+	validation_error_formatter = ValidationErrorFormatter.new()
+	DebugLogger.log("✅ ValidationErrorFormatter инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -567,14 +574,10 @@ func _handle_validation_result(result: Dictionary, player_score: int, banker_sco
 		var error_type = result.get("error_type", "")
 		var error_message = result.get("error_message", "")
 		
-		# Форматируем сообщение об ошибке с параметрами если нужно
-		var message_text = error_message
-		if error_message == "ERR_PLAYER_NO_DRAW" or error_message == "ERR_PLAYER_MUST_DRAW":
-			message_text = Localization.t(error_message, [player_score])
-		elif error_message == "ERR_BANKER_NO_DRAW" or error_message == "ERR_BANKER_MUST_DRAW":
-			message_text = Localization.t(error_message, [banker_score])
-		else:
-			message_text = Localization.t(error_message)
+		# Используем форматтер для форматирования сообщения об ошибке
+		var message_text = validation_error_formatter.format_third_card_error(
+			error_message, player_score, banker_score
+		)
 		
 		EventBus.show_toast_error.emit(message_text)
 		EventBus.action_error.emit(error_type, message_text)
@@ -737,7 +740,11 @@ func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> 
 	if not result.get("is_valid", false):
 		var error_type = result.get("error_type", "")
 		var error_message = result.get("error_message", "")
-		var message_text = Localization.t(error_message, [banker_score])
+		
+		# Используем форматтер для форматирования сообщения об ошибке
+		var message_text = validation_error_formatter.format_third_card_error(
+			error_message, -1, banker_score
+		)
 		
 		EventBus.show_toast_error.emit(message_text)
 		EventBus.action_error.emit(error_type, message_text)
@@ -1132,12 +1139,10 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		var error_message = result.get("error_message", "")
 		var error_params = result.get("error_message_params", [])
 		
-		# Форматируем сообщение об ошибке
-		var message_text = error_message
-		if error_message == "ERR_WRONG_WINNER" and not error_params.is_empty():
-			message_text = Localization.t(error_message, error_params)
-		elif not error_message.is_empty():
-			message_text = error_message  # Уже готовое сообщение (для Tie)
+		# Используем форматтер для форматирования сообщения об ошибке
+		var message_text = validation_error_formatter.format_winner_selection_error(
+			error_message, error_params
+		)
 		
 		EventBus.show_toast_error.emit(message_text)
 		EventBus.action_error.emit(error_type, message_text)
