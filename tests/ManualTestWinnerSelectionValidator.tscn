@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bewqigvxendg2"]
+
+[ext_resource type="Script" uid="uid://bnkhh6bcr8twr" path="res://tests/manual_test_WinnerSelectionValidator.gd" id="1_manual_test"]
+
+[node name="ManualTestWinnerSelectionValidator" type="Node"]
+script = ExtResource("1_manual_test")

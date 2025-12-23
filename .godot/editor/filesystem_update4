@@ -1,0 +1,6 @@
+res://scripts/GamePhaseManager.gd
+res://tests/ManualTestThirdCardActionValidator.tscn
+res://scripts/ThirdCardActionValidator.gd
+res://scripts/WinnerSelectionValidator.gd
+res://tests/manual_test_WinnerSelectionValidator.gd
+res://tests/ManualTestWinnerSelectionValidator.tscn

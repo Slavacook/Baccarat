@@ -123,8 +123,8 @@ func _validate_card_to_each(player_selected: bool, banker_selected: bool) -> Dic
 	return _success_result("draw_both", false, false)
 
 func _validate_card_to_player_with_banker_7(
-	player_score: int,
-	banker_score: int,
+	_player_score: int,
+	_banker_score: int,
 	player_selected: bool,
 	banker_selected: bool
 ) -> Dictionary:
@@ -140,7 +140,7 @@ func _validate_card_to_player_with_banker_7(
 	return _success_result("draw_player", false, false)
 
 func _validate_card_to_player_with_banker_3_6(
-	player_score: int,
+	_player_score: int,
 	player_selected: bool,
 	banker_selected: bool
 ) -> Dictionary:
@@ -159,8 +159,8 @@ func _validate_card_to_player_with_banker_3_6(
 	return result
 
 func _validate_card_to_banker_only(
-	player_score: int,
-	banker_score: int,
+	_player_score: int,
+	_banker_score: int,
 	player_selected: bool,
 	banker_selected: bool
 ) -> Dictionary:
@@ -176,8 +176,8 @@ func _validate_card_to_banker_only(
 	return _success_result("draw_banker", false, false)
 
 func _validate_both_stand(
-	player_score: int,
-	banker_score: int,
+	_player_score: int,
+	_banker_score: int,
 	player_selected: bool,
 	banker_selected: bool
 ) -> Dictionary:
@@ -188,7 +188,6 @@ func _validate_both_stand(
 		var should_reset_banker = banker_selected
 		var error_type = "player_wrong" if player_selected else "banker_wrong"
 		var error_message = "ERR_PLAYER_NO_DRAW" if player_selected else "ERR_BANKER_NO_DRAW"
-		var score = player_score if player_selected else banker_score
 		return _error_result(error_type, error_message, should_reset_player, should_reset_banker, "complete")
 	
 	return _success_result("complete", false, false)
@@ -244,4 +243,3 @@ func _error_result(error_type: String, error_message: String, reset_player: bool
 		"should_reset_player": reset_player,
 		"should_reset_banker": reset_banker
 	}
-

@@ -1,7 +1,6 @@
-[gd_scene load_steps=2 format=3 uid="uid://test_third_card_validator"]
+[gd_scene load_steps=2 format=3 uid="uid://clk6he3igdye6"]
 
-[ext_resource type="Script" path="res://tests/manual_test_ThirdCardActionValidator.gd" id="1_manual_test"]
+[ext_resource type="Script" uid="uid://n2vo1yggh1rc" path="res://tests/manual_test_ThirdCardActionValidator.gd" id="1_manual_test"]
 
 [node name="ManualTestThirdCardActionValidator" type="Node"]
 script = ExtResource("1_manual_test")
-

@@ -33,6 +33,9 @@ var card_dealer: CardDealer = null
 ## Валидатор действий третьих карт
 var third_card_validator: ThirdCardActionValidator = null
 
+## Валидатор выбора победителя
+var winner_validator: WinnerSelectionValidator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -95,6 +98,10 @@ func _init(
 	# Инициализируем валидатор действий третьих карт
 	third_card_validator = ThirdCardActionValidator.new()
 	DebugLogger.log("✅ ThirdCardActionValidator инициализирован в GamePhaseManager")
+	
+	# Инициализируем валидатор выбора победителя
+	winner_validator = WinnerSelectionValidator.new()
+	DebugLogger.log("✅ WinnerSelectionValidator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1044,13 +1051,19 @@ func _validate_winner_selection() -> void:
 		return
 
 	var selected_winner = winner_selection_manager.get_selected_winner()
-
+	var player_hand_ref = hand_manager.get_player_hand_ref()
+	var banker_hand_ref = hand_manager.get_banker_hand_ref()
+	
+	# Используем валидатор для чистой логики валидации
+	var validation_result = winner_validator.validate_winner_selection(
+		selected_winner, player_hand_ref, banker_hand_ref
+	)
+	
 	# Не выбран ни один маркер?
-	if selected_winner == "":
+	if validation_result.get("needs_selection", false):
 		return
-
-	# Проверяем правильность
-	var actual_winner = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
+	
+	var actual_winner = validation_result.get("actual_winner", "")
 	
 	# ВАЖНО: Сохраняем победителя в TableStateManager для триггеров Heart Bet!
 	TableStateManager.set_actual_winner(actual_winner)
@@ -1060,8 +1073,6 @@ func _validate_winner_selection() -> void:
 	# Карта шанса показывается немедленно через EventBus.heart_bet_trigger_activated
 	# ═══════════════════════════════════════════════════════════════════
 	if heart_bet_manager and SaveManager.instance.load_survival_mode() and not was_heart_bet_round and not has_active_heart_bet():
-		var player_hand_ref = hand_manager.get_player_hand_ref()
-		var banker_hand_ref = hand_manager.get_banker_hand_ref()
 		if not player_hand_ref.is_empty() and not banker_hand_ref.is_empty():
 			var player_score = BaccaratRules.hand_value(player_hand_ref)
 			var banker_score = BaccaratRules.hand_value(banker_hand_ref)
@@ -1070,19 +1081,36 @@ func _validate_winner_selection() -> void:
 			# ChanceCardManager автоматически покажет карту через подписку на это событие
 			heart_bet_manager.check_triggers(actual_winner, banker_score, player_score, is_natural)
 
-	if selected_winner != actual_winner:
-		# ❌ Неправильный выбор
-		var error_msg: String
-		if actual_winner == "Tie":
-			error_msg = "Ошибка! Неправильный выбор. Игалите"
-		else:
-			error_msg = Localization.t("ERR_WRONG_WINNER", [actual_winner])
-		EventBus.show_toast_error.emit(error_msg)
-		EventBus.action_error.emit("winner_wrong", "")
-		# Сбрасываем выбор маркера
-		winner_selection_manager.reset()
-		return
+	# Обрабатываем результат валидации
+	_handle_winner_validation_result(validation_result, actual_winner)
 
+func _handle_winner_validation_result(result: Dictionary, actual_winner: String) -> void:
+	"""Обработать результат валидации выбора победителя
+	
+	Args:
+		result: Результат валидации от WinnerSelectionValidator
+		actual_winner: Фактический победитель (уже определён)
+	"""
+	# Если валидация не прошла - показываем ошибку
+	if not result.get("is_valid", false):
+		var error_type = result.get("error_type", "")
+		var error_message = result.get("error_message", "")
+		var error_params = result.get("error_message_params", [])
+		
+		# Форматируем сообщение об ошибке
+		var message_text = error_message
+		if error_message == "ERR_WRONG_WINNER" and not error_params.is_empty():
+			message_text = Localization.t(error_message, error_params)
+		elif not error_message.is_empty():
+			message_text = error_message  # Уже готовое сообщение (для Tie)
+		
+		EventBus.show_toast_error.emit(message_text)
+		EventBus.action_error.emit(error_type, message_text)
+		# Сбрасываем выбор маркера
+		if winner_selection_manager:
+			winner_selection_manager.reset()
+		return
+	
 	# ✅ Правильный выбор!
 	EventBus.action_correct.emit("winner")
 	
