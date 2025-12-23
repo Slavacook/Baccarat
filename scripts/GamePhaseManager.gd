@@ -27,6 +27,9 @@ var bet_collection_manager: BetCollectionPhaseManager = null
 ## Менеджер ставки сердцем (Heart Bet)
 var heart_bet_manager: HeartBetManager = null
 
+## Карточный дилер (раздача карт)
+var card_dealer: CardDealer = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -81,6 +84,10 @@ func _init(
 	# Инициализируем менеджер ставки сердцем
 	heart_bet_manager = HeartBetManager.new()
 	DebugLogger.log("❤️ HeartBetManager инициализирован в GamePhaseManager")
+	
+	# Инициализируем карточного дилера
+	card_dealer = CardDealer.new()
+	DebugLogger.log("🎴 CardDealer инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -196,7 +203,8 @@ func deal_first_four():
 		else:
 			DebugLogger.log("❤️ Heart Bet отклонён, обычная раздача")
 
-	hand_manager.deal_first_four(deck)
+	# Раздаём первые 4 карты через CardDealer
+	card_dealer.deal_first_four(deck, hand_manager)
 	player_third_selected = false
 	banker_third_selected = false
 	ui.update_player_third_card_ui("?")
@@ -246,16 +254,22 @@ func deal_first_four():
 	_update_game_state_manager()
 
 func draw_player_third():
-	var card: Card = deck.draw()
-	hand_manager.add_player_card(card)
+	# Раздаём третью карту игроку через CardDealer
+	var card: Card = card_dealer.draw_player_third(deck, hand_manager)
+	if not card:
+		DebugLogger.log_error("❌ Не удалось раздать третью карту игроку")
+		return
 	ui.update_player_third_card_ui("card", card)  # Скрываем ДО анимации!
 	ui.show_player_third_card(card)
 	player_third_selected = false
 	_update_game_state_manager()
 
 func draw_banker_third():
-	var card: Card = deck.draw()
-	hand_manager.add_banker_card(card)
+	# Раздаём третью карту банкиру через CardDealer
+	var card: Card = card_dealer.draw_banker_third(deck, hand_manager)
+	if not card:
+		DebugLogger.log_error("❌ Не удалось раздать третью карту банкиру")
+		return
 	ui.update_banker_third_card_ui("card", card)  # Скрываем ДО анимации!
 	ui.show_banker_third_card(card)
 	banker_third_selected = false

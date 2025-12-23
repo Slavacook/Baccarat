@@ -1,5 +1,1 @@
-res://scripts/ChipVisualManager.gd
-res://scripts/PayoutOverlay.gd
-res://scenes/Game.tscn
-res://scripts/DebugLogger.gd
-res://scripts/GameController.gd
+res://tests/manual_test_CardDealer.gd
