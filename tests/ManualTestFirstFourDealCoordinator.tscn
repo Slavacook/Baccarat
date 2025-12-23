@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://b8h2e6dht1hbv"]
+
+[ext_resource type="Script" path="res://tests/manual_test_FirstFourDealCoordinator.gd" id="1_manual_test"]
+
+[node name="ManualTestFirstFourDealCoordinator" type="Node"]
+script = ExtResource("1_manual_test")
+

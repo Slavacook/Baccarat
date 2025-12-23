@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://dah3f7eit2icw"]
+
+[ext_resource type="Script" path="res://tests/manual_test_ThirdCardDrawingCoordinator.gd" id="1_manual_test"]
+
+[node name="ManualTestThirdCardDrawingCoordinator" type="Node"]
+script = ExtResource("1_manual_test")
+

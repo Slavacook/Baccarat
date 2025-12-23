@@ -90,6 +90,12 @@ var tie_button_handler: TieButtonHandler = null
 ## Координатор Heart Bet
 var heart_bet_coordinator: HeartBetCoordinator = null
 
+## Координатор раздачи первых четырех карт
+var first_four_deal_coordinator: FirstFourDealCoordinator = null
+
+## Координатор раздачи третьих карт
+var third_card_drawing_coordinator: ThirdCardDrawingCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -241,6 +247,14 @@ func _init(
 	# Инициализируем координатор Heart Bet
 	heart_bet_coordinator = HeartBetCoordinator.new(heart_bet_manager, hand_manager)
 	DebugLogger.log("✅ HeartBetCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор раздачи первых четырех карт
+	first_four_deal_coordinator = FirstFourDealCoordinator.new(pair_betting_manager, chance_card_trigger_checker)
+	DebugLogger.log("✅ FirstFourDealCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор раздачи третьих карт
+	third_card_drawing_coordinator = ThirdCardDrawingCoordinator.new(card_dealer, hand_manager)
+	DebugLogger.log("✅ ThirdCardDrawingCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -324,14 +338,13 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 func deal_first_four():
 	DebugLogger.log_game_flow("deal_first_four() вызван")
 
-	# Проверяем, есть ли активные ставки (включая пары)
-	var has_main_bets = PayoutSettingsManager.has_any_active_bet()
-	var has_pair_bets = false
-	if pair_betting_manager:
-		has_pair_bets = pair_betting_manager.is_player_pair_bet_enabled() or \
-						pair_betting_manager.is_banker_pair_bet_enabled()
-
-	if not has_main_bets and not has_pair_bets:
+	# Используем координатор для проверки ставок
+	if not first_four_deal_coordinator:
+		DebugLogger.log_error("❌ FirstFourDealCoordinator не инициализирован!")
+		return
+	
+	var bets_info = first_four_deal_coordinator.has_any_bets()
+	if not bets_info.get("has_any", true):
 		EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
 
 	# Проверяем флаг подготовки к новой игре (после оплаты всех фишек)
@@ -374,77 +387,88 @@ func deal_first_four():
 	ui.show_first_four_cards(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	ui.set_action_button_state("confirm")
 
-	# TieMarker всегда виден (не нужно показывать/скрывать)
-
-	# Проверяем пары (молча, без оповещений)
-	if pair_betting_manager:
-		pair_betting_manager.check_pairs(
-			hand_manager.get_player_card(0),
-			hand_manager.get_player_card(1),
-			hand_manager.get_banker_card(0),
-			hand_manager.get_banker_card(1)
+	# Проверяем пары через координатор
+	var pairs_info = first_four_deal_coordinator.check_pairs(
+		hand_manager.get_player_card(0),
+		hand_manager.get_player_card(1),
+		hand_manager.get_banker_card(0),
+		hand_manager.get_banker_card(1)
+	)
+	DebugLogger.log("🃏 Проверка пар: Player=%s, Banker=%s" % [
+		pairs_info.get("has_player_pair", false),
+		pairs_info.get("has_banker_pair", false)
+	])
+	
+	# Проверяем триггеры карт шанса через координатор
+	var player_hand = hand_manager.get_player_hand_ref()
+	var banker_hand = hand_manager.get_banker_hand_ref()
+	var is_survival_mode = SaveManager.instance.load_survival_mode()
+	var triggers = first_four_deal_coordinator.get_triggers_after_deal(
+		player_hand, banker_hand,
+		pairs_info.get("has_player_pair", false),
+		pairs_info.get("has_banker_pair", false),
+		is_survival_mode
+	)
+	
+	# 🔄 ТРИГГЕР: Две пары → Third Card Change (с задержкой 1.5 сек)
+	if triggers.get("third_card_change", false):
+		print("🔄 Third Card Change: обнаружены две пары, карта через 1.5 сек...")
+		# Задержка 1.5 секунды чтобы игрок успел увидеть пары
+		EventBus.get_tree().create_timer(1.5).timeout.connect(func():
+			EventBus.third_card_change_triggered.emit()
+			print("🔄 Third Card Change триггер: две пары при раздаче!")
 		)
-		DebugLogger.log("🃏 Проверка пар: Player=%s, Banker=%s" % [
-			pair_betting_manager.has_player_pair(),
-			pair_betting_manager.has_banker_pair()
-		])
-		
-		# 🔄 ТРИГГЕР: Две пары → Third Card Change (с задержкой 1.5 сек)
-		var player_hand = hand_manager.get_player_hand_ref()
-		var banker_hand = hand_manager.get_banker_hand_ref()
-		var triggers_after_deal = chance_card_trigger_checker.check_triggers_after_deal(
-			player_hand, banker_hand,
-			pair_betting_manager.has_player_pair(),
-			pair_betting_manager.has_banker_pair()
-		)
-		
-		if triggers_after_deal.get("third_card_change", false):
-			print("🔄 Third Card Change: обнаружены две пары, карта через 1.5 сек...")
-			# Задержка 1.5 секунды чтобы игрок успел увидеть пары
-			EventBus.get_tree().create_timer(1.5).timeout.connect(func():
-				EventBus.third_card_change_triggered.emit()
-				print("🔄 Third Card Change триггер: две пары при раздаче!")
-			)
 	
 	# ❓ ТРИГГЕР: Пара тузов → Mystery Card (с задержкой 1.5 сек)
-	# Только в режиме выживания
-	if SaveManager.instance.load_survival_mode():
-		var player_hand = hand_manager.get_player_hand_ref()
-		var banker_hand = hand_manager.get_banker_hand_ref()
-		var triggers_after_deal = chance_card_trigger_checker.check_triggers_after_deal(
-			player_hand, banker_hand,
-			false, false  # Пары не нужны для Mystery Card
+	if triggers.get("mystery_card", false):
+		print("❓ Mystery Card: обнаружена пара тузов, карта через 1.5 сек...")
+		# Задержка 1.5 секунды чтобы игрок успел увидеть пару тузов
+		EventBus.get_tree().create_timer(1.5).timeout.connect(func():
+			EventBus.mystery_card_triggered.emit()
+			print("❓ Mystery Card триггер: пара тузов при раздаче!")
 		)
-		
-		if triggers_after_deal.get("mystery_card", false):
-			print("❓ Mystery Card: обнаружена пара тузов, карта через 1.5 сек...")
-			# Задержка 1.5 секунды чтобы игрок успел увидеть пару тузов
-			EventBus.get_tree().create_timer(1.5).timeout.connect(func():
-				EventBus.mystery_card_triggered.emit()
-				print("❓ Mystery Card триггер: пара тузов при раздаче!")
-			)
 
 	# Фишки уже показаны при настройке ставок, не обновляем их здесь
 
 	_update_game_state_manager()
 
 func draw_player_third():
-	# Раздаём третью карту игроку через CardDealer
-	var card: Card = card_dealer.draw_player_third(deck, hand_manager)
-	if not card:
-		DebugLogger.log_error("❌ Не удалось раздать третью карту игроку")
+	# Используем координатор для раздачи третьей карты игроку
+	if not third_card_drawing_coordinator:
+		DebugLogger.log_error("❌ ThirdCardDrawingCoordinator не инициализирован!")
 		return
+	
+	var result = third_card_drawing_coordinator.draw_player_third(deck)
+	if not result.get("success", false):
+		DebugLogger.log_error("❌ %s" % result.get("error", "Неизвестная ошибка"))
+		return
+	
+	var card: Card = result.get("card", null)
+	if not card:
+		DebugLogger.log_error("❌ Карта не получена из координатора")
+		return
+	
 	ui.update_player_third_card_ui("card", card)  # Скрываем ДО анимации!
 	ui.show_player_third_card(card)
 	player_third_selected = false
 	_update_game_state_manager()
 
 func draw_banker_third():
-	# Раздаём третью карту банкиру через CardDealer
-	var card: Card = card_dealer.draw_banker_third(deck, hand_manager)
-	if not card:
-		DebugLogger.log_error("❌ Не удалось раздать третью карту банкиру")
+	# Используем координатор для раздачи третьей карты банкиру
+	if not third_card_drawing_coordinator:
+		DebugLogger.log_error("❌ ThirdCardDrawingCoordinator не инициализирован!")
 		return
+	
+	var result = third_card_drawing_coordinator.draw_banker_third(deck)
+	if not result.get("success", false):
+		DebugLogger.log_error("❌ %s" % result.get("error", "Неизвестная ошибка"))
+		return
+	
+	var card: Card = result.get("card", null)
+	if not card:
+		DebugLogger.log_error("❌ Карта не получена из координатора")
+		return
+	
 	ui.update_banker_third_card_ui("card", card)  # Скрываем ДО анимации!
 	ui.show_banker_third_card(card)
 	banker_third_selected = false

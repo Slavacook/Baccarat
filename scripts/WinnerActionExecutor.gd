@@ -9,7 +9,7 @@ extends RefCounted
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func get_action_instructions(validation_result: Dictionary, actual_winner: String) -> Dictionary:
+func get_action_instructions(validation_result: Dictionary, _actual_winner: String) -> Dictionary:
 	"""Получить инструкции для выполнения действий на основе результата валидации выбора победителя
 	
 	Args:
@@ -64,4 +64,3 @@ func get_action_instructions(validation_result: Dictionary, actual_winner: Strin
 	instructions["should_check_chance_card_triggers"] = true
 	
 	return instructions
-

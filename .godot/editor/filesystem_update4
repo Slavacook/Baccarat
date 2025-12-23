@@ -11,3 +11,7 @@ res://tests/manual_test_ChipRestorationCoordinator.gd
 res://scripts/WinnerSelectionStateHandler.gd
 res://tests/manual_test_WinnerSelectionStateHandler.gd
 res://tests/manual_test_TieButtonHandler.gd
+res://scripts/WinnerActionExecutor.gd
+res://tests/manual_test_FirstFourDealCoordinator.gd
+res://scripts/ThirdCardDrawingCoordinator.gd
+res://tests/manual_test_ThirdCardDrawingCoordinator.gd
