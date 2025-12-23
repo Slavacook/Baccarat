@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://bwpvti1b0fqhu"]
+
+[ext_resource type="Script" uid="uid://dhaseol4mcchf" path="res://tests/manual_test_ChanceCardTriggerChecker.gd" id="1_manual_test"]
+
+[node name="ManualTestChanceCardTriggerChecker" type="Node"]
+script = ExtResource("1_manual_test")

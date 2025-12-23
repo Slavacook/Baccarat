@@ -42,6 +42,9 @@ var phase_resolver: PhaseActionResolver = null
 ## Координатор завершения раунда
 var round_completion_coordinator: RoundCompletionCoordinator = null
 
+## Проверщик триггеров карт шанса
+var chance_card_trigger_checker: ChanceCardTriggerChecker = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -116,6 +119,10 @@ func _init(
 	# Инициализируем координатор завершения раунда
 	round_completion_coordinator = RoundCompletionCoordinator.new()
 	DebugLogger.log("✅ RoundCompletionCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем проверщик триггеров карт шанса
+	chance_card_trigger_checker = ChanceCardTriggerChecker.new()
+	DebugLogger.log("✅ ChanceCardTriggerChecker инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -256,7 +263,15 @@ func deal_first_four():
 		])
 		
 		# 🔄 ТРИГГЕР: Две пары → Third Card Change (с задержкой 1.5 сек)
-		if pair_betting_manager.has_player_pair() and pair_betting_manager.has_banker_pair():
+		var player_hand = hand_manager.get_player_hand_ref()
+		var banker_hand = hand_manager.get_banker_hand_ref()
+		var triggers_after_deal = chance_card_trigger_checker.check_triggers_after_deal(
+			player_hand, banker_hand,
+			pair_betting_manager.has_player_pair(),
+			pair_betting_manager.has_banker_pair()
+		)
+		
+		if triggers_after_deal.get("third_card_change", false):
 			print("🔄 Third Card Change: обнаружены две пары, карта через 1.5 сек...")
 			# Задержка 1.5 секунды чтобы игрок успел увидеть пары
 			EventBus.get_tree().create_timer(1.5).timeout.connect(func():
@@ -269,7 +284,12 @@ func deal_first_four():
 	if SaveManager.instance.load_survival_mode():
 		var player_hand = hand_manager.get_player_hand_ref()
 		var banker_hand = hand_manager.get_banker_hand_ref()
-		if _check_aces_pair(player_hand) or _check_aces_pair(banker_hand):
+		var triggers_after_deal = chance_card_trigger_checker.check_triggers_after_deal(
+			player_hand, banker_hand,
+			false, false  # Пары не нужны для Mystery Card
+		)
+		
+		if triggers_after_deal.get("mystery_card", false):
 			print("❓ Mystery Card: обнаружена пара тузов, карта через 1.5 сек...")
 			# Задержка 1.5 секунды чтобы игрок успел увидеть пару тузов
 			EventBus.get_tree().create_timer(1.5).timeout.connect(func():
@@ -1511,45 +1531,38 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 		print("🎴 _check_chance_card_triggers: руки пустые, пропускаем")
 		return
 	
+	# Используем проверщик для определения триггеров
+	var triggers = chance_card_trigger_checker.check_triggers_after_winner(
+		actual_winner, player_hand, banker_hand
+	)
+	
 	var player_score = BaccaratRules.hand_value(player_hand)
 	var banker_score = BaccaratRules.hand_value(banker_hand)
-	
 	print("🎴 Проверка триггеров карт шанса: winner=%s, player=%d, banker=%d" % [actual_winner, player_score, banker_score])
 	
-	# ═══════════════════════════════════════════════════════════════════
-	# 1. MYSTERY CARD: пара тузов — триггер срабатывает в deal_first_four()
-	#    сразу после раздачи карт (не здесь, чтобы выдавать карту раньше)
-	# ═══════════════════════════════════════════════════════════════════
-	
-	# ═══════════════════════════════════════════════════════════════════
-	# 2. HEART CARD: победа банкира с 6 очками
-	# ═══════════════════════════════════════════════════════════════════
-	if actual_winner == "Banker" and banker_score == 6:
+	# Эмитим события для активированных триггеров
+	if triggers.get("heart_card", false):
 		EventBus.heart_card_triggered.emit()
 		print("❤️ Heart Card триггер: банкир выиграл с 6!")
 	
-	# ═══════════════════════════════════════════════════════════════════
-	# 3. HEART BET CARD: Tie (игалите) - шанс сыграть на жизнь
-	# ═══════════════════════════════════════════════════════════════════
-	if actual_winner == "Tie":
+	if triggers.get("heart_bet_card", false):
 		EventBus.heart_bet_card_triggered.emit()
 		print("🎰 Heart Bet Card триггер: Tie (игалите)!")
 	
-	# ═══════════════════════════════════════════════════════════════════
-	# 4. REVOLVER CARD: все 6 карт по 0 очков (10, J, Q, K)
-	# ═══════════════════════════════════════════════════════════════════
-	if _check_all_zero_cards(player_hand, banker_hand):
+	if triggers.get("revolver_card", false):
 		EventBus.revolver_card_triggered.emit()
 		print("🔫 Revolver Card триггер: все 6 карт по 0 очков!")
-	
-	# ═══════════════════════════════════════════════════════════════════
-	# 5. THIRD CARD CHANGE: две пары — триггер срабатывает в deal_first_four()
-	#    сразу после раздачи карт (не здесь, чтобы не дублировать)
-	# ═══════════════════════════════════════════════════════════════════
 
+
+# ========================================
+# DEPRECATED: Методы проверки триггеров (используются через ChanceCardTriggerChecker)
+# ========================================
 
 func _check_pair(hand: Array) -> bool:
-	"""Проверить, есть ли пара в руке (первые две карты одного ранга)"""
+	"""Проверить, есть ли пара в руке (первые две карты одного ранга)
+	
+	DEPRECATED: Используйте chance_card_trigger_checker.check_triggers_after_deal()
+	"""
 	if hand.size() < 2:
 		return false
 	
@@ -1571,7 +1584,10 @@ func _check_pair(hand: Array) -> bool:
 
 
 func _get_card_rank(card) -> String:
-	"""Получить ранг карты (2-10, J, Q, K, A)"""
+	"""Получить ранг карты (2-10, J, Q, K, A)
+	
+	DEPRECATED: Используйте chance_card_trigger_checker
+	"""
 	# card — объект Card с полем value (1=A, 2-10, 11=J, 12=Q, 13=K)
 	if card is Card:
 		return str(card.value)  # Возвращаем value как строку для сравнения
@@ -1589,6 +1605,7 @@ func _get_card_rank(card) -> String:
 func _check_aces_pair(hand: Array) -> bool:
 	"""Проверить, есть ли пара тузов в руке (первые две карты - тузы)
 	
+	DEPRECATED: Используйте chance_card_trigger_checker.check_triggers_after_deal()
 	Card.value: 1 = Ace
 	"""
 	if hand.size() < 2:
@@ -1610,6 +1627,7 @@ func _check_aces_pair(hand: Array) -> bool:
 func _check_all_zero_cards(player_hand: Array, banker_hand: Array) -> bool:
 	"""Проверить, все ли 6 карт дают 0 очков (10, J, Q, K)
 	
+	DEPRECATED: Используйте chance_card_trigger_checker.check_triggers_after_winner()
 	Card.value: 10=10, 11=J, 12=Q, 13=K - все дают 0 очков в баккаре
 	"""
 	# Должно быть по 3 карты у каждого (с третьими картами)

@@ -4,3 +4,5 @@ res://scripts/ThirdCardActionValidator.gd
 res://scripts/WinnerSelectionValidator.gd
 res://tests/manual_test_WinnerSelectionValidator.gd
 res://tests/ManualTestWinnerSelectionValidator.tscn
+res://scripts/ChanceCardTriggerChecker.gd
+res://tests/ManualTestChanceCardTriggerChecker.tscn
