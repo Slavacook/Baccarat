@@ -45,6 +45,9 @@ var round_completion_coordinator: RoundCompletionCoordinator = null
 ## Проверщик триггеров карт шанса
 var chance_card_trigger_checker: ChanceCardTriggerChecker = null
 
+## Менеджер фильтров ставок
+var bet_filter_manager: BetFilterManager = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -63,12 +66,21 @@ var was_heart_bet_round: bool = false  # Флаг Heart Bet раунда (даж
 # СОСТОЯНИЕ ФИЛЬТРА СТАВОК
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Снимок состояния фильтра на момент показки ставок
-# Изолирует текущую раздачу от изменений фильтра во время игры
-var _filter_snapshot: Dictionary = {}  # {"Player": bool, "Banker": bool, "Tie": bool, "PairPlayer": bool, "PairBanker": bool}
+# DEPRECATED: Используйте bet_filter_manager.filter_snapshot и bet_filter_manager.pending_filter_changes
+# Оставлено для обратной совместимости
+var _filter_snapshot: Dictionary:
+	get:
+		return bet_filter_manager.filter_snapshot if bet_filter_manager else {}
+	set(value):
+		if bet_filter_manager:
+			bet_filter_manager.filter_snapshot = value
 
-# Накопленные изменения фильтра во время раздачи (для применения в следующей раздаче)
-var _pending_filter_changes: Dictionary = {}  # {"Player": bool, "Banker": bool, "Tie": bool, "PairPlayer": bool, "PairBanker": bool}
+var _pending_filter_changes: Dictionary:
+	get:
+		return bet_filter_manager.pending_filter_changes if bet_filter_manager else {}
+	set(value):
+		if bet_filter_manager:
+			bet_filter_manager.pending_filter_changes = value
 
 func _init(
 	deck_ref: Deck,
@@ -123,6 +135,10 @@ func _init(
 	# Инициализируем проверщик триггеров карт шанса
 	chance_card_trigger_checker = ChanceCardTriggerChecker.new()
 	DebugLogger.log("✅ ChanceCardTriggerChecker инициализирован в GamePhaseManager")
+	
+	# Инициализируем менеджер фильтров ставок
+	bet_filter_manager = BetFilterManager.new()
+	DebugLogger.log("✅ BetFilterManager инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -907,7 +923,7 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 func _is_bet_type_enabled_in_settings(bet_type: String) -> bool:
 	"""Проверить, включён ли тип ставки в настройках PayoutSettingsManager
 	
-	Используется для фильтрации ставок при показке и добавлении в очередь выплат.
+	DEPRECATED: Используйте bet_filter_manager.is_bet_type_enabled_in_settings()
 	
 	Args:
 		bet_type: Тип ставки (Player, Banker, Tie, PairPlayer, PairBanker)
@@ -915,38 +931,24 @@ func _is_bet_type_enabled_in_settings(bet_type: String) -> bool:
 	Returns:
 		true если ставка включена в настройках, false если отключена
 	"""
-	match bet_type:
-		"Player":
-			return PayoutSettingsManager.player_payout_enabled
-		"Banker":
-			return PayoutSettingsManager.banker_payout_enabled
-		"Tie":
-			return PayoutSettingsManager.tie_payout_enabled
-		"PairPlayer":
-			return pair_betting_manager and pair_betting_manager.is_player_pair_bet_enabled()
-		"PairBanker":
-			return pair_betting_manager and pair_betting_manager.is_banker_pair_bet_enabled()
-		_:
-			return true  # Неизвестный тип - пропускаем (не фильтруем)
+	return bet_filter_manager.is_bet_type_enabled_in_settings(
+		bet_type, PayoutSettingsManager, pair_betting_manager
+	)
 
 func _save_filter_snapshot() -> void:
 	"""Сохранить снимок текущего состояния фильтра
 	
+	DEPRECATED: Используйте bet_filter_manager.save_filter_snapshot()
+	
 	Вызывается при показке ставок для изоляции текущей раздачи от изменений фильтра.
 	"""
-	_filter_snapshot.clear()
-	_filter_snapshot["Player"] = PayoutSettingsManager.player_payout_enabled
-	_filter_snapshot["Banker"] = PayoutSettingsManager.banker_payout_enabled
-	_filter_snapshot["Tie"] = PayoutSettingsManager.tie_payout_enabled
-	_filter_snapshot["PairPlayer"] = pair_betting_manager.is_player_pair_bet_enabled() if pair_betting_manager else false
-	_filter_snapshot["PairBanker"] = pair_betting_manager.is_banker_pair_bet_enabled() if pair_betting_manager else false
-	DebugLogger.log("📸 Snapshot фильтра сохранён: %s" % _filter_snapshot)
+	bet_filter_manager.save_filter_snapshot(PayoutSettingsManager, pair_betting_manager)
+	DebugLogger.log("📸 Snapshot фильтра сохранён: %s" % bet_filter_manager.filter_snapshot)
 
 func _is_bet_type_enabled_in_snapshot(bet_type: String) -> bool:
 	"""Проверить, включён ли тип ставки в snapshot фильтра
 	
-	Используется при добавлении ставок в очередь выплат для изоляции текущей раздачи.
-	Если snapshot пустой - использует текущее состояние (fallback).
+	DEPRECATED: Используйте bet_filter_manager.is_bet_type_enabled_in_snapshot()
 	
 	Args:
 		bet_type: Тип ставки (Player, Banker, Tie, PairPlayer, PairBanker)
@@ -954,16 +956,9 @@ func _is_bet_type_enabled_in_snapshot(bet_type: String) -> bool:
 	Returns:
 		true если ставка включена в snapshot, false если отключена
 	"""
-	# Если snapshot пустой - используем текущее состояние (fallback)
-	if _filter_snapshot.is_empty():
-		return _is_bet_type_enabled_in_settings(bet_type)
-	
-	# Проверяем snapshot
-	if _filter_snapshot.has(bet_type):
-		return _filter_snapshot[bet_type]
-	
-	# Если типа нет в snapshot - используем текущее состояние (fallback)
-	return _is_bet_type_enabled_in_settings(bet_type)
+	return bet_filter_manager.is_bet_type_enabled_in_snapshot(
+		bet_type, PayoutSettingsManager, pair_betting_manager
+	)
 
 func is_bet_type_enabled_in_snapshot(bet_type: String) -> bool:
 	"""Публичный метод для проверки ставки через snapshot (для PayoutManager)
@@ -974,44 +969,36 @@ func is_bet_type_enabled_in_snapshot(bet_type: String) -> bool:
 	Returns:
 		true если ставка включена в snapshot, false если отключена
 	"""
-	return _is_bet_type_enabled_in_snapshot(bet_type)
+	return bet_filter_manager.is_bet_type_enabled_in_snapshot(
+		bet_type, PayoutSettingsManager, pair_betting_manager
+	)
 
 func _apply_pending_filter_changes() -> void:
 	"""Применить накопленные изменения фильтра к PayoutSettingsManager
 	
+	DEPRECATED: Используйте bet_filter_manager.apply_pending_filter_changes()
+	
 	Вызывается при завершении раунда перед генерацией новых ставок.
-	Применяет все изменения из _pending_filter_changes и обновляет snapshot.
+	Применяет все изменения из pending_filter_changes и обновляет snapshot.
 	"""
-	if _pending_filter_changes.is_empty():
+	if not bet_filter_manager.has_pending_filter_changes():
 		DebugLogger.log("📋 Нет накопленных изменений фильтра для применения")
 		return
 	
-	DebugLogger.log("📋 Применение накопленных изменений фильтра: %s" % _pending_filter_changes)
+	DebugLogger.log("📋 Применение накопленных изменений фильтра: %s" % bet_filter_manager.get_pending_filter_changes())
 	
-	# Применяем каждое изменение к PayoutSettingsManager
-	for bet_type in _pending_filter_changes.keys():
-		var enabled = _pending_filter_changes[bet_type]
-		match bet_type:
-			"Player":
-				PayoutSettingsManager.player_payout_enabled = enabled
-			"Banker":
-				PayoutSettingsManager.banker_payout_enabled = enabled
-			"Tie":
-				PayoutSettingsManager.tie_payout_enabled = enabled
-			"PairPlayer":
-				if pair_betting_manager:
-					pair_betting_manager.toggle_pair_player_bet(enabled)
-			"PairBanker":
-				if pair_betting_manager:
-					pair_betting_manager.toggle_pair_banker_bet(enabled)
-		DebugLogger.log("  → Применено: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
+	# Применяем изменения через менеджер
+	var result = bet_filter_manager.apply_pending_filter_changes(PayoutSettingsManager, pair_betting_manager)
 	
-	# Обновляем snapshot на основе примененных изменений
-	_save_filter_snapshot()
-	
-	# Очищаем pending_changes
-	_pending_filter_changes.clear()
-	DebugLogger.log("📋 Все накопленные изменения применены, snapshot обновлён")
+	if result.get("applied", false):
+		var changes = result.get("changes", {})
+		for bet_type in changes.keys():
+			var enabled = changes[bet_type]
+			DebugLogger.log("  → Применено: %s = %s" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ"])
+		
+		# Обновляем snapshot на основе примененных изменений
+		_save_filter_snapshot()
+		DebugLogger.log("📋 Все накопленные изменения применены, snapshot обновлён")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ СОСТОЯНИЕМ

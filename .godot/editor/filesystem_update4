@@ -6,3 +6,4 @@ res://tests/manual_test_WinnerSelectionValidator.gd
 res://tests/ManualTestWinnerSelectionValidator.tscn
 res://scripts/ChanceCardTriggerChecker.gd
 res://tests/ManualTestChanceCardTriggerChecker.tscn
+res://tests/manual_test_BetFilterManager.gd
