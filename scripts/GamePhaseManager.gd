@@ -72,6 +72,9 @@ var third_card_action_executor: ThirdCardActionExecutor = null
 ## Исполнитель действий для выбора победителя
 var winner_action_executor: WinnerActionExecutor = null
 
+## Обновлятор состояния игры
+var game_state_updater: GameStateUpdater = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -193,6 +196,10 @@ func _init(
 	# Инициализируем исполнитель действий для выбора победителя
 	winner_action_executor = WinnerActionExecutor.new()
 	DebugLogger.log("✅ WinnerActionExecutor инициализирован в GamePhaseManager")
+	
+	# Инициализируем обновлятор состояния игры
+	game_state_updater = GameStateUpdater.new()
+	DebugLogger.log("✅ GameStateUpdater инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1066,16 +1073,8 @@ func _apply_pending_filter_changes() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _update_game_state_manager():
-	var cards_hidden = hand_manager.are_hands_empty()
-	var player_third_card = hand_manager.get_player_third_card()
-	var banker_third_card = hand_manager.get_banker_third_card()
-	GameStateManager.determine_and_update_state(
-		cards_hidden,
-		hand_manager.get_player_hand_ref(),
-		hand_manager.get_banker_hand_ref(),
-		player_third_card,
-		banker_third_card
-	)
+	# Используем обновлятор для обновления состояния игры
+	game_state_updater.update_game_state(hand_manager)
 
 
 func remove_third_cards_and_recalculate() -> void:

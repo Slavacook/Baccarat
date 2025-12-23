@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://test_game_state_updater"]
+
+[ext_resource type="Script" path="res://tests/manual_test_GameStateUpdater.gd" id="1_manual_test"]
+
+[node name="ManualTestGameStateUpdater" type="Node"]
+script = ExtResource("1_manual_test")
+
