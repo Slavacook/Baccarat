@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://test_third_card_ui_handler"]
+
+[ext_resource type="Script" path="res://tests/manual_test_ThirdCardUIHandler.gd" id="1_manual_test"]
+
+[node name="ManualTestThirdCardUIHandler" type="Node"]
+script = ExtResource("1_manual_test")
+

@@ -63,6 +63,9 @@ var validation_error_formatter: ValidationErrorFormatter = null
 ## Координатор восстановления фишек
 var chip_restoration_coordinator: ChipRestorationCoordinator = null
 
+## Обработчик событий UI для третьих карт
+var third_card_ui_handler: ThirdCardUIHandler = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -172,6 +175,10 @@ func _init(
 	# Инициализируем форматтер ошибок валидации
 	validation_error_formatter = ValidationErrorFormatter.new()
 	DebugLogger.log("✅ ValidationErrorFormatter инициализирован в GamePhaseManager")
+	
+	# Инициализируем обработчик событий UI для третьих карт
+	third_card_ui_handler = ThirdCardUIHandler.new()
+	DebugLogger.log("✅ ThirdCardUIHandler инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -433,35 +440,36 @@ func on_action_pressed():
 
 
 func on_player_third_toggled(_selected: bool):
-	player_third_selected = !player_third_selected
-	if player_third_selected:
-		ui.update_player_third_card_ui("!")
-	else:
-		ui.update_player_third_card_ui("?")
+	# Используем обработчик для получения инструкций
+	var instructions = third_card_ui_handler.handle_player_third_toggled(player_third_selected)
+	player_third_selected = instructions.get("new_selected", false)
+	ui.update_player_third_card_ui(instructions.get("ui_text", "?"))
 	# Дезактивируем маркер при нажатии на toggle третьей карты
-	if winner_selection_manager:
+	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner()
 
 func on_banker_third_toggled(_selected: bool):
-	banker_third_selected = !banker_third_selected
-	if banker_third_selected:
-		ui.update_banker_third_card_ui("!")
-	else:
-		ui.update_banker_third_card_ui("?")
+	# Используем обработчик для получения инструкций
+	var instructions = third_card_ui_handler.handle_banker_third_toggled(banker_third_selected)
+	banker_third_selected = instructions.get("new_selected", false)
+	ui.update_banker_third_card_ui(instructions.get("ui_text", "?"))
 	# Дезактивируем маркер при нажатии на toggle третьей карты
-	if winner_selection_manager:
+	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner()
 
 func cancel_third_card_orders() -> void:
 	"""Отменить заказ всех третьих карт (игрока и банкира)"""
-	if player_third_selected:
+	# Используем обработчик для получения инструкций
+	var instructions = third_card_ui_handler.get_cancel_instructions(player_third_selected, banker_third_selected)
+	
+	if instructions.get("should_cancel_player", false):
 		player_third_selected = false
-		ui.update_player_third_card_ui("?")
+		ui.update_player_third_card_ui(instructions.get("player_ui_text", "?"))
 		DebugLogger.log("🔄 Отменён заказ третьей карты игрока")
 
-	if banker_third_selected:
+	if instructions.get("should_cancel_banker", false):
 		banker_third_selected = false
-		ui.update_banker_third_card_ui("?")
+		ui.update_banker_third_card_ui(instructions.get("banker_ui_text", "?"))
 		DebugLogger.log("🔄 Отменён заказ третьей карты банкира")
 
 
