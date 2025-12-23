@@ -84,6 +84,9 @@ var table_preparation_executor: TablePreparationExecutor = null
 ## Обработчик состояния выбора победителя
 var winner_selection_state_handler: WinnerSelectionStateHandler = null
 
+## Обработчик кнопки Tie
+var tie_button_handler: TieButtonHandler = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -227,6 +230,10 @@ func _init(
 	# Инициализируем обработчик состояния выбора победителя
 	winner_selection_state_handler = WinnerSelectionStateHandler.new(hand_manager)
 	DebugLogger.log("✅ WinnerSelectionStateHandler инициализирован в GamePhaseManager")
+	
+	# Инициализируем обработчик кнопки Tie
+	tie_button_handler = TieButtonHandler.new(hand_manager, chance_card_trigger_checker)
+	DebugLogger.log("✅ TieButtonHandler инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -534,10 +541,20 @@ func on_tie_button_pressed():
 	if state != GameStateManager.GameState.CHOOSE_WINNER:
 		return
 
-	# Определяем реального победителя
-	var actual_winner = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
-
-	if actual_winner != "Tie":
+	# Используем обработчик для получения инструкций
+	if not tie_button_handler:
+		DebugLogger.log_error("❌ TieButtonHandler не инициализирован!")
+		return
+	
+	var is_survival_mode = SaveManager.instance.load_survival_mode()
+	var instructions = tie_button_handler.get_tie_button_instructions(
+		has_active_heart_bet(), is_survival_mode
+	)
+	
+	var is_valid = instructions.get("is_valid", false)
+	var actual_winner = instructions.get("actual_winner", "")
+	
+	if not is_valid:
 		# ❌ Ошибка! Нет ничьей
 		EventBus.show_toast_error.emit(Localization.t("ERR_TIE_WRONG"))
 		EventBus.action_error.emit("tie_wrong", Localization.t("ERR_TIE_WRONG"))
@@ -553,40 +570,56 @@ func on_tie_button_pressed():
 	# ═══════════════════════════════════════════════════════════════════
 	# ТРИГГЕРЫ КАРТ ШАНСА (только в режиме выживания)
 	# ═══════════════════════════════════════════════════════════════════
-	if SaveManager.instance.load_survival_mode():
-		_check_chance_card_triggers(actual_winner)
+	if instructions.get("should_check_chance_cards", false):
+		var triggers = tie_button_handler.get_chance_card_triggers(actual_winner)
+		_emit_chance_card_triggers(triggers)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# HEART BET: Если есть активная ставка - разрешаем её и завершаем
 	# Выплаты НЕ нужны при Heart Bet!
 	# ═══════════════════════════════════════════════════════════════════
-	if has_active_heart_bet():
+	if instructions.get("should_resolve_heart_bet", false):
 		print("❤️ on_tie_button_pressed: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
 		resolve_heart_bet(actual_winner)
 		# НЕ продолжаем с обычной логикой - раунд сбросится через EventBus
 		return
 
-	# Меняем кнопку на "complete"
-	ui.set_action_button_state("complete")
-	# Активируем кнопку при переходе в стадию выплат
-	ui.enable_action_button()
-	
-	# Показываем кнопки Collect/Pay после определения победителя
-	if ui.button_ui:
-		ui.button_ui.show_collect_pay_buttons()
+	# Обновляем UI
+	if instructions.get("should_update_ui", false):
+		ui.set_action_button_state("complete")
+		ui.enable_action_button()
+		
+		if ui.button_ui:
+			ui.button_ui.show_collect_pay_buttons()
 
 	# Показываем toast
-	EventBus.show_toast_success.emit("Игалите")
+	if instructions.get("should_show_success", false):
+		EventBus.show_toast_success.emit("Игалите")
 
 	# Возвращаем камеру на общий план и показываем кнопки областей
 	EventBus.camera_zoom_requested.emit("out")
 	EventBus.area_buttons_visibility_changed.emit(true)
-	EventBus.navigation_arrows_visibility_changed.emit(true)  # сразу показываем стрелки после правильной Игалите
+	EventBus.navigation_arrows_visibility_changed.emit(true)
 
 	# Формируем очередь выплат
-	EventBus.manual_payout_requested.emit("Tie")
+	if instructions.get("should_request_payout", false):
+		EventBus.manual_payout_requested.emit("Tie")
 
 	DebugLogger.log_init("Игалите подтверждена!")
+
+func _emit_chance_card_triggers(triggers: Dictionary) -> void:
+	"""Эмитить события для активированных триггеров карт шанса"""
+	if triggers.get("heart_card", false):
+		EventBus.heart_card_triggered.emit()
+		print("❤️ Heart Card триггер: банкир выиграл с 6!")
+	
+	if triggers.get("heart_bet_card", false):
+		EventBus.heart_bet_card_triggered.emit()
+		print("🎰 Heart Bet Card триггер: Tie (игалите)!")
+	
+	if triggers.get("revolver_card", false):
+		EventBus.revolver_card_triggered.emit()
+		print("🔫 Revolver Card триггер: все 6 карт по 0 очков!")
 
 
 # ========================================
@@ -1517,11 +1550,27 @@ func resolve_heart_bet(actual_winner: String) -> void:
 	"""Разрешить ставку Heart Bet (определить результат)
 
 	Вызывается после определения победителя раздачи.
+	
+	Args:
+		actual_winner: Победитель раздачи ("Player", "Banker" или "Tie")
 	"""
+	# Валидация параметра
+	if actual_winner.is_empty():
+		DebugLogger.log_error("❌ resolve_heart_bet: actual_winner пустой!")
+		return
+	
+	if actual_winner not in ["Player", "Banker", "Tie"]:
+		DebugLogger.log_error("❌ resolve_heart_bet: невалидный actual_winner: %s" % actual_winner)
+		return
+	
 	# #region agent log
 	var _hb_active = heart_bet_manager.is_active() if heart_bet_manager else false
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H1","location":"GamePhaseManager.resolve_heart_bet","message":"resolve_heart_bet called","data":{"actual_winner":"%s","heart_bet_active":%s},"timestamp":%d}' % [actual_winner, str(_hb_active).to_lower(), int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
+	var _log_path = OS.get_user_data_dir().path_join(".cursor/debug.log")
+	var _log_file = FileAccess.open(_log_path, FileAccess.READ_WRITE)
+	if _log_file: 
+		_log_file.seek_end()
+		_log_file.store_line('{"hypothesisId":"H1","location":"GamePhaseManager.resolve_heart_bet","message":"resolve_heart_bet called","data":{"actual_winner":"%s","heart_bet_active":%s},"timestamp":%d}' % [actual_winner, str(_hb_active).to_lower(), int(Time.get_unix_time_from_system() * 1000)])
+		_log_file.close()
 	# #endregion
 	
 	if heart_bet_manager and heart_bet_manager.is_active():
@@ -1591,97 +1640,4 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 		print("🔫 Revolver Card триггер: все 6 карт по 0 очков!")
 
 
-# ========================================
-# DEPRECATED: Методы проверки триггеров (используются через ChanceCardTriggerChecker)
-# ========================================
-
-func _check_pair(hand: Array) -> bool:
-	"""Проверить, есть ли пара в руке (первые две карты одного ранга)
-	
-	DEPRECATED: Используйте chance_card_trigger_checker.check_triggers_after_deal()
-	"""
-	if hand.size() < 2:
-		return false
-	
-	var card1 = hand[0]
-	var card2 = hand[1]
-	
-	# Получаем ранг карты из её данных
-	var rank1 = _get_card_rank(card1)
-	var rank2 = _get_card_rank(card2)
-	
-	var is_pair = rank1 == rank2 and rank1 != ""
-	print("🎴 _check_pair: card1=%s, card2=%s, rank1=%s, rank2=%s, is_pair=%s" % [
-		card1.card_to_string() if card1 is Card else str(card1),
-		card2.card_to_string() if card2 is Card else str(card2),
-		rank1, rank2, is_pair
-	])
-	
-	return is_pair
-
-
-func _get_card_rank(card) -> String:
-	"""Получить ранг карты (2-10, J, Q, K, A)
-	
-	DEPRECATED: Используйте chance_card_trigger_checker
-	"""
-	# card — объект Card с полем value (1=A, 2-10, 11=J, 12=Q, 13=K)
-	if card is Card:
-		return str(card.value)  # Возвращаем value как строку для сравнения
-	# Fallback: card может быть словарём {rank, suit} или строкой
-	elif card is Dictionary:
-		return card.get("rank", "")
-	elif card is String:
-		# Парсим из строки типа "8_diamonds" или "queen_spades"
-		var parts = card.split("_")
-		if parts.size() >= 1:
-			return parts[0]
-	return ""
-
-
-func _check_aces_pair(hand: Array) -> bool:
-	"""Проверить, есть ли пара тузов в руке (первые две карты - тузы)
-	
-	DEPRECATED: Используйте chance_card_trigger_checker.check_triggers_after_deal()
-	Card.value: 1 = Ace
-	"""
-	if hand.size() < 2:
-		return false
-	
-	var card1 = hand[0]
-	var card2 = hand[1]
-	
-	# Для объектов Card: value == 1 означает туз
-	if card1 is Card and card2 is Card:
-		var is_aces = card1.value == 1 and card2.value == 1
-		if is_aces:
-			print("🎴 _check_aces_pair: найдена пара тузов!")
-		return is_aces
-	
-	return false
-
-
-func _check_all_zero_cards(player_hand: Array, banker_hand: Array) -> bool:
-	"""Проверить, все ли 6 карт дают 0 очков (10, J, Q, K)
-	
-	DEPRECATED: Используйте chance_card_trigger_checker.check_triggers_after_winner()
-	Card.value: 10=10, 11=J, 12=Q, 13=K - все дают 0 очков в баккаре
-	"""
-	# Должно быть по 3 карты у каждого (с третьими картами)
-	if player_hand.size() < 3 or banker_hand.size() < 3:
-		return false
-	
-	var all_cards = player_hand + banker_hand
-	# Карты с 0 очков: 10, J(11), Q(12), K(13)
-	var zero_values = [10, 11, 12, 13]
-	
-	for card in all_cards:
-		if card is Card:
-			if card.value not in zero_values:
-				return false
-		else:
-			# Fallback для других типов
-			return false
-	
-	print("🎴 _check_all_zero_cards: все 6 карт по 0 очков!")
-	return true
+# DEPRECATED методы удалены - используются через ChanceCardTriggerChecker
