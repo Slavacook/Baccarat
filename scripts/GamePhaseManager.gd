@@ -75,6 +75,9 @@ var winner_action_executor: WinnerActionExecutor = null
 ## Обновлятор состояния игры
 var game_state_updater: GameStateUpdater = null
 
+## Координатор валидации выбора победителя
+var winner_selection_coordinator: WinnerSelectionCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -200,6 +203,10 @@ func _init(
 	# Инициализируем обновлятор состояния игры
 	game_state_updater = GameStateUpdater.new()
 	DebugLogger.log("✅ GameStateUpdater инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор валидации выбора победителя
+	winner_selection_coordinator = WinnerSelectionCoordinator.new(winner_validator)
+	DebugLogger.log("✅ WinnerSelectionCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1126,32 +1133,42 @@ func _validate_winner_selection() -> void:
 	var player_hand_ref = hand_manager.get_player_hand_ref()
 	var banker_hand_ref = hand_manager.get_banker_hand_ref()
 	
-	# Используем валидатор для чистой логики валидации
-	var validation_result = winner_validator.validate_winner_selection(
-		selected_winner, player_hand_ref, banker_hand_ref
+	# Используем координатор для получения инструкций
+	var is_survival_mode = SaveManager.instance.load_survival_mode()
+	var instructions = winner_selection_coordinator.get_validation_instructions(
+		selected_winner,
+		player_hand_ref,
+		banker_hand_ref,
+		is_survival_mode,
+		was_heart_bet_round,
+		has_active_heart_bet()
 	)
 	
 	# Не выбран ни один маркер?
-	if validation_result.get("needs_selection", false):
+	if instructions.get("needs_selection", false):
 		return
 	
-	var actual_winner = validation_result.get("actual_winner", "")
+	var actual_winner = instructions.get("actual_winner", "")
+	var validation_result = instructions.get("validation_result", {})
 	
 	# ВАЖНО: Сохраняем победителя в TableStateManager для триггеров Heart Bet!
-	TableStateManager.set_actual_winner(actual_winner)
+	if instructions.get("should_save_winner", false):
+		TableStateManager.set_actual_winner(actual_winner)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ПРОВЕРКА ТРИГГЕРОВ HEART BET: сразу после определения победителя
 	# Карта шанса показывается немедленно через EventBus.heart_bet_trigger_activated
 	# ═══════════════════════════════════════════════════════════════════
-	if heart_bet_manager and SaveManager.instance.load_survival_mode() and not was_heart_bet_round and not has_active_heart_bet():
-		if not player_hand_ref.is_empty() and not banker_hand_ref.is_empty():
-			var player_score = BaccaratRules.hand_value(player_hand_ref)
-			var banker_score = BaccaratRules.hand_value(banker_hand_ref)
-			var is_natural = BaccaratRules.is_natural(player_hand_ref) or BaccaratRules.is_natural(banker_hand_ref)
-			# HeartBetManager.check_triggers() уже эмитит EventBus.heart_bet_trigger_activated
-			# ChanceCardManager автоматически покажет карту через подписку на это событие
-			heart_bet_manager.check_triggers(actual_winner, banker_score, player_score, is_natural)
+	if instructions.get("should_check_heart_bet_triggers", false) and heart_bet_manager:
+		var trigger_data = instructions.get("heart_bet_trigger_data", {})
+		# HeartBetManager.check_triggers() уже эмитит EventBus.heart_bet_trigger_activated
+		# ChanceCardManager автоматически покажет карту через подписку на это событие
+		heart_bet_manager.check_triggers(
+			trigger_data.get("winner", ""),
+			trigger_data.get("banker_score", 0),
+			trigger_data.get("player_score", 0),
+			trigger_data.get("is_natural", false)
+		)
 
 	# Обрабатываем результат валидации
 	_handle_winner_validation_result(validation_result, actual_winner)
