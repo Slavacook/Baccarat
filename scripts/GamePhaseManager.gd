@@ -48,6 +48,9 @@ var chance_card_trigger_checker: ChanceCardTriggerChecker = null
 ## Менеджер фильтров ставок
 var bet_filter_manager: BetFilterManager = null
 
+## Координатор отображения ставок гостей
+var guest_bet_display_coordinator: GuestBetDisplayCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -139,6 +142,10 @@ func _init(
 	# Инициализируем менеджер фильтров ставок
 	bet_filter_manager = BetFilterManager.new()
 	DebugLogger.log("✅ BetFilterManager инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор отображения ставок гостей
+	guest_bet_display_coordinator = GuestBetDisplayCoordinator.new()
+	DebugLogger.log("✅ GuestBetDisplayCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -780,38 +787,31 @@ func _show_guest_bets() -> void:
 	# ═══════════════════════════════════════════════════════════════════
 	_save_filter_snapshot()
 	
-	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
-	if guests_with_bets.is_empty():
+	# Используем координатор для получения инструкций
+	var instructions = guest_bet_display_coordinator.get_display_instructions(
+		guest_bet_storage, bet_filter_manager, PayoutSettingsManager, pair_betting_manager
+	)
+	
+	if instructions.is_empty():
 		DebugLogger.log("👥 Нет ставок гостей для отображения")
 		return
 	
-	DebugLogger.log("👥 Отображение ставок %d гостей: %s" % [guests_with_bets.size(), guests_with_bets])
+	# Группируем по гостям для логирования
+	var guests_count = guest_bet_display_coordinator.get_guests_with_bets_count(guest_bet_storage)
+	DebugLogger.log("👥 Отображение ставок %d гостей" % guests_count)
 	
-	for guest_id in guests_with_bets:
-		var bets = guest_bet_storage.get_guest_bets(guest_id)
-		DebugLogger.log("👥 Гость %d: %d ставок" % [guest_id, bets.size()])
-		for bet in bets:
-			# Получаем координаты позиции
-			var bet_type = bet.get_bet_type()
-			
-			# ═══════════════════════════════════════════════════════════════════
-			# ФИЛЬТР НАСТРОЕК: Показываем только включенные ставки
-			# ═══════════════════════════════════════════════════════════════════
-			if not _is_bet_type_enabled_in_settings(bet_type):
-				DebugLogger.log("  → Гость %d: ставка %s отфильтрована (выключена в настройках)" % [guest_id, bet_type])
-				continue
-			
-			var sector = bet.get_sector()
-			var pos_idx = bet.get_position_index()
-			var stake = bet.get_stake()
-			var coords = GuestSectorMapper.get_position_coordinates(sector, bet_type)
-			if coords == Vector2.ZERO:
-				DebugLogger.log_warning("⚠️ Не найдены координаты для %s в секторе %d" % [bet_type, sector])
-				continue
-			
-			# Создаём фишку на позиции гостя
-			_show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
-			DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f)" % [guest_id, bet_type, pos_idx, stake])
+	# Отображаем каждую ставку
+	for instruction in instructions:
+		var bet_type = instruction.get("bet_type", "")
+		var pos_idx = instruction.get("position_index", -1)
+		var coords = instruction.get("coords", Vector2.ZERO)
+		var stake = instruction.get("stake", 0.0)
+		var guest_id = instruction.get("guest_id", -1)
+		var sector = instruction.get("sector", -1)
+		
+		# Создаём фишку на позиции гостя
+		_show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
+		DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f) в секторе %d" % [guest_id, bet_type, pos_idx, stake, sector])
 
 func _show_guest_chip_at_position(bet_type: String, position_index: int, coords: Vector2, stake: float) -> void:
 	"""Показать фишку гостя на конкретной позиции
