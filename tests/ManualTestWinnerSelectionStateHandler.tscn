@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://igjfksbawen2"]
+
+[ext_resource type="Script" path="res://tests/manual_test_WinnerSelectionStateHandler.gd" id="1_manual_test"]
+
+[node name="ManualTestWinnerSelectionStateHandler" type="Node"]
+script = ExtResource("1_manual_test")
+

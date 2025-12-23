@@ -8,3 +8,5 @@ res://scripts/ChanceCardTriggerChecker.gd
 res://tests/ManualTestChanceCardTriggerChecker.tscn
 res://tests/manual_test_BetFilterManager.gd
 res://tests/manual_test_ChipRestorationCoordinator.gd
+res://scripts/WinnerSelectionStateHandler.gd
+res://tests/manual_test_WinnerSelectionStateHandler.gd

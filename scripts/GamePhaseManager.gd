@@ -81,6 +81,9 @@ var winner_selection_coordinator: WinnerSelectionCoordinator = null
 ## Исполнитель подготовки стола
 var table_preparation_executor: TablePreparationExecutor = null
 
+## Обработчик состояния выбора победителя
+var winner_selection_state_handler: WinnerSelectionStateHandler = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -220,6 +223,10 @@ func _init(
 		chip_restoration_coordinator
 	)
 	DebugLogger.log("✅ TablePreparationExecutor инициализирован в GamePhaseManager")
+	
+	# Инициализируем обработчик состояния выбора победителя
+	winner_selection_state_handler = WinnerSelectionStateHandler.new(hand_manager)
+	DebugLogger.log("✅ WinnerSelectionStateHandler инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1294,34 +1301,54 @@ func _handle_choose_winner_state() -> void:
 	Было: 6+ уровней вложенности, 134 строки
 	Стало: 2-3 уровня вложенности, разбито на методы
 	"""
-
-	# GUARD 1: Ошибочная попытка заказать карты в финале
-	if player_third_selected or banker_third_selected:
-		_handle_invalid_card_selection_in_final()
+	if not winner_selection_state_handler:
+		DebugLogger.log_error("❌ WinnerSelectionStateHandler не инициализирован!")
 		return
-
-	# GUARD 2: Первое нажатие - выбор победителя
+	
 	var button_state = ui.get_action_button_state()
-	if button_state != "complete":
-		_validate_winner_selection()
-		return
+	var can_complete = _can_complete_round()
+	
+	# Используем обработчик для получения инструкций
+	var instructions = winner_selection_state_handler.get_state_handling_instructions(
+		player_third_selected,
+		banker_third_selected,
+		button_state,
+		can_complete
+	)
+	
+	var action = instructions.get("action", "none")
+	match action:
+		"handle_invalid_selection":
+			_handle_invalid_card_selection_in_final(instructions)
+		"validate_winner":
+			_validate_winner_selection()
+		"complete_round":
+			_complete_round_and_prepare_new_game()
+		"none":
+			pass  # Сообщение об ошибке уже показано
 
-	# GUARD 3: Проверка завершения раунда (неоплаченные ставки)
-	if not _can_complete_round():
-		return  # Сообщение об ошибке показано в _can_complete_round()
 
-	# Все проверки пройдены → завершаем раунд
-	_complete_round_and_prepare_new_game()
-
-
-func _handle_invalid_card_selection_in_final() -> void:
-	"""Обработка ошибочной попытки заказать карты когда все карты открыты"""
-
-	var player_first_two = hand_manager.get_player_initial_score()
-	var banker_first_two = hand_manager.get_banker_initial_score()
-	var is_natural = player_first_two >= 8 or banker_first_two >= 8
-
-	var error_message = Localization.t("ERR_NATURAL_NO_DRAW") if is_natural else Localization.t("INFO_ALL_OPENED_CHOOSE_WINNER")
+func _handle_invalid_card_selection_in_final(instructions: Dictionary = {}) -> void:
+	"""Обработка ошибочной попытки заказать карты когда все карты открыты
+	
+	Args:
+		instructions: Инструкции от WinnerSelectionStateHandler (опционально)
+	"""
+	# Если инструкции не переданы - получаем их
+	if instructions.is_empty():
+		if not winner_selection_state_handler:
+			DebugLogger.log_error("❌ WinnerSelectionStateHandler не инициализирован!")
+			return
+		var button_state = ui.get_action_button_state()
+		instructions = winner_selection_state_handler.get_state_handling_instructions(
+			player_third_selected,
+			banker_third_selected,
+			button_state,
+			_can_complete_round()
+		)
+	
+	var error_message_key = instructions.get("error_message_key", "INFO_ALL_OPENED_CHOOSE_WINNER")
+	var error_message = Localization.t(error_message_key)
 	EventBus.show_toast_error.emit(error_message)
 	EventBus.action_error.emit("final_card_error", "")
 

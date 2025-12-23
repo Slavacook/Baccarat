@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://b8x7k9m2n3p4q5r6s7t8u9v0w1x2y3z"]
+[gd_scene load_steps=2 format=3 uid="uid://crbtnfi717iwn"]
 
 [ext_resource type="Script" path="res://tests/manual_test_TablePreparationExecutor.gd" id="1_manual_test"]
 
