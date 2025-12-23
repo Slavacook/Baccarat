@@ -96,6 +96,9 @@ var first_four_deal_coordinator: FirstFourDealCoordinator = null
 ## Координатор раздачи третьих карт
 var third_card_drawing_coordinator: ThirdCardDrawingCoordinator = null
 
+## Координатор удаления третьих карт
+var third_card_removal_coordinator: ThirdCardRemovalCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -255,6 +258,10 @@ func _init(
 	# Инициализируем координатор раздачи третьих карт
 	third_card_drawing_coordinator = ThirdCardDrawingCoordinator.new(card_dealer, hand_manager)
 	DebugLogger.log("✅ ThirdCardDrawingCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор удаления третьих карт
+	third_card_removal_coordinator = ThirdCardRemovalCoordinator.new(hand_manager)
+	DebugLogger.log("✅ ThirdCardRemovalCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1177,24 +1184,36 @@ func remove_third_cards_and_recalculate() -> void:
 	3. Сброса флагов выбора
 	4. Пересчёта состояния игры (возврат к фазе заказа третьих карт)
 	"""
+	if not third_card_removal_coordinator:
+		DebugLogger.log_error("❌ ThirdCardRemovalCoordinator не инициализирован!")
+		return
+	
 	print("🔄 Third Card Change: убираем третьи карты...")
 	
+	# Получаем инструкции от координатора
+	var instructions = third_card_removal_coordinator.get_removal_instructions()
+	
 	# Сбрасываем флаги выбора третьих карт
-	player_third_selected = false
-	banker_third_selected = false
+	if instructions.get("should_reset_flags", false):
+		player_third_selected = false
+		banker_third_selected = false
 	
 	# Убираем карты из hand_manager
-	hand_manager.remove_third_cards()
+	if instructions.get("should_remove_cards", false):
+		third_card_removal_coordinator.remove_third_cards()
 	
-	# Скрываем текстуры третьих карт на столе
-	ui.hide_third_cards()
-	
-	# Показываем тумблеры "?" для заказа новых третьих карт
-	ui.update_player_third_card_ui("?")
-	ui.update_banker_third_card_ui("?")
+	# Обновляем UI
+	if instructions.get("should_update_ui", false):
+		# Скрываем текстуры третьих карт на столе
+		ui.hide_third_cards()
+		
+		# Показываем тумблеры "?" для заказа новых третьих карт
+		ui.update_player_third_card_ui("?")
+		ui.update_banker_third_card_ui("?")
 	
 	# Пересчитываем состояние игры
-	_update_game_state_manager()
+	if instructions.get("should_recalculate_state", false):
+		_update_game_state_manager()
 	
 	var new_state = GameStateManager.get_state_name(GameStateManager.current_state)
 	print("🔄 Third Card Change: третьи карты убраны, новое состояние: %s" % new_state)
