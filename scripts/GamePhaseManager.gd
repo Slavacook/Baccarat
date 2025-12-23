@@ -66,6 +66,9 @@ var chip_restoration_coordinator: ChipRestorationCoordinator = null
 ## Обработчик событий UI для третьих карт
 var third_card_ui_handler: ThirdCardUIHandler = null
 
+## Исполнитель действий для третьих карт
+var third_card_action_executor: ThirdCardActionExecutor = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -179,6 +182,10 @@ func _init(
 	# Инициализируем обработчик событий UI для третьих карт
 	third_card_ui_handler = ThirdCardUIHandler.new()
 	DebugLogger.log("✅ ThirdCardUIHandler инициализирован в GamePhaseManager")
+	
+	# Инициализируем исполнитель действий для третьих карт
+	third_card_action_executor = ThirdCardActionExecutor.new()
+	DebugLogger.log("✅ ThirdCardActionExecutor инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -573,19 +580,22 @@ func _handle_validation_result(result: Dictionary, player_score: int, banker_sco
 		player_score: Очки игрока (для сообщений об ошибках)
 		banker_score: Очки банкира (для сообщений об ошибках)
 	"""
+	# Используем исполнитель для получения инструкций
+	var instructions = third_card_action_executor.get_action_instructions(result)
+	
 	# Сбрасываем выборы если нужно
-	if result.get("should_reset_player", false):
+	if instructions.get("should_reset_player", false):
 		player_third_selected = false
 		ui.update_player_third_card_ui("?")
 	
-	if result.get("should_reset_banker", false):
+	if instructions.get("should_reset_banker", false):
 		banker_third_selected = false
 		ui.update_banker_third_card_ui("?")
 	
 	# Если валидация не прошла - показываем ошибку
-	if not result.get("is_valid", false):
-		var error_type = result.get("error_type", "")
-		var error_message = result.get("error_message", "")
+	if instructions.get("should_show_error", false):
+		var error_type = instructions.get("error_type", "")
+		var error_message = instructions.get("error_message", "")
 		
 		# Используем форматтер для форматирования сообщения об ошибке
 		var message_text = validation_error_formatter.format_third_card_error(
@@ -597,7 +607,7 @@ func _handle_validation_result(result: Dictionary, player_score: int, banker_sco
 		return
 	
 	# Валидация прошла - выполняем действие
-	var action = result.get("action", "complete")
+	var action = instructions.get("action", "complete")
 	match action:
 		"draw_both":
 			draw_player_third()
@@ -606,7 +616,7 @@ func _handle_validation_result(result: Dictionary, player_score: int, banker_sco
 		"draw_player":
 			draw_player_third()
 			# Проверяем нужно ли ждать решения банкира (сценарий 3.2: банкир 3-6)
-			if result.get("needs_banker_decision", false):
+			if instructions.get("needs_banker_decision", false):
 				_handle_banker_after_player()
 			else:
 				complete_game()
@@ -741,8 +751,11 @@ func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> 
 		result: Результат валидации от валидатора
 		banker_score: Очки банкира (для сообщений об ошибках)
 	"""
+	# Используем исполнитель для получения инструкций
+	var instructions = third_card_action_executor.get_banker_action_instructions(result)
+	
 	# Сбрасываем выбор если нужно
-	if result.get("should_reset_banker", false):
+	if instructions.get("should_reset_banker", false):
 		banker_third_selected = false
 		ui.update_banker_third_card_ui("?")
 	elif result.get("action") == "wait_banker" and not banker_third_selected:
@@ -750,9 +763,9 @@ func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> 
 		banker_third_selected = true
 	
 	# Если валидация не прошла - показываем ошибку
-	if not result.get("is_valid", false):
-		var error_type = result.get("error_type", "")
-		var error_message = result.get("error_message", "")
+	if instructions.get("should_show_error", false):
+		var error_type = instructions.get("error_type", "")
+		var error_message = instructions.get("error_message", "")
 		
 		# Используем форматтер для форматирования сообщения об ошибке
 		var message_text = validation_error_formatter.format_third_card_error(
@@ -764,7 +777,7 @@ func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> 
 		return
 	
 	# Валидация прошла - выполняем действие
-	var action = result.get("action", "complete")
+	var action = instructions.get("action", "complete")
 	match action:
 		"draw_banker":
 			draw_banker_third()
