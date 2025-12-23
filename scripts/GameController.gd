@@ -719,6 +719,9 @@ func _on_survival_game_over(_rounds: int):
 	if phase_manager and phase_manager.heart_bet_manager:
 		phase_manager.heart_bet_manager.force_reset()
 		DebugLogger.log("❤️ Шансы сброшены при Game Over")
+	
+	# 1.1. Обнуляем карты шансов (чтобы не переходили в новую игру)
+	ChanceCardManager.reset_all_cards()
 
 	# 2. Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
@@ -757,6 +760,9 @@ func _on_restart_game():
 	if phase_manager and phase_manager.heart_bet_manager:
 		phase_manager.heart_bet_manager.force_reset()
 		DebugLogger.log("❤️ Шансы сброшены при рестарте")
+	
+	# Обнуляем карты шансов (на всякий случай)
+	ChanceCardManager.reset_all_cards()
 
 	phase_manager.reset()
 	
@@ -1607,10 +1613,12 @@ func _on_chip_clicked(bet_type: String):
 
 func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	"""Обработчик клика на конкретную фишку (с position_index)"""
+	print("🔴 _on_chip_instance_clicked ВЫЗВАН: %s[%d]" % [bet_type, position_index])
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ЗАЩИТА: Блокировка во время обработки выплаты (защита от спама Space)
 	# ═══════════════════════════════════════════════════════════════════
+	print("🔍 Проверка is_payout_processing: %s" % is_payout_processing)
 	if is_payout_processing:
 		DebugLogger.log("⏸️  Клик на %s[%d] заблокирован (идёт обработка выплаты)" % [bet_type, position_index])
 		return
@@ -1620,49 +1628,77 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	# ═══════════════════════════════════════════════════════════════════
 	# ЗАЩИТА: Проверяем что фишка существует (защита от множественных кликов)
 	# ═══════════════════════════════════════════════════════════════════
+	print("🔍 Проверка chip_visual_manager: %s" % (chip_visual_manager != null))
 	if chip_visual_manager:
 		var chip = chip_visual_manager.get_chip_instance(bet_type, position_index)
+		print("🔍 get_chip_instance(%s, %d) = %s" % [bet_type, position_index, "найдена" if chip else "null"])
 		if not chip:
 			DebugLogger.log("⏸️  Фишка %s[%d] не найдена (уже обработана), игнорируем клик" % [bet_type, position_index])
 			return
 	
 	# Проверяем что менеджеры инициализированы
+	print("🔍 Проверка менеджеров: payout_queue_manager=%s, bet_collection_manager=%s" % [payout_queue_manager != null, bet_collection_manager != null])
 	if not payout_queue_manager or not bet_collection_manager:
+		print("🔍 ВЫХОД: менеджеры не инициализированы")
 		return
-	
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРОВЕРКА: В режиме GUEST игнорируем клики на фишки неактивных гостей
-	# ═══════════════════════════════════════════════════════════════════
-	if phase_manager and phase_manager.guest_bet_storage:
-		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
-		if sector >= 1 and sector <= 6:
-			# Это гостевой сектор - проверяем есть ли активный гость
-			var guest_id = sector
-			var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
-			if guest_bets.is_empty():
-				# Гость не включён или нет ставок - игнорируем клик
-				DebugLogger.log_warning("⚠️ Клик на фишку %s[%d] в секторе %d, но гостя %d нет или он не включён - игнорируем" % [bet_type, position_index, sector, guest_id])
-				return
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ПРОВЕРКА: Ставка должна быть в очереди выплат
 	# Если ставки нет в очереди - игнорируем клик (ставка отключена фильтром)
 	# ═══════════════════════════════════════════════════════════════════
 	var bet_in_queue = payout_queue_manager.get_bet_by_id(bet_type, position_index)
+	DebugLogger.log("🔍 Поиск ставки в очереди: %s[%d] → %s" % [bet_type, position_index, "найдена" if bet_in_queue else "не найдена"])
 	if not bet_in_queue:
 		# Пробуем найти по типу (для обратной совместимости)
 		bet_in_queue = payout_queue_manager.get_bet_by_type(bet_type)
+		DebugLogger.log("🔍 Fallback поиск по типу: %s → %s" % [bet_type, "найдена" if bet_in_queue else "не найдена"])
 	
 	if not bet_in_queue:
 		# Ставки нет в очереди - игнорируем клик без ошибки
 		# Это нормально, если ставка была отключена фильтром
 		DebugLogger.log("  ⏸️  Ставка %s[%d] не найдена в очереди выплат - игнорируем клик" % [bet_type, position_index])
+		# Логируем все ставки в очереди для отладки
+		DebugLogger.log("  📋 Все ставки в очереди:")
+		for bet in payout_queue_manager.get_all_bets():
+			DebugLogger.log("    → %s[%d], won=%s, collected=%s" % [bet.get_bet_type(), bet.get_position_index(), bet.is_won(), bet.is_collected()])
 		return
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА: В режиме GUEST игнорируем клики на фишки неактивных гостей
+	# ИСПРАВЛЕНИЕ: Используем сектор из ставки, а не определяем по position_index
+	# ═══════════════════════════════════════════════════════════════════
+	if phase_manager and phase_manager.guest_bet_storage:
+		# Определяем сектор: сначала из ставки (если она гостевая), иначе по position_index
+		var sector = -1
+		if bet_in_queue and bet_in_queue.get_sector() >= 1 and bet_in_queue.get_sector() <= 6:
+			# Используем сектор из ставки (правильный способ)
+			sector = bet_in_queue.get_sector()
+			DebugLogger.log("🔍 Сектор из ставки: %s[%d] → сектор %d (из bet.get_sector())" % [bet_type, position_index, sector])
+		else:
+			# Fallback: определяем по position_index (может быть неточным для Banker[9])
+			sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+			DebugLogger.log("🔍 Сектор по position_index: %s[%d] → сектор %d (fallback)" % [bet_type, position_index, sector])
+		
+		if sector >= 1 and sector <= 6:
+			# Это гостевой сектор - проверяем есть ли активный гость
+			var guest_id = sector
+			var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+			DebugLogger.log("🔍 Гость %d: найдено %d ставок" % [guest_id, guest_bets.size()])
+			if guest_bets.is_empty():
+				# Гость не включён или нет ставок - игнорируем клик
+				DebugLogger.log_warning("⚠️ Клик на фишку %s[%d] в секторе %d, но гостя %d нет или он не включён - игнорируем" % [bet_type, position_index, sector, guest_id])
+				return
+			else:
+				# Логируем все ставки гостя для отладки
+				for bet in guest_bets:
+					DebugLogger.log("  → Ставка гостя %d: %s[%d], won=%s, collected=%s" % [guest_id, bet.get_bet_type(), bet.get_position_index(), bet.is_won(), bet.is_collected()])
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ВАЛИДАЦИЯ КЛИКА ЧЕРЕЗ BetCollectionPhaseManager
 	# ═══════════════════════════════════════════════════════════════════
+	DebugLogger.log("🔍 Валидация клика через BetCollectionPhaseManager: %s[%d]" % [bet_type, position_index])
 	var validation = bet_collection_manager.validate_chip_click(bet_type, position_index)
+	DebugLogger.log("🔍 Результат валидации: action=%s, can_proceed=%s, error_type=%s" % [validation.get("action", "unknown"), validation.get("can_proceed", false), validation.get("error_type", "")])
 	
 	# Если режим не выбран - ничего не делаем
 	if validation.action == "none" and validation.can_proceed:

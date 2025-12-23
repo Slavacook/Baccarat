@@ -112,13 +112,17 @@ func restore_survival_and_queue(
 	# 3. Восстанавливаем PayoutQueueManager из TableStateManager
 	var restored_queue = PayoutQueueManager.new()
 	for bet_state in TableStateManager.get_bets():
+		# Восстанавливаем ставку с сохранением guest_id и sector
 		restored_queue.add_bet(
 			bet_state.get_bet_type(),
 			bet_state.get_stake(),
 			bet_state.get_payout(),
 			bet_state.is_won(),
 			bet_state.get_player_score(),
-			bet_state.get_banker_score()
+			bet_state.get_banker_score(),
+			bet_state.get_position_index(),
+			bet_state.get_guest_id(),
+			bet_state.get_sector()
 		)
 		# Восстанавливаем статус оплаты
 		if bet_state.is_paid():

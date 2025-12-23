@@ -44,7 +44,7 @@ const CHIP_TEXTURES = {
 
 const ALTERNATIVE_POSITIONS = {
 	"Player": [
-		Vector2(995, -35),    # Основная позиция (из сцены)✅
+		Vector2(795, -35),    # Основная позиция (из сцены)✅
 		Vector2(700, -38),    # Альтернатива 2✅
 		Vector2(1520, 25),     # Альтернатива 1✅
 		Vector2(1250, -38),     # Альтернатива 1✅
@@ -58,7 +58,7 @@ const ALTERNATIVE_POSITIONS = {
 		Vector2(1860, 335),    # Альтернатива 6 ✅
 	],
 	"Banker": [
-		Vector2(954, 47),     # Основная позиция (из сцены)✅
+		Vector2(754, 47),     # Основная позиция (из сцены)✅
 		Vector2(654, 47),
 		Vector2(-510, 180),     # Альтернатива 1✅
 		Vector2(-670, 360),     # Альтернатива 1✅
@@ -808,7 +808,9 @@ func _create_chip_copy(bet_type: String, position_index: int, texture: Texture2D
 func _on_chip_instance_pressed(bet_type: String, position_index: int) -> void:
 	"""Обработка клика на конкретную фишку"""
 	print("🖱️  ChipVisualManager: клик на фишку %s[%d]" % [bet_type, position_index])
+	print("🔵 ChipVisualManager: эмитим сигнал chip_instance_clicked для %s[%d]" % [bet_type, position_index])
 	chip_instance_clicked.emit(bet_type, position_index)
+	print("🔵 ChipVisualManager: сигнал chip_instance_clicked эмиттирован")
 	# НЕ эмитим chip_clicked - это вызовет двойную обработку в GameController!
 
 

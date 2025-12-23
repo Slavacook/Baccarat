@@ -301,6 +301,24 @@ func reset_shown_cards() -> void:
 	_shown_this_round.clear()
 	print("🎴 Список показанных карт сброшен (новый раунд)")
 
+func reset_all_cards() -> void:
+	"""Полный сброс всех карт шансов (обнуление счётчиков)
+	
+	Вызывается при Game Over для очистки всех накопленных карт.
+	"""
+	for card_id in cards.keys():
+		var card = cards[card_id] as BaseChanceCard
+		if card:
+			card.count = 0
+			# Обновляем хранилище
+			if storage:
+				storage.update_card_count(card_id, 0)
+	
+	# Сбрасываем список показанных карт
+	_shown_this_round.clear()
+	
+	print("🎴 Все карты шансов обнулены (Game Over)")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════

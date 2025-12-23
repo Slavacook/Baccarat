@@ -12,12 +12,12 @@ var bets: Array[Bet] = []
 # УПРАВЛЕНИЕ СТАВКАМИ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func add_bet(bet_type: String, stake: float, payout: float, won: bool, p_score: int = 0, b_score: int = 0, position_index: int = 0) -> void:
+func add_bet(bet_type: String, stake: float, payout: float, won: bool, p_score: int = 0, b_score: int = 0, position_index: int = 0, guest_id: int = -1, sector: int = -1) -> void:
 	"""Добавить ставку в менеджер"""
-	var bet = Bet.new(bet_type, stake, payout, won, position_index, p_score, b_score)
+	var bet = Bet.new(bet_type, stake, payout, won, position_index, p_score, b_score, guest_id, sector)
 	bets.append(bet)
 	var status = "✅ ВЫИГРЫШ" if won else "❌ ПРОИГРЫШ"
-	DebugLogger.log("💰 PayoutQueueManager: добавлена ставка %s[%d] (stake=%.1f, payout=%.1f, %s)" % [bet_type, position_index, stake, payout, status])
+	DebugLogger.log("💰 PayoutQueueManager: добавлена ставка %s[%d] (stake=%.1f, payout=%.1f, %s, guest_id=%d, sector=%d)" % [bet_type, position_index, stake, payout, status, guest_id, sector])
 
 
 func get_bet_by_type(bet_type: String) -> Bet:

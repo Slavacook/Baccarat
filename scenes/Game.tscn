@@ -711,6 +711,7 @@ mouse_filter = 2
 texture = ExtResource("38_27c7x")
 
 [node name="hand5" type="TextureRect" parent="hands"]
+visible = false
 offset_left = 1303.9999
 offset_top = -482.0
 offset_right = 2840.0

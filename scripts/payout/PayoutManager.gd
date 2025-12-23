@@ -148,7 +148,7 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 						banker_value
 					)
 			
-			# Добавляем ставку в очередь
+			# Добавляем ставку в очередь (сохраняем guest_id и sector для гостевых ставок)
 			payout_queue_manager.add_bet(
 				bet.get_bet_type(),
 				bet.get_stake(),
@@ -156,7 +156,9 @@ func _prepare_guest_bets(actual_winner: String, player_score: int, banker_score:
 				won,
 				player_score,
 				banker_score,
-				bet.get_position_index()
+				bet.get_position_index(),
+				bet.get_guest_id(),
+				bet.get_sector()
 			)
 			
 			DebugLogger.log("  → Гость %d: %s ставка %.0f (won=%s, payout=%.0f)" % [guest_id, bet.get_bet_type(), bet.get_stake(), won, payout])
