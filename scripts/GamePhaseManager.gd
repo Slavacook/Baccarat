@@ -78,6 +78,9 @@ var game_state_updater: GameStateUpdater = null
 ## Координатор валидации выбора победителя
 var winner_selection_coordinator: WinnerSelectionCoordinator = null
 
+## Исполнитель подготовки стола
+var table_preparation_executor: TablePreparationExecutor = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -207,6 +210,16 @@ func _init(
 	# Инициализируем координатор валидации выбора победителя
 	winner_selection_coordinator = WinnerSelectionCoordinator.new(winner_validator)
 	DebugLogger.log("✅ WinnerSelectionCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем исполнитель подготовки стола
+	table_preparation_executor = TablePreparationExecutor.new(
+		round_completion_coordinator,
+		payout_queue_manager,
+		bet_filter_manager,
+		guest_bet_factory,
+		chip_restoration_coordinator
+	)
+	DebugLogger.log("✅ TablePreparationExecutor инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -1365,65 +1378,25 @@ func _complete_round_and_prepare_new_game() -> void:
 		has_active_heart_bet(), is_survival_mode
 	)
 	
-	# HEART BET: Разрешаем активную ставку сердцем (если есть)
-	if instructions.get("should_resolve_heart_bet", false):
-		var actual_winner = TableStateManager.get_actual_winner()
-		print("❤️ GamePhaseManager: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
-		resolve_heart_bet(actual_winner)
-		# НЕ продолжаем - раунд сбросится через EventBus heart_bet_round_complete
+	# Используем исполнитель для выполнения действий
+	if not table_preparation_executor:
+		DebugLogger.log_error("❌ TablePreparationExecutor не инициализирован!")
 		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРОВЕРКА ТРИГГЕРОВ HEART BET перенесена в _validate_winner_selection()
-	# (происходит сразу после определения победителя)
-	# ═══════════════════════════════════════════════════════════════════
-
-	# Показываем сообщение о завершении
-	if instructions.get("should_show_message", false):
-		_show_round_completion_message()
-
+	
 	DebugLogger.log_separator("ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
-
-	# Зумаут камеры на общий план
-	EventBus.camera_zoom_requested.emit("out")
-	EventBus.area_buttons_visibility_changed.emit(false)
-	EventBus.navigation_arrows_visibility_changed.emit(false)
-	DebugLogger.log("  → ✅ Камера отзумлена, кнопки областей скрыты")
-
-	# Начисляем +1 очко (только в режиме без сердечек)
-	if instructions.get("should_add_score", false):
-		SaveManager.instance.add_score(1)
-		if StatsManager.instance:
-			StatsManager.instance.update_stats()
-		DebugLogger.log("  → ✅ +1 очко за завершение игры")
-
-	# Сброс раунда БЕЗ обновления GameStateManager
-	if instructions.get("should_reset_round", false):
-		reset(false)
-		DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
-
-	# ВАЖНО: Явно устанавливаем WAITING, так как reset(false) не обновляет состояние
-	# Это нужно для того, чтобы карту шанса можно было использовать
-	if instructions.get("should_set_waiting_state", false):
-		GameStateManager.update_state(GameStateManager.GameState.WAITING)
-		DebugLogger.log("  → ✅ Состояние установлено в WAITING (готово к использованию карты шанса)")
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРИМЕНЕНИЕ НАКОПЛЕННЫХ ИЗМЕНЕНИЙ ФИЛЬТРА
-	# ═══════════════════════════════════════════════════════════════════
-	if instructions.get("should_apply_filters", false):
-		_apply_pending_filter_changes()
-
-	# Генерируем ставки для всех активных гостей
-	if instructions.get("should_generate_guest_bets", false) and guest_bet_factory and limits_manager:
-		guest_bet_factory.generate_bets_for_all_guests()
-		DebugLogger.log("  → ✅ Ставки гостей сгенерированы")
-
-	# Восстанавливаем видимость активных фишек
-	if instructions.get("should_restore_chips", false) and chip_visual_manager:
-		_restore_active_bet_chips()
-		DebugLogger.log("  → ✅ Активные фишки восстановлены")
-
+	
+	var result = table_preparation_executor.execute_preparation_actions(
+		instructions,
+		resolve_heart_bet,  # Callable для разрешения Heart Bet
+		reset,  # Callable для сброса раунда
+		_restore_active_bet_chips,  # Callable для восстановления фишек
+		_apply_pending_filter_changes  # Callable для применения фильтров
+	)
+	
+	# Если Heart Bet был разрешен - не продолжаем
+	if not result.get("should_continue", true):
+		return
+	
 	# Устанавливаем флаг подготовки к новой игре
 	is_table_prepared = true
 	
@@ -1437,26 +1410,7 @@ func _complete_round_and_prepare_new_game() -> void:
 	DebugLogger.log_separator("ПОДГОТОВКА ЗАВЕРШЕНА. Нажмите 'Карты' для новой раздачи")
 
 
-func _show_round_completion_message() -> void:
-	"""Показ сообщения о завершении раунда (зависит от результата ставок)"""
-	DebugLogger.log_separator("Проверка завершения раунда")
-	
-	# Используем координатор для определения сообщения
-	var message_info = round_completion_coordinator.get_completion_message(payout_queue_manager)
-	var message_key = message_info.get("message_key", "")
-	var has_unpaid = message_info.get("has_unpaid", false)
-	
-	# Если есть неоплаченные выплаты - не показываем сообщение
-	if has_unpaid:
-		DebugLogger.log_warning("⚠️ ЕСТЬ НЕОПЛАЧЕННЫЕ ВЫПЛАТЫ → НЕ ЗАВЕРШАЕМ РАУНД")
-		return
-	
-	# Показываем сообщение если есть ключ
-	if not message_key.is_empty():
-		var log_message = "НЕТ АКТИВНЫХ СТАВОК" if not message_info.get("has_bets", false) else \
-						 ("ВСЕ СТАВКИ ОПЛАЧЕНЫ" if message_info.get("has_winning", false) else "НЕТ ВЫИГРЫШНЫХ СТАВОК")
-		DebugLogger.log_init("%s → ЗАВЕРШАЕМ РАУНД" % log_message)
-		EventBus.show_toast_info.emit(Localization.t(message_key))
+# DEPRECATED: Метод _show_round_completion_message() перенесен в TablePreparationExecutor._show_completion_message()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
