@@ -1,0 +1,7 @@
+[gd_scene load_steps=2 format=3 uid="uid://test_phase_resolver"]
+
+[ext_resource type="Script" path="res://tests/manual_test_PhaseActionResolver.gd" id="1_manual_test"]
+
+[node name="ManualTestPhaseActionResolver" type="Node"]
+script = ExtResource("1_manual_test")
+

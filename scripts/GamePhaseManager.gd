@@ -36,6 +36,12 @@ var third_card_validator: ThirdCardActionValidator = null
 ## Валидатор выбора победителя
 var winner_validator: WinnerSelectionValidator = null
 
+## Резолвер действий по фазам
+var phase_resolver: PhaseActionResolver = null
+
+## Координатор завершения раунда
+var round_completion_coordinator: RoundCompletionCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -102,6 +108,14 @@ func _init(
 	# Инициализируем валидатор выбора победителя
 	winner_validator = WinnerSelectionValidator.new()
 	DebugLogger.log("✅ WinnerSelectionValidator инициализирован в GamePhaseManager")
+	
+	# Инициализируем резолвер действий по фазам
+	phase_resolver = PhaseActionResolver.new()
+	DebugLogger.log("✅ PhaseActionResolver инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор завершения раунда
+	round_completion_coordinator = RoundCompletionCoordinator.new()
+	DebugLogger.log("✅ RoundCompletionCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -310,43 +324,34 @@ func on_action_pressed():
 	DebugLogger.log_game_flow("on_action_pressed() вызван")
 	DebugLogger.log("  → is_table_prepared = %s" % is_table_prepared)
 
-	# ═══════════════════════════════════════════════════════════════════
-	# GUARD CLAUSE 1: Подготовка к новой игре
-	# ═══════════════════════════════════════════════════════════════════
-	if is_table_prepared:
-		DebugLogger.log_separator("ФЛАГ УСТАНОВЛЕН → вызываем deal_first_four()")
-		deal_first_four()
-		return
-
-	DebugLogger.log("  → Флаг НЕ установлен, продолжаем обычную логику")
+	# Используем резолвер для определения действия
 	var state = GameStateManager.get_current_state()
-	DebugLogger.log("  → Текущее состояние: %s" % state)
-
-	# ═══════════════════════════════════════════════════════════════════
-	# GUARD CLAUSE 2: Начало игры
-	# ═══════════════════════════════════════════════════════════════════
-	if state == GameStateManager.GameState.WAITING:
-		deal_first_four()
-		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# GUARD CLAUSE 3: Валидация банкира после третьей игрока
-	# ═══════════════════════════════════════════════════════════════════
-	if state == GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER:
-		_validate_banker_after_player()
-		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# CHOOSE_WINNER: Основная логика выбора победителя и завершения
-	# ═══════════════════════════════════════════════════════════════════
-	if state == GameStateManager.GameState.CHOOSE_WINNER:
-		_handle_choose_winner_state()
-		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# FALLBACK: Валидация и раздача третьих карт
-	# ═══════════════════════════════════════════════════════════════════
-	_validate_and_execute_third_cards()
+	var action_result = phase_resolver.resolve_action(is_table_prepared, state)
+	
+	var action = action_result.get("action", "validate_third_cards")
+	var phase = action_result.get("phase", "unknown")
+	var reason = action_result.get("reason", "")
+	
+	DebugLogger.log("  → Резолвер определил: action=%s, phase=%s, reason=%s" % [action, phase, reason])
+	
+	# Выполняем действие в зависимости от результата резолвера
+	match action:
+		"deal_first_four":
+			DebugLogger.log_separator("РЕЗОЛВЕР → вызываем deal_first_four()")
+			deal_first_four()
+		"validate_banker_after_player":
+			DebugLogger.log_separator("РЕЗОЛВЕР → вызываем _validate_banker_after_player()")
+			_validate_banker_after_player()
+		"handle_choose_winner":
+			DebugLogger.log_separator("РЕЗОЛВЕР → вызываем _handle_choose_winner_state()")
+			_handle_choose_winner_state()
+		"validate_third_cards":
+			DebugLogger.log_separator("РЕЗОЛВЕР → вызываем _validate_and_execute_third_cards()")
+			_validate_and_execute_third_cards()
+		_:
+			# Fallback на валидацию третьих карт
+			DebugLogger.log_warning("  ⚠️ Неизвестное действие от резолвера: %s, используем fallback" % action)
+			_validate_and_execute_third_cards()
 
 
 func on_player_third_toggled(_selected: bool):
@@ -1244,28 +1249,23 @@ func _can_complete_round() -> bool:
 	Returns:
 		true если раунд можно завершить, false если есть неоплаченные ставки
 	"""
-
-	# Проверка через BetCollectionPhaseManager (приоритет)
-	if bet_collection_manager:
-		var completion_check = bet_collection_manager.can_complete_round()
-		if not completion_check.can:
-			var error_key = completion_check.error_key
+	# Используем координатор для проверки
+	var completion_check = round_completion_coordinator.can_complete_round(
+		bet_collection_manager, payout_queue_manager
+	)
+	
+	if not completion_check.get("can_complete", false):
+		var error_key = completion_check.get("error_key", "")
+		var error_type = completion_check.get("error_type", "")
+		var reasons = completion_check.get("reasons", [])
+		
+		if not error_key.is_empty():
 			EventBus.show_toast_error.emit(Localization.t(error_key))
-			EventBus.action_error.emit("incomplete_bets", error_key)
-			ui.disable_action_button()
-			DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (причины: %s)" % str(completion_check.reasons))
-			return false
-		return true
-
-	# Fallback: старая логика без bet_collection_manager
-	if payout_queue_manager and payout_queue_manager.has_unpaid_winnings():
-		var unpaid_count = payout_queue_manager.get_unpaid_count()
-		EventBus.show_toast_error.emit(Localization.t("ERR_UNPAID_BETS"))
-		EventBus.action_error.emit("unpaid_bets", "")
+		EventBus.action_error.emit(error_type, error_key)
 		ui.disable_action_button()
-		DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (неоплаченных ставок: %d)" % unpaid_count)
+		DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (причины: %s)" % str(reasons))
 		return false
-
+	
 	return true
 
 
@@ -1283,11 +1283,14 @@ func _complete_round_and_prepare_new_game() -> void:
 	8. Установка флага подготовки
 	"""
 
-	# ═══════════════════════════════════════════════════════════════════
+	# Используем координатор для получения инструкций
+	var is_survival_mode = SaveManager.instance.load_survival_mode()
+	var instructions = round_completion_coordinator.get_completion_instructions(
+		has_active_heart_bet(), is_survival_mode
+	)
+	
 	# HEART BET: Разрешаем активную ставку сердцем (если есть)
-	# При активном Heart Bet НЕ делаем обычное завершение!
-	# ═══════════════════════════════════════════════════════════════════
-	if has_active_heart_bet():
+	if instructions.get("should_resolve_heart_bet", false):
 		var actual_winner = TableStateManager.get_actual_winner()
 		print("❤️ GamePhaseManager: есть активный Heart Bet, вызываем resolve(%s)" % actual_winner)
 		resolve_heart_bet(actual_winner)
@@ -1300,7 +1303,8 @@ func _complete_round_and_prepare_new_game() -> void:
 	# ═══════════════════════════════════════════════════════════════════
 
 	# Показываем сообщение о завершении
-	_show_round_completion_message()
+	if instructions.get("should_show_message", false):
+		_show_round_completion_message()
 
 	DebugLogger.log_separator("ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
 
@@ -1311,33 +1315,36 @@ func _complete_round_and_prepare_new_game() -> void:
 	DebugLogger.log("  → ✅ Камера отзумлена, кнопки областей скрыты")
 
 	# Начисляем +1 очко (только в режиме без сердечек)
-	if not SaveManager.instance.load_survival_mode():
+	if instructions.get("should_add_score", false):
 		SaveManager.instance.add_score(1)
 		if StatsManager.instance:
 			StatsManager.instance.update_stats()
 		DebugLogger.log("  → ✅ +1 очко за завершение игры")
 
 	# Сброс раунда БЕЗ обновления GameStateManager
-	reset(false)
-	DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
+	if instructions.get("should_reset_round", false):
+		reset(false)
+		DebugLogger.log("  → ✅ Сброс выполнен, карты показаны рубашками")
 
 	# ВАЖНО: Явно устанавливаем WAITING, так как reset(false) не обновляет состояние
 	# Это нужно для того, чтобы карту шанса можно было использовать
-	GameStateManager.update_state(GameStateManager.GameState.WAITING)
-	DebugLogger.log("  → ✅ Состояние установлено в WAITING (готово к использованию карты шанса)")
+	if instructions.get("should_set_waiting_state", false):
+		GameStateManager.update_state(GameStateManager.GameState.WAITING)
+		DebugLogger.log("  → ✅ Состояние установлено в WAITING (готово к использованию карты шанса)")
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ПРИМЕНЕНИЕ НАКОПЛЕННЫХ ИЗМЕНЕНИЙ ФИЛЬТРА
 	# ═══════════════════════════════════════════════════════════════════
-	_apply_pending_filter_changes()
+	if instructions.get("should_apply_filters", false):
+		_apply_pending_filter_changes()
 
 	# Генерируем ставки для всех активных гостей
-	if guest_bet_factory and limits_manager:
+	if instructions.get("should_generate_guest_bets", false) and guest_bet_factory and limits_manager:
 		guest_bet_factory.generate_bets_for_all_guests()
 		DebugLogger.log("  → ✅ Ставки гостей сгенерированы")
 
 	# Восстанавливаем видимость активных фишек
-	if chip_visual_manager:
+	if instructions.get("should_restore_chips", false) and chip_visual_manager:
 		_restore_active_bet_chips()
 		DebugLogger.log("  → ✅ Активные фишки восстановлены")
 
@@ -1356,34 +1363,24 @@ func _complete_round_and_prepare_new_game() -> void:
 
 func _show_round_completion_message() -> void:
 	"""Показ сообщения о завершении раунда (зависит от результата ставок)"""
-
 	DebugLogger.log_separator("Проверка завершения раунда")
-
-	# Нет payout_queue_manager
-	if not payout_queue_manager:
-		DebugLogger.log_init("НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
-		return
-
-	# Нет ставок вообще
-	if not payout_queue_manager.has_any_payouts():
-		DebugLogger.log_init("НЕТ АКТИВНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("NO_ACTIVE_BETS"))
-		return
-
-	# Есть ставки - проверяем результат
-	if payout_queue_manager.has_unpaid_winnings():
+	
+	# Используем координатор для определения сообщения
+	var message_info = round_completion_coordinator.get_completion_message(payout_queue_manager)
+	var message_key = message_info.get("message_key", "")
+	var has_unpaid = message_info.get("has_unpaid", false)
+	
+	# Если есть неоплаченные выплаты - не показываем сообщение
+	if has_unpaid:
 		DebugLogger.log_warning("⚠️ ЕСТЬ НЕОПЛАЧЕННЫЕ ВЫПЛАТЫ → НЕ ЗАВЕРШАЕМ РАУНД")
 		return
-
-	# Все выплаты оплачены
-	var has_winning = payout_queue_manager.has_any_winning_bets()
-	if has_winning:
-		DebugLogger.log_init("ВСЕ СТАВКИ ОПЛАЧЕНЫ → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("ALL_BETS_PAID"))
-	else:
-		DebugLogger.log_init("НЕТ ВЫИГРЫШНЫХ СТАВОК → ЗАВЕРШАЕМ РАУНД")
-		EventBus.show_toast_info.emit(Localization.t("NO_WINNING_BETS"))
+	
+	# Показываем сообщение если есть ключ
+	if not message_key.is_empty():
+		var log_message = "НЕТ АКТИВНЫХ СТАВОК" if not message_info.get("has_bets", false) else \
+						 ("ВСЕ СТАВКИ ОПЛАЧЕНЫ" if message_info.get("has_winning", false) else "НЕТ ВЫИГРЫШНЫХ СТАВОК")
+		DebugLogger.log_init("%s → ЗАВЕРШАЕМ РАУНД" % log_message)
+		EventBus.show_toast_info.emit(Localization.t(message_key))
 
 
 # ═══════════════════════════════════════════════════════════════════════════
