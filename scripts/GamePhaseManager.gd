@@ -60,6 +60,9 @@ var game_state_reset_coordinator: GameStateResetCoordinator = null
 ## Форматтер ошибок валидации
 var validation_error_formatter: ValidationErrorFormatter = null
 
+## Координатор восстановления фишек
+var chip_restoration_coordinator: ChipRestorationCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -80,6 +83,7 @@ var was_heart_bet_round: bool = false  # Флаг Heart Bet раунда (даж
 
 # DEPRECATED: Используйте bet_filter_manager.filter_snapshot и bet_filter_manager.pending_filter_changes
 # Оставлено для обратной совместимости
+@warning_ignore("unused_private_class_variable")
 var _filter_snapshot: Dictionary:
 	get:
 		return bet_filter_manager.filter_snapshot if bet_filter_manager else {}
@@ -87,6 +91,7 @@ var _filter_snapshot: Dictionary:
 		if bet_filter_manager:
 			bet_filter_manager.filter_snapshot = value
 
+@warning_ignore("unused_private_class_variable")
 var _pending_filter_changes: Dictionary:
 	get:
 		return bet_filter_manager.pending_filter_changes if bet_filter_manager else {}
@@ -773,36 +778,34 @@ func _restore_active_bet_chips() -> void:
 	if not chip_visual_manager:
 		return
 
-	# Сначала показываем ставки гостей (если есть)
-	_show_guest_bets()
+	# Инициализируем координатор если нужно
+	if not chip_restoration_coordinator:
+		chip_restoration_coordinator = ChipRestorationCoordinator.new(guest_bet_storage)
 
-	# Проверяем есть ли сохраненное состояние
-	if TableStateManager.has_saved_state() and TableStateManager.get_bets().size() > 0:
-		# В режиме GUEST: восстанавливаем ТОЛЬКО если есть гостевые ставки
-		# Иначе фишки появятся в секторе 4 и будут нерабочими
-		var has_guests = guest_bet_storage and not guest_bet_storage.get_guests_with_bets().is_empty()
-		if not has_guests:
-			DebugLogger.log_warning(" Режим GUEST: нет гостей, пропускаем восстановление из TableStateManager")
-		else:
-			# Восстанавливаем ВСЕ фишки из предыдущей раздачи (включая проигрышные)
-			DebugLogger.log_restore(" Восстановление фишек для новой раздачи из TableStateManager...")
-			for bet in TableStateManager.get_bets():
-				var bet_type = bet.get_bet_type()
-				var chip_texture = bet.get_chip_texture()
-				if chip_texture.is_empty():
-					chip_visual_manager.make_chip_visible(bet_type)
-				else:
-					chip_visual_manager.set_chip_texture(bet_type, chip_texture)
-				DebugLogger.log("  → Восстановлена фишка %s" % bet_type)
+	# Получаем инструкции от координатора
+	var instructions = chip_restoration_coordinator.get_restoration_instructions()
+	
+	# Показываем ставки гостей (если нужно)
+	if instructions.get("should_show_guest_bets", false):
+		_show_guest_bets()
+
+	# Восстанавливаем фишки из TableStateManager (если нужно)
+	if instructions.get("should_restore_from_table_state", false):
+		DebugLogger.log_restore(" Восстановление фишек для новой раздачи из TableStateManager...")
+		var chips_to_restore = instructions.get("chips_to_restore", [])
+		for chip_data in chips_to_restore:
+			var bet_type = chip_data.get("bet_type", "")
+			var chip_texture = chip_data.get("chip_texture", "")
+			if chip_texture.is_empty():
+				chip_visual_manager.make_chip_visible(bet_type)
+			else:
+				chip_visual_manager.set_chip_texture(bet_type, chip_texture)
+			DebugLogger.log("  → Восстановлена фишка %s" % bet_type)
 	else:
-		# Fallback: показываем на основе toggles (первая игра или нет сохраненного состояния)
-		# НО только если нет гостевых ставок (гости имеют приоритет)
-		# В режиме GUEST: если нет гостей - фишки НЕ показываем (режим GUEST только для гостей)
-		if not guest_bet_storage or guest_bet_storage.get_guests_with_bets().is_empty():
-			DebugLogger.log_warning(" Нет сохраненного состояния и нет гостей")
-			# В режиме GUEST фишки показываются ТОЛЬКО для гостей
-			# Если гостей нет - фишки не показываем (иначе они появятся в секторе 4 и будут нерабочими)
-			DebugLogger.log(" Режим GUEST: гостей нет, фишки не показываем")
+		# Логируем причину если не восстанавливаем
+		var reason = instructions.get("reason", "")
+		if not reason.is_empty():
+			DebugLogger.log_warning(" %s" % reason)
 
 	DebugLogger.log_payout("Показаны фишки всех активных ставок")
 
