@@ -99,6 +99,12 @@ var third_card_drawing_coordinator: ThirdCardDrawingCoordinator = null
 ## Координатор удаления третьих карт
 var third_card_removal_coordinator: ThirdCardRemovalCoordinator = null
 
+## Обработчик решения банкира после игрока
+var banker_after_player_handler: BankerAfterPlayerHandler = null
+
+## Координатор завершения игры
+var game_completion_coordinator: GameCompletionCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -262,6 +268,14 @@ func _init(
 	# Инициализируем координатор удаления третьих карт
 	third_card_removal_coordinator = ThirdCardRemovalCoordinator.new(hand_manager)
 	DebugLogger.log("✅ ThirdCardRemovalCoordinator инициализирован в GamePhaseManager")
+	
+	# Инициализируем обработчик решения банкира после игрока
+	banker_after_player_handler = BankerAfterPlayerHandler.new(hand_manager, third_card_validator)
+	DebugLogger.log("✅ BankerAfterPlayerHandler инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор завершения игры
+	game_completion_coordinator = GameCompletionCoordinator.new()
+	DebugLogger.log("✅ GameCompletionCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -483,19 +497,40 @@ func draw_banker_third():
 
 
 func complete_game():
-	ui.update_player_third_card_ui("?")
-	ui.update_banker_third_card_ui("?")
-	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+	"""Завершить фазу третьих карт и перейти к выбору победителя"""
+	if not game_completion_coordinator:
+		DebugLogger.log_error("❌ GameCompletionCoordinator не инициализирован!")
+		# Fallback на прямое обновление UI
+		ui.update_player_third_card_ui("?")
+		ui.update_banker_third_card_ui("?")
+		ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
+		return
+	
+	var instructions = game_completion_coordinator.get_completion_instructions()
+	
+	if instructions.get("should_reset_player_third_ui", false):
+		ui.update_player_third_card_ui("?")
+	
+	if instructions.get("should_reset_banker_third_ui", false):
+		ui.update_banker_third_card_ui("?")
+	
+	if instructions.get("should_update_action_button", false):
+		ui.update_action_button(instructions.get("action_button_text", Localization.t("ACTION_BUTTON_CARDS")))
+	
 	# Кнопка НЕ меняется здесь - только после правильного выбора победителя
 
 
 
 func _should_banker_draw() -> bool:
-	return BaccaratRules.banker_should_draw(
-		[hand_manager.get_banker_card(0), hand_manager.get_banker_card(1)],
-		hand_manager.has_player_third_card(),
-		hand_manager.get_player_third_card()
-	)
+	"""Проверить, должен ли банкир взять третью карту (DEPRECATED: используйте banker_after_player_handler)"""
+	if not banker_after_player_handler:
+		# Fallback на прямую проверку
+		return BaccaratRules.banker_should_draw(
+			[hand_manager.get_banker_card(0), hand_manager.get_banker_card(1)],
+			hand_manager.has_player_third_card(),
+			hand_manager.get_player_third_card()
+		)
+	return banker_after_player_handler.should_banker_draw()
 
 func on_action_pressed():
 	DebugLogger.log_separator()
@@ -837,24 +872,36 @@ func _handle_card_to_banker_only(ps: int, bs: int) -> void:
 	complete_game()
 
 func _handle_banker_after_player():
-	var banker_draw: bool = _should_banker_draw()
-	if banker_draw:
-		pass  # Банкир должен взять третью карту - переходим к валидации
+	"""Обработать решение банкира после того, как игрок взял третью карту"""
+	if not banker_after_player_handler:
+		DebugLogger.log_error("❌ BankerAfterPlayerHandler не инициализирован!")
+		complete_game()
+		return
+	
+	var should_draw = banker_after_player_handler.should_banker_draw()
+	if should_draw:
+		# Банкир должен взять третью карту - переходим к валидации
+		_validate_banker_after_player()
 	else:
 		complete_game()
 
 func _validate_banker_after_player():
-	# Используем валидатор для чистой логики
-	var bs: int = hand_manager.get_banker_initial_score()
-	var has_player_third = hand_manager.has_player_third_card()
-	var player_third_card = hand_manager.get_player_third_card()
+	"""Валидировать выбор банкира после того, как игрок взял третью карту"""
+	if not banker_after_player_handler:
+		DebugLogger.log_error("❌ BankerAfterPlayerHandler не инициализирован!")
+		return
 	
-	var validation_result = third_card_validator.validate_banker_after_player(
-		bs, banker_third_selected, has_player_third, player_third_card
-	)
+	var instructions = banker_after_player_handler.get_validation_instructions(banker_third_selected)
+	
+	if not instructions.get("should_validate", false):
+		complete_game()
+		return
+	
+	var validation_result = instructions.get("validation_result", {})
+	var banker_score = instructions.get("banker_score", 0)
 	
 	# Обрабатываем результат валидации
-	_handle_banker_validation_result(validation_result, bs)
+	_handle_banker_validation_result(validation_result, banker_score)
 
 func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> void:
 	"""Обработать результат валидации банкира после игрока

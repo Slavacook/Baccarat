@@ -5,3 +5,4 @@ res://scripts/PayoutQueueManager.gd
 res://scripts/payout/PayoutManager.gd
 res://scripts/state/StateRestorer.gd
 res://scripts/chance_cards/ChanceCardManager.gd
+res://scripts/GamePhaseManager.gd
