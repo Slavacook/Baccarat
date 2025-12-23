@@ -87,6 +87,9 @@ var winner_selection_state_handler: WinnerSelectionStateHandler = null
 ## Обработчик кнопки Tie
 var tie_button_handler: TieButtonHandler = null
 
+## Координатор Heart Bet
+var heart_bet_coordinator: HeartBetCoordinator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ РАУНДА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -234,6 +237,10 @@ func _init(
 	# Инициализируем обработчик кнопки Tie
 	tie_button_handler = TieButtonHandler.new(hand_manager, chance_card_trigger_checker)
 	DebugLogger.log("✅ TieButtonHandler инициализирован в GamePhaseManager")
+	
+	# Инициализируем координатор Heart Bet
+	heart_bet_coordinator = HeartBetCoordinator.new(heart_bet_manager, hand_manager)
+	DebugLogger.log("✅ HeartBetCoordinator инициализирован в GamePhaseManager")
 
 	ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	ui.set_action_button_state("start")
@@ -349,7 +356,7 @@ func deal_first_four():
 	# HEART BET: Подтверждаем или отклоняем ставку перед раздачей
 	# Если есть ожидающий выбор - confirm() либо подтвердит, либо отклонит
 	# ═══════════════════════════════════════════════════════════════════
-	if heart_bet_manager and has_pending_heart_bet():
+	if has_pending_heart_bet():
 		# Устанавливаем флаг Heart Bet раунда (даже если будет отказ)
 		was_heart_bet_round = true
 		var confirmed = confirm_heart_bet()
@@ -1482,43 +1489,18 @@ func _check_heart_bet_triggers() -> void:
 	
 	Вызывается ПЕРЕД сбросом раунда, чтобы данные о раздаче ещё были доступны.
 	"""
-	# ПРОВЕРКА: Если Game Over - не проверяем триггеры
-	if not EventBus.is_game_active:
-		print("❤️ _check_heart_bet_triggers: Game Over, триггеры не проверяются")
+	if not heart_bet_coordinator:
+		DebugLogger.log_error("❌ HeartBetCoordinator не инициализирован!")
 		return
 	
-	if not heart_bet_manager:
-		print("❤️ _check_heart_bet_triggers: heart_bet_manager не существует")
+	# Используем координатор для получения инструкций
+	var instructions = heart_bet_coordinator.get_trigger_check_instructions(EventBus.is_game_active)
+	
+	if not instructions.get("should_check", false):
 		return
 	
-	# Получаем данные о завершённом раунде
-	var winner = TableStateManager.get_actual_winner()
-	print("❤️ _check_heart_bet_triggers: winner='%s'" % winner)
-	
-	if winner.is_empty():
-		print("❤️ _check_heart_bet_triggers: нет данных о победителе, пропускаем")
-		return
-	
-	# Вычисляем очки
-	var player_hand = hand_manager.get_player_hand_ref()
-	var banker_hand = hand_manager.get_banker_hand_ref()
-	
-	print("❤️ _check_heart_bet_triggers: player_hand.size=%d, banker_hand.size=%d" % [player_hand.size(), banker_hand.size()])
-	
-	if player_hand.is_empty() or banker_hand.is_empty():
-		print("❤️ _check_heart_bet_triggers: руки пустые, пропускаем")
-		return
-	
-	var player_score = BaccaratRules.hand_value(player_hand)
-	var banker_score = BaccaratRules.hand_value(banker_hand)
-	var is_natural = BaccaratRules.is_natural(player_hand) or BaccaratRules.is_natural(banker_hand)
-	
-	print("❤️ _check_heart_bet_triggers: player=%d, banker=%d, natural=%s" % [player_score, banker_score, is_natural])
-	
-	# Проверяем триггеры
-	# HeartBetManager.check_triggers() уже эмитит EventBus.heart_bet_trigger_activated,
-	# поэтому просто вызываем его - карта покажется автоматически через ChanceCardManager
-	heart_bet_manager.check_triggers(winner, banker_score, player_score, is_natural)
+	# Проверяем триггеры через координатор
+	heart_bet_coordinator.check_triggers(instructions)
 
 
 func start_heart_bet_selection() -> void:
@@ -1526,8 +1508,10 @@ func start_heart_bet_selection() -> void:
 	
 	Если есть доступный шанс - показывает сердца на столе.
 	"""
-	if heart_bet_manager and heart_bet_manager.is_available():
-		heart_bet_manager.start_selection_phase()
+	if not heart_bet_coordinator:
+		return
+	
+	if heart_bet_coordinator.start_selection():
 		DebugLogger.log("❤️ Фаза выбора Heart Bet начата")
 
 
@@ -1537,13 +1521,10 @@ func confirm_heart_bet() -> bool:
 	Вызывается при нажатии кнопки "Начать" если есть ожидающий выбор.
 	Returns: true если ставка подтверждена, false если отклонена или не было выбора
 	"""
-	if not heart_bet_manager:
+	if not heart_bet_coordinator:
 		return false
 	
-	if heart_bet_manager.is_pending() or heart_bet_manager.is_selected():
-		return heart_bet_manager.confirm()
-	
-	return false
+	return heart_bet_coordinator.confirm()
 
 
 func resolve_heart_bet(actual_winner: String) -> void:
@@ -1554,17 +1535,12 @@ func resolve_heart_bet(actual_winner: String) -> void:
 	Args:
 		actual_winner: Победитель раздачи ("Player", "Banker" или "Tie")
 	"""
-	# Валидация параметра
-	if actual_winner.is_empty():
-		DebugLogger.log_error("❌ resolve_heart_bet: actual_winner пустой!")
-		return
-	
-	if actual_winner not in ["Player", "Banker", "Tie"]:
-		DebugLogger.log_error("❌ resolve_heart_bet: невалидный actual_winner: %s" % actual_winner)
+	if not heart_bet_coordinator:
+		DebugLogger.log_error("❌ HeartBetCoordinator не инициализирован!")
 		return
 	
 	# #region agent log
-	var _hb_active = heart_bet_manager.is_active() if heart_bet_manager else false
+	var _hb_active = heart_bet_coordinator.has_active_heart_bet()
 	var _log_path = OS.get_user_data_dir().path_join(".cursor/debug.log")
 	var _log_file = FileAccess.open(_log_path, FileAccess.READ_WRITE)
 	if _log_file: 
@@ -1573,25 +1549,22 @@ func resolve_heart_bet(actual_winner: String) -> void:
 		_log_file.close()
 	# #endregion
 	
-	if heart_bet_manager and heart_bet_manager.is_active():
-		heart_bet_manager.resolve(actual_winner)
+	if heart_bet_coordinator.resolve(actual_winner):
 		DebugLogger.log("❤️ Heart Bet разрешён (winner=%s)" % actual_winner)
 
 
 func has_active_heart_bet() -> bool:
 	"""Проверить, есть ли активная ставка Heart Bet"""
-	var result = heart_bet_manager != null and heart_bet_manager.is_active()
-	if heart_bet_manager:
-		print("❤️ has_active_heart_bet: manager exists, state=%s, is_active=%s" % [
-			heart_bet_manager.get_state_name(),
-			heart_bet_manager.is_active()
-		])
-	return result
+	if not heart_bet_coordinator:
+		return false
+	return heart_bet_coordinator.has_active_heart_bet()
 
 
 func has_pending_heart_bet() -> bool:
 	"""Проверить, есть ли ожидающий выбор Heart Bet"""
-	return heart_bet_manager != null and (heart_bet_manager.is_pending() or heart_bet_manager.is_selected())
+	if not heart_bet_coordinator:
+		return false
+	return heart_bet_coordinator.has_pending_heart_bet()
 
 
 # ═══════════════════════════════════════════════════════════════════════════
