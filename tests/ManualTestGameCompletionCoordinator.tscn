@@ -1,4 +1,4 @@
-[gd_scene load_steps=2 format=3 uid="uid://g4aw8kdlv5lfy"]
+[gd_scene load_steps=2 format=3 uid="uid://c8u2nigdcxpn7"]
 
 [ext_resource type="Script" path="res://tests/manual_test_GameCompletionCoordinator.gd" id="1_manual_test"]
 
