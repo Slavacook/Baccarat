@@ -688,7 +688,9 @@ func _on_lang_button_pressed():
 
 func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 	if is_correct:
-		EventBus.payout_correct.emit(collected, expected)
+		# Для старого метода нет информации о bet_type/position_index
+		# Передаем пустые значения - StatsManager пропустит такие случаи
+		EventBus.payout_correct.emit(collected, expected, "", -1)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
 		if is_survival_mode:
 			survival_rounds_completed += 1
@@ -931,12 +933,13 @@ func _restore_survival_and_queue() -> void:
 func _process_manual_payout_result(context: Dictionary) -> void:
 	"""Обработка результата текущей выплаты в ручном режиме"""
 	var bet_type = context.get("bet_type", "")
+	var position_index = context.get("position_index", -1)  # Может не быть в context
 	var is_correct = GameDataManager.get_payout_is_correct()
 	var collected = GameDataManager.get_payout_collected()
 	var expected = GameDataManager.get_payout_expected()
 	
 	if is_correct:
-		EventBus.payout_correct.emit(collected, expected)
+		EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
 		DebugLogger.log("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
 		
 		# Отмечаем ставку как оплаченную в обоих менеджерах
@@ -1058,7 +1061,9 @@ func _process_automatic_payout_result() -> void:
 	var expected = GameDataManager.get_payout_expected()
 	
 	if is_correct:
-		EventBus.payout_correct.emit(collected, expected)
+		# Для автоматического режима нет информации о bet_type/position_index
+		# Передаем пустые значения - StatsManager пропустит такие случаи
+		EventBus.payout_correct.emit(collected, expected, "", -1)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
 		if is_survival_mode:
 			survival_rounds_completed += 1
@@ -1908,7 +1913,7 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 	# ОБРАБОТКА РЕЗУЛЬТАТА (эмитим события как в старом режиме)
 	# ═══════════════════════════════════════════════════════════════════
 	if is_correct:
-		EventBus.payout_correct.emit(collected, expected)
+		EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
 		DebugLogger.log("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
 
 		# ═══════════════════════════════════════════════════════════════════

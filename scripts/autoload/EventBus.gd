@@ -131,8 +131,10 @@ signal action_error(type: String, message: String)
 signal show_payout_popup(winner: String, stake: float, payout: float)
 
 ## Игрок правильно рассчитал выплату
+## bet_type: Тип ставки ("Player", "Banker", "Tie", "PairPlayer", "PairBanker")
+## position_index: Индекс позиции ставки (для определения гостевых ставок, -1 если не гостевые)
 @warning_ignore("unused_signal")
-signal payout_correct(collected: float, expected: float)
+signal payout_correct(collected: float, expected: float, bet_type: String, position_index: int)
 
 ## Игрок неправильно рассчитал выплату
 @warning_ignore("unused_signal")

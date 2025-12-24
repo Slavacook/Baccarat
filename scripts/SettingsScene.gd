@@ -37,6 +37,9 @@ signal language_changed(lang: String)  # "ru" или "en"
 # === РАЗДЕЛ 4: РАЗМЕР СТАВОК ===
 @onready var bet_size_option: OptionButton = find_child("BetSizeOption", true, false)
 
+# === РАЗДЕЛ 4.5: ЧАЕВЫЕ ===
+@onready var tip_percentage_spinbox: SpinBox = find_child("TipPercentageSpinBox", true, false)
+
 # === РАЗДЕЛ 5: ЯЗЫК ===
 @onready var ru_button: Button = find_child("RuButton", true, false)
 @onready var en_button: Button = find_child("EnButton", true, false)
@@ -65,6 +68,7 @@ var saved_banker_payout: bool
 var saved_tie_payout: bool
 var saved_player_pair_payout: bool
 var saved_banker_pair_payout: bool
+var saved_tip_percentage: float
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -118,6 +122,10 @@ func _connect_signals():
 	# Размер ставок
 	if bet_size_option:
 		bet_size_option.item_selected.connect(_on_bet_size_selected)
+
+	# Чаевые
+	if tip_percentage_spinbox:
+		tip_percentage_spinbox.value_changed.connect(_on_tip_percentage_changed)
 
 	# Язык
 	if ru_button:
@@ -182,6 +190,7 @@ func _save_current_values():
 	saved_tie_payout = PayoutSettingsManager.tie_payout_enabled
 	saved_player_pair_payout = PayoutSettingsManager.player_pair_payout_enabled
 	saved_banker_pair_payout = PayoutSettingsManager.banker_pair_payout_enabled
+	saved_tip_percentage = SaveManager.instance.load_tip_percentage()
 
 func _load_current_values():
 	"""Загрузить текущие значения из менеджеров в UI"""
@@ -205,6 +214,10 @@ func _load_current_values():
 	# Размер ставок
 	if bet_size_option:
 		bet_size_option.selected = BetProfileManager.get_profile()
+
+	# Чаевые
+	if tip_percentage_spinbox:
+		tip_percentage_spinbox.value = SaveManager.instance.load_tip_percentage()
 
 	# Язык
 	_update_lang_buttons()
@@ -234,6 +247,9 @@ func _restore_saved_values():
 	PayoutSettingsManager.toggle_player_pair(saved_player_pair_payout)
 	PayoutSettingsManager.toggle_banker_pair(saved_banker_pair_payout)
 
+	# Чаевые
+	SaveManager.instance.save_tip_percentage(saved_tip_percentage)
+
 	print("↩️  Настройки восстановлены")
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -259,6 +275,11 @@ func _update_texts():
 	# Размер ставок - обновляем опции
 	if bet_size_option:
 		_setup_bet_size_options()
+	
+	# Чаевые
+	var tip_section_label = find_child("SectionTipPercentage", true, false)
+	if tip_section_label:
+		tip_section_label.text = Localization.t("SETTINGS_SECTION_TIP_PERCENTAGE")
 	
 	# Кнопка настроек гостей
 	if guest_settings_button:
@@ -397,6 +418,12 @@ func _on_bet_size_selected(index: int):
 	"""Обработка выбора размера ставок"""
 	BetProfileManager.set_profile(index as BetProfileManager.BetProfile)
 	print("💰 Размер ставок изменён: %s" % BetProfileManager.get_profile_name())
+
+# === ЧАЕВЫЕ ===
+func _on_tip_percentage_changed(value: float):
+	"""Обработка изменения процента чаевых"""
+	SaveManager.instance.save_tip_percentage(value)
+	print("💰 Процент чаевых изменён: %.1f%%" % value)
 
 # === ЯЗЫК ===
 func _on_ru_pressed():

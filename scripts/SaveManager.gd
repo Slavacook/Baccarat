@@ -226,3 +226,15 @@ func load_guest_stats() -> Dictionary:
 			if data is Dictionary:
 				return data.get("guest_stats", {})
 	return {}
+
+# ← Настройки процента чаевых
+func save_tip_percentage(percentage: float):
+	"""Сохранить процент чаевых (в процентах: 1.0 = 1%, 0.5 = 0.5%)"""
+	var settings = load_settings()
+	settings["tip_percentage"] = percentage
+	save_settings(settings)
+
+func load_tip_percentage() -> float:
+	"""Загрузить процент чаевых (по умолчанию 1.0 = 1%)"""
+	var settings = load_settings()
+	return settings.get("tip_percentage", 1.0)

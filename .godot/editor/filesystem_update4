@@ -1,1 +1,4 @@
+res://scripts/StatsManager.gd
+res://scripts/autoload/EventBus.gd
 res://scenes/Game.tscn
+res://scripts/GamePhaseManager.gd

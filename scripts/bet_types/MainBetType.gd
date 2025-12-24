@@ -29,4 +29,3 @@ func is_tie_push(actual_winner: String) -> bool:
 
 func get_stake(limits_manager: LimitsManager) -> float:
 	return limits_manager.generate_bet()
-

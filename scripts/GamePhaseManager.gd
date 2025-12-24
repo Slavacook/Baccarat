@@ -872,7 +872,11 @@ func _handle_card_to_banker_only(ps: int, bs: int) -> void:
 	complete_game()
 
 func _handle_banker_after_player():
-	"""Обработать решение банкира после того, как игрок взял третью карту"""
+	"""Обработать решение банкира после того, как игрок взял третью карту
+	
+	После раздачи карты игроку устанавливаем состояние ожидания.
+	Валидация произойдет когда игрок нажмет кнопку "Карты" в этом состоянии.
+	"""
 	if not banker_after_player_handler:
 		DebugLogger.log_error("❌ BankerAfterPlayerHandler не инициализирован!")
 		complete_game()
@@ -880,8 +884,12 @@ func _handle_banker_after_player():
 	
 	var should_draw = banker_after_player_handler.should_banker_draw()
 	if should_draw:
-		# Банкир должен взять третью карту - переходим к валидации
-		_validate_banker_after_player()
+		# Банкир должен взять третью карту - устанавливаем состояние ожидания
+		# Валидация будет происходить когда игрок нажмет "Карты" в этом состоянии
+		GameStateManager.update_state(GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER)
+		# Сбрасываем выбор банкира, чтобы игрок мог выбрать заново
+		banker_third_selected = false
+		ui.update_banker_third_card_ui("?")
 	else:
 		complete_game()
 
