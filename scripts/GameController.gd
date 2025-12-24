@@ -39,6 +39,9 @@ var pair_betting_manager: PairBettingManager
 var bet_collection_manager: BetCollectionPhaseManager
 var payout_overlay: CanvasLayer = null
 
+# Индикаторы терпения гостей
+var patience_indicator_manager: Node = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # РЕФАКТОРЕННЫЕ МЕНЕДЖЕРЫ (SRP)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -149,6 +152,9 @@ func _ready():
 		ChanceCardManager.set_heart_bar(heart_bar)
 		print("🎴 HeartBar передан в ChanceCardManager (после инициализации)")
 	
+	# Инициализируем менеджер индикаторов терпения гостей
+	_setup_patience_indicators()
+	
 	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
 	is_game_over = false
 	EventBus.is_game_active = true
@@ -160,6 +166,18 @@ func _initialize_heart_bar() -> void:
 		print("✅ HeartBar инициализирован в GameController")
 	else:
 		print("⚠️  HeartBar не найден в survival_ui (возможно, survival_ui ещё не готов)")
+
+## Инициализировать менеджер индикаторов терпения гостей
+func _setup_patience_indicators() -> void:
+	"""Создает и настраивает менеджер индикаторов терпения для всех гостей"""
+	var indicator_manager = Node.new()
+	indicator_manager.name = "GuestPatienceIndicatorManager"
+	var script = load("res://scripts/ui/GuestPatienceIndicatorManager.gd")
+	indicator_manager.set_script(script)
+	add_child(indicator_manager)
+	indicator_manager.setup(self)  # Передаем Game scene как родительский узел
+	patience_indicator_manager = indicator_manager
+	print("✅ GuestPatienceIndicatorManager инициализирован")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

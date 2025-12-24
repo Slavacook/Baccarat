@@ -32,6 +32,9 @@ func _ready():
 	# Загружаем сохранённые балансы
 	_load_stats()
 	print("💰 GuestStatsManager загружен: балансы %d гостей" % guest_balances.size())
+	
+	# Подписываемся на событие рестарта игры для сброса терпения
+	EventBus.game_restarted.connect(_on_game_restarted)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -175,6 +178,12 @@ func _on_payout_wrong(_collected: float, _expected: float, bet_type: String, pos
 	var guest_id = sector
 	add_patience(guest_id, 5)
 	print("😤 Гость %d: терпение увеличено на 5 из-за неправильной выплаты %s[%d]" % [guest_id, bet_type, position_index])
+
+func _on_game_restarted() -> void:
+	"""Обработчик рестарта игры - сбрасываем все терпения"""
+	reset_all_patience()
+	if PatienceTimerManager:
+		PatienceTimerManager.reset_all_timers()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОХРАНЕНИЕ/ЗАГРУЗКА
