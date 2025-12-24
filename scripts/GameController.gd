@@ -158,6 +158,15 @@ func _ready():
 	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
 	is_game_over = false
 	EventBus.is_game_active = true
+	
+	# Сбрасываем все данные при инициализации сцены (на случай перезагрузки после Game Over)
+	# Это гарантирует, что чаевые, терпение гостей и таймеры будут сброшены
+	StatsManager.instance.reset()
+	if GuestStatsManager:
+		GuestStatsManager.reset_all_patience()
+	if PatienceTimerManager:
+		PatienceTimerManager.reset_all_timers()
+	DebugLogger.log("🔄 Данные сброшены при инициализации сцены (чаевые, терпение, таймеры)")
 
 ## Инициализировать HeartBar из survival_ui
 func _initialize_heart_bar() -> void:
