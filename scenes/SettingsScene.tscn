@@ -59,22 +59,11 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="SectionSurvival" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "РЕЖИМ ВЫЖИВАНИЯ"
-
-[node name="SurvivalCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
-layout_mode = 2
-text = "Включить (7 жизней)"
-
-[node name="HSeparator2" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
-layout_mode = 2
-
 [node name="SectionGameMode" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "РЕЖИМ ИГРЫ"
+text = "ЛИМИТЫ"
+horizontal_alignment = 1
 
 [node name="GameModeButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
 layout_mode = 2
@@ -111,7 +100,8 @@ theme_override_constants/separation = 10
 [node name="SectionBets" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "СТАВКИ"
+text = "ФИЛЬТР СТАВОК"
+horizontal_alignment = 1
 
 [node name="BetsContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn"]
 layout_mode = 2
@@ -120,15 +110,18 @@ theme_override_constants/separation = 8
 [node name="BetPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 layout_mode = 2
 
+[node name="BetPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
+layout_mode = 2
+
 [node name="BetPlayerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Игрок"
 
-[node name="BetPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
+[node name="BetBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 layout_mode = 2
 
-[node name="BetBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
 layout_mode = 2
 
 [node name="BetBankerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
@@ -136,10 +129,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Банкир"
 
-[node name="BetBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
+[node name="BetTieRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 layout_mode = 2
 
-[node name="BetTieRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetTieCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
 layout_mode = 2
 
 [node name="BetTieLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
@@ -147,10 +140,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Ничья"
 
-[node name="BetTieCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
+[node name="BetPairPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 layout_mode = 2
 
-[node name="BetPairPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetPairPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
 layout_mode = 2
 
 [node name="BetPairPlayerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
@@ -158,10 +151,10 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Пара Игрока"
 
-[node name="BetPairPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
+[node name="BetPairBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 layout_mode = 2
 
-[node name="BetPairBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetPairBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
 layout_mode = 2
 
 [node name="BetPairBankerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
@@ -169,12 +162,9 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Пара Банкира"
 
-[node name="BetPairBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
-layout_mode = 2
-
 [node name="GuestSettingsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
-layout_mode = 2
 custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
 text = "Ставки"
 
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
@@ -183,40 +173,26 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="SectionBetSize" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "РАЗМЕР СТАВОК"
-
-[node name="BetSizeOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-
-[node name="HSeparator3" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-
-[node name="SectionTipPercentage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "ЧАЕВЫЕ"
-
 [node name="TipPercentageContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 theme_override_constants/separation = 10
+
+[node name="SectionTipPercentage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TipPercentageContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "ЧАЕВЫЕ"
+horizontal_alignment = 1
 
 [node name="TipPercentageSpinBox" type="SpinBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TipPercentageContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.1
-max_value = 100.0
 step = 0.1
 value = 1.0
-allow_greater = false
-allow_lesser = false
-prefix = ""
 
 [node name="TipPercentageLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TipPercentageContainer"]
 layout_mode = 2
-text = "%"
+text = "% от выплат"
 
 [node name="HSeparatorTip" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
@@ -242,29 +218,29 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "English"
 
+[node name="HSeparator5" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
 [node name="CardBackSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 
-[node name="Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection"]
+[node name="HBoxContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/HBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Рубашка"
+text = "РУБАШКА:"
 
-[node name="HBoxContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/Label"]
-layout_mode = 0
-offset_top = 27.0
-offset_right = 128.0
-offset_bottom = 67.0
-
-[node name="TigerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/Label/HBoxContainer"]
+[node name="TigerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/HBoxContainer"]
 layout_mode = 2
-text = "Тигр"
+text = "ТИГР"
 
-[node name="LeopardButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/Label/HBoxContainer"]
+[node name="LeopardButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/HBoxContainer"]
 layout_mode = 2
-text = "Леопард"
+text = "ЛЕОПАРД"
 
-[node name="HSeparator5" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="HSeparator6" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 
 [node name="TestCardsSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
@@ -274,12 +250,13 @@ theme_override_constants/separation = 8
 [node name="TestCardsLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TestCardsSection"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "ТЕСТИРОВАНИЕ"
+text = "НАСТРОЙКА РАЗДАЧИ"
+horizontal_alignment = 1
 
 [node name="TestCardsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TestCardsSection"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-text = "🧪 Тестовые карты"
+text = "НАСТРОЙКА"
 
 [node name="HSeparator4" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
