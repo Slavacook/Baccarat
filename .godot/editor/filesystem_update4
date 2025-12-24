@@ -1,5 +1,2 @@
-res://scripts/StatsManager.gd
-res://scripts/autoload/EventBus.gd
-res://scenes/Game.tscn
-res://scripts/GamePhaseManager.gd
-res://scenes/SettingsScene.tscn
+res://scripts/autoload/PatienceTimerManager.gd
+res://tests/manual_test_StatsManager.gd

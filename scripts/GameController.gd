@@ -695,7 +695,8 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 		if is_survival_mode:
 			survival_rounds_completed += 1
 	else:
-		EventBus.payout_wrong.emit(collected, expected)
+		# Для старого метода нет информации о bet_type/position_index
+		EventBus.payout_wrong.emit(collected, expected, "", -1)
 		DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
 		# ← Жизни отнимаются в PayoutScene, здесь ничего не делаем
 	if is_correct:
@@ -951,7 +952,8 @@ func _process_manual_payout_result(context: Dictionary) -> void:
 		
 		DebugLogger.log_init("Все выплаты оплачены! Можно начинать новый раунд")
 	else:
-		EventBus.payout_wrong.emit(collected, expected)
+		# Здесь нет информации о position_index, используем -1
+		EventBus.payout_wrong.emit(collected, expected, bet_type, -1)
 		DebugLogger.log("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [
 			bet_type, collected, expected
 		])
@@ -1068,7 +1070,8 @@ func _process_automatic_payout_result() -> void:
 		if is_survival_mode:
 			survival_rounds_completed += 1
 	else:
-		EventBus.payout_wrong.emit(collected, expected)
+		# Для старого метода нет информации о bet_type/position_index
+		EventBus.payout_wrong.emit(collected, expected, "", -1)
 		DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
 
 
@@ -1718,6 +1721,14 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 			DebugLogger.log("  ⏸️  Ставка %s[%d] уже собрана, клик игнорируется" % [bet_type, position_index])
 			return
 		
+		# Для ошибки "collect_winning" - увеличиваем терпение гостя
+		if validation.error_type == "collect_winning":
+			var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+			if sector >= 1 and sector <= 6:
+				var guest_id = sector
+				GuestStatsManager.add_patience(guest_id, 5)
+				DebugLogger.log("  😤 Гость %d: терпение увеличено на 5 из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, bet_type, position_index])
+		
 		# Для остальных ошибок - показываем тост и отнимаем жизнь
 		var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
 		EventBus.show_toast_error.emit(error_message)
@@ -1946,7 +1957,7 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 			survival_rounds_completed += 1
 			DebugLogger.log("  🎮 Survival: раунд %d завершен" % survival_rounds_completed)
 	else:
-		EventBus.payout_wrong.emit(collected, expected)
+		EventBus.payout_wrong.emit(collected, expected, bet_type, position_index)
 		DebugLogger.log("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [bet_type, position_index, collected, expected])
 
 		# Потеря жизни обрабатывается через EventBus в SurvivalUI

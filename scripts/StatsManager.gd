@@ -48,55 +48,10 @@ func reset():
 # ОБРАБОТЧИКИ СОБЫТИЙ EventBus
 # ═══════════════════════════════════════════════════════════════════════════
 
-func get_tip_multiplier(bet_type: String) -> int:
-	"""Получить коэффициент для расчета чаевых в зависимости от типа ставки
-	
-	Args:
-		bet_type: Тип ставки ("Player", "Banker", "Tie", "PairPlayer", "PairBanker")
-		
-	Returns:
-		Коэффициент: 1 для Player/Banker, 8 для Tie, 11 для Pair
-	"""
-	match bet_type:
-		"Player", "Banker":
-			return 1
-		"Tie":
-			return 8
-		"PairPlayer", "PairBanker":
-			return 11
-		_:
-			return 1  # По умолчанию коэффициент 1
-
-func calculate_tip_amount(payout: float, tip_percentage: float, bet_type: String) -> int:
-	"""Рассчитать сумму чаевых (публичная функция для тестирования)
-	
-	Args:
-		payout: Размер выплаты (выигрыш)
-		tip_percentage: Процент чаевых (например 1.0 для 1%)
-		bet_type: Тип ставки ("Player", "Banker", "Tie", "PairPlayer", "PairBanker")
-		
-	Returns:
-		Сумма чаевых (целое число)
-	"""
-	if payout <= 0:
-		return 0
-	
-	# 1. Рассчитываем базовые чаевые с округлением вверх ДО умножения на коэффициент
-	var base_tip = ceil(payout * tip_percentage / 100.0)
-	
-	# 2. Получаем коэффициент для типа ставки
-	var multiplier = get_tip_multiplier(bet_type)
-	
-	# 3. Умножаем базовые чаевые на коэффициент
-	return int(base_tip * multiplier)
-
 func _on_payout_correct(_collected: float, expected: float, bet_type: String, position_index: int):
 	"""Обработка правильной выплаты - начисление чаевых как процент от выигрыша гостя
 	
-	Новая система чаевых:
-	1. Базовые чаевые = ceil(payout × процент_чаевых / 100) - округление ДО умножения на коэффициент
-	2. Итоговые чаевые = базовые_чаевые × коэффициент_ставки
-	3. Коэффициенты: Player/Banker = 1, Tie = 8, Pair = 11
+	Использует TipCalculator для расчета чаевых с учетом терпения гостя.
 	
 	Args:
 		collected: Собранная сумма (не используется)
@@ -116,16 +71,24 @@ func _on_payout_correct(_collected: float, expected: float, bet_type: String, po
 	
 	# Это гостевая ставка и есть выигрыш - начисляем чаевые
 	if expected > 0:
-		var tip_percentage = SaveManager.instance.load_tip_percentage()  # Например 1.0 для 1%
-		var tip_amount = calculate_tip_amount(expected, tip_percentage, bet_type)
+		var guest_id = sector  # Сектор = ID гостя
 		
-		# Вычисляем базовые чаевые для логирования
-		var base_tip = ceil(expected * tip_percentage / 100.0)
-		var multiplier = get_tip_multiplier(bet_type)
+		# Используем TipCalculator для расчета чаевых с учетом терпения
+		var tip_amount = TipCalculator.calculate_tip(expected, bet_type, guest_id)
 		
-		SaveManager.instance.add_score(tip_amount)
-		update_stats()
-		print("💰 Чаевые начислены: выплата=%.0f, базовые=%.0f (%.1f%%), коэффициент=%d, итого=%d" % [expected, base_tip, tip_percentage, multiplier, tip_amount])
+		if tip_amount > 0:
+			SaveManager.instance.add_score(tip_amount)
+			update_stats()
+			
+			# Логирование для отладки
+			var patience = GuestStatsManager.get_guest_patience(guest_id)
+			var base_percentage = SaveManager.instance.load_tip_percentage()
+			var effective_percentage = base_percentage * (1.0 - float(patience) / 100.0)
+			var multiplier = TipCalculator.get_tip_multiplier(bet_type)
+			
+			print("💰 Чаевые начислены гостю %d: выплата=%.0f, базовый процент=%.1f%%, терпение=%d%%, эффективный=%.2f%%, коэффициент=%d, итого=%d" % [
+				guest_id, expected, base_percentage, patience, effective_percentage, multiplier, tip_amount
+			])
 
 # Примечание: _on_action_error, _on_payout_wrong, _on_hint_used - 
 # больше не отнимают деньги. За ошибки отнимаются сердца в HeartBar.

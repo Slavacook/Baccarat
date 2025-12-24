@@ -237,7 +237,7 @@ func _trigger_game_over() -> void:
 func _on_action_error(_type: String = "", _message: String = "") -> void:
 	lose_life()
 
-func _on_payout_wrong(_collected: float, _expected: float) -> void:
+func _on_payout_wrong(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
 	lose_life()
 
 func _on_hint_used() -> void:

@@ -204,7 +204,8 @@ func _on_payout_pressed():
 	else:
 		# ← Неправильная выплата
 		# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
-		EventBus.payout_wrong.emit(collected_total, expected_payout)
+		# В PayoutOverlay нет информации о bet_type/position_index
+		EventBus.payout_wrong.emit(collected_total, expected_payout, "", -1)
 
 		# Показываем анимацию ошибки (попап не закрывается)
 		# После анимации ошибки блокировка снимется внутри _show_error_animation
@@ -713,7 +714,7 @@ func _hide_error_image():
 	error_image.position = original_position
 	error_image.visible = false
 
-func _on_payout_wrong_event(_collected: float, _expected: float):
+func _on_payout_wrong_event(_collected: float, _expected: float, _bet_type: String, _position_index: int):
 	"""Обработчик события неправильной выплаты
 
 	Вызывается когда EventBus.payout_wrong эмитится.

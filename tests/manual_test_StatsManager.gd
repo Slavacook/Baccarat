@@ -19,18 +19,12 @@ func _ready():
 	var tests_passed = 0
 	var tests_failed = 0
 	
-	# Получаем экземпляр StatsManager
-	var stats_manager = StatsManager.instance
-	if not stats_manager:
-		print("  ❌ FAIL: StatsManager.instance не найден")
-		return
-	
 	# ═══════════════════════════════════════════════════════════════════
 	# ТЕСТЫ: Коэффициенты
 	# ═══════════════════════════════════════════════════════════════════
 	
 	print("📋 Тест 1: Коэффициент для Player")
-	var mult1 = stats_manager.get_tip_multiplier("Player")
+	var mult1 = TipCalculator.get_tip_multiplier("Player")
 	if mult1 == 1:
 		print("  ✅ PASS: Player = 1")
 		tests_passed += 1
@@ -40,7 +34,7 @@ func _ready():
 	
 	print("")
 	print("📋 Тест 2: Коэффициент для Banker")
-	var mult2 = stats_manager.get_tip_multiplier("Banker")
+	var mult2 = TipCalculator.get_tip_multiplier("Banker")
 	if mult2 == 1:
 		print("  ✅ PASS: Banker = 1")
 		tests_passed += 1
@@ -50,7 +44,7 @@ func _ready():
 	
 	print("")
 	print("📋 Тест 3: Коэффициент для Tie")
-	var mult3 = stats_manager.get_tip_multiplier("Tie")
+	var mult3 = TipCalculator.get_tip_multiplier("Tie")
 	if mult3 == 8:
 		print("  ✅ PASS: Tie = 8")
 		tests_passed += 1
@@ -60,7 +54,7 @@ func _ready():
 	
 	print("")
 	print("📋 Тест 4: Коэффициент для PairPlayer")
-	var mult4 = stats_manager.get_tip_multiplier("PairPlayer")
+	var mult4 = TipCalculator.get_tip_multiplier("PairPlayer")
 	if mult4 == 11:
 		print("  ✅ PASS: PairPlayer = 11")
 		tests_passed += 1
@@ -70,7 +64,7 @@ func _ready():
 	
 	print("")
 	print("📋 Тест 5: Коэффициент для PairBanker")
-	var mult5 = stats_manager.get_tip_multiplier("PairBanker")
+	var mult5 = TipCalculator.get_tip_multiplier("PairBanker")
 	if mult5 == 11:
 		print("  ✅ PASS: PairBanker = 11")
 		tests_passed += 1
@@ -91,8 +85,15 @@ func _ready():
 	# Базовые = ceil(2000 * 0.73 / 100) = ceil(14.6) = 15
 	# Итого = 15 * 1 = 15
 	print("")
-	print("📋 Тест 6: Player, выплата=2000, чаевые=0.73%")
-	var tip6 = stats_manager.calculate_tip_amount(2000.0, 0.73, "Player")
+	print("📋 Тест 6: Player, выплата=2000, чаевые=0.73%, гость 1 (терпение 0%)")
+	# Сохраняем текущий процент чаевых
+	var saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(0.73)
+	# Сбрасываем терпение гостя 1
+	GuestStatsManager.reset_guest_patience(1)
+	var tip6 = TipCalculator.calculate_tip(2000.0, "Player", 1)
+	# Восстанавливаем процент
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected6 = 15
 	if tip6 == expected6:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d)" % [tip6, expected6])
@@ -105,8 +106,12 @@ func _ready():
 	# Базовые = ceil(1000 * 1 / 100) = ceil(10) = 10
 	# Итого = 10 * 1 = 10
 	print("")
-	print("📋 Тест 7: Player, выплата=1000, чаевые=1%")
-	var tip7 = stats_manager.calculate_tip_amount(1000.0, 1.0, "Player")
+	print("📋 Тест 7: Player, выплата=1000, чаевые=1%, гость 1 (терпение 0%)")
+	saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(1.0)
+	GuestStatsManager.reset_guest_patience(1)
+	var tip7 = TipCalculator.calculate_tip(1000.0, "Player", 1)
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected7 = 10
 	if tip7 == expected7:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d)" % [tip7, expected7])
@@ -119,8 +124,12 @@ func _ready():
 	# Базовые = ceil(800 * 1 / 100) = ceil(8) = 8
 	# Итого = 8 * 8 = 64
 	print("")
-	print("📋 Тест 8: Tie, выплата=800, чаевые=1%")
-	var tip8 = stats_manager.calculate_tip_amount(800.0, 1.0, "Tie")
+	print("📋 Тест 8: Tie, выплата=800, чаевые=1%, гость 1 (терпение 0%)")
+	saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(1.0)
+	GuestStatsManager.reset_guest_patience(1)
+	var tip8 = TipCalculator.calculate_tip(800.0, "Tie", 1)
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected8 = 64
 	if tip8 == expected8:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d)" % [tip8, expected8])
@@ -133,8 +142,12 @@ func _ready():
 	# Базовые = ceil(1100 * 1 / 100) = ceil(11) = 11
 	# Итого = 11 * 11 = 121
 	print("")
-	print("📋 Тест 9: PairPlayer, выплата=1100, чаевые=1%")
-	var tip9 = stats_manager.calculate_tip_amount(1100.0, 1.0, "PairPlayer")
+	print("📋 Тест 9: PairPlayer, выплата=1100, чаевые=1%, гость 1 (терпение 0%)")
+	saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(1.0)
+	GuestStatsManager.reset_guest_patience(1)
+	var tip9 = TipCalculator.calculate_tip(1100.0, "PairPlayer", 1)
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected9 = 121
 	if tip9 == expected9:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d)" % [tip9, expected9])
@@ -148,8 +161,12 @@ func _ready():
 	# Базовые = ceil(1100 * 1 / 100) = ceil(11) = 11
 	# Итого = 11 * 11 = 121
 	print("")
-	print("📋 Тест 10: PairBanker, выплата=1100 (ставка 100 * 11), чаевые=1%")
-	var tip10 = stats_manager.calculate_tip_amount(1100.0, 1.0, "PairBanker")
+	print("📋 Тест 10: PairBanker, выплата=1100 (ставка 100 * 11), чаевые=1%, гость 1 (терпение 0%)")
+	saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(1.0)
+	GuestStatsManager.reset_guest_patience(1)
+	var tip10 = TipCalculator.calculate_tip(1100.0, "PairBanker", 1)
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected10 = 121
 	if tip10 == expected10:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d)" % [tip10, expected10])
@@ -163,8 +180,12 @@ func _ready():
 	# Базовые = ceil(800 * 1 / 100) = ceil(8) = 8
 	# Итого = 8 * 8 = 64
 	print("")
-	print("📋 Тест 11: Tie, выплата=800 (ставка 100 * 8), чаевые=1%")
-	var tip11 = stats_manager.calculate_tip_amount(800.0, 1.0, "Tie")
+	print("📋 Тест 11: Tie, выплата=800 (ставка 100 * 8), чаевые=1%, гость 1 (терпение 0%)")
+	saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(1.0)
+	GuestStatsManager.reset_guest_patience(1)
+	var tip11 = TipCalculator.calculate_tip(800.0, "Tie", 1)
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected11 = 64
 	if tip11 == expected11:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d)" % [tip11, expected11])
@@ -183,8 +204,12 @@ func _ready():
 	# Базовые = ceil(100 * 1.1 / 100) = ceil(1.1) = 2
 	# Итого = 2 * 1 = 2
 	print("")
-	print("📋 Тест 12: Player, выплата=100, чаевые=1.1% (проверка округления)")
-	var tip12 = stats_manager.calculate_tip_amount(100.0, 1.1, "Player")
+	print("📋 Тест 12: Player, выплата=100, чаевые=1.1%, гость 1 (терпение 0%, проверка округления)")
+	saved_percentage = SaveManager.instance.load_tip_percentage()
+	SaveManager.instance.save_tip_percentage(1.1)
+	GuestStatsManager.reset_guest_patience(1)
+	var tip12 = TipCalculator.calculate_tip(100.0, "Player", 1)
+	SaveManager.instance.save_tip_percentage(saved_percentage)
 	var expected12 = 2  # ceil(1.1) = 2
 	if tip12 == expected12:
 		print("  ✅ PASS: Чаевые = %d (ожидалось %d, округление ДО умножения)" % [tip12, expected12])
@@ -208,4 +233,3 @@ func _ready():
 		print("🎉 Все тесты пройдены успешно!")
 	else:
 		print("⚠️  Некоторые тесты провалены, требуется проверка.")
-
