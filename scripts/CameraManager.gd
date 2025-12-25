@@ -131,10 +131,12 @@ func _zoom_prev_area() -> void:
 		_zoom_area(target)
 
 func _zoom_up() -> void:
-	"""Вертикальная навигация вверх: с карт/общего плана → area_2"""
+	"""Вертикальная навигация вверх: с карт → area_2, из областей → общий план"""
 	var target = _get_target_area_by_direction("up")
 	if target > 0 and target != current_area:
 		_zoom_area(target)
+	elif target == -1:
+		_zoom_out()
 
 func _zoom_down() -> void:
 	"""Вертикальная навигация вниз: из областей → карты, с карт → общий план"""
@@ -175,7 +177,7 @@ func _get_target_area_by_direction(direction: String) -> int:
 		"up":
 			match current_area:
 				0: return 2  # карты → area_2
-				1, 2, 3: return current_area  # из областей → остаётся
+				1, 2, 3: return -1  # из областей → общий план
 		"down":
 			match current_area:
 				0: return -1  # карты → общий план
@@ -213,7 +215,7 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 		"up":
 			match area:
 				0: return 2  # карты → area_2
-				1, 2, 3: return area  # из областей → остаётся
+				1, 2, 3: return -1  # из областей → общий план
 		"down":
 			match area:
 				0: return -1  # карты → общий план

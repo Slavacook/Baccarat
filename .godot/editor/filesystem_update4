@@ -1,2 +1,3 @@
 res://scripts/SwipeNavigationController.gd
 res://tests/ManualTestStatsManager.tscn
+res://scripts/CameraManager.gd
