@@ -15,6 +15,10 @@ var active_feedbacks: Array = []  # Массив активных FeedbackItem
 # Отслеживание предыдущих значений терпения (для определения увеличения)
 var previous_patience: Dictionary = {}  # {guest_id: patience}
 
+# Очередь оповещений для каскадного эффекта
+var last_feedback_start_time: float = 0.0  # Время последнего старта оповещения
+var pending_feedbacks: Array = []  # Очередь ожидающих оповещений: [{item: Control, message: String, color: Color, duration: float}]
+
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ АНИМАЦИИ (можно менять здесь)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -22,7 +26,7 @@ var previous_patience: Dictionary = {}  # {guest_id: patience}
 # Позиционирование
 const START_Y: float = -230.0  # Начальная позиция Y относительно центра экрана (отрицательное = выше центра)
 const END_Y_OFFSET: float = -40.0  # Смещение конечной позиции Y относительно начальной (отрицательное = выше)
-const VERTICAL_SPACING: float = 90.0  # Расстояние между оповещениями при множественном показе
+const FEEDBACK_START_DELAY: float = 1.5  # Задержка между стартами оповещений (секунды) для каскадного эффекта
 
 # Размер и стиль текста
 const FONT_SIZE: int = 30   # Размер шрифта оповещений
@@ -30,7 +34,7 @@ const ITEM_MIN_WIDTH: float = 400.0  # Минимальная ширина ко�
 const ITEM_MIN_HEIGHT: float = 100.0  # Минимальная высота контейнера оповещения
 
 # Скорость и длительность анимации
-const MOVE_DURATION: float = 2.0  # Длительность движения вверх (секунды)
+const MOVE_DURATION: float = 2.5  # Длительность движения вверх (секунды)
 const FADE_DURATION: float = 1.9  # Длительность fade out (секунды) - должна быть меньше MOVE_DURATION
 const TOTAL_DURATION: float = 3.0  # Общая длительность показа оповещения (секунды)
 
@@ -83,16 +87,57 @@ func _connect_signals():
 	if EventBus:
 		EventBus.game_restarted.connect(_on_game_restarted)
 		EventBus.payout_correct.connect(_on_payout_correct)
+		EventBus.life_lost.connect(_on_life_lost)
 		print("✅ FeedbackAnimationManager: подключены сигналы EventBus")
 	else:
 		push_error("FeedbackAnimationManager: EventBus не найден!")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ПУБЛИЧНЫЕ МЕТОДЫ
+# ПУБЛИЧНЫЕ МЕТОДЫ - ТИПИЗИРОВАННЫЕ ОПОВЕЩЕНИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func show_tips(amount: int):
+	"""Показать оповещение о чаевых"""
+	var config = FeedbackTypes.CONFIGS[FeedbackTypes.Type.TIPS]
+	show_feedback(
+		config.format % amount,
+		config.color,
+		config.duration
+	)
+
+func show_patience(guest_id: int):
+	"""Показать оповещение о терпении"""
+	var config = FeedbackTypes.CONFIGS[FeedbackTypes.Type.PATIENCE]
+	show_feedback(
+		config.format % guest_id,
+		config.color,
+		config.duration
+	)
+
+func show_heart():
+	"""Показать оповещение о потере сердца"""
+	var config = FeedbackTypes.CONFIGS[FeedbackTypes.Type.HEART]
+	show_feedback(
+		config.message,
+		config.color,
+		config.duration
+	)
+
+func show_penalty(amount: int):
+	"""Показать оповещение о штрафе на чаевые"""
+	var config = FeedbackTypes.CONFIGS[FeedbackTypes.Type.PENALTY]
+	show_feedback(
+		config.format % amount,
+		config.color,
+		config.duration
+	)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# БАЗОВЫЙ МЕТОД (используется типизированными методами выше)
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_feedback(message: String, color: Color, duration: float = 2.0):
-	"""Показать оповещение с анимацией
+	"""Показать оповещение с анимацией (каскадный эффект с задержкой 0.5 сек)
 	
 	Args:
 		message: Текст сообщения
@@ -112,23 +157,27 @@ func show_feedback(message: String, color: Color, duration: float = 2.0):
 	# Создаем новый FeedbackItem
 	var feedback_item = _create_feedback_item(message, color)
 	
-	# Добавляем в список активных
-	active_feedbacks.append(feedback_item)
-	
-	# Позиционируем (первое оповещение вверху, следующие ниже)
-	# Получаем размер viewport для правильного позиционирования
+	# Все оповещения стартуют в одной позиции
 	var viewport_size = get_viewport().get_visible_rect().size
 	var center_y = viewport_size.y / 2.0
-	
-	var index = active_feedbacks.size() - 1
-	var base_y = center_y + START_Y - (index * VERTICAL_SPACING)
+	var base_y = center_y + START_Y
 	
 	feedback_item.position.y = base_y
-	print("🔔 FeedbackAnimationManager: позиция установлена y=%f (viewport_height=%f, center_y=%f)" % [base_y, viewport_size.y, center_y])
+	feedback_item.modulate.a = 0.0  # Скрываем до старта
+	feedback_item.visible = false  # Скрываем до старта
 	
-	# Анимируем
-	var end_y = base_y + END_Y_OFFSET
-	_animate_feedback_item(feedback_item, base_y, end_y, duration)
+	# Добавляем в очередь для запуска с задержкой
+	pending_feedbacks.append({
+		"item": feedback_item,
+		"message": message,
+		"color": color,
+		"duration": duration,
+		"base_y": base_y
+	})
+	
+	# Если это первое оповещение - стартуем сразу, иначе будет обработано в _process_next_feedback
+	if pending_feedbacks.size() == 1:
+		_process_next_feedback()
 
 func _create_feedback_item(message: String, color: Color) -> Control:
 	"""Создает новый элемент оповещения программно"""
@@ -187,6 +236,52 @@ func _animate_feedback_item(item: Control, start_y: float, end_y: float, duratio
 			_remove_feedback_item(item)
 	)
 
+func _process_next_feedback():
+	"""Обрабатывает следующее оповещение из очереди с задержкой"""
+	if pending_feedbacks.is_empty():
+		return
+	
+	var current_time = Time.get_ticks_msec() / 1000.0
+	var delay_needed = 0.0
+	
+	# Если уже был старт - вычисляем задержку до следующего
+	if last_feedback_start_time > 0.0:
+		var time_since_last = current_time - last_feedback_start_time
+		if time_since_last < FEEDBACK_START_DELAY:
+			delay_needed = FEEDBACK_START_DELAY - time_since_last
+	
+	# Если нужна задержка - ждем, иначе стартуем сразу
+	if delay_needed > 0.0:
+		await get_tree().create_timer(delay_needed).timeout
+	
+	# Берем первое из очереди
+	var feedback_data = pending_feedbacks.pop_front()
+	var feedback_item = feedback_data.item
+	
+	if not is_instance_valid(feedback_item):
+		# Если элемент уже удален - пропускаем и обрабатываем следующее
+		_process_next_feedback()
+		return
+	
+	# Обновляем время последнего старта
+	last_feedback_start_time = Time.get_ticks_msec() / 1000.0
+	
+	# Добавляем в список активных
+	active_feedbacks.append(feedback_item)
+	
+	# Показываем и запускаем анимацию
+	feedback_item.modulate.a = 1.0
+	feedback_item.visible = true
+	var base_y = feedback_data.base_y
+	var end_y = base_y + END_Y_OFFSET
+	_animate_feedback_item(feedback_item, base_y, end_y, feedback_data.duration)
+	
+	print("🔔 FeedbackAnimationManager: оповещение стартовало: '%s' (y=%f)" % [feedback_data.message, base_y])
+	
+	# Обрабатываем следующее из очереди (если есть)
+	if not pending_feedbacks.is_empty():
+		_process_next_feedback()
+
 func _remove_feedback_item(item: Control):
 	"""Удаляет оповещение из списка и с экрана"""
 	if not is_instance_valid(item):
@@ -197,28 +292,9 @@ func _remove_feedback_item(item: Control):
 	if index >= 0:
 		active_feedbacks.remove_at(index)
 	
-	# Обновляем позиции оставшихся оповещений
-	_update_feedback_positions()
-	
 	# Удаляем из дерева
 	if is_instance_valid(item) and item.get_parent():
 		item.queue_free()
-
-func _update_feedback_positions():
-	"""Обновляет позиции всех активных оповещений после удаления одного"""
-	for i in range(active_feedbacks.size()):
-		var item = active_feedbacks[i]
-		if not is_instance_valid(item):
-			continue
-		
-		var viewport_size = get_viewport().get_visible_rect().size
-		var center_y = viewport_size.y / 2.0
-		var target_y = center_y + START_Y - (i * VERTICAL_SPACING)
-		
-		# Плавно перемещаем к новой позиции
-		if abs(item.position.y - target_y) > 1.0:
-			var tween: Tween = item.create_tween()
-			tween.tween_property(item, "position:y", target_y, 0.3)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
@@ -235,11 +311,7 @@ func _on_patience_changed(guest_id: int, new_patience: int):
 	# Если терпение уменьшилось - показываем оповещение
 	if new_patience < old_patience:
 		print("🔔 FeedbackAnimationManager: показываю оповещение о терпении для гостя %d (%d%% -> %d%%)" % [guest_id, old_patience, new_patience])
-		show_feedback(
-			"-10%% Терпение. Гость %d" % guest_id,
-			Color(0.9, 0.2, 0.2),  # Красный
-			2.0
-		)
+		show_patience(guest_id)
 
 func _on_game_restarted():
 	"""Обработчик рестарта игры - сбрасываем отслеживание терпения"""
@@ -247,6 +319,10 @@ func _on_game_restarted():
 	# Инициализируем отслеживание терпения для всех гостей (все должны быть 100% после рестарта)
 	for guest_id in range(1, 7):
 		previous_patience[guest_id] = 100
+
+func _on_life_lost(_remaining_lives: int):
+	"""Обработчик потери жизни - показываем оповещение"""
+	show_heart()
 
 func _on_payout_correct(_collected: float, expected: float, bet_type: String, position_index: int):
 	"""Обработчик правильной выплаты - показываем оповещение о чаевых"""
@@ -265,8 +341,4 @@ func _on_payout_correct(_collected: float, expected: float, bet_type: String, po
 		
 		if tip_amount > 0:
 			print("🔔 FeedbackAnimationManager: показываю оповещение о чаевых: +%d" % tip_amount)
-			show_feedback(
-				"+%d ЧАЕВЫЕ" % tip_amount,
-				Color(0.2, 0.9, 0.2),  # Зеленый
-				2.0
-			)
+			show_tips(tip_amount)

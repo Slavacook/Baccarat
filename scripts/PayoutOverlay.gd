@@ -224,9 +224,8 @@ func _on_hint_pressed():
 		
 		# Покупаем подсказку: отнимаем ресурсы
 		EventBus.hint_used.emit()
-		
-		# Показываем сообщение о покупке подсказки
-		_show_hint_success_message()
+		# Оповещение о потере сердца показывается автоматически через FeedbackAnimationManager._on_life_lost()
+		# поэтому здесь не показываем сообщение
 		
 		# Меняем состояние и цвет кнопки
 		hint_purchased = true

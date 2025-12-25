@@ -142,7 +142,7 @@ func _on_timer_expired(guest_id: int) -> void:
 		# Запускаем следующий таймер (последовательная работа)
 		start_timer(guest_id)
 	else:
-		print("⏱️  Гость %d: терпение = 100%, таймеры остановлены" % guest_id)
+		print("⏱️  Гость %d: терпение = 100%%, таймеры остановлены" % guest_id)
 	
 	# Эмитим сигнал для UI (если нужно)
 	timer_expired.emit(guest_id)

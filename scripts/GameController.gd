@@ -1790,6 +1790,9 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 						SaveManager.instance.subtract_score(100)
 						if StatsManager.instance:
 							StatsManager.instance.update_stats()
+						# Показываем оповещение о штрафе
+						if FeedbackAnimationManager:
+							FeedbackAnimationManager.show_penalty(100)
 						DebugLogger.log("  💰 Отнято 100 чаевых (осталось %d)" % SaveManager.instance.score)
 					else:
 						# Чаевых недостаточно - отнимаем сердце

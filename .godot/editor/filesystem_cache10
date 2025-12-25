@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1766643675
+::res://::1766648036
 CLAUDE.md::TextFile::-1::1765937705::0::1::::<><><>0<>0<><>::
 CLEANUP_REPORT.md::TextFile::-1::1765878385::0::1::::<><><>0<>0<><>::
 export_presets.cfg::TextFile::-1::1766352500::0::1::::<><><>0<>0<><>::
@@ -273,7 +273,7 @@ BankerAfterPlayerHandler.gd::GDScript::910755365554056905::1766485271::0::1::::B
 BetCollectionPhaseManager.gd::GDScript::5658197585948415147::1766629364::0::1::::BetCollectionPhaseManager<>RefCounted<><>0<>0<><>::
 BetFilterManager.gd::GDScript::3239685272360864733::1766460152::0::1::::BetFilterManager<>RefCounted<><>0<>0<><>::
 BetPopup.gd::GDScript::4186871779109626763::1765928393::0::1::::<>PopupPanel<><>0<>0<><>::
-CameraManager.gd::GDScript::4454498763637027129::1766317688::0::1::::CameraManager<>RefCounted<><>0<>0<><>::
+CameraManager.gd::GDScript::4454498763637027129::1766644270::0::1::::CameraManager<>RefCounted<><>0<>0<><>::
 Card.gd::GDScript::3661103580919269901::1765877564::0::1::::Card<>RefCounted<><>0<>0<><>::
 CardDealer.gd::GDScript::7350028232998160553::1766453027::0::1::::CardDealer<>RefCounted<><>0<>0<><>::
 CardDealer.test.gd::GDScript::5589654617348652939::1766453027::0::1::::<>RefCounted<><>0<>0<><>::
@@ -289,7 +289,7 @@ FirstFourDealCoordinator.gd::GDScript::4706552728192853869::1766474011::0::1::::
 FlipCard.gd::GDScript::1979425046039752148::1765877564::0::1::::FlipCard<>Node2D<><>0<>0<><>::
 GameCompletionCoordinator.gd::GDScript::6955625309893872892::1766533760::0::1::::GameCompletionCoordinator<>RefCounted<><>0<>0<><>::
 GameConstants.gd::GDScript::5908386211620384816::1765878366::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
-GameController.gd::GDScript::5622432768509677956::1766640405::0::1::::<>Node2D<><>0<>0<><>::
+GameController.gd::GDScript::5622432768509677956::1766646215::0::1::::<>Node2D<><>0<>0<><>::
 GameDataManager.gd::GDScript::3173968144031983268::1766128355::0::1::::<>Node<><>0<>0<><>::
 GameInitializer.gd::GDScript::7528074775368441392::1766533761::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
 GameModeManager.gd::GDScript::5355736345804787176::1765878366::0::1::::<>Node<><>0<>0<><>::
@@ -313,7 +313,7 @@ OverlayNotification.gd::GDScript::438564339509042980::1766033540::0::1::::<>Canv
 OverlayNotificationManager.gd::GDScript::7654303330837225282::1766034483::0::1::::<>Node<><>0<>0<><>::
 PairBettingManager.gd::GDScript::6346628608273793759::1766121092::0::1::::PairBettingManager<>RefCounted<><>0<>0<><>::
 PayoutContextManager.gd::GDScript::4733859750709543363::1765877564::0::1::::<>Node<><>0<>0<><>::
-PayoutOverlay.gd::GDScript::8690017255474422234::1766622569::0::1::::<>CanvasLayer<><>0<>0<><>::
+PayoutOverlay.gd::GDScript::8690017255474422234::1766646858::0::1::::<>CanvasLayer<><>0<>0<><>::
 PayoutQueueManager.gd::GDScript::340946509004253663::1766480080::0::1::::PayoutQueueManager<>RefCounted<><>0<>0<><>::
 PayoutSurvivalInfo.gd::GDScript::2327543716532097909::1766310531::0::1::::PayoutSurvivalInfo<>HBoxContainer<><>0<>0<><>::
 PhaseActionResolver.gd::GDScript::21101011315566169::1766458163::0::1::::PhaseActionResolver<>RefCounted<><>0<>0<><>::
@@ -322,7 +322,7 @@ SaveManager.gd::GDScript::8627907365010767779::1766636245::0::1::::<>Node<><>0<>
 SettingsScene.gd::GDScript::9154780136968585584::1766560408::0::1::::<>CanvasLayer<><>0<>0<><>::
 StatsManager.gd::GDScript::7422061842198344417::1766636528::0::1::::<>Node<><>0<>0<><>::
 SurvivalModeUI.gd::GDScript::6868350488718170528::1766118147::0::1::::<>Control<><>0<>0<><>::
-SwipeNavigationController.gd::GDScript::62770720601697266::1766643142::0::1::::<>Node<><>0<>0<><>::
+SwipeNavigationController.gd::GDScript::62770720601697266::1766643924::0::1::::<>Node<><>0<>0<><>::
 TablePreparationExecutor.gd::GDScript::4703111815464837639::1766533760::0::1::::TablePreparationExecutor<>RefCounted<><>0<>0<><>::
 ThirdCardActionExecutor.gd::GDScript::2824590160072073677::1766466430::0::1::::ThirdCardActionExecutor<>RefCounted<><>0<>0<><>::
 ThirdCardActionValidator.gd::GDScript::2503527279038123926::1766457084::0::1::::ThirdCardActionValidator<>RefCounted<><>0<>0<><>::
@@ -423,11 +423,12 @@ SOLID_REFACTORING_SUMMARY.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 TESTING_CHECKLIST.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 ::res://scripts/state/::1765878366
 StateRestorer.gd::GDScript::157760168912163595::1766480080::0::1::::StateRestorer<>RefCounted<><>0<>0<><>::
-::res://scripts/ui/::1766624040
+::res://scripts/ui/::1766646220
 AreaButton.gd::GDScript::7117132900493012764::1765878366::0::1::::AreaButton<>TextureButton<><>0<>0<><>::
 ButtonUIManager.gd::GDScript::6765460019147174517::1766313643::0::1::::ButtonUIManager<>RefCounted<><>0<>0<><>::
 CardUIManager.gd::GDScript::2927073092701654880::1766278518::0::1::::CardUIManager<>RefCounted<><>0<>0<><>::
-FeedbackAnimationManager.gd::GDScript::2489498243825738508::1766636335::0::1::::<>Node<><>0<>0<><>::
+FeedbackAnimationManager.gd::GDScript::2489498243825738508::1766648020::0::1::::<>Node<><>0<>0<><>::
+FeedbackTypes.gd::GDScript::8816249236053308543::1766646091::0::1::::FeedbackTypes<>RefCounted<><>0<>0<><>::
 FocusFrameUI.gd::GDScript::8286553404847753937::1766300873::0::1::::FocusFrameUI<>Control<><>0<>0<><>::
 GuestPatienceIndicator.gd::GDScript::5158219933067656198::1766581324::0::1::::<>Control<><>0<>0<><>::
 GuestPatienceIndicatorManager.gd::GDScript::603979790198013962::1766636245::0::1::::<>Node<><>0<>0<><>::
@@ -437,7 +438,7 @@ PayoutToggleManager.gd::GDScript::3326742113003124411::1765878366::0::1::::Payou
 ToggleUIManager.gd::GDScript::6934597452681620777::1765878366::0::1::::ToggleUIManager<>RefCounted<><>0<>0<><>::
 ::res://scripts/validators/::1765884210
 DefaultBetCollectionValidator.gd::GDScript::3455400197945027953::1766125241::0::1::::DefaultBetCollectionValidator<>IBetCollectionValidator<><>0<>0<><>::
-::res://tests/::1766643664
+::res://tests/::1766648025
 ManualTestBankerAfterPlayerHandler.tscn::PackedScene::4745540525648713647::1766485339::0::1::::<><><>0<>0<><>::res://tests/manual_test_BankerAfterPlayerHandler.gd
 ManualTestBetFilterManager.tscn::PackedScene::-1::1766460152::0::1::::<><><>0<>0<><>::res://tests/manual_test_BetFilterManager.gd
 ManualTestCardDealer.tscn::PackedScene::8855225251042067462::1766454904::0::1::::<><><>0<>0<><>::uid://dk36ori1w7it3::::res://tests/manual_test_CardDealer.gd
@@ -451,7 +452,7 @@ ManualTestGuestBetDisplayCoordinator.tscn::PackedScene::-1::1766462965::0::1::::
 ManualTestHeartBetCoordinator.tscn::PackedScene::5210010651774226900::1766472711::0::1::::<><><>0<>0<><>::res://tests/manual_test_HeartBetCoordinator.gd
 ManualTestPhaseActionResolver.tscn::PackedScene::-1::1766458163::0::1::::<><><>0<>0<><>::res://tests/manual_test_PhaseActionResolver.gd
 ManualTestRoundCompletionCoordinator.tscn::PackedScene::-1::1766458803::0::1::::<><><>0<>0<><>::res://tests/manual_test_RoundCompletionCoordinator.gd
-ManualTestStatsManager.tscn::PackedScene::6698437945817420257::1766643664::0::1::::<><><>0<>0<><>::uid://bocq6b0svjw44::::res://tests/manual_test_StatsManager.gd
+ManualTestStatsManager.tscn::PackedScene::6698437945817420257::1766648025::0::1::::<><><>0<>0<><>::uid://bocq6b0svjw44::::res://tests/manual_test_StatsManager.gd
 ManualTestTablePreparationExecutor.tscn::PackedScene::5969293201635270969::1766468398::0::1::::<><><>0<>0<><>::res://tests/manual_test_TablePreparationExecutor.gd
 ManualTestThirdCardActionExecutor.tscn::PackedScene::-1::1766466430::0::1::::<><><>0<>0<><>::res://tests/manual_test_ThirdCardActionExecutor.gd
 ManualTestThirdCardActionValidator.tscn::PackedScene::5567457405997822207::1766456574::0::1::::<><><>0<>0<><>::uid://n2vo1yggh1rc::::res://tests/manual_test_ThirdCardActionValidator.gd
