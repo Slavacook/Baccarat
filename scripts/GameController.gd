@@ -839,6 +839,19 @@ func _on_settings_closed():
 func _on_mode_changed(mode: String):
 	DebugLogger.log("Режим игры изменён на: %s" % mode)
 	GameModeManager.set_mode(mode)
+	
+	# Очищаем все сгенерированные ставки при переключении режима
+	# (чтобы избежать конфликта между Classic и Junket фишками)
+	if phase_manager and phase_manager.guest_bet_storage:
+		phase_manager.guest_bet_storage.clear_all_bets()
+		DebugLogger.log("🗑️ Все ставки гостей очищены при переключении режима игры")
+	
+	# Скрываем все визуальные фишки ставок
+	if chip_visual_manager:
+		chip_visual_manager.hide_all_chips()
+		chip_visual_manager.clear_all_active_chips()
+		DebugLogger.log("🚫 Все визуальные фишки ставок скрыты при переключении режима игры")
+	
 	var cfg = GameModeManager.get_config()
 	# ← set_limits() сам вызовет limits_changed.emit() → _on_limits_changed()
 	limits_manager.set_limits(
