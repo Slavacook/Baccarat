@@ -36,6 +36,7 @@ PayoutContextManager="*res://scripts/PayoutContextManager.gd"
 TableStateManager="*res://scripts/autoload/TableStateManager.gd"
 KeyboardNavigationController="*res://scripts/KeyboardNavigationController.gd"
 KeyboardFocusController="*res://scripts/KeyboardFocusController.gd"
+SwipeNavigationController="*res://scripts/SwipeNavigationController.gd"
 TestCardsManager="*res://scripts/autoload/TestCardsManager.gd"
 FeedbackAnimationManager="*res://scripts/ui/FeedbackAnimationManager.gd"
 

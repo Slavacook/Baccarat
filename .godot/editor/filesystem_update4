@@ -1,2 +1,2 @@
-res://scripts/GameController.gd
+res://scripts/SwipeNavigationController.gd
 res://tests/ManualTestStatsManager.tscn
