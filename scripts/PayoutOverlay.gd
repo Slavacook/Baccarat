@@ -520,58 +520,23 @@ func _show_hint_success_message():
 
 # ← Универсальная функция для показа красивого сообщения
 func _show_feedback_message(message: String, color: Color, duration: float = 2.0):
-	"""Показать красивое сообщение с анимацией
+	"""Показать красивое сообщение с анимацией (использует FeedbackAnimationManager)
 	
 	Args:
 		message: Текст сообщения
 		color: Цвет текста
 		duration: Длительность показа в секундах
 	"""
-	if not feedback_container or not feedback_label:
+	# Используем новый FeedbackAnimationManager для всех оповещений
+	if FeedbackAnimationManager:
+		FeedbackAnimationManager.show_feedback(message, color, duration)
+	else:
 		# Fallback на overlay-уведомление
 		if OverlayNotificationManager:
 			if color == Color(0.9, 0.2, 0.2):  # Красный = ошибка
 				OverlayNotificationManager.show_error(message, duration)
 			else:  # Зелёный = успех
 				OverlayNotificationManager.show_success(message, duration)
-		return
-	
-	# Настраиваем стиль сообщения
-	feedback_label.text = message
-	feedback_label.add_theme_font_size_override("font_size", 42)  # Увеличиваем в 1.5 раза (28 * 1.5)
-	feedback_label.add_theme_color_override("font_color", color)
-	feedback_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.95))
-	feedback_label.add_theme_constant_override("outline_size", 6)
-	
-	# Настраиваем позицию контейнера
-	# Начальная позиция: ниже (будет двигаться вверх)
-	var start_y: float = -100.0
-	var end_y: float = -180.0  # Конечная позиция выше
-	
-	# Начальное состояние: резко появляется (сразу видимая) и в начальной позиции
-	feedback_container.modulate.a = 1.0  # Резко появляется, без fade in
-	feedback_container.position.y = start_y
-	
-	# Показываем контейнер
-	feedback_container.visible = true
-
-	# Создаём плавную анимацию (вся анимация 1 секунда)
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-	
-	# Движение вверх на протяжении всей анимации (1 сек)
-	tween.tween_property(feedback_container, "position:y", end_y, 1.0).from(start_y)
-	
-	# Fade out: начинается с 0.0 сек, длится до 0.9 сек (0.9 секунды)
-	tween.tween_property(feedback_container, "modulate:a", 0.0, 0.9).from(1.0)
-	
-	# Скрываем после анимации
-	tween.set_parallel(false)
-	tween.tween_callback(func():
-		if is_instance_valid(feedback_container):
-			feedback_container.visible = false
-			feedback_label.text = ""
-	)
 
 # ← Проверка доступности подсказки
 func _check_hint_availability() -> Dictionary:

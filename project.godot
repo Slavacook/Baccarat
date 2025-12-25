@@ -37,6 +37,7 @@ TableStateManager="*res://scripts/autoload/TableStateManager.gd"
 KeyboardNavigationController="*res://scripts/KeyboardNavigationController.gd"
 KeyboardFocusController="*res://scripts/KeyboardFocusController.gd"
 TestCardsManager="*res://scripts/autoload/TestCardsManager.gd"
+FeedbackAnimationManager="*res://scripts/ui/FeedbackAnimationManager.gd"
 
 [display]
 

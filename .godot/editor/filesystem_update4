@@ -1,6 +1,2 @@
-res://scripts/autoload/PatienceTimerManager.gd
-res://tests/manual_test_StatsManager.gd
-res://scripts/GameController.gd
-res://scripts/autoload/GuestStatsManager.gd
+res://scripts/ui/FeedbackAnimationManager.gd
 res://tests/ManualTestStatsManager.tscn
-res://scripts/ui/GuestPatienceIndicatorManager.gd
