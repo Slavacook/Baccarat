@@ -15,9 +15,9 @@ var active_feedbacks: Array = []  # Массив активных FeedbackItem
 # Отслеживание предыдущих значений терпения (для определения увеличения)
 var previous_patience: Dictionary = {}  # {guest_id: patience}
 
-# Очередь оповещений для каскадного эффекта
+# Очередь оповещений для задержки между стартами
 var last_feedback_start_time: float = 0.0  # Время последнего старта оповещения
-var pending_feedbacks: Array = []  # Очередь ожидающих оповещений: [{item: Control, message: String, color: Color, duration: float}]
+var pending_feedbacks: Array = []  # Очередь ожидающих оповещений: [{item: Control, message: String, color: Color, duration: float, base_y: float}]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ АНИМАЦИИ (можно менять здесь)
@@ -26,7 +26,8 @@ var pending_feedbacks: Array = []  # Очередь ожидающих опов�
 # Позиционирование
 const START_Y: float = -230.0  # Начальная позиция Y относительно центра экрана (отрицательное = выше центра)
 const END_Y_OFFSET: float = -40.0  # Смещение конечной позиции Y относительно начальной (отрицательное = выше)
-const FEEDBACK_START_DELAY: float = 1.5  # Задержка между стартами оповещений (секунды) для каскадного эффекта
+const FEEDBACK_VERTICAL_SPACING: float = -70.0  # ⚙️ НАСТРОЙКА: Расстояние между оповещениями в пикселях (0.0 = вплотную друг к другу)
+const FEEDBACK_START_DELAY: float = 0.2  # Задержка между стартами оповещений (секунды)
 
 # Размер и стиль текста
 const FONT_SIZE: int = 30   # Размер шрифта оповещений
@@ -55,7 +56,7 @@ func _setup_canvas():
 	feedback_canvas.name = "FeedbackCanvas"
 	feedback_canvas.layer = 210  # Выше чем PayoutOverlay (обычно 200)
 	
-	# Создаем контейнер для всех оповещений
+	# Создаем контейнер для всех оповещений (абсолютное позиционирование)
 	feedback_container = Control.new()
 	feedback_container.name = "FeedbackContainer"
 	feedback_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -137,7 +138,7 @@ func show_penalty(amount: int):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func show_feedback(message: String, color: Color, duration: float = 2.0):
-	"""Показать оповещение с анимацией (каскадный эффект с задержкой 0.5 сек)
+	"""Показать оповещение с анимацией (с задержкой 0.1 сек, с фиксированными позициями)
 	
 	Args:
 		message: Текст сообщения
@@ -157,20 +158,25 @@ func show_feedback(message: String, color: Color, duration: float = 2.0):
 	# Создаем новый FeedbackItem
 	var feedback_item = _create_feedback_item(message, color)
 	
-	# Все оповещения стартуют в одной позиции
+	# Рассчитываем позицию для нового элемента (на основе количества уже активных + ожидающих)
 	var viewport_size = get_viewport().get_visible_rect().size
 	var center_y = viewport_size.y / 2.0
-	var base_y = center_y + START_Y
+	var index = active_feedbacks.size() + pending_feedbacks.size()  # Индекс нового элемента
+	var base_y = center_y + START_Y + (index * (ITEM_MIN_HEIGHT + FEEDBACK_VERTICAL_SPACING))
 	
-	feedback_item.position.y = base_y
-	feedback_item.modulate.a = 0.0  # Скрываем до старта
-	feedback_item.visible = false  # Скрываем до старта
+	# Устанавливаем позицию внешнего контейнера (фиксированная, не будет сдвигаться)
+	feedback_item.position = Vector2(
+		(viewport_size.x - ITEM_MIN_WIDTH) / 2.0,
+		base_y
+	)
+	
+	# Добавляем в контейнер
+	feedback_container.add_child(feedback_item)
 	
 	# Добавляем в очередь для запуска с задержкой
 	pending_feedbacks.append({
 		"item": feedback_item,
 		"message": message,
-		"color": color,
 		"duration": duration,
 		"base_y": base_y
 	})
@@ -180,15 +186,22 @@ func show_feedback(message: String, color: Color, duration: float = 2.0):
 		_process_next_feedback()
 
 func _create_feedback_item(message: String, color: Color) -> Control:
-	"""Создает новый элемент оповещения программно"""
+	"""Создает новый элемент оповещения программно
+	
+	Возвращает внешний контейнер с фиксированной позицией,
+	внутри которого находится inner_container для анимации
+	"""
+	# Внешний контейнер - позиция задается абсолютно в show_feedback
 	var container = Control.new()
 	container.name = "FeedbackItem_%d" % Time.get_ticks_msec()
 	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	container.custom_minimum_size = Vector2(ITEM_MIN_WIDTH, ITEM_MIN_HEIGHT)
-	# Позиционируем относительно центра по горизонтали (y будет установлен позже)
-	var viewport_size = get_viewport().get_visible_rect().size
-	container.position.x = (viewport_size.x - container.custom_minimum_size.x) / 2.0
-	container.position.y = 0  # Временно, будет установлено в show_feedback
+	
+	# Внутренний контейнер для анимации (будет двигаться внутри внешнего)
+	var inner_container = Control.new()
+	inner_container.name = "InnerContainer"
+	inner_container.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	inner_container.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
 	var label = Label.new()
 	label.name = "Label"
@@ -201,19 +214,29 @@ func _create_feedback_item(message: String, color: Color) -> Control:
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	
-	container.add_child(label)
-	feedback_container.add_child(container)
+	inner_container.add_child(label)
+	container.add_child(inner_container)
 	
-	# Начальное состояние
-	container.modulate.a = 1.0
-	container.visible = true
+	# Сохраняем ссылку на inner_container для анимации
+	container.set_meta("inner_container", inner_container)
 	
-	# Позиция y будет установлена в show_feedback
+	# Начальное состояние - скрываем внутренний контейнер до старта
+	inner_container.position.y = 0
+	inner_container.modulate.a = 0.0
+	inner_container.visible = false
 	
 	return container
 
-func _animate_feedback_item(item: Control, start_y: float, end_y: float, duration: float):
-	"""Анимирует оповещение (движение вверх + fade out)"""
+func _animate_feedback_item(item: Control, start_y: float, end_y: float, duration: float, outer_container: Control):
+	"""Анимирует внутренний контейнер оповещения (движение вверх + fade out)
+	
+	Args:
+		item: Внутренний контейнер (inner_container), который анимируется
+		start_y: Начальная позиция Y (относительно внешнего контейнера)
+		end_y: Конечная позиция Y (относительно внешнего контейнера)
+		duration: Длительность показа оповещения
+		outer_container: Внешний контейнер для удаления после анимации
+	"""
 	if not is_instance_valid(item):
 		return
 	
@@ -230,10 +253,10 @@ func _animate_feedback_item(item: Control, start_y: float, end_y: float, duratio
 	# Ждем оставшееся время (если duration больше MOVE_DURATION)
 	tween.tween_interval(max(0.0, duration - MOVE_DURATION))
 	
-	# После анимации - удаляем элемент
+	# После анимации - удаляем внешний контейнер
 	tween.tween_callback(func():
-		if is_instance_valid(item):
-			_remove_feedback_item(item)
+		if is_instance_valid(outer_container):
+			_remove_feedback_item(outer_container)
 	)
 
 func _process_next_feedback():
@@ -269,14 +292,21 @@ func _process_next_feedback():
 	# Добавляем в список активных
 	active_feedbacks.append(feedback_item)
 	
-	# Показываем и запускаем анимацию
-	feedback_item.modulate.a = 1.0
-	feedback_item.visible = true
-	var base_y = feedback_data.base_y
-	var end_y = base_y + END_Y_OFFSET
-	_animate_feedback_item(feedback_item, base_y, end_y, feedback_data.duration)
+	# Получаем внутренний контейнер для анимации
+	var inner_container = feedback_item.get_meta("inner_container", null)
+	if not inner_container or not is_instance_valid(inner_container):
+		_process_next_feedback()
+		return
 	
-	print("🔔 FeedbackAnimationManager: оповещение стартовало: '%s' (y=%f)" % [feedback_data.message, base_y])
+	# Показываем внутренний контейнер и запускаем анимацию
+	inner_container.visible = true
+	inner_container.modulate.a = 1.0
+	
+	var start_y = 0.0
+	var end_y = END_Y_OFFSET  # Двигаемся вверх на END_Y_OFFSET пикселей
+	_animate_feedback_item(inner_container, start_y, end_y, feedback_data.duration, feedback_item)
+	
+	print("🔔 FeedbackAnimationManager: оповещение стартовало: '%s' (y=%f)" % [feedback_data.message, feedback_data.base_y])
 	
 	# Обрабатываем следующее из очереди (если есть)
 	if not pending_feedbacks.is_empty():
