@@ -236,7 +236,7 @@ func _on_patience_changed(guest_id: int, new_patience: int):
 	if new_patience > old_patience:
 		print("🔔 FeedbackAnimationManager: показываю оповещение о терпении для гостя %d (%d -> %d)" % [guest_id, old_patience, new_patience])
 		show_feedback(
-			"-5%% Терпение. Гость %d" % guest_id,
+			"-10%% Терпение. Гость %d" % guest_id,
 			Color(0.9, 0.2, 0.2),  # Красный
 			2.0
 		)

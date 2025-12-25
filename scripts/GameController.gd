@@ -1753,8 +1753,13 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 			var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
 			if sector >= 1 and sector <= 6:
 				var guest_id = sector
-				GuestStatsManager.add_patience(guest_id, 5)
-				DebugLogger.log("  😤 Гость %d: терпение увеличено на 5 из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, bet_type, position_index])
+				GuestStatsManager.add_patience(guest_id, 10)
+				DebugLogger.log("  😤 Гость %d: терпение увеличено на 10 из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, bet_type, position_index])
+			# Показываем тост, но не отнимаем жизнь (терпение уже увеличено)
+			var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+			EventBus.show_toast_error.emit(error_message)
+			DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+			return
 		
 		# Для остальных ошибок - показываем тост и отнимаем жизнь
 		var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message

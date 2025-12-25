@@ -564,8 +564,8 @@ func validate_chip_click(bet_type: String, position_index: int = 0) -> Dictionar
 	if not bet_data:
 		return _error_result("no_bet", "Ставка %s[%d] не найдена" % [bet_type, position_index])
 	
-	# Проверка Tie push - применяется к обоим режимам
-	if is_tie_push_bet(bet_type):
+	# Проверка Tie push - применяется только к режиму PAY (в COLLECT это обрабатывается как collect_winning)
+	if current_mode == CollectionMode.PAY and is_tie_push_bet(bet_type):
 		return _error_result("tie_push", "ERR_CANNOT_COLLECT_TIE_PUSH")
 	
 	# Валидация в режиме COLLECT
@@ -615,6 +615,10 @@ func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictio
 	
 	# Нельзя собирать выигрышные
 	if bet.is_won():
+		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
+	
+	# Нельзя собирать Tie push ставки (Player/Banker при Tie) - это тоже ошибка collect_winning
+	if is_tie_push_bet(bet_type):
 		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
 	
 	# Проверяем, не собрана ли уже (используем bet.is_collected как единственный источник истины)

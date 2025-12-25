@@ -66,7 +66,7 @@ func _create_indicator(guest_id: int):
 	panel_style.corner_radius_bottom_left = 5
 	panel_style.corner_radius_bottom_right = 5
 	panel.add_theme_stylebox_override("panel", panel_style)
-	panel.size = Vector2(200, 80)
+	panel.size = Vector2(200, 90)  # Увеличили высоту для шкалы квадратиков
 	indicator.add_child(panel)
 	
 	# Создаем VBoxContainer для содержимого
@@ -78,13 +78,20 @@ func _create_indicator(guest_id: int):
 	# Устанавливаем anchors для VBoxContainer
 	vbox.anchors_preset = Control.PRESET_FULL_RECT
 	
-	# Создаем Label для терпения
-	var patience_label = Label.new()
-	patience_label.name = "PatienceLabel"
-	patience_label.text = "Терпение: 0%"
-	patience_label.add_theme_font_size_override("font_size", 14)
-	patience_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	vbox.add_child(patience_label)
+	# Создаем контейнер для шкалы терпения (10 квадратиков)
+	var patience_container = HBoxContainer.new()
+	patience_container.name = "PatienceContainer"
+	patience_container.add_theme_constant_override("separation", 2)
+	patience_container.alignment = HBoxContainer.ALIGNMENT_CENTER
+	vbox.add_child(patience_container)
+	
+	# Создаем 10 квадратиков для шкалы терпения
+	for i in range(10):
+		var square = ColorRect.new()
+		square.name = "Square_%d" % i
+		square.custom_minimum_size = Vector2(16, 16)  # Размер квадратика
+		square.color = Color(0.2, 0.8, 0.2)  # Зеленый по умолчанию
+		patience_container.add_child(square)
 	
 	# Создаем Label для таймера
 	var timer_label = Label.new()
@@ -201,39 +208,66 @@ func _update_indicator(guest_id: int):
 	if not vbox:
 		return
 	
-	var patience_label = vbox.get_node_or_null("PatienceLabel")
+	var patience_container = vbox.get_node_or_null("PatienceContainer")
 	var timer_label = vbox.get_node_or_null("TimerLabel")
 	var reduction_label = vbox.get_node_or_null("ReductionLabel")
 	
-	# Обновляем терпение
-	if patience_label:
-		patience_label.text = "😤 Терпение: %d%%" % patience
-		# Меняем цвет: от зеленого (0%) до красного (100%)
-		var color_ratio = float(patience) / 100.0
-		patience_label.modulate = Color(1.0, 1.0 - color_ratio * 0.7, 1.0 - color_ratio * 0.7)
+	# Обновляем шкалу терпения (10 квадратиков)
+	if patience_container:
+		# Вычисляем количество красных квадратиков (справа налево)
+		var red_squares_count = int(float(patience) / 10.0)  # Каждые 10% = 1 красный квадрат
+		
+		# Обновляем цвета квадратиков (справа налево)
+		var squares = patience_container.get_children()
+		for i in range(squares.size()):
+			var square = squares[i]
+			if not square:
+				continue
+			
+			# Индекс с конца (0 = самый правый, 9 = самый левый)
+			var index_from_right = squares.size() - 1 - i
+			
+			# Если индекс меньше количества красных квадратов - делаем красным
+			if index_from_right < red_squares_count:
+				square.color = Color(0.8, 0.2, 0.2)  # Красный
+			else:
+				square.color = Color(0.2, 0.8, 0.2)  # Зеленый
 	
 	# Обновляем таймер
 	if timer_label:
 		var timer_remaining = 0
 		if PatienceTimerManager.has_active_timer(guest_id):
 			timer_remaining = PatienceTimerManager.get_remaining_time(guest_id)
-			timer_label.text = "⏱ %ds" % timer_remaining
+			# Форматируем время: минуты и секунды для таймера 5 минут
+			var minutes = int(float(timer_remaining) / 60.0)
+			var seconds = timer_remaining % 60
+			if minutes > 0:
+				timer_label.text = "⏱ %d:%02d" % [minutes, seconds]
+			else:
+				timer_label.text = "⏱ %ds" % timer_remaining
 			timer_label.visible = true
 		else:
 			timer_label.visible = false
 	
-	# Обновляем процент урезания
+	# Обновляем процент чаевых (100 - терпение)%
 	if reduction_label:
-		var base_percentage = SaveManager.instance.load_tip_percentage()
-		var effective_percentage = base_percentage * (1.0 - float(patience) / 100.0)
-		var reduction_percent = base_percentage - effective_percentage
+		var tips_percentage = 100 - patience  # Процент чаевых
 		
-		if reduction_percent > 0:
-			reduction_label.text = "💰 Чаевые -%.1f%%" % reduction_percent
-			reduction_label.modulate = Color(1.0, 0.8, 0.8)  # Легкий красноватый оттенок
+		if tips_percentage >= 100:
+			reduction_label.text = "💰 Чаевые: 100%%"
+			reduction_label.modulate = Color(0.8, 1.0, 0.8)  # Зеленый
+		elif tips_percentage > 0:
+			reduction_label.text = "💰 Чаевые: %d%%" % tips_percentage
+			# Цвет от зеленого (100%) к красному (0%)
+			var color_ratio = float(tips_percentage) / 100.0
+			reduction_label.modulate = Color(
+				0.8 + (1.0 - color_ratio) * 0.2,  # R: от 0.8 до 1.0
+				1.0 - (1.0 - color_ratio) * 0.2,  # G: от 1.0 до 0.8
+				0.8 + (1.0 - color_ratio) * 0.2   # B: от 0.8 до 1.0
+			)
 		else:
-			reduction_label.text = "💰 Полные чаевые"
-			reduction_label.modulate = Color(0.8, 1.0, 0.8)  # Легкий зеленоватый оттенок
+			reduction_label.text = "💰 Чаевые: 0%%"
+			reduction_label.modulate = Color(1.0, 0.8, 0.8)  # Красный
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ

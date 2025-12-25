@@ -106,7 +106,7 @@ func get_guest_patience(guest_id: int) -> int:
 		return 0
 	return guest_patience[guest_id - 1]
 
-# ← Добавить терпение гостю (+5 при ошибке)
+# ← Добавить терпение гостю (+10 при ошибке)
 func add_patience(guest_id: int, amount: int) -> void:
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestStatsManager: неверный guest_id %d" % guest_id)
@@ -125,7 +125,7 @@ func add_patience(guest_id: int, amount: int) -> void:
 		if PatienceTimerManager:
 			PatienceTimerManager.start_timer(guest_id)
 
-# ← Уменьшить терпение гостя (-5 при истечении таймера)
+# ← Уменьшить терпение гостя (-10 при истечении таймера)
 func decrease_patience(guest_id: int, amount: int) -> void:
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestStatsManager: неверный guest_id %d" % guest_id)
@@ -176,8 +176,8 @@ func _on_payout_wrong(_collected: float, _expected: float, bet_type: String, pos
 		return
 	
 	var guest_id = sector
-	add_patience(guest_id, 5)
-	print("😤 Гость %d: терпение увеличено на 5 из-за неправильной выплаты %s[%d]" % [guest_id, bet_type, position_index])
+	add_patience(guest_id, 10)
+	print("😤 Гость %d: терпение увеличено на 10 из-за неправильной выплаты %s[%d]" % [guest_id, bet_type, position_index])
 
 func _on_game_restarted() -> void:
 	"""Обработчик рестарта игры - сбрасываем все терпения"""
