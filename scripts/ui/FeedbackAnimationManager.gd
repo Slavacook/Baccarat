@@ -35,8 +35,8 @@ const ITEM_MIN_WIDTH: float = 400.0  # Минимальная ширина ко�
 const ITEM_MIN_HEIGHT: float = 100.0  # Минимальная высота контейнера оповещения
 
 # Скорость и длительность анимации
-const MOVE_DURATION: float = 2.5  # Длительность движения вверх (секунды)
-const FADE_DURATION: float = 1.9  # Длительность fade out (секунды) - должна быть меньше MOVE_DURATION
+const MOVE_DURATION: float = 3.5  # Длительность движения вверх (секунды)
+const FADE_DURATION: float = 2.9  # Длительность fade out (секунды) - должна быть меньше MOVE_DURATION
 const TOTAL_DURATION: float = 3.0  # Общая длительность показа оповещения (секунды)
 
 # ═══════════════════════════════════════════════════════════════════════════
