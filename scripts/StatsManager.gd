@@ -83,7 +83,7 @@ func _on_payout_correct(_collected: float, expected: float, bet_type: String, po
 			# Логирование для отладки
 			var patience = GuestStatsManager.get_guest_patience(guest_id)
 			var base_percentage = SaveManager.instance.load_tip_percentage()
-			var effective_percentage = base_percentage * (1.0 - float(patience) / 100.0)
+			var effective_percentage = base_percentage * (float(patience) / 100.0)  # Новая формула: 100% терпения = полный чай
 			var multiplier = TipCalculator.get_tip_multiplier(bet_type)
 			
 			print("💰 Чаевые начислены гостю %d: выплата=%.0f, базовый процент=%.1f%%, терпение=%d%%, эффективный=%.2f%%, коэффициент=%d, итого=%d" % [

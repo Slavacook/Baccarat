@@ -174,10 +174,10 @@ func _on_patience_changed(changed_guest_id: int, _new_patience: int):
 
 func _process(_delta: float):
 	"""Обновление индикаторов каждую секунду (для таймера)"""
-	# Обновляем все индикаторы, у которых есть активные таймеры или терпение > 0
+	# Обновляем все индикаторы, у которых есть активные таймеры или терпение < 100%
 	for guest_id in range(1, 7):
 		var patience = GuestStatsManager.get_guest_patience(guest_id)
-		if patience > 0 or PatienceTimerManager.has_active_timer(guest_id):
+		if patience < 100 or PatienceTimerManager.has_active_timer(guest_id):
 			_update_indicator(guest_id)
 
 func _update_indicator(guest_id: int):
@@ -191,12 +191,12 @@ func _update_indicator(guest_id: int):
 	
 	var patience = GuestStatsManager.get_guest_patience(guest_id)
 	
-	# Если терпение = 0, скрываем индикатор
-	if patience <= 0:
+	# Если терпение = 100% (полное), скрываем индикатор
+	if patience >= 100:
 		indicator_control.visible = false
 		return
 	
-	# Показываем индикатор
+	# Показываем индикатор (если терпение < 100%)
 	indicator_control.visible = true
 	
 	# Получаем узлы
@@ -214,8 +214,10 @@ func _update_indicator(guest_id: int):
 	
 	# Обновляем шкалу терпения (10 квадратиков)
 	if patience_container:
+		# Вычисляем потерю терпения (100% - текущее терпение)
+		var lost_patience = 100 - patience
 		# Вычисляем количество красных квадратиков (справа налево)
-		var red_squares_count = int(float(patience) / 10.0)  # Каждые 10% = 1 красный квадрат
+		var red_squares_count = int(float(lost_patience) / 10.0)  # Каждые 10% потери = 1 красный квадрат
 		
 		# Обновляем цвета квадратиков (справа налево)
 		var squares = patience_container.get_children()
@@ -229,9 +231,9 @@ func _update_indicator(guest_id: int):
 			
 			# Если индекс меньше количества красных квадратов - делаем красным
 			if index_from_right < red_squares_count:
-				square.color = Color(0.8, 0.2, 0.2)  # Красный
+				square.color = Color(0.8, 0.2, 0.2)  # Красный (потерянное терпение)
 			else:
-				square.color = Color(0.2, 0.8, 0.2)  # Зеленый
+				square.color = Color(0.2, 0.8, 0.2)  # Зеленый (оставшееся терпение)
 	
 	# Обновляем таймер
 	if timer_label:

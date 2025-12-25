@@ -73,7 +73,7 @@ func _connect_signals():
 	if GuestStatsManager:
 		GuestStatsManager.guest_patience_changed.connect(_on_patience_changed)
 		print("✅ FeedbackAnimationManager: подключен сигнал guest_patience_changed")
-		# Инициализируем отслеживание терпения для всех гостей
+		# Инициализируем отслеживание терпения для всех гостей (начальное значение 100%)
 		for guest_id in range(1, 7):
 			previous_patience[guest_id] = GuestStatsManager.get_guest_patience(guest_id)
 	else:
@@ -225,16 +225,16 @@ func _update_feedback_positions():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_patience_changed(guest_id: int, new_patience: int):
-	"""Обработчик изменения терпения гостя - показываем оповещение только при увеличении"""
-	# Получаем предыдущее значение терпения
-	var old_patience = previous_patience.get(guest_id, 0)
+	"""Обработчик изменения терпения гостя - показываем оповещение только при уменьшении"""
+	# Получаем предыдущее значение терпения (по умолчанию 100% = полное терпение)
+	var old_patience = previous_patience.get(guest_id, 100)
 	
 	# Сохраняем новое значение для следующего раза
 	previous_patience[guest_id] = new_patience
 	
-	# Если терпение увеличилось - показываем оповещение
-	if new_patience > old_patience:
-		print("🔔 FeedbackAnimationManager: показываю оповещение о терпении для гостя %d (%d -> %d)" % [guest_id, old_patience, new_patience])
+	# Если терпение уменьшилось - показываем оповещение
+	if new_patience < old_patience:
+		print("🔔 FeedbackAnimationManager: показываю оповещение о терпении для гостя %d (%d%% -> %d%%)" % [guest_id, old_patience, new_patience])
 		show_feedback(
 			"-10%% Терпение. Гость %d" % guest_id,
 			Color(0.9, 0.2, 0.2),  # Красный
@@ -244,9 +244,9 @@ func _on_patience_changed(guest_id: int, new_patience: int):
 func _on_game_restarted():
 	"""Обработчик рестарта игры - сбрасываем отслеживание терпения"""
 	previous_patience.clear()
-	# Инициализируем отслеживание терпения для всех гостей (все должны быть 0 после рестарта)
+	# Инициализируем отслеживание терпения для всех гостей (все должны быть 100% после рестарта)
 	for guest_id in range(1, 7):
-		previous_patience[guest_id] = 0
+		previous_patience[guest_id] = 100
 
 func _on_payout_correct(_collected: float, expected: float, bet_type: String, position_index: int):
 	"""Обработчик правильной выплаты - показываем оповещение о чаевых"""

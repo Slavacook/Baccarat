@@ -1,6 +1,6 @@
 # res://scripts/autoload/PatienceTimerManager.gd
 # Autoload синглтон для управления таймерами терпения гостей
-# Каждый гость имеет таймер: всегда 5 минут, уменьшает терпение на 10 очков
+# Каждый гость имеет таймер: всегда 5 минут, восстанавливает терпение на 10 очков (увеличивает)
 
 extends Node
 
@@ -47,8 +47,8 @@ func start_timer(guest_id: int) -> void:
 		return
 	
 	var current_patience = GuestStatsManager.get_guest_patience(guest_id)
-	if current_patience <= 0:
-		# Нет терпения - таймер не нужен
+	if current_patience >= 100:
+		# Полное терпение - таймер не нужен
 		stop_timer(guest_id)
 		return
 	
@@ -131,18 +131,18 @@ func _on_timer_expired(guest_id: int) -> void:
 	# Удаляем истекший таймер
 	active_timers.erase(guest_id)
 	
-	# Уменьшаем терпение на 10
-	GuestStatsManager.decrease_patience(guest_id, 10)
+	# Восстанавливаем терпение на 10 (увеличиваем)
+	GuestStatsManager.add_patience(guest_id, 10)
 	
-	print("⏱️  Гость %d: таймер истек, терпение уменьшено на 10" % guest_id)
+	print("⏱️  Гость %d: таймер истек, терпение восстановлено на 10" % guest_id)
 	
 	# Проверяем, нужно ли запустить следующий таймер
 	var current_patience = GuestStatsManager.get_guest_patience(guest_id)
-	if current_patience > 0:
+	if current_patience < 100:
 		# Запускаем следующий таймер (последовательная работа)
 		start_timer(guest_id)
 	else:
-		print("⏱️  Гость %d: терпение = 0, таймеры остановлены" % guest_id)
+		print("⏱️  Гость %d: терпение = 100%, таймеры остановлены" % guest_id)
 	
 	# Эмитим сигнал для UI (если нужно)
 	timer_expired.emit(guest_id)

@@ -51,6 +51,13 @@ func add_score(points: int):
 	save_data()
 	print("💰 Деньги: +%d → %d" % [points, score])
 
+func subtract_score(points: int):
+	"""Вычесть деньги (штраф) - минимум 0"""
+	var old_score = score
+	score = max(score - points, 0)
+	save_data()
+	print("💰 Деньги: -%d → %d (было %d)" % [points, score, old_score])
+
 # ← Управление настройками игры
 func save_settings(settings: Dictionary):
 	var file = FileAccess.open(SETTINGS_PATH, FileAccess.WRITE)

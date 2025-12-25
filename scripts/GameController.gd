@@ -1748,16 +1748,44 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 			DebugLogger.log("  ⏸️  Ставка %s[%d] уже собрана, клик игнорируется" % [bet_type, position_index])
 			return
 		
-		# Для ошибки "collect_winning" - увеличиваем терпение гостя
+		# Для ошибки "collect_winning" - уменьшаем терпение гостя и накладываем штраф
 		if validation.error_type == "collect_winning":
 			var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
 			if sector >= 1 and sector <= 6:
 				var guest_id = sector
-				GuestStatsManager.add_patience(guest_id, 10)
-				DebugLogger.log("  😤 Гость %d: терпение увеличено на 10 из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, bet_type, position_index])
-			# Показываем тост, но не отнимаем жизнь (терпение уже увеличено)
-			var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
-			EventBus.show_toast_error.emit(error_message)
+				var patience_before = GuestStatsManager.get_guest_patience(guest_id)
+				
+				# Уменьшаем терпение на 10%
+				GuestStatsManager.decrease_patience(guest_id, 10)
+				var patience_after = GuestStatsManager.get_guest_patience(guest_id)
+				
+				DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-10%%) из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, patience_before, patience_after, bet_type, position_index])
+				
+				# Определяем штраф в зависимости от терпения ДО уменьшения
+				if patience_before == 100:
+					# Терпение было 100% - ошибка прощается (ничего не отнимаем)
+					DebugLogger.log("  ✅ Терпение было 100% - ошибка прощена")
+				elif patience_after == 0:
+					# Терпение стало 0% - отнимаем сердце
+					EventBus.action_error.emit(validation.error_type, validation.error_message)
+					DebugLogger.log("  ❌ Терпение = 0% - отнимается сердце")
+				else:
+					# Терпение стало < 100% - пытаемся отнять 100 чаевых
+					var current_tips = SaveManager.instance.score
+					if current_tips >= 100:
+						# Чаевых достаточно - отнимаем 100
+						SaveManager.instance.subtract_score(100)
+						if StatsManager.instance:
+							StatsManager.instance.update_stats()
+						DebugLogger.log("  💰 Отнято 100 чаевых (осталось %d)" % SaveManager.instance.score)
+					else:
+						# Чаевых недостаточно - отнимаем сердце
+						EventBus.action_error.emit(validation.error_type, validation.error_message)
+						DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) - отнимается сердце" % current_tips)
+			
+			# Показываем сообщение об ошибке
+			var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+			EventBus.show_toast_error.emit(error_msg)
 			DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
 			return
 		
