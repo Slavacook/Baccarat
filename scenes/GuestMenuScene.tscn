@@ -1,0 +1,587 @@
+[gd_scene load_steps=27 format=3 uid="uid://xt1j6fnuv8m5"]
+
+[ext_resource type="Script" uid="uid://cgr6851i8pojn" path="res://scripts/GuestMenuScene.gd" id="1_guest_menu"]
+[ext_resource type="Texture2D" uid="uid://mdis4nr35ojy" path="res://assets/ui/guest_menu/table_settings.png" id="2_table"]
+[ext_resource type="Texture2D" uid="uid://bhcrojdfyqkfq" path="res://assets/ui/guest_menu/ghosts/guest_ghost_1.png" id="3_ghost_1"]
+[ext_resource type="Texture2D" uid="uid://cl1yx1p7tffrt" path="res://assets/ui/guest_menu/ghosts/guest_ghost_2.png" id="4_ghost_2"]
+[ext_resource type="Texture2D" uid="uid://2ibg5mvn6ar4" path="res://assets/ui/guest_menu/ghosts/guest_ghost_3.png" id="5_ghost_3"]
+[ext_resource type="Texture2D" uid="uid://bg5vctsc3uxck" path="res://assets/ui/guest_menu/ghosts/guest_ghost_4.png" id="6_ghost_4"]
+[ext_resource type="Texture2D" uid="uid://cxjefgm3byflr" path="res://assets/ui/guest_menu/ghosts/guest_ghost_5.png" id="7_ghost_5"]
+[ext_resource type="Texture2D" uid="uid://ccm1gd0wv7e51" path="res://assets/ui/guest_menu/ghosts/guest_ghost_6.png" id="8_ghost_6"]
+[ext_resource type="Texture2D" uid="uid://basmi168xilw3" path="res://assets/ui/guest_menu/guests/guest_1.png" id="9_guest_1"]
+[ext_resource type="Texture2D" uid="uid://dxkiptd1jdknt" path="res://assets/ui/guest_menu/guests/guest_2.png" id="10_guest_2"]
+[ext_resource type="Texture2D" uid="uid://5soy761nat2f" path="res://assets/ui/guest_menu/guests/guest_3.png" id="11_guest_3"]
+[ext_resource type="Texture2D" uid="uid://d1phdtyd5mox8" path="res://assets/ui/guest_menu/guests/guest_4.png" id="12_guest_4"]
+[ext_resource type="Texture2D" uid="uid://b4qnbcirbms1v" path="res://assets/ui/guest_menu/guests/guest_5.png" id="13_guest_5"]
+[ext_resource type="Texture2D" uid="uid://dijukgbjbv0jv" path="res://assets/ui/guest_menu/guests/guest_6.png" id="14_guest_6"]
+[ext_resource type="Texture2D" uid="uid://b58gyr4upkoxm" path="res://assets/ui/guest_menu/select/select_guest_1.png" id="15_hover_1"]
+[ext_resource type="Texture2D" uid="uid://yto6csviekrx" path="res://assets/ui/guest_menu/select/select_guest_2.png" id="16_hover_2"]
+[ext_resource type="Texture2D" uid="uid://d2p4ts17668yw" path="res://assets/ui/guest_menu/select/select_guest_3.png" id="17_hover_3"]
+[ext_resource type="Texture2D" uid="uid://8iumi1th07u1" path="res://assets/ui/guest_menu/select/select_guest_4.png" id="18_hover_4"]
+[ext_resource type="Texture2D" uid="uid://djnugquh3uxg4" path="res://assets/ui/guest_menu/select/select_guest_5.png" id="19_hover_5"]
+[ext_resource type="Texture2D" uid="uid://cp6ac178heyvi" path="res://assets/ui/guest_menu/select/select_guest_6.png" id="20_hover_6"]
+[ext_resource type="Texture2D" uid="uid://4bka3hjhp18e" path="res://assets/ui/guest_menu/dossier/dossier_guest_1.png" id="21_dossier_1"]
+[ext_resource type="Texture2D" uid="uid://bo2c3dr1aa4t1" path="res://assets/ui/guest_menu/dossier/dossier_guest_2.png" id="22_dossier_2"]
+[ext_resource type="Texture2D" uid="uid://bkuthmrwbg8ta" path="res://assets/ui/guest_menu/dossier/dossier_guest_3.png" id="23_dossier_3"]
+[ext_resource type="Texture2D" uid="uid://dlgsxdjy7k2rv" path="res://assets/ui/guest_menu/dossier/dossier_guest_4.png" id="24_dossier_4"]
+[ext_resource type="Texture2D" uid="uid://cy5v1bj5dthxu" path="res://assets/ui/guest_menu/dossier/dossier_guest_5.png" id="25_dossier_5"]
+[ext_resource type="Texture2D" uid="uid://b4rvc5yehe0b6" path="res://assets/ui/guest_menu/dossier/dossier_guest_6.png" id="26_dossier_6"]
+
+[node name="GuestMenuScene" type="CanvasLayer"]
+layer = 200
+script = ExtResource("1_guest_menu")
+
+[node name="BackgroundLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TableTexture" type="TextureRect" parent="BackgroundLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_table")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HoverGlowsLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="HoverGlow1" type="TextureRect" parent="HoverGlowsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("15_hover_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HoverGlow2" type="TextureRect" parent="HoverGlowsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("16_hover_2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HoverGlow3" type="TextureRect" parent="HoverGlowsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("17_hover_3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HoverGlow4" type="TextureRect" parent="HoverGlowsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("18_hover_4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HoverGlow5" type="TextureRect" parent="HoverGlowsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("19_hover_5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="HoverGlow6" type="TextureRect" parent="HoverGlowsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("20_hover_6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GhostsLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Ghost1" type="TextureRect" parent="GhostsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("3_ghost_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Ghost2" type="TextureRect" parent="GhostsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("4_ghost_2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Ghost3" type="TextureRect" parent="GhostsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("5_ghost_3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Ghost4" type="TextureRect" parent="GhostsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("6_ghost_4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Ghost5" type="TextureRect" parent="GhostsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("7_ghost_5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Ghost6" type="TextureRect" parent="GhostsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("8_ghost_6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="GuestsLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Guest1" type="TextureRect" parent="GuestsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("9_guest_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Guest2" type="TextureRect" parent="GuestsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("10_guest_2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Guest3" type="TextureRect" parent="GuestsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("11_guest_3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Guest4" type="TextureRect" parent="GuestsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("12_guest_4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Guest5" type="TextureRect" parent="GuestsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("13_guest_5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="Guest6" type="TextureRect" parent="GuestsLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("14_guest_6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="DossiersLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="Dossier1" type="TextureRect" parent="DossiersLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("21_dossier_1")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterOption1" type="OptionButton" parent="DossiersLayer/Dossier1"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption1" type="OptionButton" parent="DossiersLayer/Dossier1"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
+
+[node name="BalanceLabel1" type="Label" parent="DossiersLayer/Dossier1"]
+layout_mode = 0
+offset_left = 393.0
+offset_top = 544.0
+offset_right = 593.0
+offset_bottom = 594.0
+theme_override_font_sizes/font_size = 24
+text = "Balance: +0"
+
+[node name="Dossier2" type="TextureRect" parent="DossiersLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("22_dossier_2")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterOption2" type="OptionButton" parent="DossiersLayer/Dossier2"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption2" type="OptionButton" parent="DossiersLayer/Dossier2"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
+
+[node name="BalanceLabel2" type="Label" parent="DossiersLayer/Dossier2"]
+layout_mode = 0
+offset_left = 393.0
+offset_top = 544.0
+offset_right = 593.0
+offset_bottom = 594.0
+theme_override_font_sizes/font_size = 24
+text = "Balance: +0"
+
+[node name="Dossier3" type="TextureRect" parent="DossiersLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("23_dossier_3")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterOption3" type="OptionButton" parent="DossiersLayer/Dossier3"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption3" type="OptionButton" parent="DossiersLayer/Dossier3"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
+
+[node name="BalanceLabel3" type="Label" parent="DossiersLayer/Dossier3"]
+layout_mode = 0
+offset_left = 393.0
+offset_top = 544.0
+offset_right = 593.0
+offset_bottom = 594.0
+theme_override_font_sizes/font_size = 24
+text = "Balance: +0"
+
+[node name="Dossier4" type="TextureRect" parent="DossiersLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("24_dossier_4")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterOption4" type="OptionButton" parent="DossiersLayer/Dossier4"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption4" type="OptionButton" parent="DossiersLayer/Dossier4"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
+
+[node name="BalanceLabel4" type="Label" parent="DossiersLayer/Dossier4"]
+layout_mode = 0
+offset_left = 393.0
+offset_top = 544.0
+offset_right = 593.0
+offset_bottom = 594.0
+theme_override_font_sizes/font_size = 24
+text = "Balance: +0"
+
+[node name="Dossier5" type="TextureRect" parent="DossiersLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("25_dossier_5")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterOption5" type="OptionButton" parent="DossiersLayer/Dossier5"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption5" type="OptionButton" parent="DossiersLayer/Dossier5"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
+
+[node name="BalanceLabel5" type="Label" parent="DossiersLayer/Dossier5"]
+layout_mode = 0
+offset_left = 393.0
+offset_top = 544.0
+offset_right = 593.0
+offset_bottom = 594.0
+theme_override_font_sizes/font_size = 24
+text = "Balance: +0"
+
+[node name="Dossier6" type="TextureRect" parent="DossiersLayer"]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("26_dossier_6")
+expand_mode = 1
+stretch_mode = 5
+
+[node name="CharacterOption6" type="OptionButton" parent="DossiersLayer/Dossier6"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption6" type="OptionButton" parent="DossiersLayer/Dossier6"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
+
+[node name="BalanceLabel6" type="Label" parent="DossiersLayer/Dossier6"]
+layout_mode = 0
+offset_left = 393.0
+offset_top = 544.0
+offset_right = 593.0
+offset_bottom = 594.0
+theme_override_font_sizes/font_size = 24
+text = "Balance: +0"
+
+[node name="ClickableZonesLayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="GuestSlot1" type="Control" parent="ClickableZonesLayer"]
+anchors_preset = 0
+offset_left = 143.0
+offset_top = 131.0
+offset_right = 303.0
+offset_bottom = 322.0
+
+[node name="GuestSlot2" type="Control" parent="ClickableZonesLayer"]
+anchors_preset = 0
+offset_left = 316.0
+offset_top = 111.0
+offset_right = 437.0
+offset_bottom = 277.0
+
+[node name="GuestSlot3" type="Control" parent="ClickableZonesLayer"]
+anchors_preset = 0
+offset_left = 442.0
+offset_top = 112.0
+offset_right = 575.0
+offset_bottom = 276.0
+
+[node name="GuestSlot4" type="Control" parent="ClickableZonesLayer"]
+anchors_preset = 0
+offset_left = 576.0
+offset_top = 109.0
+offset_right = 724.0
+offset_bottom = 285.0
+
+[node name="GuestSlot5" type="Control" parent="ClickableZonesLayer"]
+anchors_preset = 0
+offset_left = 726.0
+offset_top = 113.0
+offset_right = 855.0
+offset_bottom = 276.0
+
+[node name="GuestSlot6" type="Control" parent="ClickableZonesLayer"]
+anchors_preset = 0
+offset_left = 859.0
+offset_top = 134.0
+offset_right = 1018.0
+offset_bottom = 318.0
+
+[node name="UILayer" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="OKButton" type="Button" parent="UILayer"]
+layout_mode = 0
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -50.0
+offset_top = -60.0
+offset_right = 50.0
+offset_bottom = -20.0
+grow_horizontal = 2
+grow_vertical = 0
+text = "OK"

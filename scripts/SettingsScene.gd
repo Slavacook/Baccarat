@@ -360,32 +360,32 @@ func _switch_game_mode(mode: String):
 # === СТАВКИ ===
 
 func _on_guest_settings_pressed():
-	"""Обработка нажатия кнопки 'Ставки' для открытия попапа настроек гостей"""
-	# Ищем попап в сцене Game
+	"""Обработка нажатия кнопки 'Ставки' для открытия меню настроек гостей"""
+	# Ищем меню в сцене Game
 	var game_scene = get_tree().get_first_node_in_group("game")
 	if not game_scene:
 		game_scene = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
 	
-	var guest_popup = null
+	var guest_menu = null
 	if game_scene:
-		guest_popup = game_scene.get_node_or_null("GuestSettingsPopup")
+		guest_menu = game_scene.get_node_or_null("GuestMenuScene")
 	
-	if not guest_popup:
-		# Создаём попап если его нет
-		var popup_scene = load("res://scenes/popups/GuestSettingsPopup.tscn")
-		if popup_scene:
-			guest_popup = popup_scene.instantiate()
+	if not guest_menu:
+		# Создаём меню если его нет
+		var menu_scene = load("res://scenes/GuestMenuScene.tscn")
+		if menu_scene:
+			guest_menu = menu_scene.instantiate()
 			if game_scene:
-				game_scene.add_child(guest_popup)
+				game_scene.add_child(guest_menu)
 			else:
-				get_tree().root.add_child(guest_popup)
+				get_tree().root.add_child(guest_menu)
 		else:
-			push_error("SettingsScene: не удалось загрузить сцену GuestSettingsPopup.tscn")
+			push_error("SettingsScene: не удалось загрузить сцену GuestMenuScene.tscn")
 			return
 	
-	if guest_popup and guest_popup.has_method("open_popup"):
-		guest_popup.open_popup()
-		print("👥 Открыт попап настроек гостей")
+	if guest_menu and guest_menu.has_method("open_menu"):
+		guest_menu.open_menu()
+		print("👥 Открыто меню настроек гостей")
 
 func _on_bet_player_toggled(pressed: bool):
 	"""Обработка переключения ставки Player"""
