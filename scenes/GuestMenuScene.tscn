@@ -315,20 +315,6 @@ texture = ExtResource("21_dossier_1")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CharacterOption1" type="OptionButton" parent="DossiersLayer/Dossier1"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 370.0
-offset_right = 820.0
-offset_bottom = 420.0
-
-[node name="WealthOption1" type="OptionButton" parent="DossiersLayer/Dossier1"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 420.0
-offset_right = 820.0
-offset_bottom = 470.0
-
 [node name="BalanceLabel1" type="Label" parent="DossiersLayer/Dossier1"]
 layout_mode = 0
 offset_left = 393.0
@@ -349,20 +335,6 @@ grow_vertical = 2
 texture = ExtResource("22_dossier_2")
 expand_mode = 1
 stretch_mode = 5
-
-[node name="CharacterOption2" type="OptionButton" parent="DossiersLayer/Dossier2"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 370.0
-offset_right = 820.0
-offset_bottom = 420.0
-
-[node name="WealthOption2" type="OptionButton" parent="DossiersLayer/Dossier2"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 420.0
-offset_right = 820.0
-offset_bottom = 470.0
 
 [node name="BalanceLabel2" type="Label" parent="DossiersLayer/Dossier2"]
 layout_mode = 0
@@ -385,20 +357,6 @@ texture = ExtResource("23_dossier_3")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CharacterOption3" type="OptionButton" parent="DossiersLayer/Dossier3"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 370.0
-offset_right = 820.0
-offset_bottom = 420.0
-
-[node name="WealthOption3" type="OptionButton" parent="DossiersLayer/Dossier3"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 420.0
-offset_right = 820.0
-offset_bottom = 470.0
-
 [node name="BalanceLabel3" type="Label" parent="DossiersLayer/Dossier3"]
 layout_mode = 0
 offset_left = 393.0
@@ -419,20 +377,6 @@ grow_vertical = 2
 texture = ExtResource("24_dossier_4")
 expand_mode = 1
 stretch_mode = 5
-
-[node name="CharacterOption4" type="OptionButton" parent="DossiersLayer/Dossier4"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 370.0
-offset_right = 820.0
-offset_bottom = 420.0
-
-[node name="WealthOption4" type="OptionButton" parent="DossiersLayer/Dossier4"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 420.0
-offset_right = 820.0
-offset_bottom = 470.0
 
 [node name="BalanceLabel4" type="Label" parent="DossiersLayer/Dossier4"]
 layout_mode = 0
@@ -455,20 +399,6 @@ texture = ExtResource("25_dossier_5")
 expand_mode = 1
 stretch_mode = 5
 
-[node name="CharacterOption5" type="OptionButton" parent="DossiersLayer/Dossier5"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 370.0
-offset_right = 820.0
-offset_bottom = 420.0
-
-[node name="WealthOption5" type="OptionButton" parent="DossiersLayer/Dossier5"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 420.0
-offset_right = 820.0
-offset_bottom = 470.0
-
 [node name="BalanceLabel5" type="Label" parent="DossiersLayer/Dossier5"]
 layout_mode = 0
 offset_left = 393.0
@@ -489,20 +419,6 @@ grow_vertical = 2
 texture = ExtResource("26_dossier_6")
 expand_mode = 1
 stretch_mode = 5
-
-[node name="CharacterOption6" type="OptionButton" parent="DossiersLayer/Dossier6"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 370.0
-offset_right = 820.0
-offset_bottom = 420.0
-
-[node name="WealthOption6" type="OptionButton" parent="DossiersLayer/Dossier6"]
-layout_mode = 0
-offset_left = 670.0
-offset_top = 420.0
-offset_right = 820.0
-offset_bottom = 470.0
 
 [node name="BalanceLabel6" type="Label" parent="DossiersLayer/Dossier6"]
 layout_mode = 0
@@ -571,6 +487,20 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 2
+
+[node name="CharacterOption" type="OptionButton" parent="UILayer"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 370.0
+offset_right = 820.0
+offset_bottom = 420.0
+
+[node name="WealthOption" type="OptionButton" parent="UILayer"]
+layout_mode = 0
+offset_left = 670.0
+offset_top = 420.0
+offset_right = 820.0
+offset_bottom = 470.0
 
 [node name="OKButton" type="Button" parent="UILayer"]
 layout_mode = 0

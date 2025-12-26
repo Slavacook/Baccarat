@@ -41,17 +41,15 @@ var hover_glow_textures: Array[TextureRect] = []
 # Досье (dossier_guest_1-6.png)
 var dossier_textures: Array[TextureRect] = []
 
-# OptionButton для характера (внутри досье)
-var character_options: Array[OptionButton] = []
-
-# OptionButton для обеспеченности (внутри досье)
-var wealth_options: Array[OptionButton] = []
-
 # Label для баланса (внутри досье)
 var balance_labels: Array[Label] = []
 
 # Кликабельные зоны (Control узлы)
 var guest_slots: Array[Control] = []
+
+# Общие кнопки для настройки выбранного гостя (на верхнем слое)
+@onready var character_option: OptionButton = find_child("CharacterOption", true, false)
+@onready var wealth_option: OptionButton = find_child("WealthOption", true, false)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ СОСТОЯНИЯ
@@ -97,8 +95,6 @@ func _initialize_guest_nodes():
 	guest_textures.clear()
 	hover_glow_textures.clear()
 	dossier_textures.clear()
-	character_options.clear()
-	wealth_options.clear()
 	balance_labels.clear()
 	guest_slots.clear()
 	
@@ -134,26 +130,6 @@ func _initialize_guest_nodes():
 		else:
 			dossier_textures.append(null)
 			push_warning("GuestMenuScene: не найден Dossier%d" % guest_id)
-		
-		# OptionButton для характера
-		var char_option = dossiers_layer.get_node_or_null("Dossier%d/CharacterOption%d" % [guest_id, guest_id]) as OptionButton
-		if not char_option:
-			char_option = dossier.get_node_or_null("CharacterOption%d" % guest_id) as OptionButton if dossier else null
-		if char_option:
-			character_options.append(char_option)
-		else:
-			character_options.append(null)
-			push_warning("GuestMenuScene: не найден CharacterOption%d" % guest_id)
-		
-		# OptionButton для обеспеченности
-		var wealth_option = dossiers_layer.get_node_or_null("Dossier%d/WealthOption%d" % [guest_id, guest_id]) as OptionButton
-		if not wealth_option:
-			wealth_option = dossier.get_node_or_null("WealthOption%d" % guest_id) as OptionButton if dossier else null
-		if wealth_option:
-			wealth_options.append(wealth_option)
-		else:
-			wealth_options.append(null)
-			push_warning("GuestMenuScene: не найден WealthOption%d" % guest_id)
 		
 		# Label для баланса
 		var balance_label = dossiers_layer.get_node_or_null("Dossier%d/BalanceLabel%d" % [guest_id, guest_id]) as Label
@@ -192,19 +168,12 @@ func _connect_signals():
 			slot.mouse_exited.connect(_on_guest_slot_mouse_exited.bind(guest_id))
 			slot.gui_input.connect(_on_guest_slot_gui_input.bind(guest_id))
 	
-	# OptionButton для характера
-	for i in range(character_options.size()):
-		var option = character_options[i]
-		if option:
-			var guest_id = i + 1
-			option.item_selected.connect(_on_character_selected.bind(guest_id))
+	# Общие OptionButton для характера и обеспеченности
+	if character_option:
+		character_option.item_selected.connect(_on_character_selected)
 	
-	# OptionButton для обеспеченности
-	for i in range(wealth_options.size()):
-		var option = wealth_options[i]
-		if option:
-			var guest_id = i + 1
-			option.item_selected.connect(_on_wealth_selected.bind(guest_id))
+	if wealth_option:
+		wealth_option.item_selected.connect(_on_wealth_selected)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -259,6 +228,11 @@ func _update_guest_visibility(guest_id: int):
 	# Призрак: виден если гость выключен ИЛИ если гость включён и выбран (для эффекта свечения)
 	if ghost_textures[index]:
 		ghost_textures[index].visible = not is_enabled or (is_enabled and is_selected)
+		# Прозрачность: 25% если выключен, 100% если выбран (для эффекта свечения)
+		if not is_enabled:
+			ghost_textures[index].modulate.a = 0.25
+		elif is_enabled and is_selected:
+			ghost_textures[index].modulate.a = 1.0
 	
 	# Материальный гость: виден если гость включён
 	if guest_textures[index]:
@@ -277,47 +251,48 @@ func _update_guest_visibility(guest_id: int):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _initialize_option_buttons():
-	"""Инициализировать OptionButton элементами (если они пустые)"""
+	"""Инициализировать общие OptionButton элементами (если они пустые)"""
 	# OptionButton для характера
-	for i in range(character_options.size()):
-		var option = character_options[i]
-		if option and option.get_item_count() == 0:
-			option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
-			option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
-			option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
+	if character_option and character_option.get_item_count() == 0:
+		character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+		character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
+		character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
 	
 	# OptionButton для обеспеченности
-	for i in range(wealth_options.size()):
-		var option = wealth_options[i]
-		if option and option.get_item_count() == 0:
-			option.add_item(Localization.t("GUEST_WEALTH_POOR"))
-			option.add_item(Localization.t("GUEST_WEALTH_MEDIUM"))
-			option.add_item(Localization.t("GUEST_WEALTH_RICH"))
+	if wealth_option and wealth_option.get_item_count() == 0:
+		wealth_option.add_item(Localization.t("GUEST_WEALTH_POOR"))
+		wealth_option.add_item(Localization.t("GUEST_WEALTH_MEDIUM"))
+		wealth_option.add_item(Localization.t("GUEST_WEALTH_RICH"))
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI ЭЛЕМЕНТОВ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _update_all_option_buttons():
-	"""Обновить все OptionButton из GuestSettingsManager"""
-	for guest_id in range(1, 7):
-		_update_option_buttons(guest_id)
+	"""Обновить общие OptionButton из настроек выбранного гостя"""
+	if selected_guest_id > 0:
+		_update_option_buttons(selected_guest_id)
+	else:
+		# Если никто не выбран, сбрасываем кнопки
+		if character_option:
+			character_option.selected = 0
+		if wealth_option:
+			wealth_option.selected = 0
 
 func _update_option_buttons(guest_id: int):
-	"""Обновить OptionButton для одного гостя"""
-	var index = guest_id - 1
-	if index < 0 or index >= 6:
+	"""Обновить общие OptionButton для выбранного гостя"""
+	if guest_id < 1 or guest_id > 6:
 		return
 	
 	var guest = GuestSettingsManager.get_guest(guest_id)
 	
 	# Характер
-	if character_options[index]:
-		character_options[index].selected = guest.character
+	if character_option:
+		character_option.selected = guest.character
 	
 	# Обеспеченность
-	if wealth_options[index]:
-		wealth_options[index].selected = guest.wealth
+	if wealth_option:
+		wealth_option.selected = guest.wealth
 
 func _update_all_balances():
 	"""Обновить все балансы"""
@@ -375,38 +350,45 @@ func _on_guest_slot_gui_input(event: InputEvent, guest_id: int):
 		# Клик по призраку → включить гостя, выбрать, показать досье
 		GuestSettingsManager.set_guest_enabled(guest_id, true)
 		selected_guest_id = guest_id
-		_update_guest_visibility(guest_id)
+		_update_all_guests_visibility()  # Обновляем всех, чтобы у предыдущего исчезла текстура духа
 		_update_option_buttons(guest_id)
 		print("👥 Гость %d включён и выбран" % guest_id)
 	
 	elif not is_selected:
 		# Клик по невыбранному материальному гостю → выбрать, показать досье
 		selected_guest_id = guest_id
-		_update_all_guests_visibility()  # Обновляем все, чтобы скрыть предыдущее досье
+		_update_all_guests_visibility()  # Обновляем всех, чтобы у предыдущего исчезла текстура духа
+		_update_option_buttons(guest_id)
 		print("👥 Гость %d выбран" % guest_id)
 	
 	else:
 		# Клик по выбранному материальному гостю → выключить, показать призрака, скрыть досье
 		GuestSettingsManager.set_guest_enabled(guest_id, false)
 		selected_guest_id = 0
-		_update_guest_visibility(guest_id)
+		_update_all_guests_visibility()  # Обновляем всех
 		print("👥 Гость %d выключен" % guest_id)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ - OPTIONBUTTON
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _on_character_selected(index: int, guest_id: int):
-	"""Обработка выбора характера гостя"""
+func _on_character_selected(index: int):
+	"""Обработка выбора характера для выбранного гостя"""
+	if selected_guest_id == 0:
+		return  # Никто не выбран
+	
 	var character = index as GuestSettingsManager.GuestCharacter
-	GuestSettingsManager.set_guest_character(guest_id, character)
-	print("👥 Гость %d: характер изменён на %s" % [guest_id, GuestSettingsManager.GuestCharacter.keys()[character]])
+	GuestSettingsManager.set_guest_character(selected_guest_id, character)
+	print("👥 Гость %d: характер изменён на %s" % [selected_guest_id, GuestSettingsManager.GuestCharacter.keys()[character]])
 
-func _on_wealth_selected(index: int, guest_id: int):
-	"""Обработка выбора обеспеченности гостя"""
+func _on_wealth_selected(index: int):
+	"""Обработка выбора обеспеченности для выбранного гостя"""
+	if selected_guest_id == 0:
+		return  # Никто не выбран
+	
 	var wealth = index as GuestSettingsManager.GuestWealth
-	GuestSettingsManager.set_guest_wealth(guest_id, wealth)
-	print("👥 Гость %d: обеспеченность изменена на %s" % [guest_id, GuestSettingsManager.GuestWealth.keys()[wealth]])
+	GuestSettingsManager.set_guest_wealth(selected_guest_id, wealth)
+	print("👥 Гость %d: обеспеченность изменена на %s" % [selected_guest_id, GuestSettingsManager.GuestWealth.keys()[wealth]])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ - КНОПКА ОК
@@ -423,7 +405,9 @@ func _on_ok_pressed():
 func _on_guest_settings_changed(guest_id: int):
 	"""Обработка изменения настроек гостя через GuestSettingsManager"""
 	_update_guest_visibility(guest_id)
-	_update_option_buttons(guest_id)
+	# Обновляем кнопки только если это выбранный гость
+	if guest_id == selected_guest_id:
+		_update_option_buttons(guest_id)
 
 func _on_guest_balance_changed(guest_id: int, _new_balance: float):
 	"""Обработка изменения баланса гостя"""
@@ -443,35 +427,31 @@ func _update_texts():
 	if ok_button:
 		ok_button.text = Localization.t("CLOSE")
 	
-	# OptionButton для характера
-	for i in range(character_options.size()):
-		var option = character_options[i]
-		if option:
-			# Очищаем и добавляем заново с новыми переводами
-			option.clear()
-			option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
-			option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
-			option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
-			
-			# Восстанавливаем выбранное значение из GuestSettingsManager
-			var guest_id = i + 1
-			var guest = GuestSettingsManager.get_guest(guest_id)
-			option.selected = guest.character
+	# Общие OptionButton для характера
+	if character_option:
+		# Очищаем и добавляем заново с новыми переводами
+		character_option.clear()
+		character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+		character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
+		character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
+		
+		# Восстанавливаем выбранное значение из выбранного гостя
+		if selected_guest_id > 0:
+			var guest = GuestSettingsManager.get_guest(selected_guest_id)
+			character_option.selected = guest.character
 	
-	# OptionButton для обеспеченности
-	for i in range(wealth_options.size()):
-		var option = wealth_options[i]
-		if option:
-			# Очищаем и добавляем заново с новыми переводами
-			option.clear()
-			option.add_item(Localization.t("GUEST_WEALTH_POOR"))
-			option.add_item(Localization.t("GUEST_WEALTH_MEDIUM"))
-			option.add_item(Localization.t("GUEST_WEALTH_RICH"))
-			
-			# Восстанавливаем выбранное значение из GuestSettingsManager
-			var guest_id = i + 1
-			var guest = GuestSettingsManager.get_guest(guest_id)
-			option.selected = guest.wealth
+	# Общие OptionButton для обеспеченности
+	if wealth_option:
+		# Очищаем и добавляем заново с новыми переводами
+		wealth_option.clear()
+		wealth_option.add_item(Localization.t("GUEST_WEALTH_POOR"))
+		wealth_option.add_item(Localization.t("GUEST_WEALTH_MEDIUM"))
+		wealth_option.add_item(Localization.t("GUEST_WEALTH_RICH"))
+		
+		# Восстанавливаем выбранное значение из выбранного гостя
+		if selected_guest_id > 0:
+			var guest = GuestSettingsManager.get_guest(selected_guest_id)
+			wealth_option.selected = guest.wealth
 	
 	# Балансы (формат не зависит от языка, но обновим на всякий случай)
 	_update_all_balances()
