@@ -61,6 +61,15 @@ var menu_state: GuestMenuState
 # Клавиатурный навигатор (инкапсулирует логику навигации)
 var keyboard_navigator: GuestMenuKeyboardNavigator
 
+# UI рендерер (инкапсулирует логику отображения UI-элементов)
+var ui_renderer: GuestMenuUIRenderer
+
+# Обновление текстов (инкапсулирует логику локализации)
+var text_updater: GuestMenuTextUpdater
+
+# Рендерер балансов (инкапсулирует логику отображения балансов)
+var balance_renderer: GuestMenuBalanceRenderer
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -77,6 +86,15 @@ func _ready():
 	
 	# Инициализируем клавиатурный навигатор
 	_initialize_keyboard_navigator()
+	
+	# Инициализируем UI рендерер (после инициализации узлов)
+	_initialize_ui_renderer()
+	
+	# Инициализируем обновление текстов
+	_initialize_text_updater()
+	
+	# Инициализируем рендерер балансов
+	_initialize_balance_renderer()
 	
 	# Подключаем сигналы
 	_connect_signals()
@@ -123,6 +141,36 @@ func _initialize_keyboard_navigator():
 func _is_guest_enabled_for_navigator(guest_id: int) -> bool:
 	"""Проверка для навигатора - включён ли гость"""
 	return GuestSettingsManager.is_guest_enabled(guest_id)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ИНИЦИАЛИЗАЦИЯ UI РЕНДЕРЕРА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _initialize_ui_renderer():
+	"""Инициализировать UI рендерер с массивами узлов"""
+	# Массивы узлов уже должны быть инициализированы в _ready перед вызовом этого метода
+	
+	# Создаём UI рендерер
+	ui_renderer = GuestMenuUIRenderer.new(
+		ghost_textures,
+		guest_textures,
+		hover_glow_textures,
+		dossier_textures,
+		character_option,
+		wealth_option
+	)
+
+func _initialize_text_updater():
+	"""Инициализировать обновление текстов"""
+	text_updater = GuestMenuTextUpdater.new(
+		ok_button,
+		character_option,
+		wealth_option
+	)
+
+func _initialize_balance_renderer():
+	"""Инициализировать рендерер балансов"""
+	balance_renderer = GuestMenuBalanceRenderer.new(balance_labels)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ УЗЛОВ
@@ -259,49 +307,46 @@ func close_menu():
 
 func _update_all_guests_visibility():
 	"""Обновить видимость всех гостей на основе их состояния"""
-	for guest_id in range(1, 7):
-		_update_guest_visibility(guest_id)
+	if not ui_renderer or not menu_state:
+		return
 	
-	# Обновляем видимость общих кнопок после обновления всех гостей
+	# Вычисляем визуальное состояние для всех гостей
+	var visual_states: Array[GuestUIVisualState] = []
+	for guest_id in range(1, 7):
+		var visual_state = _calculate_guest_visual_state(guest_id)
+		visual_states.append(visual_state)
+	
+	# Обновляем видимость через рендерер
+	ui_renderer.update_all_guests_visibility(visual_states)
+	
+	# Обновляем видимость общих кнопок
 	_update_common_buttons_visibility()
 
 func _update_guest_visibility(guest_id: int):
 	"""Обновить видимость одного гостя (guest_id: 1-6)"""
-	var index = guest_id - 1
-	if index < 0 or index >= 6:
+	if not ui_renderer:
 		return
 	
+	var visual_state = _calculate_guest_visual_state(guest_id)
+	ui_renderer.update_guest_visibility(guest_id, visual_state)
+
+func _calculate_guest_visual_state(guest_id: int) -> GuestUIVisualState:
+	"""Вычислить визуальное состояние гостя на основе данных из меню состояния и настроек"""
 	if not menu_state:
-		return
+		return GuestUIVisualState.new()
 	
 	var guest = GuestSettingsManager.get_guest(guest_id)
 	var is_enabled = guest.enabled
 	var is_selected = menu_state.get_selected_guest() == guest_id
+	var is_hovered = menu_state.get_hovered_guest() == guest_id
 	
-	# Призрак: виден если гость выключен ИЛИ если гость включён и выбран (для эффекта свечения)
-	if ghost_textures[index]:
-		ghost_textures[index].visible = not is_enabled or (is_enabled and is_selected)
-		# Прозрачность: 25% если выключен, 100% если выбран (для эффекта свечения)
-		if not is_enabled:
-			ghost_textures[index].modulate.a = 0.25
-		elif is_enabled and is_selected:
-			ghost_textures[index].modulate.a = 1.0
+	# Определяем, есть ли фокус клавиатуры на этом госте
+	var has_keyboard_focus = false
+	if keyboard_navigator and keyboard_navigator.is_active:
+		if keyboard_navigator.current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS:
+			has_keyboard_focus = (keyboard_navigator.focused_guest_id == guest_id)
 	
-	# Материальный гость: виден если гость включён
-	if guest_textures[index]:
-		guest_textures[index].visible = is_enabled
-	
-	# Hover свечение: видно если наведён курсор ИЛИ если это focused_guest_id в режиме клавиатуры на уровне 4
-	if hover_glow_textures[index]:
-		var show_hover = (menu_state.get_hovered_guest() == guest_id)
-		if keyboard_navigator and keyboard_navigator.is_active:
-			if keyboard_navigator.current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS:
-				show_hover = show_hover or (keyboard_navigator.focused_guest_id == guest_id)
-		hover_glow_textures[index].visible = show_hover
-	
-	# Досье: видно только для выбранного включённого гостя
-	if dossier_textures[index]:
-		dossier_textures[index].visible = is_enabled and is_selected
+	return GuestUIVisualState.new(is_enabled, is_selected, is_hovered, has_keyboard_focus)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ UI ЭЛЕМЕНТОВ
@@ -309,17 +354,8 @@ func _update_guest_visibility(guest_id: int):
 
 func _initialize_option_buttons():
 	"""Инициализировать общие OptionButton элементами (если они пустые)"""
-	# OptionButton для характера
-	if character_option and character_option.get_item_count() == 0:
-		character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
-		character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
-		character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
-	
-	# OptionButton для обеспеченности
-	if wealth_option and wealth_option.get_item_count() == 0:
-		wealth_option.add_item(Localization.t("GUEST_WEALTH_POOR"))
-		wealth_option.add_item(Localization.t("GUEST_WEALTH_MEDIUM"))
-		wealth_option.add_item(Localization.t("GUEST_WEALTH_RICH"))
+	if text_updater:
+		text_updater.initialize_option_buttons()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ ВИДИМОСТЬЮ ОБЩИХ КНОПОК
@@ -327,17 +363,13 @@ func _initialize_option_buttons():
 
 func _update_common_buttons_visibility():
 	"""Обновить видимость общих кнопок (видны только если есть выбранный включённый гость)"""
-	if not menu_state:
+	if not ui_renderer or not menu_state:
 		return
 	
 	var selected_id = menu_state.get_selected_guest()
 	var has_selected_guest = (selected_id > 0) and GuestSettingsManager.is_guest_enabled(selected_id)
 	
-	if character_option:
-		character_option.visible = has_selected_guest
-	
-	if wealth_option:
-		wealth_option.visible = has_selected_guest
+	ui_renderer.update_common_buttons_visibility(has_selected_guest)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI ЭЛЕМЕНТОВ
@@ -375,17 +407,13 @@ func _update_option_buttons(guest_id: int):
 
 func _update_all_balances():
 	"""Обновить все балансы"""
-	for guest_id in range(1, 7):
-		_update_balance(guest_id)
+	if balance_renderer:
+		balance_renderer.update_all_balances()
 
 func _update_balance(guest_id: int):
 	"""Обновить баланс для одного гостя"""
-	var index = guest_id - 1
-	if index < 0 or index >= 6:
-		return
-	
-	if balance_labels[index]:
-		balance_labels[index].text = GuestStatsManager.get_balance_string(guest_id)
+	if balance_renderer:
+		balance_renderer.update_balance(guest_id)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ - HOVER
@@ -525,43 +553,14 @@ func _on_language_changed(_lang: String):
 
 func _update_texts():
 	"""Обновить все тексты при смене языка"""
-	# Кнопка ОК
-	if ok_button:
-		ok_button.text = Localization.t("CLOSE")
+	if not text_updater:
+		return
 	
-	# Общие OptionButton для характера
-	if character_option:
-		# Очищаем и добавляем заново с новыми переводами
-		character_option.clear()
-		character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
-		character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
-		character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
-		
-		# Восстанавливаем выбранное значение из выбранного гостя
-		if not menu_state:
-			return
-		
-		var selected_id = menu_state.get_selected_guest()
-		if selected_id > 0:
-			var guest = GuestSettingsManager.get_guest(selected_id)
-			character_option.selected = guest.character
+	var selected_id = 0
+	if menu_state:
+		selected_id = menu_state.get_selected_guest()
 	
-	# Общие OptionButton для обеспеченности
-	if wealth_option:
-		# Очищаем и добавляем заново с новыми переводами
-		wealth_option.clear()
-		wealth_option.add_item(Localization.t("GUEST_WEALTH_POOR"))
-		wealth_option.add_item(Localization.t("GUEST_WEALTH_MEDIUM"))
-		wealth_option.add_item(Localization.t("GUEST_WEALTH_RICH"))
-		
-		# Восстанавливаем выбранное значение из выбранного гостя
-		if not menu_state:
-			return
-		
-		var selected_id = menu_state.get_selected_guest()
-		if selected_id > 0:
-			var guest = GuestSettingsManager.get_guest(selected_id)
-			wealth_option.selected = guest.wealth
+	text_updater.update_all_texts(selected_id)
 	
 	# Балансы (формат не зависит от языка, но обновим на всякий случай)
 	_update_all_balances()

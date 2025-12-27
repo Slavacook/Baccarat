@@ -5,3 +5,7 @@ res://scripts/ui/GuestMenuKeyboardNavigator.gd
 res://scripts/ui/GuestMenuState.gd
 res://tests/manual_test_GuestMenuScene.gd
 res://tests/ManualTestGuestMenuScene.tscn
+res://scripts/ui/GuestMenuBalanceRenderer.gd
+res://scripts/ui/GuestMenuTextUpdater.gd
+res://scripts/ui/GuestMenuUIRenderer.gd
+res://scripts/ui/GuestUIVisualState.gd
