@@ -61,15 +61,26 @@ var game_over_popup: CanvasLayer
 ## HeartBar - менеджер жизней (новая система)
 var heart_bar: HeartBar = null
 
+# Провайдер состояния режима выживания (инкапсулирует heart_bar/survival_ui)
+var survival_state: SurvivalStateProvider
+
+# Контроллер для управления отображением карт (Extract Class)
+var card_controller: CardController
+
+# Обработчик результатов выплат (Extract Class)
+var payout_result_handler: PayoutResultHandler
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
 var survival_rounds_completed: int = 0
-var is_survival_mode: bool = true  # Всегда включён (сердца + деньги)
+# is_survival_mode удалён - режим всегда активен (не нужна проверка)
 var is_table_prepared_for_new_game: bool = false
-var is_game_over: bool = false  # Флаг Game Over для блокировки процессов
 var is_payout_processing: bool = false  # Флаг обработки выплаты (защита от спама Space)
+
+# Контроллер состояния игры (Extract Class)
+var game_state_controller: GameStateController
 
 # Добавляем FlipCard ссылки
 # Массивы для ссылок на flip-анимации и карты:
@@ -147,6 +158,22 @@ func _ready():
 	# Инициализируем HeartBar (если ещё не инициализирован)
 	_initialize_heart_bar()
 	
+	# Инициализируем провайдер состояния режима выживания (после heart_bar)
+	_initialize_survival_state_provider()
+	
+	# Инициализируем контроллер для управления картами
+	_initialize_card_controller()
+	
+	# Инициализируем обработчик результатов выплат (после инициализации менеджеров)
+	_initialize_payout_result_handler()
+	
+	# Инициализируем контроллер состояния игры (после инициализации менеджеров)
+	_initialize_game_state_controller()
+	
+	# Активируем режим выживания (всегда активен)
+	if survival_state:
+		survival_state.activate()
+	
 	# Передаём heart_bar в ChanceCardManager после инициализации (если он был инициализирован)
 	if heart_bar:
 		ChanceCardManager.set_heart_bar(heart_bar)
@@ -156,8 +183,7 @@ func _ready():
 	_setup_patience_indicators()
 	
 	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
-	is_game_over = false
-	EventBus.is_game_active = true
+	# Флаг сбрасывается через game_state_controller после инициализации
 	
 	# Сбрасываем все данные при инициализации сцены (на случай перезагрузки после Game Over)
 	# Это гарантирует, что чаевые, терпение гостей и таймеры будут сброшены
@@ -188,6 +214,43 @@ func _setup_patience_indicators() -> void:
 	patience_indicator_manager = indicator_manager
 	print("✅ GuestPatienceIndicatorManager инициализирован")
 
+func _initialize_survival_state_provider() -> void:
+	"""Инициализировать провайдер состояния режима выживания"""
+	survival_state = SurvivalStateProvider.new(heart_bar, survival_ui)
+	print("✅ SurvivalStateProvider инициализирован (heart_bar=%s, survival_ui=%s)" % [heart_bar != null, survival_ui != null])
+
+func _initialize_card_controller() -> void:
+	"""Инициализировать контроллер для управления картами"""
+	card_controller = CardController.new(flip_cards, card_nodes, get_tree())
+	print("✅ CardController инициализирован (flip_cards=%d, card_nodes=%d)" % [flip_cards.size(), card_nodes.size()])
+
+func _initialize_payout_result_handler() -> void:
+	"""Инициализировать обработчик результатов выплат"""
+	payout_result_handler = PayoutResultHandler.new(
+		bet_collection_manager,
+		chip_visual_manager,
+		payout_queue_manager,
+		ui_manager
+	)
+	# Устанавливаем callbacks для методов GameController
+	payout_result_handler.set_update_guest_balance_callback(_update_guest_balance_for_bet)
+	print("✅ PayoutResultHandler инициализирован")
+
+func _initialize_game_state_controller() -> void:
+	"""Инициализировать контроллер состояния игры"""
+	game_state_controller = GameStateController.new(
+		phase_manager,
+		game_over_popup,
+		payout_overlay,
+		survival_state,
+		winner_selection_manager
+	)
+	# Устанавливаем callback для зума камеры
+	game_state_controller.set_camera_zoom_out_callback(camera_zoom_out)
+	# Сбрасываем состояние Game Over при инициализации
+	game_state_controller.set_is_game_over(false)
+	print("✅ GameStateController инициализирован")
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd (Task 2.1)
@@ -196,34 +259,39 @@ func _setup_patience_indicators() -> void:
 # Удалено ~235 строк дублирующего кода
 
 # ═══════════════════════════════════════════════════════════════════════════
-# УПРАВЛЕНИЕ КАРТАМИ
+# УПРАВЛЕНИЕ КАРТАМИ (делегировано в CardController)
 # ═══════════════════════════════════════════════════════════════════════════
 
 func set_flip_cards(cards):
+	"""Установить массив анимаций переворота карт (для обратной совместимости)"""
 	flip_cards = cards
+	if card_controller:
+		card_controller.set_flip_cards(cards)
 
 func show_all_backs(back_texture: Texture2D):
-	for card in flip_cards:
-		card.show_back(back_texture)
+	"""Показать рубашки всех карт (делегировано в CardController)"""
+	if card_controller:
+		card_controller.show_all_backs(back_texture)
 
 func open_all_cards(face_textures: Array, delay: float = 0.3):
-	for i in range(face_textures.size()):
-		await get_tree().create_timer(i * delay).timeout
-		flip_cards[i].open_card(face_textures[i])
+	"""Открыть все карты с задержкой (делегировано в CardController)"""
+	if card_controller:
+		await card_controller.open_all_cards(face_textures, delay)
 
 func open_all_cards_with_flip(face_textures: Array, delay: float = 0.3):
-	# Открываем каждую карту с flip-анимацией
-	for i in range(face_textures.size()):
-		flip_cards[i].play_flip()                 # Запустить анимацию flip
-		await get_tree().create_timer(delay).timeout   # Подождать, пока проиграется flip (~0.3 сек)
-		card_nodes[i].texture = face_textures[i]  # Показать открытую карту
+	"""Открыть все карты с flip-анимацией (делегировано в CardController)"""
+	if card_controller:
+		await card_controller.open_all_cards_with_flip(face_textures, delay)
 
 func open_two_third_cards(texture1: Texture2D, texture2: Texture2D):
-	flip_cards[4].open_card(texture1)
-	flip_cards[5].open_card(texture2)
+	"""Открыть две третьи карты (делегировано в CardController)"""
+	if card_controller:
+		card_controller.open_two_third_cards(texture1, texture2)
 
 func reset_cards(back_texture: Texture2D):
-	show_all_backs(back_texture)
+	"""Сбросить все карты (делегировано в CardController)"""
+	if card_controller:
+		card_controller.reset_cards(back_texture)
 
 
 func _on_winner_selected(chosen: String):
@@ -449,8 +517,8 @@ func _process_payout_queue_or_reset() -> void:
 		)
 		
 		# Сохраняем состояние игры (сердечки, раунды)
-		var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
-		var active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
+		var lives = survival_state.get_lives() if survival_state else 7
+		var active = survival_state.is_active_mode() if survival_state else false
 		GameDataManager.set_game_state(
 			survival_rounds_completed,
 			lives,
@@ -599,8 +667,8 @@ func _finalize_payouts_manual(actual_winner: String) -> void:
 	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
 	# ═══════════════════════════════════════════════════════════════════
 	var selected_winner = winner_selection_manager.get_selected_winner() if winner_selection_manager else ""
-	var surv_lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
-	var surv_active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
+	var surv_lives = survival_state.get_lives() if survival_state else 7
+	var surv_active = survival_state.is_active_mode() if survival_state else false
 
 	# Получаем состояние ставок на пары из настроек
 	var pair_player_pressed = PayoutSettingsManager.player_pair_payout_enabled
@@ -719,8 +787,7 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 		# Передаем пустые значения - StatsManager пропустит такие случаи
 		EventBus.payout_correct.emit(collected, expected, "", -1)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
-		if is_survival_mode:
-			survival_rounds_completed += 1
+		survival_rounds_completed += 1
 	else:
 		# Для старого метода нет информации о bet_type/position_index
 		EventBus.payout_wrong.emit(collected, expected, "", -1)
@@ -734,72 +801,28 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func is_game_active() -> bool:
-	"""Проверка, активна ли игра (не в Game Over)"""
-	return not is_game_over
+	"""Проверка, активна ли игра (не в Game Over) - делегировано в GameStateController"""
+	if game_state_controller:
+		return game_state_controller.is_game_active()
+	return true  # По умолчанию игра активна
 
 func _on_survival_game_over(_rounds: int):
-	if is_game_over:
-		return  # Уже в Game Over, игнорируем повторные вызовы
-	
-	is_game_over = true
-	EventBus.is_game_active = false  # Синхронизируем с EventBus
-	DebugLogger.log("🎮 GAME OVER! Раундов выжито: %d" % survival_rounds_completed)
-
-	# 1. Сбрасываем шансы (чтобы не переходили в новую игру)
-	if phase_manager and phase_manager.heart_bet_manager:
-		phase_manager.heart_bet_manager.force_reset()
-		DebugLogger.log("❤️ Шансы сброшены при Game Over")
-	
-	# 1.1. Обнуляем карты шансов (чтобы не переходили в новую игру)
-	ChanceCardManager.reset_all_cards()
-
-	# 2. Закрываем окно выплат, если оно открыто
-	if payout_overlay and payout_overlay.visible:
-		payout_overlay.hide()
-		DebugLogger.log_payout("PayoutOverlay закрыт при Game Over")
-
-	# 3. Зум аут до общего плана при Game Over
-	camera_zoom_out()
-	EventBus.camera_first_deal_set_requested.emit(true)  # Следующая раздача будет первой (с зумом)
-
-	# 4. Уведомляем все системы через EventBus
-	EventBus.game_over.emit(survival_rounds_completed)
-
-	# 5. Показываем UI
-	game_over_popup.show_game_over(survival_rounds_completed)
+	"""Обработчик Game Over - делегировано в GameStateController"""
+	if game_state_controller:
+		game_state_controller.handle_game_over(survival_rounds_completed)
 
 # _on_score_game_over удалён - Game Over теперь только через сердца (HeartBar)
 
 func _on_restart_game():
-	# Сбрасываем флаг Game Over
-	is_game_over = false
-	EventBus.is_game_active = true  # Синхронизируем с EventBus
-	
+	"""Обработчик рестарта игры - делегировано в GameStateController"""
+	# Сбрасываем счетчик раундов
 	survival_rounds_completed = 0
 	EventBus.camera_first_deal_set_requested.emit(true)  # После рестарта первая раздача с зумом
 	StatsManager.instance.reset()
-	if is_survival_mode:
-		survival_ui.reset()
-		survival_ui.activate()
-
-	# Разблокируем маркеры для новой игры
-	if winner_selection_manager:
-		winner_selection_manager.unlock_markers()
-
-	# Сбрасываем шансы (на всякий случай)
-	if phase_manager and phase_manager.heart_bet_manager:
-		phase_manager.heart_bet_manager.force_reset()
-		DebugLogger.log("❤️ Шансы сброшены при рестарте")
 	
-	# Обнуляем карты шансов (на всякий случай)
-	ChanceCardManager.reset_all_cards()
-
-	phase_manager.reset()
-	
-	# Уведомляем все системы о рестарте
-	EventBus.game_restarted.emit()
-	
-	DebugLogger.log("🔄 Игра перезапущена, все системы сброшены")
+	# Делегируем рестарт в GameStateController
+	if game_state_controller:
+		game_state_controller.restart_game()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ
@@ -877,10 +900,9 @@ func _on_survival_mode_changed(_enabled: bool):
 	pass
 
 func _load_survival_mode_setting():
-	"""Активировать режим выживания (теперь всегда включён)"""
-	is_survival_mode = true  # Всегда true
-	if survival_ui:
-		survival_ui.activate()
+	"""Активировать режим выживания (всегда включён)"""
+	if survival_state:
+		survival_state.activate()
 	# StatsLabel показывает деньги (управляется в StatsManager)
 	DebugLogger.log("Режим выживания активирован (сердца + деньги)")
 
@@ -1046,15 +1068,12 @@ func _restore_automatic_mode_state() -> void:
 	"""Восстановление состояния игры, камеры и UI"""
 	# Восстанавливаем состояние survival режима
 	survival_rounds_completed = GameDataManager.get_survival_rounds()
-	if heart_bar:
-		heart_bar.set_lives(GameDataManager.get_survival_lives())
+	if survival_state:
+		survival_state.set_lives(GameDataManager.get_survival_lives())
 		if GameDataManager.is_survival_active():
-			heart_bar.activate()
+			survival_state.activate()
 		else:
-			heart_bar.deactivate()
-	elif survival_ui:
-		survival_ui.set_lives(GameDataManager.get_survival_lives())
-		survival_ui.activate()  # Всегда активен
+			survival_state.deactivate()
 	
 	# Восстанавливаем камеру на общий план (без анимации)
 	if camera_manager:
@@ -1065,14 +1084,12 @@ func _restore_automatic_mode_state() -> void:
 	EventBus.area_buttons_visibility_changed.emit(true)
 	
 	# Обновляем визуальное отображение сердечек
-	var is_active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
-	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
+	var is_active = survival_state.is_active_mode() if survival_state else false
+	var lives = survival_state.get_lives() if survival_state else 7
 	if is_active:
-		if survival_ui:
-			survival_ui.show()
+		survival_state.show()
 	else:
-		if survival_ui:
-			survival_ui.hide()
+		survival_state.hide()
 
 	DebugLogger.log("♻️  Состояние игры восстановлено: rounds=%d, lives=%d, active=%s" % [
 		survival_rounds_completed, lives, is_active
@@ -1085,8 +1102,8 @@ func _check_and_handle_game_over() -> bool:
 	Returns:
 		true если Game Over произошёл, false если игра продолжается
 	"""
-	var is_active = heart_bar.is_active_mode() if heart_bar else (survival_ui.is_active if survival_ui else false)
-	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
+	var is_active = survival_state.is_active_mode() if survival_state else false
+	var lives = survival_state.get_lives() if survival_state else 7
 	if is_active and lives <= 0:
 		DebugLogger.log_game_flow("GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
 		_on_survival_game_over(survival_rounds_completed)
@@ -1107,8 +1124,7 @@ func _process_automatic_payout_result() -> void:
 		# Передаем пустые значения - StatsManager пропустит такие случаи
 		EventBus.payout_correct.emit(collected, expected, "", -1)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
-		if is_survival_mode:
-			survival_rounds_completed += 1
+		survival_rounds_completed += 1
 	else:
 		# Для старого метода нет информации о bet_type/position_index
 		EventBus.payout_wrong.emit(collected, expected, "", -1)
@@ -1878,8 +1894,8 @@ func _show_payout_overlay_instance(bet_type: String, position_index: int, stake:
 	payout_overlay.set_meta("current_position_index", position_index)
 
 	# Передаём состояние игры через параметры (вместо get_parent())
-	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
-	payout_overlay.show_payout(bet_type, stake, payout, is_survival_mode, lives)
+	var lives = survival_state.get_lives() if survival_state else 7
+	payout_overlay.show_payout(bet_type, stake, payout, true, lives)  # Режим всегда активен
 
 func _open_payout_scene(bet_type: String):
 	"""Открыть PayoutScene для конкретной ставки
@@ -1918,31 +1934,28 @@ func _open_payout_scene(bet_type: String):
 
 	# Передаем состояние режима выживания в GameDataManager
 	DebugLogger.log("🔍 DEBUG _open_payout_scene:")
-	DebugLogger.log("  → is_survival_mode = %s" % is_survival_mode)
-	DebugLogger.log("  → survival_ui exists = %s" % (survival_ui != null))
-	if survival_ui:
-		var lives = heart_bar.get_lives() if heart_bar else survival_ui.get_lives()
-		DebugLogger.log("  → survival_ui.current_lives = %d" % lives)
+	DebugLogger.log("  → survival_state exists = %s" % (survival_state != null))
+	if survival_state:
+		var lives = survival_state.get_lives()
+		DebugLogger.log("  → survival_state.current_lives = %d" % lives)
 	DebugLogger.log("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.get_survival_lives())
 
 	var surv_lives = 7  # Значение по умолчанию
-	if is_survival_mode and survival_ui:
-		# Режим выживания активен - берем текущее количество жизней
-		surv_lives = heart_bar.get_lives() if heart_bar else survival_ui.get_lives()
-		DebugLogger.log("  → Берем из survival_ui: %d" % surv_lives)
-	elif is_survival_mode:
-		# Режим выживания активен, но survival_ui не инициализирован - берем из GameDataManager
+	if survival_state:
+		# Берем текущее количество жизней
+		surv_lives = survival_state.get_lives()
+		DebugLogger.log("  → Берем из survival_state: %d" % surv_lives)
+	else:
+		# Если survival_state не инициализирован - берем из GameDataManager
 		surv_lives = GameDataManager.get_survival_lives()
 		DebugLogger.log("  → Берем из GameDataManager: %d" % surv_lives)
-	else:
-		DebugLogger.log("  → Используем значение по умолчанию: %d" % surv_lives)
 
 	GameDataManager.set_game_state(
 		survival_rounds_completed,
 		surv_lives,
-		is_survival_mode
+		true  # Режим всегда активен
 	)
-	DebugLogger.log("  → ✅ Установлено состояние игры: rounds=%d, lives=%d, survival=%s" % [survival_rounds_completed, surv_lives, is_survival_mode])
+	DebugLogger.log("  → ✅ Установлено состояние игры: rounds=%d, lives=%d" % [survival_rounds_completed, surv_lives])
 
 	# Переходим к PayoutScene
 	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
@@ -1973,8 +1986,8 @@ func _show_payout_overlay(bet_type: String, stake: float, payout: float):
 	# Overlay сам управляет UI, фишками и валидацией
 
 	# Передаём состояние игры через параметры (вместо get_parent())
-	var lives = heart_bar.get_lives() if heart_bar else (survival_ui.get_lives() if survival_ui else 7)
-	payout_overlay.show_payout(bet_type, stake, payout, is_survival_mode, lives)
+	var lives = survival_state.get_lives() if survival_state else 7
+	payout_overlay.show_payout(bet_type, stake, payout, true, lives)  # Режим всегда активен
 
 
 func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected: float, expected: float):
@@ -1997,47 +2010,15 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 	DebugLogger.log("💰 Завершена выплата в overlay режиме: bet_type=%s[%d], correct=%s, collected=%.1f, expected=%.1f" % [bet_type, position_index, is_correct, collected, expected])
 
 	# ═══════════════════════════════════════════════════════════════════
-	# ОБРАБОТКА РЕЗУЛЬТАТА (эмитим события как в старом режиме)
+	# ОБРАБОТКА РЕЗУЛЬТАТА (делегировано в PayoutResultHandler)
 	# ═══════════════════════════════════════════════════════════════════
+	if payout_result_handler:
+		payout_result_handler.handle_payout_result(bet_type, position_index, is_correct, collected, expected)
+	
+	# Увеличиваем счетчик раундов (только для правильных выплат)
 	if is_correct:
-		EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
-		DebugLogger.log("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
-
-		# ═══════════════════════════════════════════════════════════════════
-		# ОБНОВЛЕНИЕ БАЛАНСА ГОСТЯ (если это гостевые ставки)
-		# ═══════════════════════════════════════════════════════════════════
-		_update_guest_balance_for_bet(bet_type, position_index, expected)
-
-		# ═══════════════════════════════════════════════════════════════════
-		# ВАЖНО: pay_bet() сам вызывает mark_as_paid() внутри
-		# НЕ вызываем mark_as_paid() отдельно, иначе pay_bet() выйдет раньше
-		# и не обновит payment_progress!
-		# ═══════════════════════════════════════════════════════════════════
-		if bet_collection_manager:
-			# pay_bet() автоматически:
-			# 1. Помечает ставку как оплаченную (mark_as_paid)
-			# 2. Обновляет payment_progress[group]
-			# 3. Проверяет порядок оплаты
-			if bet_collection_manager.pay_bet(bet_type, position_index):
-				DebugLogger.log("  ✅ Ставка %s[%d] оплачена через BetCollectionPhaseManager" % [bet_type, position_index])
-			else:
-				DebugLogger.log_error("  ❌ Не удалось оплатить ставку %s[%d] через BetCollectionPhaseManager" % [bet_type, position_index])
-
-		# Скрываем конкретную фишку по position_index (работает для всех режимов)
-		if chip_visual_manager:
-			chip_visual_manager.hide_chip_instance(bet_type, position_index)
-			DebugLogger.log("  🎨 Фишка %s[%d] скрыта" % [bet_type, position_index])
-
-		# Увеличиваем счетчик раундов в survival mode
-		if is_survival_mode:
-			survival_rounds_completed += 1
-			DebugLogger.log("  🎮 Survival: раунд %d завершен" % survival_rounds_completed)
-	else:
-		EventBus.payout_wrong.emit(collected, expected, bet_type, position_index)
-		DebugLogger.log("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [bet_type, position_index, collected, expected])
-
-		# Потеря жизни обрабатывается через EventBus в SurvivalUI
-		# (EventBus.payout_wrong → SurvivalUI.lose_life)
+		survival_rounds_completed += 1
+		DebugLogger.log("  🎮 Раунд %d завершен" % survival_rounds_completed)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ПРОВЕРКА ОСТАВШИХСЯ ВЫПЛАТ
