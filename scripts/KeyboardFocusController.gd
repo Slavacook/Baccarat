@@ -101,6 +101,41 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ПРОВЕРКА СОСТОЯНИЯ ТРЕТЬИХ КАРТ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _is_player_third_card_opened() -> bool:
+	"""Проверить, открыта ли третья карта игрока"""
+	var game_controller = _get_game_controller()
+	if not game_controller:
+		return false
+	if not "hand_manager" in game_controller:
+		return false
+	var hand_manager = game_controller.hand_manager
+	if not hand_manager:
+		return false
+	return hand_manager.has_player_third_card()
+
+func _is_banker_third_card_opened() -> bool:
+	"""Проверить, открыта ли третья карта банкира"""
+	var game_controller = _get_game_controller()
+	if not game_controller:
+		return false
+	if not "hand_manager" in game_controller:
+		return false
+	var hand_manager = game_controller.hand_manager
+	if not hand_manager:
+		return false
+	return hand_manager.has_banker_third_card()
+
+func _get_game_controller() -> Node:
+	"""Получить GameController из текущей сцены"""
+	var tree = get_tree()
+	if not tree:
+		return null
+	return tree.current_scene
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ КЛАВИШ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -131,45 +166,119 @@ func _handle_space_press() -> void:
 func _handle_a_press() -> void:
 	"""A - навигация влево (к банкиру)
 	
-	Таблица переходов:
-	  NONE → BANKER_THIRD
-	  PLAYER_THIRD → BANKER_THIRD
-	  PLAYER_MARKER → TIE_MARKER
-	  TIE_MARKER → BANKER_MARKER
-	  Остальные → без изменений
+	Логика зависит от состояния третьих карт:
+	- Если обе карты открыты → сразу на маркеры
+	- Если открыта только карта игрока → на кнопку заказа третьей карты банкира
+	- Если открыта только карта банкира → сразу на маркер банкира
+	- Если обе карты не открыты → на кнопку заказа третьей карты банкира
 	"""
+	var player_opened = _is_player_third_card_opened()
+	var banker_opened = _is_banker_third_card_opened()
+	
 	match current_focus:
 		FocusTarget.NONE:
-			_set_focus(FocusTarget.BANKER_THIRD)
+			# Если обе карты открыты → сразу на маркер банкира
+			if player_opened and banker_opened:
+				_set_focus(FocusTarget.BANKER_MARKER)
+			# Если открыта только карта банкира → сразу на маркер банкира (пропускаем кнопку)
+			elif banker_opened and not player_opened:
+				_set_focus(FocusTarget.BANKER_MARKER)
+			else:
+				_set_focus(FocusTarget.BANKER_THIRD)
+		
 		FocusTarget.PLAYER_THIRD:
-			_set_focus(FocusTarget.BANKER_THIRD)
+			# Если обе карты открыты → сразу на маркер банкира
+			if player_opened and banker_opened:
+				_set_focus(FocusTarget.BANKER_MARKER)
+			# Если открыта только карта игрока → на кнопку заказа третьей карты банкира
+			elif player_opened and not banker_opened:
+				_set_focus(FocusTarget.BANKER_THIRD)
+			# Если открыта только карта банкира → сразу на маркер банкира (пропускаем кнопку)
+			elif banker_opened and not player_opened:
+				_set_focus(FocusTarget.BANKER_MARKER)
+			# Если карта игрока не открыта → на кнопку заказа третьей карты банкира
+			else:
+				_set_focus(FocusTarget.BANKER_THIRD)
+		
 		FocusTarget.PLAYER_MARKER:
 			_set_focus(FocusTarget.TIE_MARKER)
+		
 		FocusTarget.TIE_MARKER:
 			_set_focus(FocusTarget.BANKER_MARKER)
-		# BANKER_THIRD, BANKER_MARKER → остаются на месте
+		
+		FocusTarget.BANKER_MARKER:
+			# Если карта банкира не открыта → на кнопку заказа третьей карты банкира
+			if not banker_opened:
+				_set_focus(FocusTarget.BANKER_THIRD)
+			# Иначе остаемся на месте
+		
+		FocusTarget.BANKER_THIRD:
+			# Если обе карты открыты → сразу на маркер банкира
+			if player_opened and banker_opened:
+				_set_focus(FocusTarget.BANKER_MARKER)
+			# Если открыта только карта банкира → сразу на маркер банкира (кнопка уже не нужна)
+			elif banker_opened and not player_opened:
+				_set_focus(FocusTarget.BANKER_MARKER)
+			# Если карта банкира не открыта → остаемся на месте
 
 
 func _handle_d_press() -> void:
 	"""D - навигация вправо (к игроку)
 	
-	Таблица переходов:
-	  NONE → PLAYER_THIRD
-	  BANKER_THIRD → PLAYER_THIRD
-	  BANKER_MARKER → TIE_MARKER
-	  TIE_MARKER → PLAYER_MARKER
-	  Остальные → без изменений
+	Логика зависит от состояния третьих карт:
+	- Если обе карты открыты → сразу на маркеры
+	- Если открыта только карта банкира → на кнопку заказа третьей карты игрока
+	- Если открыта только карта игрока → сразу на маркер игрока
+	- Если обе карты не открыты → на кнопку заказа третьей карты игрока
 	"""
+	var player_opened = _is_player_third_card_opened()
+	var banker_opened = _is_banker_third_card_opened()
+	
 	match current_focus:
 		FocusTarget.NONE:
-			_set_focus(FocusTarget.PLAYER_THIRD)
+			# Если обе карты открыты → сразу на маркер игрока
+			if player_opened and banker_opened:
+				_set_focus(FocusTarget.PLAYER_MARKER)
+			# Если открыта только карта игрока → сразу на маркер игрока (пропускаем кнопку)
+			elif player_opened and not banker_opened:
+				_set_focus(FocusTarget.PLAYER_MARKER)
+			else:
+				_set_focus(FocusTarget.PLAYER_THIRD)
+		
 		FocusTarget.BANKER_THIRD:
-			_set_focus(FocusTarget.PLAYER_THIRD)
+			# Если обе карты открыты → сразу на маркер игрока
+			if player_opened and banker_opened:
+				_set_focus(FocusTarget.PLAYER_MARKER)
+			# Если открыта только карта банкира → на кнопку заказа третьей карты игрока
+			elif banker_opened and not player_opened:
+				_set_focus(FocusTarget.PLAYER_THIRD)
+			# Если открыта только карта игрока → сразу на маркер игрока (пропускаем кнопку)
+			elif player_opened and not banker_opened:
+				_set_focus(FocusTarget.PLAYER_MARKER)
+			# Если карта банкира не открыта → на кнопку заказа третьей карты игрока
+			else:
+				_set_focus(FocusTarget.PLAYER_THIRD)
+		
 		FocusTarget.BANKER_MARKER:
 			_set_focus(FocusTarget.TIE_MARKER)
+		
 		FocusTarget.TIE_MARKER:
 			_set_focus(FocusTarget.PLAYER_MARKER)
-		# PLAYER_THIRD, PLAYER_MARKER → остаются на месте
+		
+		FocusTarget.PLAYER_MARKER:
+			# Если карта игрока не открыта → на кнопку заказа третьей карты игрока
+			if not player_opened:
+				_set_focus(FocusTarget.PLAYER_THIRD)
+			# Иначе остаемся на месте
+		
+		FocusTarget.PLAYER_THIRD:
+			# Если обе карты открыты → сразу на маркер игрока
+			if player_opened and banker_opened:
+				_set_focus(FocusTarget.PLAYER_MARKER)
+			# Если открыта только карта игрока → сразу на маркер игрока (кнопка уже не нужна)
+			elif player_opened and not banker_opened:
+				_set_focus(FocusTarget.PLAYER_MARKER)
+			# Если карта игрока не открыта → остаемся на месте
 
 
 func _handle_w_press() -> void:
@@ -195,18 +304,33 @@ func _handle_s_press() -> void:
 	"""S - навигация вниз / выход из фокуса
 	
 	Таблица переходов:
-	  BANKER_MARKER → BANKER_THIRD
-	  PLAYER_MARKER → PLAYER_THIRD
+	  BANKER_MARKER → BANKER_THIRD (если карта не открыта) или NONE (если обе карты открыты)
+	  PLAYER_MARKER → PLAYER_THIRD (если карта не открыта) или NONE (если обе карты открыты)
 	  BANKER_THIRD → NONE
 	  PLAYER_THIRD → NONE
 	  TIE_MARKER → NONE
 	  NONE → без изменений
 	"""
+	var player_opened = _is_player_third_card_opened()
+	var banker_opened = _is_banker_third_card_opened()
+	
 	match current_focus:
 		FocusTarget.BANKER_MARKER:
-			_set_focus(FocusTarget.BANKER_THIRD)
+			# Если карта банкира открыта → выход из фокуса (пропускаем кнопку заказа)
+			if banker_opened:
+				_clear_focus()
+			# Если карта банкира не открыта → на кнопку заказа третьей карты банкира
+			else:
+				_set_focus(FocusTarget.BANKER_THIRD)
+		
 		FocusTarget.PLAYER_MARKER:
-			_set_focus(FocusTarget.PLAYER_THIRD)
+			# Если карта игрока открыта → выход из фокуса (пропускаем кнопку заказа)
+			if player_opened:
+				_clear_focus()
+			# Если карта игрока не открыта → на кнопку заказа третьей карты игрока
+			else:
+				_set_focus(FocusTarget.PLAYER_THIRD)
+		
 		FocusTarget.BANKER_THIRD, FocusTarget.PLAYER_THIRD, FocusTarget.TIE_MARKER:
 			_clear_focus()
 		# NONE → без изменений
