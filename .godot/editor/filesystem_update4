@@ -1,16 +1,2 @@
-res://scripts/GuestMenuScene.gd
-res://scenes/GuestMenuScene.tscn
-res://scripts/ui/FeedbackAnimationManager.gd
-res://scripts/ui/GuestMenuKeyboardNavigator.gd
-res://scripts/ui/GuestMenuState.gd
-res://tests/manual_test_GuestMenuScene.gd
-res://tests/ManualTestGuestMenuScene.tscn
-res://scripts/ui/GuestMenuBalanceRenderer.gd
-res://scripts/ui/GuestMenuTextUpdater.gd
-res://scripts/ui/GuestMenuUIRenderer.gd
-res://scripts/ui/GuestUIVisualState.gd
-res://scripts/GameController.gd
-res://scripts/utils/SurvivalStateProvider.gd
+res://scripts/utils/ChipClickHandler.gd
 res://scenes/Game.tscn
-res://scripts/utils/PayoutResultHandler.gd
-res://scripts/utils/GameStateController.gd

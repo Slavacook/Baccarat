@@ -53,22 +53,6 @@ signal language_changed(lang: String)  # "ru" или "en"
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 @onready var apply_button: Button = find_child("ApplyButton", true, false)
-@onready var cancel_button: Button = find_child("CancelButton", true, false)
-
-# ═══════════════════════════════════════════════════════════════════════════
-# СОХРАНЁННЫЕ ЗНАЧЕНИЯ (для кнопки "Отменить")
-# ═══════════════════════════════════════════════════════════════════════════
-
-var saved_game_mode: String
-var saved_language: String
-var saved_card_back_style: String
-var saved_bet_profile: int
-var saved_player_payout: bool
-var saved_banker_payout: bool
-var saved_tie_payout: bool
-var saved_player_pair_payout: bool
-var saved_banker_pair_payout: bool
-var saved_tip_percentage: float
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -146,8 +130,6 @@ func _connect_signals():
 	# Управляющие кнопки
 	if apply_button:
 		apply_button.pressed.connect(_on_apply_pressed)
-	if cancel_button:
-		cancel_button.pressed.connect(_on_cancel_pressed)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -155,9 +137,6 @@ func _connect_signals():
 
 func open_settings():
 	"""Открыть окно настроек"""
-	# Сохраняем текущие значения (для кнопки "Отменить")
-	_save_current_values()
-
 	# Загружаем значения в UI
 	_load_current_values()
 
@@ -173,24 +152,8 @@ func close_settings():
 	print("⚙️  Окно настроек закрыто")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ПРИВАТНЫЕ МЕТОДЫ - СОХРАНЕНИЕ/ЗАГРУЗКА
+# ПРИВАТНЫЕ МЕТОДЫ - ЗАГРУЗКА
 # ═══════════════════════════════════════════════════════════════════════════
-
-func _save_current_values():
-	"""Сохранить текущие значения настроек для возможности отмены"""
-	# Получаем текущий режим игры из GameModeManager
-	saved_game_mode = GameModeManager.get_mode_string()
-
-	saved_language = Localization.get_lang()
-	saved_card_back_style = SaveManager.instance.load_card_back_style()
-	saved_bet_profile = BetProfileManager.get_profile()
-
-	saved_player_payout = PayoutSettingsManager.player_payout_enabled
-	saved_banker_payout = PayoutSettingsManager.banker_payout_enabled
-	saved_tie_payout = PayoutSettingsManager.tie_payout_enabled
-	saved_player_pair_payout = PayoutSettingsManager.player_pair_payout_enabled
-	saved_banker_pair_payout = PayoutSettingsManager.banker_pair_payout_enabled
-	saved_tip_percentage = SaveManager.instance.load_tip_percentage()
 
 func _load_current_values():
 	"""Загрузить текущие значения из менеджеров в UI"""
@@ -225,33 +188,6 @@ func _load_current_values():
 	# Рубашка карт
 	_update_card_back_buttons()
 
-func _restore_saved_values():
-	"""Восстановить сохранённые значения (для кнопки "Отменить")"""
-	# Режим игры - эмитим сигнал для GameController
-	mode_changed.emit(saved_game_mode)
-
-	# Язык
-	Localization.set_lang(saved_language)
-
-	# Рубашка карт
-	SaveManager.instance.save_card_back_style(saved_card_back_style)
-	EventBus.card_back_style_changed.emit(saved_card_back_style)
-
-	# Размер ставок
-	BetProfileManager.set_profile(saved_bet_profile as BetProfileManager.BetProfile)
-
-	# Ставки
-	PayoutSettingsManager.toggle_player(saved_player_payout)
-	PayoutSettingsManager.toggle_banker(saved_banker_payout)
-	PayoutSettingsManager.toggle_tie(saved_tie_payout)
-	PayoutSettingsManager.toggle_player_pair(saved_player_pair_payout)
-	PayoutSettingsManager.toggle_banker_pair(saved_banker_pair_payout)
-
-	# Чаевые
-	SaveManager.instance.save_tip_percentage(saved_tip_percentage)
-
-	print("↩️  Настройки восстановлены")
-
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI
 # ═══════════════════════════════════════════════════════════════════════════
@@ -263,8 +199,6 @@ func _update_texts():
 
 	if apply_button:
 		apply_button.text = Localization.t("SETTINGS_BUTTON_APPLY")
-	if cancel_button:
-		cancel_button.text = Localization.t("SETTINGS_BUTTON_CANCEL")
 
 	# Рубашка карт
 	if tiger_button:
@@ -492,24 +426,11 @@ func _on_test_cards_pressed():
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 func _on_apply_pressed():
-	"""Обработка нажатия кнопки "Применить" """
+	"""Обработка нажатия кнопки "ОК" """
 	# Все изменения уже применены в реальном времени через менеджеры
 	# Просто закрываем окно
 	close_settings()
 	print("✅ Настройки применены")
-
-func _on_cancel_pressed():
-	"""Обработка нажатия кнопки "Отменить" """
-	# Восстанавливаем сохранённые значения
-	_restore_saved_values()
-
-	# Обновляем UI
-	_load_current_values()
-	_update_texts()
-
-	# Закрываем окно
-	close_settings()
-	print("❌ Настройки отменены")
 
 # === СИНХРОНИЗАЦИЯ С EVENTBUS ===
 func _on_language_changed_external(lang: String):

@@ -114,6 +114,7 @@ offset_bottom = 40.0
 texture = ExtResource("5_bneo8")
 
 [node name="LeftArrowButton" type="TextureButton" parent="TopUI"]
+visible = false
 anchors_preset = 4
 anchor_top = 0.5
 anchor_bottom = 0.5
@@ -125,6 +126,7 @@ scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("28_left")
 
 [node name="RightArrowButton" type="TextureButton" parent="TopUI"]
+visible = false
 anchors_preset = 6
 anchor_left = 1.0
 anchor_top = 0.5
@@ -140,6 +142,7 @@ scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("29_right")
 
 [node name="DownArrowButton" type="TextureButton" parent="TopUI"]
+visible = false
 anchors_preset = 6
 anchor_left = 1.0
 anchor_top = 0.5
@@ -155,6 +158,7 @@ scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("8_i4jil")
 
 [node name="UpArrowButton" type="TextureButton" parent="TopUI"]
+visible = false
 anchors_preset = 6
 anchor_left = 1.0
 anchor_top = 0.5

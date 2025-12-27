@@ -1,0 +1,359 @@
+# res://scripts/utils/ChipClickHandler.gd
+# Обработчик кликов на фишки
+# Инкапсулирует логику обработки кликов на фишки (сбор/оплата ставок)
+# Extract Class - извлечено из GameController
+
+extends RefCounted
+class_name ChipClickHandler
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ЗАВИСИМОСТИ (передаются через dependency injection)
+# ═══════════════════════════════════════════════════════════════════════════
+
+var chip_visual_manager: ChipVisualManager = null
+var bet_collection_manager: BetCollectionPhaseManager = null
+var payout_queue_manager: PayoutQueueManager = null
+var phase_manager: GamePhaseManager = null
+var ui_manager: UIManager = null
+var survival_state: SurvivalStateProvider = null
+var payout_overlay: CanvasLayer = null
+
+# Флаг использования overlay режима выплат
+var use_overlay_payout: bool = true
+
+# ═══════════════════════════════════════════════════════════════════════════
+# CALLBACKS (делегируются в GameController)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Callback для проверки флага is_payout_processing
+var is_payout_processing_getter: Callable = Callable()
+
+# Callback для обновления баланса гостя при сборе ставки
+var update_guest_balance_on_collect_callback: Callable = Callable()
+
+# Callback для показа PayoutOverlay
+var show_payout_overlay_callback: Callable = Callable()
+
+# Callback для открытия PayoutScene
+var open_payout_scene_callback: Callable = Callable()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ИНИЦИАЛИЗАЦИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _init(
+	p_chip_visual_manager: ChipVisualManager = null,
+	p_bet_collection_manager: BetCollectionPhaseManager = null,
+	p_payout_queue_manager: PayoutQueueManager = null,
+	p_phase_manager: GamePhaseManager = null,
+	p_ui_manager: UIManager = null,
+	p_survival_state: SurvivalStateProvider = null,
+	p_payout_overlay: CanvasLayer = null,
+	p_use_overlay_payout: bool = true
+):
+	chip_visual_manager = p_chip_visual_manager
+	bet_collection_manager = p_bet_collection_manager
+	payout_queue_manager = p_payout_queue_manager
+	phase_manager = p_phase_manager
+	ui_manager = p_ui_manager
+	survival_state = p_survival_state
+	payout_overlay = p_payout_overlay
+	use_overlay_payout = p_use_overlay_payout
+
+# ═══════════════════════════════════════════════════════════════════════════
+# УСТАНОВКА CALLBACKS
+# ═══════════════════════════════════════════════════════════════════════════
+
+func set_is_payout_processing_getter(callback: Callable) -> void:
+	"""Установить callback для получения is_payout_processing"""
+	is_payout_processing_getter = callback
+
+func set_update_guest_balance_callback(callback: Callable) -> void:
+	"""Установить callback для обновления баланса гостя"""
+	update_guest_balance_on_collect_callback = callback
+
+func set_show_payout_overlay_callback(callback: Callable) -> void:
+	"""Установить callback для показа PayoutOverlay"""
+	show_payout_overlay_callback = callback
+
+func set_open_payout_scene_callback(callback: Callable) -> void:
+	"""Установить callback для открытия PayoutScene"""
+	open_payout_scene_callback = callback
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОСНОВНОЙ МЕТОД
+# ═══════════════════════════════════════════════════════════════════════════
+
+func handle_chip_click(bet_type: String, position_index: int) -> void:
+	"""Обработать клик на фишку
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции фишки
+	"""
+	print("🔴 ChipClickHandler.handle_chip_click ВЫЗВАН: %s[%d]" % [bet_type, position_index])
+	
+	# Проверяем все предварительные условия (защиты, валидация ставки, гости)
+	if not _validate_prerequisites(bet_type, position_index):
+		print("⏸️  Проверка не прошла, клик игнорируется")
+		return  # Проверка не прошла, клик игнорируется
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ВАЛИДАЦИЯ КЛИКА ЧЕРЕЗ BetCollectionPhaseManager
+	# ═══════════════════════════════════════════════════════════════════
+	print("🔍 Валидация клика через BetCollectionPhaseManager: %s[%d]" % [bet_type, position_index])
+	DebugLogger.log("🔍 Валидация клика через BetCollectionPhaseManager: %s[%d]" % [bet_type, position_index])
+	
+	if not bet_collection_manager:
+		print("❌ bet_collection_manager is null!")
+		return
+	
+	var validation = bet_collection_manager.validate_chip_click(bet_type, position_index)
+	
+	if validation == null or validation.is_empty():
+		print("❌ validate_chip_click вернул null или пустой Dictionary!")
+		return
+	
+	print("🔍 Результат валидации: action=%s, can_proceed=%s, error_type=%s" % [validation.get("action", "unknown"), validation.get("can_proceed", false), validation.get("error_type", "")])
+	DebugLogger.log("🔍 Результат валидации: action=%s, can_proceed=%s, error_type=%s" % [validation.get("action", "unknown"), validation.get("can_proceed", false), validation.get("error_type", "")])
+	
+	# Если режим не выбран - ничего не делаем
+	if validation.action == "none" and validation.can_proceed:
+		print("  ⏸️  Режим не выбран, клик игнорируется")
+		DebugLogger.log("  ⏸️  Режим не выбран, клик игнорируется")
+		return
+	
+	# Если ошибка валидации - показываем сообщение и штрафуем
+	if not validation.can_proceed:
+		print("  ❌ Ошибка валидации, обрабатываем...")
+		if _handle_validation_error(validation, bet_type, position_index):
+			print("  ✅ Ошибка обработана, выходим")
+			return  # Ошибка обработана, выходим
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ВЫПОЛНЕНИЕ ДЕЙСТВИЯ
+	# ═══════════════════════════════════════════════════════════════════
+	
+	print("🔍 Действие: %s" % validation.action)
+	if validation.action == "collect":
+		print("  → Выполняем действие COLLECT")
+		_handle_collect_action(bet_type, position_index)
+		return
+	
+	if validation.action == "pay":
+		print("  → Выполняем действие PAY")
+		_handle_pay_action(bet_type, position_index)
+		return
+	
+	print("  ⚠️ Неизвестное действие: %s" % validation.action)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _validate_prerequisites(bet_type: String, position_index: int):
+	"""Проверить все предварительные условия для клика на фишку
+	
+	Проверяет:
+	- Блокировка во время обработки выплаты
+	- Существование фишки
+	- Инициализацию менеджеров
+	- Наличие ставки в очереди выплат
+	- Активность гостя (в режиме GUEST)
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции фишки
+		
+	Returns:
+		true если все проверки пройдены, false если проверка не прошла
+	"""
+	# ═══════════════════════════════════════════════════════════════════
+	# ЗАЩИТА: Блокировка во время обработки выплаты (защита от спама Space)
+	# ═══════════════════════════════════════════════════════════════════
+	var is_processing = false
+	if is_payout_processing_getter.is_valid():
+		is_processing = is_payout_processing_getter.call()
+	
+	print("🔍 Проверка is_payout_processing: %s" % is_processing)
+	if is_processing:
+		DebugLogger.log("⏸️  Клик на %s[%d] заблокирован (идёт обработка выплаты)" % [bet_type, position_index])
+		return false
+	
+	DebugLogger.log("🖱️  Клик на фишку: %s[%d]" % [bet_type, position_index])
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ЗАЩИТА: Проверяем что фишка существует (защита от множественных кликов)
+	# ═══════════════════════════════════════════════════════════════════
+	print("🔍 Проверка chip_visual_manager: %s" % (chip_visual_manager != null))
+	if chip_visual_manager:
+		var chip = chip_visual_manager.get_chip_instance(bet_type, position_index)
+		print("🔍 get_chip_instance(%s, %d) = %s" % [bet_type, position_index, "найдена" if chip else "null"])
+		if not chip:
+			DebugLogger.log("⏸️  Фишка %s[%d] не найдена (уже обработана), игнорируем клик" % [bet_type, position_index])
+			return false
+	
+	# Проверяем что bet_collection_manager инициализирован
+	print("🔍 Проверка bet_collection_manager: %s" % (bet_collection_manager != null))
+	if not bet_collection_manager:
+		print("🔍 ВЫХОД: bet_collection_manager не инициализирован")
+		return false
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА: В режиме GUEST игнорируем клики на фишки неактивных гостей
+	# Определяем сектор по position_index и проверяем GuestBetStorage
+	# ═══════════════════════════════════════════════════════════════════
+	if phase_manager and phase_manager.guest_bet_storage:
+		# Определяем сектор по position_index
+		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+		print("🔍 Сектор по position_index: %s[%d] → сектор %d" % [bet_type, position_index, sector])
+		
+		if sector >= 1 and sector <= 6:
+			# Это гостевой сектор - проверяем есть ли активный гость
+			var guest_id = sector
+			var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+			print("🔍 Гость %d: найдено %d ставок" % [guest_id, guest_bets.size()])
+			if guest_bets.is_empty():
+				# Гость не включён или нет ставок - игнорируем клик
+				print("⚠️ Клик на фишку %s[%d] в секторе %d, но гостя %d нет или он не включён - игнорируем" % [bet_type, position_index, sector, guest_id])
+				DebugLogger.log_warning("⚠️ Клик на фишку %s[%d] в секторе %d, но гостя %d нет или он не включён - игнорируем" % [bet_type, position_index, sector, guest_id])
+				return false
+	
+	print("✅ _validate_prerequisites завершена, продолжаем обработку")
+	return true  # Все проверки пройдены, можно продолжать
+
+func _handle_validation_error(validation: Dictionary, bet_type: String, position_index: int) -> bool:
+	"""Обработать ошибку валидации клика на фишку
+	
+	Args:
+		validation: Результат валидации от BetCollectionPhaseManager
+		bet_type: Тип ставки
+		position_index: Индекс позиции фишки
+		
+	Returns:
+		bool: true если ошибка обработана и нужно вернуться, false если продолжить
+	"""
+	# "already_collected" - это не ошибка игрока, а техническая ситуация (двойной клик)
+	# Просто игнорируем без тоста и без отнятия жизни
+	if validation.error_type == "already_collected":
+		DebugLogger.log("  ⏸️  Ставка %s[%d] уже собрана, клик игнорируется" % [bet_type, position_index])
+		return true  # Ошибка обработана, выходим
+	
+	# Для ошибки "collect_winning" - уменьшаем терпение гостя и накладываем штраф
+	if validation.error_type == "collect_winning":
+		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+		if sector >= 1 and sector <= 6:
+			var guest_id = sector
+			var patience_before = GuestStatsManager.get_guest_patience(guest_id)
+			
+			# Уменьшаем терпение на 10%
+			GuestStatsManager.decrease_patience(guest_id, 10)
+			var patience_after = GuestStatsManager.get_guest_patience(guest_id)
+			
+			DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-10%%) из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, patience_before, patience_after, bet_type, position_index])
+			
+			# Определяем штраф в зависимости от терпения ДО уменьшения
+			if patience_before == 100:
+				# Терпение было 100% - ошибка прощается (ничего не отнимаем)
+				DebugLogger.log("  ✅ Терпение было 100% - ошибка прощена")
+			elif patience_after == 0:
+				# Терпение стало 0% - отнимаем сердце
+				EventBus.action_error.emit(validation.error_type, validation.error_message)
+				DebugLogger.log("  ❌ Терпение = 0% - отнимается сердце")
+			else:
+				# Терпение стало < 100% - пытаемся отнять 100 чаевых
+				var current_tips = SaveManager.instance.score
+				if current_tips >= 100:
+					# Чаевых достаточно - отнимаем 100
+					SaveManager.instance.subtract_score(100)
+					if StatsManager.instance:
+						StatsManager.instance.update_stats()
+					# Показываем оповещение о штрафе
+					if FeedbackAnimationManager:
+						FeedbackAnimationManager.show_penalty(100)
+					DebugLogger.log("  💰 Отнято 100 чаевых (осталось %d)" % SaveManager.instance.score)
+				else:
+					# Чаевых недостаточно - отнимаем сердце
+					EventBus.action_error.emit(validation.error_type, validation.error_message)
+					DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) - отнимается сердце" % current_tips)
+		
+		# Показываем сообщение об ошибке
+		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+		EventBus.show_toast_error.emit(error_msg)
+		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+		return true  # Ошибка обработана, выходим
+	
+	# Для остальных ошибок - показываем тост и отнимаем жизнь
+	var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+	EventBus.show_toast_error.emit(error_message)
+	EventBus.action_error.emit(validation.error_type, error_message)
+	DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+	return true  # Ошибка обработана, выходим
+
+func _handle_collect_action(bet_type: String, position_index: int) -> void:
+	"""Обработать действие "collect" (собрать проигрышную ставку)
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции фишки
+	"""
+	# Собираем проигрышную ставку
+	bet_collection_manager.collect_bet(bet_type, position_index)
+	
+	# Обновляем баланс гостя при сборе проигрышной ставки
+	if update_guest_balance_on_collect_callback.is_valid():
+		update_guest_balance_on_collect_callback.call(bet_type, position_index)
+	
+	# Скрываем конкретную фишку по position_index (работает для всех режимов)
+	if chip_visual_manager:
+		chip_visual_manager.hide_chip_instance(bet_type, position_index)
+	DebugLogger.log("  ✅ Ставка %s[%d] собрана" % [bet_type, position_index])
+	
+	# Если кнопка "Завершить" была broken - восстанавливаем
+	if ui_manager and ui_manager.button_ui.is_action_button_broken():
+		ui_manager.enable_action_button()
+		DebugLogger.log("  🔓 Кнопка 'Завершить' восстановлена")
+
+func _handle_pay_action(bet_type: String, position_index: int) -> void:
+	"""Обработать действие "pay" (оплатить выигрышную ставку)
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции фишки
+	"""
+	print("💰 _handle_pay_action: %s[%d]" % [bet_type, position_index])
+	
+	# ВАЖНО: Используем payout_queue_manager из bet_collection_manager,
+	# так как он обновляется через setup() при каждом новом раунде
+	var queue_manager = bet_collection_manager.payout_queue_manager if bet_collection_manager else payout_queue_manager
+	
+	if not queue_manager:
+		print("❌ payout_queue_manager is null!")
+		return
+	
+	var bet = queue_manager.get_bet_by_id(bet_type, position_index)
+	print("🔍 Поиск ставки в очереди: %s[%d] → %s" % [bet_type, position_index, "найдена" if bet else "не найдена"])
+	if not bet:
+		# Для обратной совместимости пробуем по типу
+		bet = queue_manager.get_bet_by_type(bet_type)
+		print("🔍 Fallback поиск по типу: %s → %s" % [bet_type, "найдена" if bet else "не найдена"])
+	if not bet:
+		print("❌ Ставка не найдена в очереди выплат, не можем оплатить")
+		# Логируем все ставки в очереди для отладки
+		print("  📋 Все ставки в очереди:")
+		for b in queue_manager.get_all_bets():
+			print("    → %s[%d], won=%s, collected=%s" % [b.get_bet_type(), b.get_position_index(), b.is_won(), b.is_collected()])
+		return
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМА ВЫПЛАТ
+	# ═══════════════════════════════════════════════════════════════════
+	if use_overlay_payout:
+		# НОВЫЙ СПОСОБ: показать overlay поверх Game.tscn
+		if show_payout_overlay_callback.is_valid():
+			show_payout_overlay_callback.call(bet_type, position_index, bet.get_stake(), bet.get_payout())
+	else:
+		# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
+		if open_payout_scene_callback.is_valid():
+			open_payout_scene_callback.call(bet_type)
+

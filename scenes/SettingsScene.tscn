@@ -269,9 +269,4 @@ theme_override_constants/separation = 20
 [node name="ApplyButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ControlButtons"]
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
-text = "Применить"
-
-[node name="CancelButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ControlButtons"]
-custom_minimum_size = Vector2(150, 50)
-layout_mode = 2
-text = "Отменить"
+text = "ОК"
