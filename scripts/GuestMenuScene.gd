@@ -783,13 +783,32 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event is InputEventKey:
 		return
 	
+	var key_event = event as InputEventKey
+	
+	if not key_event.pressed or key_event.echo:
+		return
+	
+	# Escape в меню гостей → закрыть меню
+	if key_event.keycode == KEY_ESCAPE:
+		close_menu()
+		get_viewport().set_input_as_handled()
+		return
+	
 	if not keyboard_navigator:
 		return
 	
-	var key_event = event as InputEventKey
-	
 	# Проверяем, открыто ли выпадающее меню (обновляем состояние навигатора)
 	_check_dropdown_state()
+	
+	# Если выпадающее меню открыто, пропускаем события стрелок вверх/вниз и пробел,
+	# чтобы они дошли до OptionButton для навигации по пунктам меню
+	if keyboard_navigator and keyboard_navigator.is_dropdown_open:
+		# Блокируем только горизонтальные стрелки (влево/вправо), остальные пропускаем
+		if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D]:
+			get_viewport().set_input_as_handled()
+			return
+		# Для остальных клавиш (вверх/вниз, пробел) не обрабатываем, позволяем дойти до OptionButton
+		return
 	
 	# Проверяем, нужно ли активировать режим клавиатуры
 	if not keyboard_navigator.is_active:
@@ -840,15 +859,27 @@ func _check_dropdown_state() -> void:
 	
 	var is_open = false
 	
-	if character_option and character_option.has_focus():
+	# Проверяем CharacterOption и его popup
+	if character_option:
 		var popup = character_option.get_popup()
 		if popup and popup.visible:
 			is_open = true
+		# Также проверяем, имеет ли OptionButton или его popup фокус
+		elif character_option.has_focus():
+			var popup_check = character_option.get_popup()
+			if popup_check and popup_check.visible:
+				is_open = true
 	
-	if wealth_option and wealth_option.has_focus():
+	# Проверяем WealthOption и его popup
+	if wealth_option:
 		var popup = wealth_option.get_popup()
 		if popup and popup.visible:
 			is_open = true
+		# Также проверяем, имеет ли OptionButton или его popup фокус
+		elif wealth_option.has_focus():
+			var popup_check = wealth_option.get_popup()
+			if popup_check and popup_check.visible:
+				is_open = true
 	
 	keyboard_navigator.set_dropdown_open(is_open)
 
@@ -1034,10 +1065,18 @@ func _activate_dossier_button() -> void:
 			if character_option:
 				character_option.grab_focus()
 				character_option.show_popup()
+				# Убеждаемся, что popup получает фокус для обработки клавиатуры
+				var popup = character_option.get_popup()
+				if popup:
+					popup.grab_focus()
 		GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION:
 			if wealth_option:
 				wealth_option.grab_focus()
 				wealth_option.show_popup()
+				# Убеждаемся, что popup получает фокус для обработки клавиатуры
+				var popup = wealth_option.get_popup()
+				if popup:
+					popup.grab_focus()
 	
 	# Обновляем состояние выпадающего меню
 	_check_dropdown_state()

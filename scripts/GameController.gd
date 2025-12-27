@@ -851,6 +851,39 @@ func _on_restart_game():
 		game_state_controller.restart_game()
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТКА КЛАВИАТУРЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _unhandled_input(event: InputEvent) -> void:
+	"""Обработка клавиатурного ввода"""
+	if not event is InputEventKey:
+		return
+	
+	if not event.pressed or event.echo:
+		return
+	
+	# Escape во время игры → открыть/закрыть меню
+	if event.keycode == KEY_ESCAPE:
+		# Проверяем, не открыто ли меню гостей (приоритет выше)
+		var guest_menu = get_node_or_null("GuestMenuScene")
+		if guest_menu and guest_menu.visible:
+			# Если меню гостей открыто, закрываем его
+			guest_menu.close_menu()
+			get_viewport().set_input_as_handled()
+			return
+		
+		# Проверяем, не открыто ли меню настроек
+		if settings_scene and settings_scene.visible:
+			# Если меню открыто, закрываем его
+			settings_scene.close_settings()
+		else:
+			# Если меню закрыто, открываем его
+			if settings_scene:
+				settings_scene.open_settings()
+		get_viewport().set_input_as_handled()
+		return
+
+# ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ
 # ═══════════════════════════════════════════════════════════════════════════
 
