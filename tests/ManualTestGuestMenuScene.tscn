@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://cml1bxqufox1t"]
+
+[ext_resource type="Script" uid="uid://cw2n0q6dnffp6" path="res://tests/manual_test_GuestMenuScene.gd" id="1_manual_test"]
+
+[node name="ManualTestGuestMenuScene" type="Node"]
+script = ExtResource("1_manual_test")
