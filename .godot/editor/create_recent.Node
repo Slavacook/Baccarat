@@ -1,3 +1,4 @@
+HSeparator
 TextureRect
 Node2D
 TextureButton
@@ -8,7 +9,6 @@ HBoxContainer
 VBoxContainer
 ColorRect
 CanvasLayer
-HSeparator
 OptionButton
 CheckBox
 MarginContainer

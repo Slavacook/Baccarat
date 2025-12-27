@@ -70,6 +70,10 @@ var text_updater: GuestMenuTextUpdater
 # Рендерер балансов (инкапсулирует логику отображения балансов)
 var balance_renderer: GuestMenuBalanceRenderer
 
+# Последний выделенный объект (для восстановления фокуса при активации клавиатуры)
+var last_selected_level: GuestMenuKeyboardNavigator.NavigationLevel = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+var last_selected_guest_id: int = 0
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -258,9 +262,11 @@ func _connect_signals():
 	# Общие OptionButton для характера и обеспеченности
 	if character_option:
 		character_option.item_selected.connect(_on_character_selected)
+		character_option.gui_input.connect(_on_character_option_gui_input)
 	
 	if wealth_option:
 		wealth_option.item_selected.connect(_on_wealth_selected)
+		wealth_option.gui_input.connect(_on_wealth_option_gui_input)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -279,6 +285,10 @@ func open_menu():
 	# Сбрасываем состояние клавиатуры через навигатор
 	if keyboard_navigator:
 		keyboard_navigator.reset()
+	
+	# Сбрасываем информацию о последнем выделенном объекте
+	last_selected_level = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+	last_selected_guest_id = 0
 	
 	# Обновляем видимость всех элементов
 	_update_all_guests_visibility()
@@ -457,6 +467,10 @@ func _on_guest_slot_gui_input(event: InputEvent, guest_id: int):
 	if menu_state:
 		menu_state.clear_hover()
 	
+	# Сохраняем информацию о выделенном объекте (гость)
+	last_selected_level = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+	last_selected_guest_id = guest_id
+	
 	if not menu_state:
 		return
 	
@@ -490,6 +504,40 @@ func _on_guest_slot_gui_input(event: InputEvent, guest_id: int):
 # ОБРАБОТЧИКИ СОБЫТИЙ - OPTIONBUTTON
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _on_character_option_gui_input(event: InputEvent):
+	"""Обработка клика по OptionButton характера"""
+	if not event is InputEventMouseButton:
+		return
+	
+	var mouse_event = event as InputEventMouseButton
+	if not mouse_event.pressed or mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	
+	# Сохраняем информацию о выделенном объекте (OptionButton характера)
+	last_selected_level = GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION
+	last_selected_guest_id = menu_state.get_selected_guest() if menu_state else 0
+	
+	# Деактивируем режим клавиатуры при клике мышью
+	if keyboard_navigator:
+		keyboard_navigator.deactivate()
+
+func _on_wealth_option_gui_input(event: InputEvent):
+	"""Обработка клика по OptionButton обеспеченности"""
+	if not event is InputEventMouseButton:
+		return
+	
+	var mouse_event = event as InputEventMouseButton
+	if not mouse_event.pressed or mouse_event.button_index != MOUSE_BUTTON_LEFT:
+		return
+	
+	# Сохраняем информацию о выделенном объекте (OptionButton обеспеченности)
+	last_selected_level = GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION
+	last_selected_guest_id = menu_state.get_selected_guest() if menu_state else 0
+	
+	# Деактивируем режим клавиатуры при клике мышью
+	if keyboard_navigator:
+		keyboard_navigator.deactivate()
+
 func _on_character_selected(index: int):
 	"""Обработка выбора характера для выбранного гостя"""
 	if not menu_state:
@@ -520,6 +568,10 @@ func _on_wealth_selected(index: int):
 
 func _on_ok_pressed():
 	"""Обработка нажатия кнопки ОК"""
+	# Сохраняем информацию о выделенном объекте (кнопка OK)
+	last_selected_level = GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON
+	last_selected_guest_id = 0
+	
 	# Если нажали мышью, деактивируем режим клавиатуры
 	if keyboard_navigator:
 		keyboard_navigator.deactivate()
@@ -603,6 +655,120 @@ func _is_dossier_visible() -> bool:
 		return false
 	return GuestSettingsManager.is_guest_enabled(selected_id)
 
+func _calculate_next_target(level: GuestMenuKeyboardNavigator.NavigationLevel, guest_id: int, direction: String) -> Dictionary:
+	"""Вычислить следующий объект в направлении нажатой клавиши
+	
+	Args:
+		level: Текущий уровень навигации
+		guest_id: Текущий ID гостя (0 если не применимо)
+		direction: Направление ("left", "right", "up", "down")
+	
+	Returns:
+		Dictionary с ключами "level" и "guest_id"
+	"""
+	var result = {
+		"level": level,
+		"guest_id": guest_id
+	}
+	
+	match direction:
+		"left", "right":
+			var dir = 1 if direction == "right" else -1
+			match level:
+				GuestMenuKeyboardNavigator.NavigationLevel.GUESTS:
+					# Навигация по гостям закольцовано
+					var new_guest_id = guest_id + dir
+					if new_guest_id < 1:
+						new_guest_id = 6
+					elif new_guest_id > 6:
+						new_guest_id = 1
+					result.guest_id = new_guest_id
+				GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION, GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION:
+					# Переключение между включёнными гостями
+					var active_guests = GuestSettingsManager.get_active_guests()
+					if active_guests.is_empty():
+						# Если нет включённых гостей, остаёмся на месте
+						pass
+					else:
+						# Находим текущего гостя в списке
+						var current_index = -1
+						var selected_id = menu_state.get_selected_guest() if menu_state else 0
+						for i in range(active_guests.size()):
+							if active_guests[i] == selected_id:
+								current_index = i
+								break
+						
+						# Если текущий гость не в списке, берём первого
+						if current_index == -1:
+							current_index = 0
+						
+						# Переключаемся на следующего/предыдущего (закольцовано)
+						current_index += dir
+						if current_index < 0:
+							current_index = active_guests.size() - 1
+						elif current_index >= active_guests.size():
+							current_index = 0
+						
+						var new_guest_id = active_guests[current_index]
+						result.guest_id = new_guest_id
+						# Уровень остаётся тем же (CHARACTER_OPTION или WEALTH_OPTION)
+				GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON:
+					# Игнорируем влево/вправо на кнопке OK
+					pass
+		
+		"up":
+			match level:
+				GuestMenuKeyboardNavigator.NavigationLevel.GUESTS:
+					result.level = GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON
+				GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION:
+					# Переход на уровень гостей (на текущего гостя, чьё досье открыто)
+					result.level = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+					var selected_id = menu_state.get_selected_guest() if menu_state else 0
+					if selected_id > 0:
+						result.guest_id = selected_id
+				GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION:
+					result.level = GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION
+				GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON:
+					# Если досье видно → уровень 2, иначе → уровень 4 (на гостя 1)
+					if _is_dossier_visible():
+						result.level = GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION
+					else:
+						result.level = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+						result.guest_id = 1
+		
+		"down":
+			match level:
+				GuestMenuKeyboardNavigator.NavigationLevel.GUESTS:
+					# Если досье открыто → уровень 3, иначе → уровень 1
+					if _is_dossier_visible():
+						result.level = GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION
+					else:
+						result.level = GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON
+				GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION:
+					result.level = GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION
+				GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION:
+					result.level = GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON
+				GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON:
+					# Всегда переход на уровень гостей (закольцовывание)
+					result.level = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+					# Если досье видно, переходим на выбранного гостя, иначе на гостя 1
+					if _is_dossier_visible():
+						var selected_id = menu_state.get_selected_guest() if menu_state else 0
+						result.guest_id = selected_id if selected_id > 0 else 1
+					else:
+						result.guest_id = 1
+	
+	# Проверяем доступность уровней 2 и 3 (OptionButton доступны только если досье видно)
+	if result.level == GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION or result.level == GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION:
+		if not _is_dossier_visible():
+			# Уровни 2 и 3 недоступны, переключаемся на доступный уровень
+			if result.level == GuestMenuKeyboardNavigator.NavigationLevel.WEALTH_OPTION:
+				result.level = GuestMenuKeyboardNavigator.NavigationLevel.GUESTS
+			elif result.level == GuestMenuKeyboardNavigator.NavigationLevel.CHARACTER_OPTION:
+				result.level = GuestMenuKeyboardNavigator.NavigationLevel.OK_BUTTON
+	
+	return result
+
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНОЕ УПРАВЛЕНИЕ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -629,12 +795,39 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not keyboard_navigator.is_active:
 		# Активируем при первом нажатии стрелок/WASD
 		if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_A, KEY_D, KEY_W, KEY_S]:
-			var selected_id = menu_state.get_selected_guest() if menu_state else 0
-			keyboard_navigator.activate(selected_id)
-			if menu_state:
-				menu_state.clear_hover()  # Сбрасываем hover от мыши
-			get_viewport().set_input_as_handled()
-			return
+			# Определяем направление
+			var direction: String = ""
+			match key_event.keycode:
+				KEY_LEFT, KEY_A:
+					direction = "left"
+				KEY_RIGHT, KEY_D:
+					direction = "right"
+				KEY_UP, KEY_W:
+					direction = "up"
+				KEY_DOWN, KEY_S:
+					direction = "down"
+			
+			if direction != "":
+				# Используем последний выделенный объект, если он был, иначе используем выбранного гостя или первого гостя
+				var current_level = last_selected_level
+				var current_guest_id = last_selected_guest_id
+				
+				# Если не было выделенного объекта, используем выбранного гостя или первого гостя
+				if current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS and current_guest_id == 0:
+					current_guest_id = menu_state.get_selected_guest() if menu_state else 0
+					if current_guest_id == 0:
+						current_guest_id = 1
+				
+				# Вычисляем следующий объект в направлении нажатой клавиши
+				var next_target = _calculate_next_target(current_level, current_guest_id, direction)
+				var target_level = next_target.level
+				var target_guest_id = next_target.guest_id
+				
+				keyboard_navigator.activate_with_level(target_level, target_guest_id)
+				if menu_state:
+					menu_state.clear_hover()  # Сбрасываем hover от мыши
+				get_viewport().set_input_as_handled()
+				return
 	
 	# Обрабатываем через навигатор
 	if keyboard_navigator.handle_input(key_event):

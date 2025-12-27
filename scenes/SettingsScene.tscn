@@ -162,10 +162,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Пара Банкира"
 
+[node name="HSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+layout_mode = 2
+
 [node name="GuestSettingsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-text = "Ставки"
+text = "ГОСТИ"
 
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
 layout_mode = 2

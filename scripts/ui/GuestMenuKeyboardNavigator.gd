@@ -71,15 +71,36 @@ func reset():
 	is_dropdown_open = false
 
 func activate(selected_guest_id: int):
-	"""Активировать режим клавиатуры"""
+	"""Активировать режим клавиатуры (старый метод для обратной совместимости)"""
+	activate_with_level(NavigationLevel.GUESTS, selected_guest_id)
+
+func activate_with_level(level: NavigationLevel, guest_id: int):
+	"""Активировать режим клавиатуры с указанным уровнем и ID гостя"""
 	is_active = true
-	current_level = NavigationLevel.GUESTS
 	
-	# Если есть выбранный гость, фокус на нём, иначе на госте 1
-	if selected_guest_id > 0:
-		focused_guest_id = selected_guest_id
+	# Проверяем доступность уровней 2 и 3 (OptionButton доступны только если досье видно)
+	var target_level = level
+	if target_level == NavigationLevel.WEALTH_OPTION or target_level == NavigationLevel.CHARACTER_OPTION:
+		var dossier_visible = _is_dossier_visible()
+		if not dossier_visible:
+			# Уровни 2 и 3 недоступны, переключаемся на доступный уровень
+			if target_level == NavigationLevel.WEALTH_OPTION:
+				target_level = NavigationLevel.GUESTS
+			elif target_level == NavigationLevel.CHARACTER_OPTION:
+				target_level = NavigationLevel.OK_BUTTON
+	
+	current_level = target_level
+	
+	# Устанавливаем focused_guest_id в зависимости от уровня
+	if target_level == NavigationLevel.GUESTS:
+		# Если есть выбранный гость, фокус на нём, иначе на госте 1
+		if guest_id > 0:
+			focused_guest_id = guest_id
+		else:
+			focused_guest_id = 1
 	else:
-		focused_guest_id = 1
+		# Для других уровней сохраняем ID гостя (может быть 0)
+		focused_guest_id = guest_id
 	
 	# Обновляем видимость
 	if update_visibility_callback.is_valid():
