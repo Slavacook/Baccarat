@@ -47,6 +47,15 @@ var stack_manager: ChipStackManager  # Управление стопками ф�
 var validator: PayoutValidator       # Валидация выплаты
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ENUM: Уровни и элементы фокуса
+# ═══════════════════════════════════════════════════════════════════════════
+
+enum FocusLevel {
+	BOTTOM,  # Нижний уровень: фишки + кнопка "Выплатить"
+	TOP      # Верхний уровень: кнопка "Подсказка"
+}
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -60,6 +69,12 @@ var hint_purchased: bool = false   # Флаг покупки подсказки 
 # ← Состояние игры (передаётся через show_payout(), без get_parent())
 var is_survival_mode: bool = false  # Режим выживания
 var current_lives: int = 7          # Текущее количество жизней (для survival mode)
+
+# ← Клавиатурная навигация
+var focus_level: FocusLevel = FocusLevel.BOTTOM  # Текущий уровень навигации
+var focus_index: int = -1  # Индекс элемента в фокусе на текущем уровне (-1 = нет фокуса)
+var is_keyboard_active: bool = false  # Активна ли клавиатурная навигация
+var focus_frame: FocusFrameUI = null  # Рамка фокуса
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -117,6 +132,18 @@ func _ready():
 
 	# Обновляем отображение очков
 	_update_score_display()
+	
+	# Инициализируем систему навигации
+	_initialize_keyboard_navigation()
+	
+	# Подключаем обработчики мыши для сброса фокуса
+	_connect_mouse_handlers()
+	
+	# Инициализируем систему навигации
+	_initialize_keyboard_navigation()
+	
+	# Подключаем обработчики мыши для сброса фокуса
+	_connect_mouse_handlers()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА КЛАВИАТУРЫ
@@ -135,13 +162,24 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	
 	var key_event = event as InputEventKey
+	
+	# Обработка клавиш навигации
+	if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_A, KEY_D, KEY_W, KEY_S]:
+		_handle_navigation_input(key_event)
+		get_viewport().set_input_as_handled()
+		return
+	
+	# Обработка пробела
 	if key_event.keycode == KEY_SPACE:
-		# ВСЕГДА поглощаем пробел когда overlay видим (защита от двойного нажатия)
 		get_viewport().set_input_as_handled()
 		
-		# Вызываем обработчик только если кнопка не заблокирована
-		if not is_button_blocked and not payout_button.disabled:
-			_on_payout_pressed()
+		# Если есть фокус - действие на элементе в фокусе
+		if is_keyboard_active and focus_index >= 0:
+			_handle_focus_action()
+		else:
+			# Если нет фокуса - всегда "Выплатить"
+			if not is_button_blocked and not payout_button.disabled:
+				_on_payout_pressed()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -171,11 +209,15 @@ func setup_payout(winner: String, stake: float, payout: float):
 
 # ← Обработка клика на номинал фишки (добавление)
 func _on_chip_clicked(denomination: float):
+	# Сбрасываем клавиатурную навигацию при клике мышью
+	_clear_keyboard_focus()
 	stack_manager.add_chip(denomination)
 
 # ← Обработка правого клика по кнопке фишки (удаление)
 func _on_chip_button_input(event: InputEvent, denomination: float):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
+		# Сбрасываем клавиатурную навигацию при клике мышью
+		_clear_keyboard_focus()
 		stack_manager.remove_chip(denomination)
 
 # ← Обработчик добавления новой стопки (подключаем обработчик кликов)
@@ -186,6 +228,8 @@ func _on_stack_added(stack: ChipStack, _index: int):
 # ← Обработка клика на стопку (удаление из последнего стека)
 func _on_stack_clicked(event: InputEvent, stack: ChipStack):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		# Сбрасываем клавиатурную навигацию при клике мышью
+		_clear_keyboard_focus()
 		stack_manager.remove_chip(stack.denomination)
 
 # ← Обновление суммы при изменении стопок
@@ -740,6 +784,13 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	# Устанавливаем контекст выплат
 	InputContextManager.set_context(InputContextManager.InputContext.PAYOUT)
 	
+	# Сбрасываем клавиатурную навигацию при открытии окна
+	_clear_keyboard_focus()
+	
+	# Убеждаемся, что FocusFrame создан
+	if not focus_frame:
+		_create_focus_frame()
+	
 	# Сохраняем состояние игры (вместо get_parent())
 	is_survival_mode = is_survival
 	current_lives = lives
@@ -794,9 +845,221 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	
 	# Скрываем overlay
 	hide()
+	
+	# Сбрасываем клавиатурную навигацию при закрытии
+	_clear_keyboard_focus()
 
 	DebugLogger.log("💰 PayoutOverlay скрыт: bet_type=%s, correct=%s, collected=%.1f, expected=%.1f" % [current_winner, is_correct, collected, expected])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
+
+func _initialize_keyboard_navigation() -> void:
+	"""Инициализация системы клавиатурной навигации"""
+	# Создаём FocusFrame прямо в PayoutOverlay (CanvasLayer)
+	_create_focus_frame()
+	
+	# Изначально навигация неактивна (управление мышью)
+	is_keyboard_active = false
+	focus_index = -1
+	focus_level = FocusLevel.BOTTOM
+
+func _create_focus_frame() -> void:
+	"""Создать FocusFrameUI для PayoutOverlay (в том же CanvasLayer)"""
+	if focus_frame:
+		return  # Уже создан
+	
+	# Проверяем, нет ли уже FocusFrame в PayoutOverlay
+	var existing = find_child("PayoutFocusFrame", true, false)
+	if existing:
+		focus_frame = existing as FocusFrameUI
+		return
+	
+	# Создаём новый FocusFrameUI
+	focus_frame = FocusFrameUI.new()
+	focus_frame.name = "PayoutFocusFrame"
+	
+	# Добавляем в PayoutOverlay (CanvasLayer)
+	# Нужно добавить в корневой элемент (ColorRect), чтобы рамка была в той же системе координат
+	var color_rect = get_node_or_null("ColorRect")
+	if color_rect:
+		color_rect.add_child(focus_frame)
+		# Устанавливаем z_index чтобы рамка была поверх всех элементов
+		focus_frame.z_index = 1000
+		print("🔲 PayoutOverlay: FocusFrame создан в ColorRect, z_index=%d" % focus_frame.z_index)
+	else:
+		# Если ColorRect не найден, добавляем в сам CanvasLayer
+		add_child(focus_frame)
+		focus_frame.z_index = 1000
+		print("🔲 PayoutOverlay: FocusFrame создан в CanvasLayer, z_index=%d" % focus_frame.z_index)
+
+func _clear_keyboard_focus() -> void:
+	"""Сбросить клавиатурный фокус (при использовании мыши)"""
+	is_keyboard_active = false
+	focus_index = -1
+	if focus_frame:
+		focus_frame.hide_frame()
+
+func _activate_keyboard_navigation() -> void:
+	"""Активировать клавиатурную навигацию"""
+	if is_keyboard_active:
+		return
+	
+	# Проверка безопасности: если chip_denominations пуст, не активируем навигацию
+	if chip_denominations.is_empty():
+		push_warning("PayoutOverlay: Невозможно активировать навигацию - chip_denominations пуст")
+		return
+	
+	is_keyboard_active = true
+	focus_level = FocusLevel.BOTTOM
+	# Устанавливаем фокус на 5-ю фишку (индекс 4, так как начинается с 0)
+	focus_index = 4
+	if focus_index >= chip_denominations.size():
+		# Если фишек меньше 5, берем последнюю
+		focus_index = chip_denominations.size() - 1
+	if focus_index < 0:
+		focus_index = 0
+	
+	_update_focus_frame()
+
+func _handle_navigation_input(key_event: InputEventKey) -> void:
+	"""Обработка навигации клавиатурой"""
+	# Если навигация не активна - активируем
+	if not is_keyboard_active:
+		_activate_keyboard_navigation()
+		return
+	
+	# Обрабатываем навигацию в зависимости от нажатой клавиши
+	match key_event.keycode:
+		KEY_LEFT, KEY_A:
+			_navigate_left()
+		KEY_RIGHT, KEY_D:
+			_navigate_right()
+		KEY_UP, KEY_W:
+			_navigate_up()
+		KEY_DOWN, KEY_S:
+			_navigate_down()
+	
+	_update_focus_frame()
+
+func _navigate_left() -> void:
+	"""Навигация влево (предыдущий элемент на текущем уровне)"""
+	if focus_level == FocusLevel.BOTTOM:
+		# На нижнем уровне: фишки + кнопка выплатить
+		var total_items = chip_denominations.size() + 1  # +1 для кнопки выплатить
+		focus_index = (focus_index - 1 + total_items) % total_items
+	elif focus_level == FocusLevel.TOP:
+		# На верхнем уровне только кнопка подсказки (ничего не делаем)
+		pass
+
+func _navigate_right() -> void:
+	"""Навигация вправо (следующий элемент на текущем уровне)"""
+	if focus_level == FocusLevel.BOTTOM:
+		# На нижнем уровне: фишки + кнопка выплатить
+		var total_items = chip_denominations.size() + 1  # +1 для кнопки выплатить
+		focus_index = (focus_index + 1) % total_items
+	elif focus_level == FocusLevel.TOP:
+		# На верхнем уровне только кнопка подсказки (ничего не делаем)
+		pass
+
+func _navigate_up() -> void:
+	"""Навигация вверх (переключение на верхний уровень)"""
+	if focus_level == FocusLevel.BOTTOM:
+		# Переходим на верхний уровень (кнопка подсказки)
+		focus_level = FocusLevel.TOP
+		focus_index = 0  # На верхнем уровне только один элемент
+
+func _navigate_down() -> void:
+	"""Навигация вниз (переключение на нижний уровень или удаление фишки)"""
+	if focus_level == FocusLevel.BOTTOM:
+		# Если фокус на фишке - удаляем фишку этого номинала
+		if focus_index < chip_denominations.size():
+			var denomination = chip_denominations[focus_index]
+			# Проверяем, есть ли стек с таким номиналом перед удалением
+			var has_stack = false
+			for stack in stack_manager.get_stacks():
+				if stack.denomination == denomination:
+					has_stack = true
+					break
+			if has_stack:
+				stack_manager.remove_chip(denomination)
+	elif focus_level == FocusLevel.TOP:
+		# Переходим на нижний уровень
+		focus_level = FocusLevel.BOTTOM
+		# Сохраняем последний индекс или устанавливаем на 5-ю фишку
+		if focus_index < 0 or focus_index >= chip_denominations.size() + 1:
+			focus_index = 4
+			if focus_index >= chip_denominations.size():
+				focus_index = chip_denominations.size() - 1
+			if focus_index < 0:
+				focus_index = 0
+
+func _update_focus_frame() -> void:
+	"""Обновить позицию рамки фокуса"""
+	if not is_keyboard_active or focus_index < 0:
+		if focus_frame:
+			focus_frame.hide_frame()
+		return
+	
+	if not focus_frame:
+		_create_focus_frame()
+	
+	if not focus_frame:
+		return
+	
+	var target_node: Control = null
+	
+	if focus_level == FocusLevel.BOTTOM:
+		if focus_index < chip_denominations.size():
+			# Фокус на фишке
+			var chip_buttons = chip_fleet_container.get_children()
+			if focus_index < chip_buttons.size():
+				target_node = chip_buttons[focus_index] as Control
+		else:
+			# Фокус на кнопке "Выплатить"
+			target_node = payout_button
+	elif focus_level == FocusLevel.TOP:
+		# Фокус на кнопке "Подсказка"
+		target_node = hint_button
+	
+	if target_node:
+		print("🔲 PayoutOverlay: Показываем рамку на элементе: %s, позиция: %s" % [target_node.name, target_node.position])
+		focus_frame.show_on_node(target_node)
+	else:
+		focus_frame.hide_frame()
+
+func _connect_mouse_handlers() -> void:
+	"""Подключить обработчики мыши для сброса клавиатурного фокуса"""
+	if payout_button and not payout_button.gui_input.is_connected(_on_payout_button_mouse_input):
+		payout_button.gui_input.connect(_on_payout_button_mouse_input)
+	if hint_button and not hint_button.gui_input.is_connected(_on_hint_button_mouse_input):
+		hint_button.gui_input.connect(_on_hint_button_mouse_input)
+
+func _on_payout_button_mouse_input(event: InputEvent) -> void:
+	"""Обработка ввода мыши на кнопке выплаты"""
+	if event is InputEventMouseButton and event.pressed:
+		_clear_keyboard_focus()
+
+func _on_hint_button_mouse_input(event: InputEvent) -> void:
+	"""Обработка ввода мыши на кнопке подсказки"""
+	if event is InputEventMouseButton and event.pressed:
+		_clear_keyboard_focus()
+
+func _handle_focus_action() -> void:
+	"""Обработать действие на элементе в фокусе (пробел)"""
+	if not is_keyboard_active or focus_index < 0:
+		return
+	
+	if focus_level == FocusLevel.BOTTOM:
+		if focus_index < chip_denominations.size():
+			# Добавляем фишку выбранного номинала
+			var denomination = chip_denominations[focus_index]
+			stack_manager.add_chip(denomination)
+		else:
+			# Нажимаем кнопку "Выплатить"
+			if not is_button_blocked and not payout_button.disabled:
+				_on_payout_pressed()
+	elif focus_level == FocusLevel.TOP:
+		# Нажимаем кнопку "Подсказка"
+		_on_hint_pressed()
