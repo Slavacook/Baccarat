@@ -24,3 +24,15 @@ func _on_restart_pressed():
 	hide()
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")
 
+func _unhandled_input(event: InputEvent) -> void:
+	"""Обработка клавиатурного ввода"""
+	# Обрабатываем только когда overlay видим
+	if not visible:
+		return
+	
+	if event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode == KEY_SPACE:
+			# При Game Over нажатие пробела → рестарт игры
+			get_viewport().set_input_as_handled()
+			_on_restart_pressed()
+

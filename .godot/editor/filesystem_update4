@@ -13,3 +13,4 @@ res://scripts/ui/GuestBalanceIndicatorManager.gd
 res://scripts/ui/GuestPatienceIndicatorManager.gd
 res://scripts/ChipVisualManager.gd
 res://scripts/GuestSectorMapper.gd
+res://scripts/GameOverScene.gd

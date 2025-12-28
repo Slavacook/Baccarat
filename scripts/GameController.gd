@@ -862,6 +862,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not event.pressed or event.echo:
 		return
 	
+	# Space при Game Over → рестарт игры
+	if event.keycode == KEY_SPACE:
+		if game_state_controller and not game_state_controller.is_game_active():
+			# Game Over - рестарт игры
+			_on_restart_game()
+			# Скрываем Game Over overlay
+			if game_over_popup and game_over_popup.visible:
+				game_over_popup.hide()
+			get_viewport().set_input_as_handled()
+			return
+	
 	# Escape во время игры → открыть/закрыть меню
 	if event.keycode == KEY_ESCAPE:
 		# Проверяем, не открыто ли меню гостей (приоритет выше)
