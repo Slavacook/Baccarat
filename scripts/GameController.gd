@@ -1790,7 +1790,6 @@ func _disable_life_bet_atmosphere() -> void:
 	
 	# 2. Гости: fade-in 0.5 сек (все одновременно)
 	var tween_guests_fade_in = create_tween()
-	var has_guests_to_show = false
 	for guest_id in range(1, 7):
 		var sprite = guest_sprites.get(guest_id)
 		if sprite:
@@ -1799,7 +1798,6 @@ func _disable_life_bet_atmosphere() -> void:
 				sprite.visible = true
 				sprite.modulate.a = 0.0
 				tween_guests_fade_in.parallel().tween_property(sprite, "modulate:a", 1.0, 0.5)
-				has_guests_to_show = true
 
 func _create_fade_animation(node: Node, from_alpha: float, to_alpha: float, duration: float, callback: Callable = Callable()) -> void:
 	"""Создать fade анимацию для узла"""
