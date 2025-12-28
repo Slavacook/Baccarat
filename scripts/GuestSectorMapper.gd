@@ -14,47 +14,47 @@ class_name GuestSectorMapper
 # Сектор 5: центр-правая
 # Сектор 6: правая часть стола (самый правый)
 #
-# Для Player/Banker в каждом секторе по 2 позиции - используем первую из пары
+# Для каждого сектора используется одна позиция для каждого типа ставки
 
 const SECTOR_POSITIONS = {
 	1: {  # Сектор 1 (самый левый)
-		"Player": [8, 9],      # Индексы из ALTERNATIVE_POSITIONS["Player"]
-		"Banker": [2, 3],      # Индексы из ALTERNATIVE_POSITIONS["Banker"]
+		"Player": [4],         # Индекс из ALTERNATIVE_POSITIONS["Player"]
+		"Banker": [1],         # Индекс из ALTERNATIVE_POSITIONS["Banker"]
 		"Tie": [1],            # Индекс из ALTERNATIVE_POSITIONS["Tie"]
 		"PairPlayer": [1],     # Индекс из ALTERNATIVE_POSITIONS["PairPlayer"]
 		"PairBanker": [1]      # Индекс из ALTERNATIVE_POSITIONS["PairBanker"]
 	},
 	2: {  # Сектор 2
-		"Player": [6, 7],
-		"Banker": [4, 5],
+		"Player": [3],
+		"Banker": [2],
 		"Tie": [2],
 		"PairPlayer": [2],
 		"PairBanker": [2]
 	},
 	3: {  # Сектор 3
-		"Player": [4, 5],
-		"Banker": [6, 7],
+		"Player": [2],
+		"Banker": [3],
 		"Tie": [3],
 		"PairPlayer": [3],
 		"PairBanker": [3]
 	},
 	4: {  # Сектор 4 (центр, основные позиции)
-		"Player": [0, 1],
-		"Banker": [0, 1],
+		"Player": [0],
+		"Banker": [0],
 		"Tie": [0],
 		"PairPlayer": [0],
 		"PairBanker": [0]
 	},
 	5: {  # Сектор 5
-		"Player": [2, 3],
-		"Banker": [8, 9],
+		"Player": [1],
+		"Banker": [4],
 		"Tie": [4],
 		"PairPlayer": [4],
 		"PairBanker": [4]
 	},
 	6: {  # Сектор 6 (самый правый)
-		"Player": [10, 11],
-		"Banker": [9, 10],
+		"Player": [5],
+		"Banker": [5],
 		"Tie": [5],
 		"PairPlayer": [5],
 		"PairBanker": [5]
@@ -94,8 +94,7 @@ static func get_position_index(sector: int, bet_type: String) -> int:
 	if positions.is_empty():
 		return -1
 	
-	# Для Player/Banker используем первую позицию из пары
-	# Для остальных - единственную позицию
+	# Возвращаем первую (и единственную) позицию
 	return positions[0]
 
 # ← Получить координаты позиции для типа ставки в секторе
@@ -162,7 +161,7 @@ static func get_sector_from_position(bet_type: String, position_index: int) -> i
 			continue
 		
 		var positions = sector_data[bet_type]
-		# Проверяем все позиции в секторе (для Player/Banker может быть 2 позиции)
+		# Проверяем позицию в секторе
 		if position_index in positions:
 			return sector
 	

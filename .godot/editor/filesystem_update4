@@ -10,3 +10,6 @@ res://scripts/GamePhaseManager.gd
 res://scenes/Game.tscn
 res://scripts/ui/AreaButton.gd
 res://scripts/ui/GuestBalanceIndicatorManager.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/ChipVisualManager.gd
+res://scripts/GuestSectorMapper.gd
