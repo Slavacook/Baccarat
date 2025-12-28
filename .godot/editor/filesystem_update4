@@ -9,3 +9,4 @@ res://scripts/ui/GuestMenuKeyboardNavigator.gd
 res://scripts/GamePhaseManager.gd
 res://scenes/Game.tscn
 res://scripts/ui/AreaButton.gd
+res://scripts/ui/GuestBalanceIndicatorManager.gd
