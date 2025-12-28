@@ -182,15 +182,6 @@ grow_vertical = 2
 scale = Vector2(0.2, 0.2)
 texture_normal = ExtResource("9_jai3c")
 
-[node name="Background666" type="TextureRect" parent="."]
-visible = false
-offset_left = -1690.0
-offset_top = -1636.0
-offset_right = 4660.0
-offset_bottom = 2464.0
-scale = Vector2(0.72, 0.72)
-texture = ExtResource("11_kbe8o")
-
 [node name="Background5" type="TextureRect" parent="."]
 offset_left = -1690.0
 offset_top = -1636.0
@@ -206,6 +197,14 @@ offset_right = 4692.0
 offset_bottom = 2068.0
 scale = Vector2(0.72, 0.72)
 texture = ExtResource("13_27c7x")
+
+[node name="Background666" type="TextureRect" parent="."]
+offset_left = -1690.0
+offset_top = -1636.0
+offset_right = 4660.0
+offset_bottom = 2464.0
+scale = Vector2(0.72, 0.72)
+texture = ExtResource("11_kbe8o")
 
 [node name="AreaHighlight1" type="TextureButton" parent="."]
 visible = false

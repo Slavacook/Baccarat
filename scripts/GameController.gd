@@ -99,6 +99,20 @@ var game_state_controller: GameStateController
 	$BankerZone/Card1, $BankerZone/Card2, $BankerZone/Card3,
 ]
 
+# Ссылки на узлы гостей и фона
+@onready var background_3: TextureRect = $Background3
+@onready var background_5: TextureRect = $Background5
+@onready var background_666: TextureRect = $Background666
+@onready var guest_sprites: Dictionary = {
+	1: $G_1,
+	2: $G_2,
+	3: $G_3,
+	4: $G_4,
+	5: $G_5,
+	6: $G_6,
+	666: $G_666,
+}
+
 
 
 
@@ -148,6 +162,7 @@ func _ready():
 		EventBus.guest_bets_show_requested.connect(_on_guest_bets_show_requested)
 		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
 		EventBus.heart_bet_declined.connect(_on_heart_bet_declined)
+		EventBus.heart_bet_show_ui.connect(_on_heart_bet_show_ui)
 		
 		# Настройки: включаем action_button при закрытии
 		EventBus.settings_closed.connect(_on_settings_closed)
@@ -157,6 +172,10 @@ func _ready():
 	
 	# Подписка на изменение настроек гостей (для очистки фишек при отключении)
 	GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed)
+	GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed_visibility)
+	
+	# Инициализируем видимость гостей на основе настроек
+	_update_guests_visibility()
 	
 	# Настройка новой системы карт шанса
 	_setup_chance_card_system()
@@ -1654,6 +1673,151 @@ func _on_guest_settings_changed(guest_id: int) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 👥 УПРАВЛЕНИЕ ВИДИМОСТЬЮ ГОСТЕЙ И ФОНА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _update_guests_visibility() -> void:
+	"""Обновить видимость гостей на основе их состояния в GuestSettingsManager"""
+	# Инициализируем обычных гостей (1-6)
+	for guest_id in range(1, 7):
+		var sprite = guest_sprites.get(guest_id)
+		if sprite:
+			var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
+			# Устанавливаем видимость без анимации при инициализации
+			sprite.visible = is_enabled
+			sprite.modulate.a = 1.0 if is_enabled else 0.0
+			print("👥 Гость %d: %s" % [guest_id, "видим" if is_enabled else "скрыт"])
+	
+	# G_666 всегда скрыт в обычном состоянии
+	var guest_666 = guest_sprites.get(666)
+	if guest_666:
+		guest_666.visible = false
+		guest_666.modulate.a = 0.0
+	
+	# Background666 всегда скрыт в обычном состоянии
+	if background_666:
+		background_666.visible = false
+		background_666.modulate.a = 0.0
+
+func _on_guest_settings_changed_visibility(guest_id: int) -> void:
+	"""Обновить видимость гостей при изменении настроек (не во время Heart Bet)"""
+	# Проверяем, не активна ли сейчас игра на жизнь
+	# Если Background666 видим - значит активна мистическая атмосфера
+	if background_666 and background_666.visible:
+		# Во время игры на жизнь не обновляем видимость обычных гостей
+		return
+	
+	# Обновляем видимость конкретного гостя с анимацией
+	var sprite = guest_sprites.get(guest_id)
+	if sprite and guest_id != 666:  # Не трогаем G_666
+		var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
+		if is_enabled:
+			# Fade-in 0.5 сек
+			sprite.visible = true
+			sprite.modulate.a = 0.0
+			_create_fade_animation(sprite, 0.0, 1.0, 0.5)
+			print("👥 Гость %d: fade-in 0.5 сек" % guest_id)
+		else:
+			# Fade-out 0.5 сек
+			_create_fade_animation(sprite, 1.0, 0.0, 0.5, func(): sprite.visible = false)
+			print("👥 Гость %d: fade-out 0.5 сек" % guest_id)
+
+func _enable_life_bet_atmosphere() -> void:
+	"""Включить мистическую атмосферу для игры на жизнь (последовательно)"""
+	print("🔮 Активация мистической атмосферы (игра на жизнь)")
+	
+	# 1. Гости G_1-G_6: fade-out 0.5 сек (все одновременно)
+	var tween_guests = create_tween()
+	var has_visible_guests = false
+	for guest_id in range(1, 7):
+		var sprite = guest_sprites.get(guest_id)
+		if sprite and sprite.visible:
+			tween_guests.parallel().tween_property(sprite, "modulate:a", 0.0, 0.5)
+			has_visible_guests = true
+	
+	# После fade-out скрываем гостей
+	if has_visible_guests:
+		await get_tree().create_timer(0.5).timeout
+		for guest_id in range(1, 7):
+			var sprite = guest_sprites.get(guest_id)
+			if sprite:
+				sprite.visible = false
+	
+	# 2. Background666: fade-in 1 сек
+	if background_666:
+		background_666.visible = true
+		background_666.modulate.a = 0.0
+		var tween_bg = create_tween()
+		tween_bg.tween_property(background_666, "modulate:a", 1.0, 1.0)
+	
+	# Ждём завершения fade-in Background666 (1 сек)
+	await get_tree().create_timer(1.0).timeout
+	
+	# 3. G_666: fade-in 0.5 сек
+	var guest_666 = guest_sprites.get(666)
+	if guest_666:
+		guest_666.visible = true
+		guest_666.modulate.a = 0.0
+		var tween_666 = create_tween()
+		tween_666.tween_property(guest_666, "modulate:a", 1.0, 0.5)
+
+func _disable_life_bet_atmosphere() -> void:
+	"""Вернуть обычную атмосферу после завершения игры на жизнь"""
+	print("🔮 Деактивация мистической атмосферы")
+	
+	# 1. Background666 и G_666: fade-out 1 сек (одновременно)
+	var tween_fade_out = create_tween()
+	var needs_fade_out = false
+	
+	if background_666 and background_666.visible:
+		tween_fade_out.parallel().tween_property(background_666, "modulate:a", 0.0, 1.0)
+		needs_fade_out = true
+	
+	var guest_666 = guest_sprites.get(666)
+	if guest_666 and guest_666.visible:
+		tween_fade_out.parallel().tween_property(guest_666, "modulate:a", 0.0, 1.0)
+		needs_fade_out = true
+	
+	# После fade-out скрываем узлы
+	if needs_fade_out:
+		await get_tree().create_timer(1.0).timeout
+		if background_666:
+			background_666.visible = false
+		if guest_666:
+			guest_666.visible = false
+	
+	# Background3/Background5 остаются видимыми (просто перекрыты слоем выше, проявятся автоматически)
+	
+	# 2. Гости: fade-in 0.5 сек (все одновременно)
+	var tween_guests_fade_in = create_tween()
+	var has_guests_to_show = false
+	for guest_id in range(1, 7):
+		var sprite = guest_sprites.get(guest_id)
+		if sprite:
+			var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
+			if is_enabled:
+				sprite.visible = true
+				sprite.modulate.a = 0.0
+				tween_guests_fade_in.parallel().tween_property(sprite, "modulate:a", 1.0, 0.5)
+				has_guests_to_show = true
+
+func _create_fade_animation(node: Node, from_alpha: float, to_alpha: float, duration: float, callback: Callable = Callable()) -> void:
+	"""Создать fade анимацию для узла"""
+	if not node:
+		return
+	
+	node.modulate.a = from_alpha
+	var tween = create_tween()
+	tween.tween_property(node, "modulate:a", to_alpha, duration)
+	if callback.is_valid():
+		tween.tween_callback(callback)
+
+func _on_heart_bet_show_ui() -> void:
+	"""Обработчик начала игры на жизнь - включить мистическую атмосферу"""
+	_enable_life_bet_atmosphere()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
 # 🎴 НОВАЯ СИСТЕМА КАРТ ШАНСА
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -1714,6 +1878,9 @@ func _on_heart_bet_declined() -> void:
 	if phase_manager:
 		phase_manager._show_guest_bets()
 		print("❤️ GameController: фишки ставок гостей пересозданы после отказа от карты")
+	
+	# Возвращаем обычную атмосферу при отказе
+	_disable_life_bet_atmosphere()
 
 
 func _on_heart_bet_round_complete() -> void:
@@ -1728,6 +1895,9 @@ func _on_heart_bet_round_complete() -> void:
 	# #endregion
 	
 	print("❤️ GameController: Heart Bet раздача завершена, сбрасываем раунд без выплат")
+	
+	# Возвращаем обычную атмосферу
+	_disable_life_bet_atmosphere()
 	
 	# Разблокируем маркеры (если были заблокированы)
 	if winner_selection_manager:
