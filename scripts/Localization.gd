@@ -118,6 +118,10 @@ const DATA = {
 		"SETTINGS_BUTTON_APPLY": "ОК",
 		"MODE_INFO_JUNKET": "Основные ставки: 2000-200000, шаг 500\nTie: 100-900, шаг 25\nПары: 100-900, шаг 25\nКомиссия банкира: 95%",
 		"MODE_INFO_CLASSIC": "Основные ставки: 50-3000, шаг 1\nTie: 25-300, шаг 1\nПары: 25-200, шаг 1\nКомиссия банкира: 50%",
+		"MODE_JUNKET_NAME": "Junket",
+		"MODE_CLASSIC_NAME": "Classic",
+		"LIMITS_CHANGE_PENDING": "Лимиты будут изменены на %s после завершения раздачи",
+		"LIMITS_CHANGED": "Лимиты изменены на %s",
 		
 		# === РЕЖИМ ПОЗИЦИЙ ФИШЕК ===
 		"SETTINGS_POSITION_MODE": "Позиции ставок",
@@ -272,6 +276,10 @@ const DATA = {
 		"SETTINGS_BUTTON_APPLY": "OK",
 		"MODE_INFO_JUNKET": "Main bets: 2000-200000, step 500\nTie: 100-900, step 25\nPairs: 100-900, step 25\nBanker commission: 95%",
 		"MODE_INFO_CLASSIC": "Main bets: 50-3000, step 1\nTie: 25-300, step 1\nPairs: 25-200, step 1\nBanker commission: 50%",
+		"MODE_JUNKET_NAME": "Junket",
+		"MODE_CLASSIC_NAME": "Classic",
+		"LIMITS_CHANGE_PENDING": "Limits will be changed to %s after the deal is completed",
+		"LIMITS_CHANGED": "Limits changed to %s",
 		
 		# === CHIP POSITION MODE ===
 		"SETTINGS_POSITION_MODE": "Bet positions",

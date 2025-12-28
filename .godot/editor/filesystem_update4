@@ -1,2 +1,5 @@
 res://scripts/PayoutOverlay.gd
 res://scenes/GuestMenuScene.tscn
+res://scripts/GameController.gd
+res://scripts/Localization.gd
+res://scenes/Game.tscn

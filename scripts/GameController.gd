@@ -82,6 +82,9 @@ var survival_rounds_completed: int = 0
 var is_table_prepared_for_new_game: bool = false
 var is_payout_processing: bool = false  # Флаг обработки выплаты (защита от спама Space)
 
+# Переменная для отложенной смены режима (аналогично pending_filter_changes)
+var pending_mode_change: String = ""  # "junket" или "classic", пустая = нет отложенной смены
+
 # Контроллер состояния игры (Extract Class)
 var game_state_controller: GameStateController
 
@@ -939,19 +942,59 @@ func _on_settings_closed():
 
 func _on_mode_changed(mode: String):
 	DebugLogger.log("Режим игры изменён на: %s" % mode)
+	
+	# ВАЖНО: Смена лимитов возможна ТОЛЬКО в состоянии WAITING
+	# В CHOOSE_WINNER раздача ещё не завершена - есть ставки для обработки
+	var current_state = GameStateManager.get_current_state()
+	var state_name = GameStateManager.get_state_name(current_state)
+	DebugLogger.log("🔍 Текущее состояние игры: %s" % state_name)
+	
+	if current_state == GameStateManager.GameState.WAITING:
+		# Можно менять сразу - применяем
+		DebugLogger.log("✅ Состояние WAITING - применяем смену лимитов сразу")
+		_apply_mode_change(mode)
+	else:
+		# Откладываем смену - НЕ меняем режим и лимиты, НЕ трогаем фишки и ставки
+		pending_mode_change = mode
+		
+		# ВАЖНО: НЕ вызываем GameModeManager.set_mode() и НЕ меняем лимиты!
+		# Режим и лимиты останутся прежними до завершения раздачи
+		# Фишки и ставки останутся на столе и будут обработаны по старым лимитам
+		
+		# Оповещаем игрока
+		var mode_display_name = Localization.t("MODE_JUNKET_NAME") if mode == "junket" else Localization.t("MODE_CLASSIC_NAME")
+		var message = Localization.t("LIMITS_CHANGE_PENDING", [mode_display_name])
+		EventBus.show_toast_info.emit(message)
+		
+		# Логируем
+		_log_mode_change(mode, state_name, true)
+		
+		DebugLogger.log("⏳ Смена лимитов отложена до состояния WAITING (текущее состояние: %s, режим и лимиты НЕ изменены, фишки и ставки сохранены)" % state_name)
+
+func _apply_mode_change(mode: String, should_clear_chips: bool = true):
+	"""Применить смену режима игры и лимитов
+	
+	Args:
+		mode: Режим игры ("junket" или "classic")
+		should_clear_chips: Нужно ли скрывать фишки и очищать ставки (true при применении в WAITING, false при отложенной смене)
+	"""
 	GameModeManager.set_mode(mode)
 	
 	# Очищаем все сгенерированные ставки при переключении режима
 	# (чтобы избежать конфликта между Classic и Junket фишками)
-	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.clear_all_bets()
-		DebugLogger.log("🗑️ Все ставки гостей очищены при переключении режима игры")
-	
-	# Скрываем все визуальные фишки ставок
-	if chip_visual_manager:
-		chip_visual_manager.hide_all_chips()
-		chip_visual_manager.clear_all_active_chips()
-		DebugLogger.log("🚫 Все визуальные фишки ставок скрыты при переключении режима игры")
+	# НО только если should_clear_chips = true (т.е. мы в WAITING и можно безопасно очищать)
+	if should_clear_chips:
+		if phase_manager and phase_manager.guest_bet_storage:
+			phase_manager.guest_bet_storage.clear_all_bets()
+			DebugLogger.log("🗑️ Все ставки гостей очищены при переключении режима игры")
+		
+		# Скрываем все визуальные фишки ставок
+		if chip_visual_manager:
+			chip_visual_manager.hide_all_chips()
+			chip_visual_manager.clear_all_active_chips()
+			DebugLogger.log("🚫 Все визуальные фишки ставок скрыты при переключении режима игры")
+	else:
+		DebugLogger.log("⏳ Смена режима применена, но фишки и ставки сохранены (раздача продолжается)")
 	
 	var cfg = GameModeManager.get_config()
 	# ← set_limits() сам вызовет limits_changed.emit() → _on_limits_changed()
@@ -960,7 +1003,16 @@ func _on_mode_changed(mode: String):
 		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
 		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"]
 	)
-	# Убрали дублирующий вызов _on_limits_changed() - он уже вызовется через сигнал
+	
+	# Оповещаем игрока
+	var mode_display_name = Localization.t("MODE_JUNKET_NAME") if mode == "junket" else Localization.t("MODE_CLASSIC_NAME")
+	var message = Localization.t("LIMITS_CHANGED", [mode_display_name])
+	EventBus.show_overlay_info.emit(message, 2.0)
+	
+	# Логируем
+	_log_mode_change(mode, GameStateManager.get_state_name(GameStateManager.get_current_state()), false)
+	
+	DebugLogger.log("✅ Лимиты изменены на режим: %s" % mode_display_name)
 
 func _on_language_changed(_lang: String):
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
@@ -988,6 +1040,12 @@ func _on_game_state_changed(old_state: int, new_state: int):
 	var old_name = GameStateManager.get_state_name(old_state)
 	var new_name = GameStateManager.get_state_name(new_state)
 	DebugLogger.log("📊 [НОВАЯ СИСТЕМА] Состояние: %s → %s" % [old_name, new_name])
+	
+	# Если перешли в WAITING и есть отложенная смена режима - применяем её
+	if new_state == GameStateManager.GameState.WAITING and pending_mode_change != "":
+		var mode_to_apply = pending_mode_change
+		pending_mode_change = ""  # Очищаем отложенную смену
+		_apply_mode_change(mode_to_apply)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ
@@ -2073,6 +2131,32 @@ func _update_guest_balance_on_collect(bet_type: String, position_index: int) -> 
 			return
 	
 	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ЛОГИРОВАНИЕ СМЕНЫ ЛИМИТОВ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _log_mode_change(mode: String, state: String, is_pending: bool) -> void:
+	"""Логировать смену режима в файл"""
+	var file = FileAccess.open("user://limits_change.log", FileAccess.READ_WRITE)
+	if not file:
+		file = FileAccess.open("user://limits_change.log", FileAccess.WRITE)
+	
+	if file:
+		file.seek_end()
+		var timestamp = Time.get_datetime_string_from_system()
+		var status = "PENDING" if is_pending else "APPLIED"
+		var log_line = "[%s] Mode: %s -> %s (State: %s, Status: %s)" % [
+			timestamp, 
+			GameModeManager.get_mode_string(), 
+			mode, 
+			state, 
+			status
+		]
+		file.store_line(log_line)
+		file.close()
+		DebugLogger.log("📝 Limits change logged: %s" % log_line)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
