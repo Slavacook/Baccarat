@@ -310,8 +310,17 @@ func open_menu():
 
 func close_menu():
 	"""Закрыть меню"""
-	# Возвращаем контекст игры
-	InputContextManager.set_context(InputContextManager.InputContext.GAME)
+	# Возвращаем контекст: если настройки открыты - возвращаем MENU_SETTINGS, иначе GAME
+	# Ищем SettingsScene в текущей сцене (Game)
+	var game_scene = get_tree().current_scene
+	var settings_scene = null
+	if game_scene:
+		settings_scene = game_scene.get_node_or_null("SettingsScene")
+	
+	if settings_scene and settings_scene.visible:
+		InputContextManager.set_context(InputContextManager.InputContext.MENU_SETTINGS)
+	else:
+		InputContextManager.set_context(InputContextManager.InputContext.GAME)
 	
 	if keyboard_navigator:
 		keyboard_navigator.deactivate()

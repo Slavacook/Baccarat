@@ -161,14 +161,16 @@ func close_settings():
 # ОБРАБОТКА КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _unhandled_input(event: InputEvent) -> void:
-	"""Обработка клавиатурного ввода"""
-	# Проверяем контекст (работаем только в контексте MENU_SETTINGS)
-	if not InputContextManager.can_handle(InputContextManager.InputContext.MENU_SETTINGS):
-		return
-	
+func _input(event: InputEvent) -> void:
+	"""Обработка клавиатурного ввода (используем _input вместо _unhandled_input, 
+	чтобы перехватывать Escape даже если фокус на кнопке)"""
 	# Обрабатываем только когда меню видимо
 	if not visible:
+		return
+	
+	# Проверяем контекст напрямую (не используем can_handle, так как оно проверяет блокировку)
+	# Настройки должны обрабатывать ввод независимо от блокировки
+	if InputContextManager.get_context() != InputContextManager.InputContext.MENU_SETTINGS:
 		return
 	
 	if not InputContextManager.is_valid_key_event(event):
@@ -176,7 +178,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	
 	var key_event = event as InputEventKey
 	
-	# Escape в меню → закрыть меню
+	# Escape в меню → закрыть меню (работает даже если фокус на кнопке)
 	if key_event.keycode == KEY_ESCAPE:
 		close_settings()
 		get_viewport().set_input_as_handled()
