@@ -1,5 +1,11 @@
+res://scripts/SettingsScene.gd
 res://scenes/GuestMenuScene.tscn
 res://scripts/GameController.gd
-res://scripts/GuestMenuScene.gd
-res://scripts/SettingsScene.gd
 res://scripts/KeyboardFocusController.gd
+res://scripts/GuestMenuScene.gd
+res://scripts/KeyboardNavigationController.gd
+res://scripts/PayoutOverlay.gd
+res://scripts/ui/GuestMenuKeyboardNavigator.gd
+res://scripts/GamePhaseManager.gd
+res://scenes/Game.tscn
+res://scripts/ui/AreaButton.gd

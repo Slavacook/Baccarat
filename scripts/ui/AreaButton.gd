@@ -59,7 +59,7 @@ func _on_pressed() -> void:
 	# Скрываем кнопки областей (они больше не нужны после выбора)
 	EventBus.area_buttons_visibility_changed.emit(false)
 	
-	# Показываем стрелки навигации
+	# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 	EventBus.navigation_arrows_visibility_changed.emit(true)
 
 func _on_visibility_changed(should_show: bool) -> void:

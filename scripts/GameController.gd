@@ -1277,24 +1277,29 @@ func _request_camera_target_area(direction: String) -> void:
 	EventBus.camera_target_area_received.connect(response_handler, CONNECT_ONE_SHOT)
 	EventBus.camera_target_area_requested.emit(direction)
 
-func _on_arrows_visibility_changed(should_show: bool):
-	"""Обработчик изменения видимости стрелок"""
+func _on_arrows_visibility_changed(_should_show: bool):
+	"""Обработчик изменения видимости стрелок
+	
+	Примечание: стрелки визуально всегда скрыты (visible = false),
+	но сигнал используется для активации/деактивации навигации по полю.
+	Параметр _should_show не используется, так как стрелки всегда скрыты.
+	"""
 	var left_arrow = get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = get_node_or_null("TopUI/RightArrowButton")
 	var up_arrow = get_node_or_null("TopUI/UpArrowButton")
 	var down_arrow = get_node_or_null("TopUI/DownArrowButton")
 
+	# Стрелки визуально всегда скрыты (навигация через клавиатуру и свайп)
 	if left_arrow:
-		left_arrow.visible = should_show
+		left_arrow.visible = false
 	if right_arrow:
-		right_arrow.visible = should_show
+		right_arrow.visible = false
 	if up_arrow:
-		up_arrow.visible = should_show
+		up_arrow.visible = false
 	if down_arrow:
-		down_arrow.visible = should_show
+		down_arrow.visible = false
 
-	if should_show:
-		_update_arrows_state()
+	# Обновление состояния стрелок не нужно - они всегда скрыты
 
 func _update_arrows_state(target_area: int = -1):
 	"""Обновить состояние стрелок (активность) в зависимости от текущей области
