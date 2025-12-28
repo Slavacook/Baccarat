@@ -140,6 +140,9 @@ func open_settings():
 	# Загружаем значения в UI
 	_load_current_values()
 
+	# Устанавливаем контекст меню настроек
+	InputContextManager.set_context(InputContextManager.InputContext.MENU_SETTINGS)
+
 	# Показываем окно
 	show()
 	EventBus.settings_opened.emit()
@@ -147,6 +150,9 @@ func open_settings():
 
 func close_settings():
 	"""Закрыть окно настроек"""
+	# Возвращаем контекст игры
+	InputContextManager.set_context(InputContextManager.InputContext.GAME)
+	
 	hide()
 	EventBus.settings_closed.emit()
 	print("⚙️  Окно настроек закрыто")
@@ -157,18 +163,21 @@ func close_settings():
 
 func _unhandled_input(event: InputEvent) -> void:
 	"""Обработка клавиатурного ввода"""
+	# Проверяем контекст (работаем только в контексте MENU_SETTINGS)
+	if not InputContextManager.can_handle(InputContextManager.InputContext.MENU_SETTINGS):
+		return
+	
 	# Обрабатываем только когда меню видимо
 	if not visible:
 		return
 	
-	if not event is InputEventKey:
+	if not InputContextManager.is_valid_key_event(event):
 		return
 	
-	if not event.pressed or event.echo:
-		return
+	var key_event = event as InputEventKey
 	
 	# Escape в меню → закрыть меню
-	if event.keycode == KEY_ESCAPE:
+	if key_event.keycode == KEY_ESCAPE:
 		close_settings()
 		get_viewport().set_input_as_handled()
 		return

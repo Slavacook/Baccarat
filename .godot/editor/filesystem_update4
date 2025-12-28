@@ -1,2 +1,3 @@
-res://scripts/PayoutOverlay.gd
+res://scripts/KeyboardFocusController.gd
+res://scripts/GuestMenuScene.gd
 res://scenes/GuestMenuScene.tscn

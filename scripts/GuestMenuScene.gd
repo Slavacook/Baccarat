@@ -278,6 +278,9 @@ func open_menu():
 	if visible:
 		return
 	
+	# Устанавливаем контекст меню гостей
+	InputContextManager.set_context(InputContextManager.InputContext.MENU_GUEST)
+	
 	# Сбрасываем состояние только если меню было скрыто
 	if menu_state:
 		menu_state.reset()
@@ -307,6 +310,9 @@ func open_menu():
 
 func close_menu():
 	"""Закрыть меню"""
+	# Возвращаем контекст игры
+	InputContextManager.set_context(InputContextManager.InputContext.GAME)
+	
 	if keyboard_navigator:
 		keyboard_navigator.deactivate()
 	hide()
@@ -779,14 +785,16 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	
-	# Проверяем, что это нажатие клавиши
-	if not event is InputEventKey:
+	# Проверяем контекст напрямую (не используем can_handle, так как оно проверяет блокировку)
+	# Меню гостей должно работать даже когда настройки открыты
+	if InputContextManager.get_context() != InputContextManager.InputContext.MENU_GUEST:
+		return
+	
+	# Проверяем валидность события клавиатуры
+	if not InputContextManager.is_valid_key_event(event):
 		return
 	
 	var key_event = event as InputEventKey
-	
-	if not key_event.pressed or key_event.echo:
-		return
 	
 	# Escape в меню гостей → закрыть меню
 	if key_event.keycode == KEY_ESCAPE:

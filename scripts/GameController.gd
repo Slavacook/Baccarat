@@ -856,14 +856,22 @@ func _on_restart_game():
 
 func _unhandled_input(event: InputEvent) -> void:
 	"""Обработка клавиатурного ввода"""
-	if not event is InputEventKey:
+	# Проверяем блокировки через InputContextManager
+	if InputContextManager.is_blocked():
 		return
 	
-	if not event.pressed or event.echo:
+	# Проверяем контекст (работаем только в контексте GAME)
+	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
+	
+	# Проверяем валидность события клавиатуры
+	if not InputContextManager.is_valid_key_event(event):
+		return
+	
+	var key_event = event as InputEventKey
 	
 	# Space при Game Over → рестарт игры
-	if event.keycode == KEY_SPACE:
+	if key_event.keycode == KEY_SPACE:
 		if game_state_controller and not game_state_controller.is_game_active():
 			# Game Over - рестарт игры
 			_on_restart_game()
@@ -874,7 +882,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			return
 	
 	# Escape во время игры → открыть/закрыть меню
-	if event.keycode == KEY_ESCAPE:
+	if key_event.keycode == KEY_ESCAPE:
 		# Проверяем, не открыто ли меню гостей (приоритет выше)
 		var guest_menu = get_node_or_null("GuestMenuScene")
 		if guest_menu and guest_menu.visible:

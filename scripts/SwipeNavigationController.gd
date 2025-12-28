@@ -25,9 +25,6 @@ const MAX_PERPENDICULAR_DISTANCE: float = 100.0
 ## Активна ли навигация (стрелки видны на экране = фаза выплат)
 var is_navigation_active: bool = false
 
-## Флаг открытых настроек (блокирует весь ввод)
-var _settings_open: bool = false
-
 ## Состояние свайпа
 var _swipe_start_position: Vector2 = Vector2.ZERO
 var _swipe_start_time: float = 0.0
@@ -44,9 +41,6 @@ func _ready() -> void:
 		EventBus.navigation_arrows_visibility_changed.connect(_on_navigation_visibility_changed)
 		# Подписываемся на ответы от CameraManager (для логирования/отладки)
 		EventBus.camera_target_area_received.connect(_on_target_area_received)
-		# Подписываемся на открытие/закрытие настроек
-		EventBus.settings_opened.connect(func(): _settings_open = true)
-		EventBus.settings_closed.connect(func(): _settings_open = false)
 	
 	print("👆 SwipeNavigationController инициализирован (фаза выплат: свайпы для камеры)")
 
@@ -55,8 +49,12 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _unhandled_input(event: InputEvent) -> void:
-	# Блокируем ввод когда настройки открыты
-	if _settings_open:
+	# Проверяем блокировки через InputContextManager
+	if InputContextManager.is_blocked():
+		return
+	
+	# Проверяем контекст (работаем только в контексте GAME)
+	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
 	
 	# Обрабатываем только когда навигация активна

@@ -123,18 +123,25 @@ func _ready():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Проверяем контекст (работаем только в контексте PAYOUT)
+	if not InputContextManager.can_handle(InputContextManager.InputContext.PAYOUT):
+		return
+	
 	# Обрабатываем только когда overlay видим
 	if not visible:
 		return
 	
-	if event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode == KEY_SPACE:
-			# ВСЕГДА поглощаем пробел когда overlay видим (защита от двойного нажатия)
-			get_viewport().set_input_as_handled()
-			
-			# Вызываем обработчик только если кнопка не заблокирована
-			if not is_button_blocked and not payout_button.disabled:
-				_on_payout_pressed()
+	if not InputContextManager.is_valid_key_event(event):
+		return
+	
+	var key_event = event as InputEventKey
+	if key_event.keycode == KEY_SPACE:
+		# ВСЕГДА поглощаем пробел когда overlay видим (защита от двойного нажатия)
+		get_viewport().set_input_as_handled()
+		
+		# Вызываем обработчик только если кнопка не заблокирована
+		if not is_button_blocked and not payout_button.disabled:
+			_on_payout_pressed()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -730,6 +737,9 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 		is_survival: Режим выживания активен
 		lives: Текущее количество жизней (для survival mode)
 	"""
+	# Устанавливаем контекст выплат
+	InputContextManager.set_context(InputContextManager.InputContext.PAYOUT)
+	
 	# Сохраняем состояние игры (вместо get_parent())
 	is_survival_mode = is_survival
 	current_lives = lives
@@ -764,6 +774,9 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	Эмитит сигнал payout_completed и скрывает overlay
 	ВАЖНО: Вызывается ПОСЛЕ того, как все анимации оповещений завершены
 	"""
+	# Возвращаем контекст игры
+	InputContextManager.set_context(InputContextManager.InputContext.GAME)
+	
 	# Сбрасываем фокус чтобы следующий Space не активировал последнюю кнопку
 	if get_viewport():
 		get_viewport().gui_release_focus()

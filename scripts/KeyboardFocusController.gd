@@ -37,9 +37,6 @@ var is_active: bool = false
 ## Ссылка на FocusFrameUI для визуализации
 var focus_frame: FocusFrameUI = null
 
-## Флаг открытых настроек (блокирует весь ввод)
-var _settings_open: bool = false
-
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -52,9 +49,6 @@ func _ready() -> void:
 	# Подписываемся на сигнал видимости навигации (фаза выплат)
 	if EventBus:
 		EventBus.navigation_arrows_visibility_changed.connect(_on_navigation_visibility_changed)
-		# Подписываемся на открытие/закрытие настроек (блокировка ввода)
-		EventBus.settings_opened.connect(_on_settings_opened)
-		EventBus.settings_closed.connect(_on_settings_closed)
 	
 	print("⌨️ KeyboardFocusController инициализирован (новая логика навигации)")
 
@@ -63,18 +57,22 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _unhandled_input(event: InputEvent) -> void:
-	if not event is InputEventKey:
+	# Проверяем блокировки через InputContextManager
+	if InputContextManager.is_blocked():
 		return
 	
-	if not event.pressed or event.echo:
+	# Проверяем контекст (работаем только в контексте GAME)
+	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
 	
-	# Блокируем весь ввод когда настройки открыты
-	if _settings_open:
+	# Проверяем валидность события клавиатуры
+	if not InputContextManager.is_valid_key_event(event):
 		return
+	
+	var key_event = event as InputEventKey
 	
 	# Space работает всегда (и в фазе раздачи, и в фазе выплат)
-	if event.keycode == KEY_SPACE:
+	if key_event.keycode == KEY_SPACE:
 		_handle_space_press()
 		get_viewport().set_input_as_handled()
 		return
@@ -90,7 +88,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Не обрабатываем стрелки/WASD, пусть их обрабатывает KeyboardNavigationController
 			return
 	
-	match event.keycode:
+	match key_event.keycode:
 		KEY_A:
 			_handle_a_press()
 			get_viewport().set_input_as_handled()
@@ -526,15 +524,3 @@ func _on_navigation_visibility_changed(visible: bool) -> void:
 		var state = GameStateManager.get_current_state()
 		if state == GameStateManager.GameState.WAITING:
 			enable()
-
-
-func _on_settings_opened() -> void:
-	"""Блокировка ввода когда настройки открыты"""
-	_settings_open = true
-	print("⌨️ KeyboardFocusController: ввод заблокирован (настройки открыты)")
-
-
-func _on_settings_closed() -> void:
-	"""Разблокировка ввода когда настройки закрыты"""
-	_settings_open = false
-	print("⌨️ KeyboardFocusController: ввод разблокирован (настройки закрыты)")
