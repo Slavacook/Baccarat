@@ -43,8 +43,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _settings_open:
 		return
 	
-	# Обрабатываем только когда навигация активна
-	if not is_navigation_active:
+	# Обрабатываем когда навигация активна ИЛИ когда состояние игры WAITING (карты не открыты)
+	var should_handle = is_navigation_active
+	if not should_handle and GameStateManager:
+		var current_state = GameStateManager.get_current_state()
+		should_handle = (current_state == GameStateManager.GameState.WAITING)
+	
+	if not should_handle:
 		return
 
 	# Проверяем нажатия клавиш стрелок и A/D/W/S

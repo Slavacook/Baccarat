@@ -83,6 +83,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not is_active:
 		return
 	
+	# В состоянии WAITING (карты не открыты) стрелки/WASD управляют камерой, а не картами
+	if GameStateManager:
+		var current_state = GameStateManager.get_current_state()
+		if current_state == GameStateManager.GameState.WAITING:
+			# Не обрабатываем стрелки/WASD, пусть их обрабатывает KeyboardNavigationController
+			return
+	
 	match event.keycode:
 		KEY_A:
 			_handle_a_press()
