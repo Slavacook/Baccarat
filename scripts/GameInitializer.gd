@@ -419,6 +419,7 @@ static func _setup_fixed_ui(controller: Node2D) -> void:
 	# TieMarker НЕ перемещается - он на уровне стола как PlayerMarker и BankerMarker
 	var buttons_to_move: Array = [
 		"HelpButton",
+		"RoundsCounterLabel",
 		"StatsLabel",
 		"SettingsButton",
 		"CardsButton",

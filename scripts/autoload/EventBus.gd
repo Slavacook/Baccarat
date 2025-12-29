@@ -31,6 +31,10 @@ signal round_reset()
 @warning_ignore("unused_signal")
 signal first_deal_completed()
 
+## Началась новая раздача (открыты первые 4 карты)
+@warning_ignore("unused_signal")
+signal round_started()
+
 ## Стол подготовлен к новой игре (флаг is_table_prepared установлен)
 @warning_ignore("unused_signal")
 signal table_prepared_for_new_game()

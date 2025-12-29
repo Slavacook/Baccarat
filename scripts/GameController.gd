@@ -110,6 +110,7 @@ var game_state_controller: GameStateController
 
 # Ссылки на узлы гостей и фона
 @onready var background_3: TextureRect = $Background3
+@onready var rounds_counter_label: Label = $RoundsCounterLabel
 @onready var background_5: TextureRect = $Background5
 @onready var background_666: TextureRect = $Background666
 @onready var guest_sprites: Dictionary = {
@@ -175,6 +176,9 @@ func _ready():
 		# Настройки: включаем action_button при закрытии
 		EventBus.settings_closed.connect(_on_settings_closed)
 		
+		# Начало новой раздачи: увеличиваем счетчик раздач
+		EventBus.round_started.connect(_on_round_started)
+		
 		# Heart Bet: триггеры обрабатываются через ChanceCardManager
 		# Старые сигналы оставлены для обратной совместимости
 	
@@ -215,6 +219,9 @@ func _ready():
 	if heart_bar:
 		ChanceCardManager.set_heart_bar(heart_bar)
 		print("🎴 HeartBar передан в ChanceCardManager (после инициализации)")
+	
+	# Инициализируем счетчик раздач
+	_update_rounds_counter()
 	
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
@@ -946,7 +953,7 @@ func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
 		# Передаем пустые значения - StatsManager пропустит такие случаи
 		EventBus.payout_correct.emit(collected, expected, "", -1)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
-		survival_rounds_completed += 1
+		# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
 	else:
 		# Для старого метода нет информации о bet_type/position_index
 		EventBus.payout_wrong.emit(collected, expected, "", -1)
@@ -976,6 +983,7 @@ func _on_restart_game():
 	"""Обработчик рестарта игры - делегировано в GameStateController"""
 	# Сбрасываем счетчик раундов
 	survival_rounds_completed = 0
+	_update_rounds_counter()
 	EventBus.camera_first_deal_set_requested.emit(true)  # После рестарта первая раздача с зумом
 	StatsManager.instance.reset()
 	
@@ -1152,6 +1160,7 @@ func _restore_survival_and_queue() -> void:
 	
 	# Восстанавливаем survival режим
 	survival_rounds_completed = TableStateManager.get_survival_rounds()
+	_update_rounds_counter()
 	
 	# Восстанавливаем очередь выплат через StateRestorer
 	payout_queue_manager = state_restorer.restore_survival_and_queue(
@@ -1242,6 +1251,7 @@ func _restore_automatic_mode_state() -> void:
 	"""Восстановление состояния игры, камеры и UI"""
 	# Восстанавливаем состояние survival режима
 	survival_rounds_completed = GameDataManager.get_survival_rounds()
+	_update_rounds_counter()
 	if survival_state:
 		survival_state.set_lives(GameDataManager.get_survival_lives())
 		if GameDataManager.is_survival_active():
@@ -1298,7 +1308,7 @@ func _process_automatic_payout_result() -> void:
 		# Передаем пустые значения - StatsManager пропустит такие случаи
 		EventBus.payout_correct.emit(collected, expected, "", -1)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
-		survival_rounds_completed += 1
+		# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
 	else:
 		# Для старого метода нет информации о bet_type/position_index
 		EventBus.payout_wrong.emit(collected, expected, "", -1)
@@ -1813,10 +1823,9 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 	DebugLogger.log("💰 Вызываем payout_result_handler.handle_payout_result: %s[%d], correct=%s" % [bet_type, position_index, is_correct])
 	payout_result_handler.handle_payout_result(bet_type, position_index, is_correct, collected, expected)
 	
-	# Увеличиваем счетчик раундов (только для правильных выплат)
+	# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
 	if is_correct:
-		survival_rounds_completed += 1
-		DebugLogger.log("  🎮 Раунд %d завершен" % survival_rounds_completed)
+		DebugLogger.log("  ✅ Правильная выплата завершена")
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ПРОВЕРКА ОСТАВШИХСЯ ВЫПЛАТ
@@ -1968,3 +1977,18 @@ func _on_focus_activated(target: String) -> void:
 		
 		_:
 			DebugLogger.log_warning("⚠️ Неизвестная цель фокуса: %s" % target)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБНОВЛЕНИЕ UI - СЧЕТЧИК РАУНДОВ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_round_started() -> void:
+	"""Обработчик начала новой раздачи (открыты первые 4 карты)"""
+	survival_rounds_completed += 1
+	_update_rounds_counter()
+	DebugLogger.log("🎮 Началась раздача #%d" % survival_rounds_completed)
+
+func _update_rounds_counter() -> void:
+	"""Обновить отображение счетчика раздач"""
+	if rounds_counter_label:
+		rounds_counter_label.text = "Раздача: %d" % survival_rounds_completed

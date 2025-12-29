@@ -407,6 +407,9 @@ func deal_first_four():
 	ui.update_banker_third_card_ui("?")
 	ui.show_first_four_cards(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	ui.set_action_button_state("confirm")
+	
+	# Эмитим событие начала новой раздачи (для обновления счетчика раздач)
+	EventBus.round_started.emit()
 
 	# Проверяем пары через координатор
 	var pairs_info = first_four_deal_coordinator.check_pairs(
