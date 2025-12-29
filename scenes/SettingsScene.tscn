@@ -107,60 +107,29 @@ horizontal_alignment = 1
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="BetPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetPlayerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-
-[node name="BetPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
-layout_mode = 2
-
-[node name="BetPlayerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPlayerRow"]
-layout_mode = 2
-size_flags_horizontal = 3
+toggle_mode = true
 text = "Игрок"
 
-[node name="BetBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetBankerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-
-[node name="BetBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
-layout_mode = 2
-
-[node name="BetBankerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetBankerRow"]
-layout_mode = 2
-size_flags_horizontal = 3
+toggle_mode = true
 text = "Банкир"
 
-[node name="BetTieRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetTieButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
+toggle_mode = true
+text = "Игалите"
 
-[node name="BetTieCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
+[node name="BetPairButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
-
-[node name="BetTieLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetTieRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Ничья"
-
-[node name="BetPairPlayerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
-layout_mode = 2
-
-[node name="BetPairPlayerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
-layout_mode = 2
-
-[node name="BetPairPlayerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairPlayerRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Пара Игрока"
-
-[node name="BetPairBankerRow" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
-layout_mode = 2
-
-[node name="BetPairBankerCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
-layout_mode = 2
-
-[node name="BetPairBankerLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer/BetPairBankerRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Пара Банкира"
+toggle_mode = true
+text = "Пары"
 
 [node name="HSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
 layout_mode = 2

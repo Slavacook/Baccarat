@@ -19,3 +19,4 @@ res://scripts/utils/PayoutResultHandler.gd
 res://scripts/heart_bet/HeartBetManager.gd
 res://scripts/GamePhaseManager.gd
 res://scripts/autoload/EventBus.gd
+res://scripts/SettingsScene.gd

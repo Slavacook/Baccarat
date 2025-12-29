@@ -27,11 +27,10 @@ signal language_changed(lang: String)  # "ru" или "en"
 @onready var mode_info_label: Label = find_child("ModeInfoLabel", true, false)
 
 # === РАЗДЕЛ 3: СТАВКИ ===
-@onready var bet_player_checkbox: CheckBox = find_child("BetPlayerCheckbox", true, false)
-@onready var bet_banker_checkbox: CheckBox = find_child("BetBankerCheckbox", true, false)
-@onready var bet_tie_checkbox: CheckBox = find_child("BetTieCheckbox", true, false)
-@onready var bet_pair_player_checkbox: CheckBox = find_child("BetPairPlayerCheckbox", true, false)
-@onready var bet_pair_banker_checkbox: CheckBox = find_child("BetPairBankerCheckbox", true, false)
+@onready var bet_player_button: Button = find_child("BetPlayerButton", true, false)
+@onready var bet_banker_button: Button = find_child("BetBankerButton", true, false)
+@onready var bet_tie_button: Button = find_child("BetTieButton", true, false)
+@onready var bet_pair_button: Button = find_child("BetPairButton", true, false)
 @onready var guest_settings_button: Button = find_child("GuestSettingsButton", true, false)
 
 # === РАЗДЕЛ 4: РАЗМЕР СТАВОК ===
@@ -87,17 +86,15 @@ func _connect_signals():
 	if classic_button:
 		classic_button.pressed.connect(_on_classic_pressed)
 
-	# Ставки (чекбоксы уже подключены к PayoutSettingsManager при создании)
-	if bet_player_checkbox:
-		bet_player_checkbox.toggled.connect(_on_bet_player_toggled)
-	if bet_banker_checkbox:
-		bet_banker_checkbox.toggled.connect(_on_bet_banker_toggled)
-	if bet_tie_checkbox:
-		bet_tie_checkbox.toggled.connect(_on_bet_tie_toggled)
-	if bet_pair_player_checkbox:
-		bet_pair_player_checkbox.toggled.connect(_on_bet_pair_player_toggled)
-	if bet_pair_banker_checkbox:
-		bet_pair_banker_checkbox.toggled.connect(_on_bet_pair_banker_toggled)
+	# Ставки (кнопки с toggle_mode)
+	if bet_player_button:
+		bet_player_button.toggled.connect(_on_bet_player_toggled)
+	if bet_banker_button:
+		bet_banker_button.toggled.connect(_on_bet_banker_toggled)
+	if bet_tie_button:
+		bet_tie_button.toggled.connect(_on_bet_tie_toggled)
+	if bet_pair_button:
+		bet_pair_button.toggled.connect(_on_bet_pair_toggled)
 	
 	# Кнопка настроек гостей
 	if guest_settings_button:
@@ -196,16 +193,20 @@ func _load_current_values():
 	_update_mode_info(current_mode)
 
 	# Ставки
-	if bet_player_checkbox:
-		bet_player_checkbox.button_pressed = PayoutSettingsManager.player_payout_enabled
-	if bet_banker_checkbox:
-		bet_banker_checkbox.button_pressed = PayoutSettingsManager.banker_payout_enabled
-	if bet_tie_checkbox:
-		bet_tie_checkbox.button_pressed = PayoutSettingsManager.tie_payout_enabled
-	if bet_pair_player_checkbox:
-		bet_pair_player_checkbox.button_pressed = PayoutSettingsManager.player_pair_payout_enabled
-	if bet_pair_banker_checkbox:
-		bet_pair_banker_checkbox.button_pressed = PayoutSettingsManager.banker_pair_payout_enabled
+	if bet_player_button:
+		bet_player_button.button_pressed = PayoutSettingsManager.player_payout_enabled
+		_update_bet_button_style(bet_player_button, PayoutSettingsManager.player_payout_enabled)
+	if bet_banker_button:
+		bet_banker_button.button_pressed = PayoutSettingsManager.banker_payout_enabled
+		_update_bet_button_style(bet_banker_button, PayoutSettingsManager.banker_payout_enabled)
+	if bet_tie_button:
+		bet_tie_button.button_pressed = PayoutSettingsManager.tie_payout_enabled
+		_update_bet_button_style(bet_tie_button, PayoutSettingsManager.tie_payout_enabled)
+	if bet_pair_button:
+		# Для пары проверяем, включена ли хотя бы одна пара
+		var pairs_enabled = PayoutSettingsManager.player_pair_payout_enabled or PayoutSettingsManager.banker_pair_payout_enabled
+		bet_pair_button.button_pressed = pairs_enabled
+		_update_bet_button_style(bet_pair_button, pairs_enabled)
 
 	# Размер ставок
 	if bet_size_option:
@@ -359,26 +360,28 @@ func _on_bet_player_toggled(pressed: bool):
 	PayoutSettingsManager.toggle_player(pressed)
 	# Эмитим сигнал для управления фишками (слушает GameController)
 	EventBus.payout_setting_changed.emit("Player", pressed)
+	_update_bet_button_style(bet_player_button, pressed)
 
 func _on_bet_banker_toggled(pressed: bool):
 	"""Обработка переключения ставки Banker"""
 	PayoutSettingsManager.toggle_banker(pressed)
 	EventBus.payout_setting_changed.emit("Banker", pressed)
+	_update_bet_button_style(bet_banker_button, pressed)
 
 func _on_bet_tie_toggled(pressed: bool):
 	"""Обработка переключения ставки Tie"""
 	PayoutSettingsManager.toggle_tie(pressed)
 	EventBus.payout_setting_changed.emit("Tie", pressed)
+	_update_bet_button_style(bet_tie_button, pressed)
 
-func _on_bet_pair_player_toggled(pressed: bool):
-	"""Обработка переключения пары игрока"""
+func _on_bet_pair_toggled(pressed: bool):
+	"""Обработка переключения пары (объединенная кнопка для обеих пар)"""
+	# Переключаем обе пары одновременно
 	PayoutSettingsManager.toggle_player_pair(pressed)
-	EventBus.payout_setting_changed.emit("PairPlayer", pressed)
-
-func _on_bet_pair_banker_toggled(pressed: bool):
-	"""Обработка переключения пары банкира"""
 	PayoutSettingsManager.toggle_banker_pair(pressed)
+	EventBus.payout_setting_changed.emit("PairPlayer", pressed)
 	EventBus.payout_setting_changed.emit("PairBanker", pressed)
+	_update_bet_button_style(bet_pair_button, pressed)
 
 # === РАЗМЕР СТАВОК ===
 func _on_bet_size_selected(index: int):
@@ -477,3 +480,43 @@ func _on_language_changed_external(lang: String):
 	_update_mode_info(current_mode)
 
 	print("🔄 SettingsScene синхронизирован с языком: %s" % lang)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# СТИЛИЗАЦИЯ КНОПОК СТАВОК
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _update_bet_button_style(button: Button, enabled: bool) -> void:
+	"""Обновить визуальный стиль кнопки ставки (вкл/выкл)
+	
+	Args:
+		button: Кнопка для стилизации
+		enabled: Включена ли ставка
+	"""
+	if not button:
+		return
+	
+	# Создаём StyleBoxFlat для кнопки
+	var style_normal = StyleBoxFlat.new()
+	style_normal.corner_radius_top_left = 8
+	style_normal.corner_radius_top_right = 8
+	style_normal.corner_radius_bottom_left = 8
+	style_normal.corner_radius_bottom_right = 8
+	style_normal.border_width_left = 2
+	style_normal.border_width_top = 2
+	style_normal.border_width_right = 2
+	style_normal.border_width_bottom = 2
+	
+	if enabled:
+		# Включено: белая рамка, нормальная прозрачность
+		style_normal.bg_color = Color(0.2, 0.2, 0.2, 0.8)  # Темно-серый фон
+		style_normal.border_color = Color.WHITE
+		button.modulate.a = 1.0
+	else:
+		# Выключено: серая рамка, пониженная прозрачность
+		style_normal.bg_color = Color(0.1, 0.1, 0.1, 0.5)  # Очень темный фон
+		style_normal.border_color = Color(0.5, 0.5, 0.5, 0.5)
+		button.modulate.a = 0.6
+	
+	button.add_theme_stylebox_override("normal", style_normal)
+	button.add_theme_stylebox_override("pressed", style_normal)
+	button.add_theme_stylebox_override("hover", style_normal)
