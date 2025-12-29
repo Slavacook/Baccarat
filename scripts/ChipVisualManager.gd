@@ -313,6 +313,9 @@ func hide_chip(bet_type: String) -> void:
 	
 	# Удаляем дополнительные фишки (если были в MAX режиме)
 	_remove_extra_chips(bet_type)
+	
+	# Удаляем все labels для этого типа ставки
+	remove_all_stake_labels_for_type(bet_type)
 
 	print("🚫 ChipVisualManager: скрыта фишка %s" % bet_type)
 
@@ -901,6 +904,12 @@ func _remove_stake_label(chip_instance: ChipInstance) -> void:
 		chip_instance.stake_label.queue_free()
 	chip_instance.stake_label = null
 
+func remove_all_stake_labels_for_type(bet_type: String) -> void:
+	"""Удалить все labels для конкретного типа ставки (публичный метод)"""
+	for chip in active_chips:
+		if chip.bet_type == bet_type:
+			_remove_stake_label(chip)
+
 
 func _on_chip_instance_pressed(bet_type: String, position_index: int) -> void:
 	"""Обработка клика на конкретную фишку"""
@@ -1034,6 +1043,10 @@ func hide_all_guest_chips() -> void:
 	"""
 	_saved_visibility.clear()
 	
+	# Удаляем все labels перед скрытием фишек
+	for chip in active_chips:
+		_remove_stake_label(chip)
+	
 	# Сохраняем и скрываем активные фишки (ChipInstance)
 	for chip in active_chips:
 		if chip.node and is_instance_valid(chip.node):
@@ -1052,7 +1065,7 @@ func hide_all_guest_chips() -> void:
 func show_all_guest_chips() -> void:
 	"""Показать все ставки гостей (после завершения Heart Bet раздачи)
 
-	Восстанавливает сохранённое состояние видимости.
+	Восстанавливает сохранённое состояние видимости и создаёт labels для сумм ставок.
 	"""
 	if _saved_visibility.is_empty():
 		print("⚠️ Нет сохранённых состояний видимости для восстановления")
@@ -1065,6 +1078,14 @@ func show_all_guest_chips() -> void:
 			var key = "%s_%d" % [chip.bet_type, chip.position_index]
 			if _saved_visibility.has(key):
 				chip.node.visible = _saved_visibility[key]
+				# Создаём или обновляем label для суммы ставки
+				if chip.node.visible and chip.stake > 0:
+					if chip.stake_label:
+						# Обновляем существующий label
+						_update_stake_label(chip)
+					else:
+						# Создаём новый label
+						chip.stake_label = create_stake_label(chip)
 
 	# Восстанавливаем видимость основных фишек
 	for bet_type in chip_nodes.keys():

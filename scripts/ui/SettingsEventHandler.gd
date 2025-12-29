@@ -203,6 +203,14 @@ func handle_payout_setting_changed(bet_type: String, enabled: bool) -> void:
 			for chip in chips_of_type:
 				if chip.node and is_instance_valid(chip.node):
 					chip.node.visible = true
+					# Создаём или обновляем label для суммы ставки
+					if chip.stake > 0:
+						if chip.stake_label:
+							# Обновляем существующий label
+							chip_visual_manager._update_stake_label(chip)
+						else:
+							# Создаём новый label
+							chip.stake_label = chip_visual_manager.create_stake_label(chip)
 					DebugLogger.log("  → Фишка %s[%d] показана" % [bet_type, chip.position_index])
 			
 			# Если фишек нет, но есть ставки в хранилище - создаём их
@@ -221,7 +229,8 @@ func handle_payout_setting_changed(bet_type: String, enabled: bool) -> void:
 								phase_manager._show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
 								DebugLogger.log("  → Создана фишка %s[%d] для гостя %d" % [bet_type, pos_idx, guest_id])
 		else:
-			# Ставка отключена - скрываем существующие фишки
+			# Ставка отключена - скрываем существующие фишки и удаляем labels
+			chip_visual_manager.remove_all_stake_labels_for_type(bet_type)
 			for chip in chips_of_type:
 				if chip.node and is_instance_valid(chip.node):
 					chip.node.visible = false

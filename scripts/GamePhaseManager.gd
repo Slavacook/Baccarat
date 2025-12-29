@@ -1057,6 +1057,14 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		if existing_chip.node:
 			existing_chip.node.visible = true
 			existing_chip.stake = stake
+			# Обновляем или создаём label для суммы ставки
+			if existing_chip.stake > 0:
+				if existing_chip.stake_label:
+					# Обновляем существующий label
+					chip_visual_manager._update_stake_label(existing_chip)
+				else:
+					# Создаём новый label
+					existing_chip.stake_label = chip_visual_manager.create_stake_label(existing_chip)
 		DebugLogger.log("  → Обновлена существующая фишка %s[%d]" % [bet_type, position_index])
 		return
 	
