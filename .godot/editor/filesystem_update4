@@ -2,3 +2,7 @@ res://scripts/PayoutOverlay.gd
 res://tests/ManualTestPayoutOverlayStyleManager.tscn
 res://scripts/payout/PayoutHintHandler.gd
 res://scripts/ui/PayoutKeyboardNavigator.gd
+res://tests/manual_test_PayoutOverlay_ui_builder.gd
+res://scenes/Game.tscn
+res://scripts/ui/PayoutOverlayPaymentHandler.gd
+res://tests/manual_test_PayoutOverlay_payment_handler.gd

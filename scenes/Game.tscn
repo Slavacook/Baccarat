@@ -199,6 +199,7 @@ scale = Vector2(0.72, 0.72)
 texture = ExtResource("13_27c7x")
 
 [node name="Background666" type="TextureRect" parent="."]
+visible = false
 offset_left = -1690.0
 offset_top = -1636.0
 offset_right = 4660.0

@@ -49,6 +49,9 @@ var style_manager: PayoutOverlayStyleManager    # Управление стил�
 var animation_controller: PayoutAnimationController  # Управление анимациями
 var hint_handler: PayoutHintHandler             # Обработка подсказок
 var keyboard_navigator: PayoutKeyboardNavigator # Клавиатурная навигация
+var ui_builder: PayoutOverlayUIBuilder          # Построитель UI элементов
+var payment_handler: PayoutOverlayPaymentHandler  # Обработчик выплат
+var state_manager: PayoutOverlayStateManager    # Менеджер состояния
 
 # ENUM FocusLevel перенесен в PayoutKeyboardNavigator
 
@@ -56,16 +59,13 @@ var keyboard_navigator: PayoutKeyboardNavigator # Клавиатурная на�
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-var chip_denominations: Array = []  # Номиналы фишек (из GameModeManager)
+var chip_denominations: Array = []  # Номиналы фишек (из GameModeManager) - управляется через state_manager
 var current_stake: float = 0.0      # Текущая ставка
 var current_winner: String = ""     # "Player", "Banker", "Tie"
 var expected_payout: float = 0.0    # Ожидаемая выплата
 var is_button_blocked: bool = false # Блокировка кнопки при ошибке
 var hint_purchased: bool = false   # Флаг покупки подсказки (для текущего окна выплат)
-
-# ← Состояние игры (передаётся через show_payout(), без get_parent())
-var is_survival_mode: bool = false  # Режим выживания
-var current_lives: int = 7          # Текущее количество жизней (для survival mode)
+# Состояние игры (is_survival_mode, current_lives) управляется через state_manager
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -124,6 +124,32 @@ func _initialize_modules():
 	keyboard_navigator.on_hint_pressed_callback = _on_hint_pressed
 	keyboard_navigator.on_chip_added_callback = _on_chip_added_by_keyboard  # Отдельный метод без сброса фокуса
 	keyboard_navigator.is_button_blocked_callback = func(): return is_button_blocked
+	
+	ui_builder = PayoutOverlayUIBuilder.new(
+		chip_fleet_container,
+		result_label
+	)
+	# Настраиваем callbacks для построителя UI
+	ui_builder.on_chip_clicked_callback = _on_chip_clicked
+	ui_builder.on_chip_button_input_callback = _on_chip_button_input
+	
+	payment_handler = PayoutOverlayPaymentHandler.new(
+		self,  # owner_node
+		stack_manager,
+		validator,
+		animation_controller,
+		payout_button
+	)
+	# Настраиваем callbacks для обработчика выплат
+	payment_handler.on_payment_success_callback = _return_to_game
+	payment_handler.on_payment_error_callback = func(_collected: float): pass  # Пустой callback, логика уже в _show_error_animation
+	payment_handler.is_button_blocked_callback = func(): return is_button_blocked
+	payment_handler.set_button_blocked_callback = func(blocked: bool): is_button_blocked = blocked
+	
+	state_manager = PayoutOverlayStateManager.new(
+		self,  # owner_node
+		survival_info
+	)
 
 # ← Подключение сигналов (от модулей, EventBus, кнопок)
 func _connect_signals():
@@ -136,8 +162,8 @@ func _connect_signals():
 	# Сигналы от EventBus
 	# HeartBar - единственный источник истины для жизней
 	# Все обновления идут через EventBus.life_lost
-	EventBus.payout_wrong.connect(_on_payout_wrong_event)
-	EventBus.life_lost.connect(_on_life_lost)
+	EventBus.payout_wrong.connect(state_manager.handle_payout_wrong_event)
+	EventBus.life_lost.connect(state_manager.handle_life_lost)
 
 	# Сигналы кнопок
 	payout_button.pressed.connect(_on_payout_pressed)
@@ -147,7 +173,8 @@ func _connect_signals():
 func _initialize_data():
 	"""Инициализация данных и проверка наличия компонентов"""
 	# Получаем номиналы фишек
-	_update_chip_denominations()
+	state_manager.update_chip_denominations()
+	chip_denominations = state_manager.chip_denominations  # Синхронизируем с state_manager
 
 	# DEBUG: Проверяем что survival_info существует
 	if survival_info:
@@ -156,7 +183,7 @@ func _initialize_data():
 		push_error("❌ PayoutOverlay: survival_info НЕ НАЙДЕН!")
 
 	# Обновляем отображение очков
-	_update_score_display()
+	state_manager.update_score_display()
 
 # ← Настройка UI (стили, видимость, создание элементов)
 func _setup_ui():
@@ -177,7 +204,7 @@ func _setup_ui():
 		error_image.modulate.a = 0.0  # Начинаем с прозрачного
 
 	# Создаём кнопки номиналов
-	_create_chip_buttons()
+	ui_builder.create_chip_buttons(chip_denominations)
 
 	# Данные передаются через show_payout() из GameController
 	# (НЕ загружаем из GameDataManager - overlay режим)
@@ -245,10 +272,10 @@ func setup_payout(winner: String, stake: float, payout: float):
 	stack_manager.clear_all()
 
 	# Устанавливаем заголовок и цвет
-	_set_result_header(winner)
+	ui_builder.set_result_header(winner)
 
 	# Ставка рядом с заголовком
-	stake_label.text = Localization.t("PAYOUT_STAKE", [_format_amount(stake)])
+	stake_label.text = Localization.t("PAYOUT_STAKE", [PayoutOverlayUIBuilder.format_amount(stake)])
 
 	# Число в панели (начинаем с 0)
 	collected_amount_label.text = "0"
@@ -289,39 +316,17 @@ func _on_stack_clicked(event: InputEvent, stack: ChipStack):
 
 # ← Обновление суммы при изменении стопок
 func _on_total_changed(new_total: float):
-	collected_amount_label.text = _format_amount(new_total)
+	collected_amount_label.text = PayoutOverlayUIBuilder.format_amount(new_total)
 
 # ← Обработка нажатия кнопки "Выплатить"
 func _on_payout_pressed():
-	# ЗАЩИТА: Блокируем СРАЗУ, до любых вычислений (защита от двойного нажатия)
-	if is_button_blocked:
-		return
-	
-	is_button_blocked = true
-	payout_button.disabled = true
-
-	var collected_total: float = stack_manager.get_total()
-	var is_correct: bool = validator.validate(collected_total, expected_payout)
-
-	if is_correct:
-		# ← Правильная выплата
-		# Показываем анимацию успеха, затем возвращаемся
-		await _show_success_animation(is_correct, collected_total, expected_payout)
-	else:
-		# ← Неправильная выплата
-		# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
-		# В PayoutOverlay нет информации о bet_type/position_index
-		EventBus.payout_wrong.emit(collected_total, expected_payout, "", -1)
-
-		# Показываем анимацию ошибки (попап не закрывается)
-		# После анимации ошибки блокировка снимется внутри _show_error_animation
-		_show_error_animation(collected_total)
+	payment_handler.process_payment(expected_payout)
 
 # ← Обработка кнопки подсказки
 func _on_hint_pressed():
 	# Если подсказка еще не куплена, проверяем доступность и покупаем
 	if not hint_purchased:
-		var hint_check: Dictionary = hint_handler.check_availability(is_survival_mode, current_lives)
+		var hint_check: Dictionary = hint_handler.check_availability(state_manager.is_survival_mode, state_manager.current_lives)
 		if not hint_check.can_use:
 			# Показываем сообщение об ошибке
 			hint_handler.show_error_message(hint_check.error_key)
@@ -347,8 +352,9 @@ func _on_hint_pressed():
 
 # ← Обработчик изменения режима игры
 func _on_mode_changed(_mode: String):
-	_update_chip_denominations()
-	_create_chip_buttons()
+	state_manager.update_chip_denominations()
+	chip_denominations = state_manager.chip_denominations  # Синхронизируем с state_manager
+	ui_builder.create_chip_buttons(chip_denominations)
 	stack_manager.clear_all()
 	collected_amount_label.text = "0"
 
@@ -356,154 +362,19 @@ func _on_mode_changed(_mode: String):
 # ПРИВАТНЫЕ МЕТОДЫ - НАСТРОЙКА UI
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ← Создание кнопок для каждого номинала фишки
-func _create_chip_buttons():
-	# Очищаем контейнер
-	for child in chip_fleet_container.get_children():
-		child.queue_free()
+# Методы создания UI элементов перенесены в PayoutOverlayUIBuilder
 
-	for denomination in chip_denominations:
-		var button: TextureButton = TextureButton.new()
-		button.custom_minimum_size = GameConstants.CHIP_BUTTON_SIZE
-		button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		button.focus_mode = Control.FOCUS_NONE  # Не получает фокус (Space не активирует)
+# Методы управления состоянием перенесены в PayoutOverlayStateManager
 
-		# Загружаем текстуру фишки
-		var denom_str: String = str(int(denomination)) if denomination >= 1 else str(denomination)
-		var chip_path: String = GameConstants.CHIP_TEXTURE_PATH_TEMPLATE % denom_str
-		var texture: Texture2D = load(chip_path)
-		if texture:
-			button.texture_normal = texture
-		else:
-			push_warning("PayoutPopupNew: текстура не найдена: %s" % chip_path)
-
-		# Подключаем сигналы
-		button.pressed.connect(_on_chip_clicked.bind(denomination))
-		button.gui_input.connect(_on_chip_button_input.bind(denomination))
-
-		chip_fleet_container.add_child(button)
-
-# ← Установка заголовка с цветом
-func _set_result_header(winner: String):
-	match winner:
-		"Banker":
-			result_label.text = Localization.t("WIN_BANKER")
-			result_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))  # Красный
-		"Player":
-			result_label.text = Localization.t("WIN_PLAYER")
-			result_label.add_theme_color_override("font_color", Color(0.2, 0.4, 0.9))  # Синий
-		"Tie":
-			result_label.text = Localization.t("WIN_TIE")
-			result_label.add_theme_color_override("font_color", Color(0.2, 0.9, 0.4))  # Зелёный
-		"PairPlayer":
-			result_label.text = Localization.t("PAIR_PLAYER_TITLE")  # "Пара Игрока"
-			result_label.add_theme_color_override("font_color", Color(0.2, 0.4, 0.9))  # Синий (как Player)
-		"PairBanker":
-			result_label.text = Localization.t("PAIR_BANKER_TITLE")  # "Пара Банкира"
-			result_label.add_theme_color_override("font_color", Color(0.9, 0.2, 0.2))  # Красный (как Banker)
-
-# ← Обновить номиналы фишек из GameModeManager
-func _update_chip_denominations():
-	chip_denominations = GameModeManager.get_chip_denominations()
-	DebugLogger.log("PayoutPopupNew: Номиналы фишек обновлены: %s" % [chip_denominations])
-
-# ← Обновление отображения survival info (жизни или очки)
-func _update_score_display():
-	"""Обновить отображение жизней (survival mode) или очков (normal mode)"""
-	DebugLogger.log("🔍 DEBUG: _update_score_display() вызван")
-
-	if not survival_info:
-		push_error("❌ survival_info == null!")
-		return
-
-	DebugLogger.log("🔍 DEBUG: survival_info существует")
-
-	# Используем сохранённые переменные вместо get_parent()
-	var current_score: int = SaveManager.instance.score
-	DebugLogger.log("🔍 DEBUG: вызываем survival_info.update_display(%s, %d, %d)" % [is_survival_mode, current_lives, current_score])
-
-	# Обновляем компонент
-	survival_info.update_display(is_survival_mode, current_lives, current_score)
-
-	DebugLogger.log("✅ PayoutSurvivalInfo обновлен: survival=%s, lives=%d, score=%d" % [is_survival_mode, current_lives, current_score])
-
-func _format_amount(amount: float) -> String:
-	if amount == floor(amount):
-		return str(int(amount))
-	else:
-		return str(amount)
+# Метод форматирования перенесен в PayoutOverlayUIBuilder.format_amount()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # АНИМАЦИИ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _show_success_animation(is_correct: bool, collected: float, expected: float):
-	# Показываем изображение "Верно!"
-	animation_controller.show_success_animation()
-	
-	# Ждем время показа
-	await get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
-	
-	# Скрываем изображение
-	await animation_controller.hide_success_animation()
-	
-	# Возвращаемся к игре с результатом
-	_return_to_game(is_correct, collected, expected)
+# Методы координации анимаций перенесены в PayoutOverlayPaymentHandler
 
-func _show_error_animation(_collected: float):
-	is_button_blocked = true
-	payout_button.disabled = true
-
-	# ← СРАЗУ очищаем фишки, чтобы можно было начать вводить новую выплату
-	stack_manager.clear_all()
-
-	# Показываем изображение "Ошибка!" и тряску кнопки
-	animation_controller.show_error_animation()
-
-	await get_tree().create_timer(GameConstants.ERROR_ANIMATION_DURATION).timeout
-	is_button_blocked = false
-	payout_button.disabled = false
-
-	# Скрываем изображение
-	await animation_controller.hide_error_animation()
-
-	# НЕ возвращаемся к игре - даём игроку попробовать снова
-
-func _on_payout_wrong_event(_collected: float, _expected: float, _bet_type: String, _position_index: int):
-	"""Обработчик события неправильной выплаты
-
-	Вызывается когда EventBus.payout_wrong эмитится.
-	Обновляем отображение сердечек после потери жизни.
-	"""
-	DebugLogger.log("🔔 DEBUG: _on_payout_wrong_event вызван! collected=%.1f, expected=%.1f" % [_collected, _expected])
-
-	# Небольшая задержка чтобы SurvivalUI/StatsManager успел обновить жизни/очки
-	await get_tree().create_timer(0.1).timeout
-	DebugLogger.log("🔍 DEBUG: Прошло 0.1 сек, вызываем _update_score_display()")
-
-	# Обновляем отображение сердечек/очков
-	_update_score_display()
-
-	DebugLogger.log_init("PayoutOverlay: сердечки обновлены после потери жизни")
-
-func _on_life_lost(remaining_lives: int):
-	"""Обработчик события потери жизни
-
-	Вызывается когда EventBus.life_lost эмитится.
-	Обновляем локальную переменную current_lives и отображение.
-
-	Args:
-		remaining_lives: Оставшееся количество жизней
-	"""
-	DebugLogger.log("💔 DEBUG: _on_life_lost вызван! remaining_lives=%d" % remaining_lives)
-
-	# Обновляем локальную переменную
-	current_lives = remaining_lives
-
-	# Обновляем отображение
-	_update_score_display()
-
-	DebugLogger.log_init("PayoutOverlay: current_lives обновлён до %d" % current_lives)
+# Обработчики событий перенесены в PayoutOverlayStateManager
 
 # ═══════════════════════════════════════════════════════════════════════════
 # OVERLAY УПРАВЛЕНИЕ
@@ -528,11 +399,10 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	keyboard_navigator.clear_focus()
 	
 	# Обновляем номиналы в навигаторе (могут измениться)
-	keyboard_navigator.chip_denominations = chip_denominations
+	keyboard_navigator.chip_denominations = state_manager.chip_denominations
 	
 	# Сохраняем состояние игры (вместо get_parent())
-	is_survival_mode = is_survival
-	current_lives = lives
+	state_manager.set_survival_state(is_survival, lives)
 
 	setup_payout(winner, stake, payout)
 
@@ -545,7 +415,7 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	payout_button.disabled = false
 
 	# Обновляем отображение жизней/очков
-	_update_score_display()
+	state_manager.update_score_display()
 
 	show()  # Показать CanvasLayer
 
