@@ -41,6 +41,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
 	
+	# Блокируем обработку, если шпаргалка открыта
+	if _is_crib_sheet_open():
+		return
+	
 	# Обрабатываем когда навигация активна ИЛИ когда состояние игры WAITING (карты не открыты)
 	var should_handle = is_navigation_active
 	if not should_handle and GameStateManager:
@@ -105,6 +109,33 @@ func _handle_target_area_response(direction: String, target_area: int) -> void:
 	var key_name = direction.capitalize()
 	var target_name = "out" if target_area == -1 else ("area_%d" % target_area if target_area > 0 else "in")
 	print("⌨️ Клавиша %s → %s" % [key_name, target_name])
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _is_crib_sheet_open() -> bool:
+	"""Проверить, открыта ли шпаргалка"""
+	# Ищем CribSheetScene в дереве сцены
+	var scene_tree = get_tree()
+	if not scene_tree:
+		return false
+	
+	# Ищем узел CribSheetScene через группу
+	var crib_sheets = get_tree().get_nodes_in_group("crib_sheet")
+	if crib_sheets.size() > 0:
+		var crib_sheet = crib_sheets[0]
+		if crib_sheet and "visible" in crib_sheet:
+			return crib_sheet.visible
+	
+	# Если не нашли через группу, ищем по имени
+	var root = scene_tree.root
+	if root:
+		var crib_sheet = root.find_child("CribSheetScene", true, false)
+		if crib_sheet and "visible" in crib_sheet:
+			return crib_sheet.visible
+	
+	return false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ

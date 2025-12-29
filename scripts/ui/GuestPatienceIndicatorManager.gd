@@ -32,17 +32,25 @@ var indicators: Dictionary = {}  # {guest_id: GuestPatienceIndicator}
 # Родительский узел для размещения индикаторов (обычно Game scene)
 var parent_node: Node2D = null
 
+# Ссылка на CameraManager для отслеживания позиции камеры
+var camera_manager: CameraManager = null
+
+# Предыдущая область камеры (для определения, нужно ли менять видимость)
+var previous_area: int = -1
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func setup(p_parent_node: Node2D):
+func setup(p_parent_node: Node2D, p_camera_manager: CameraManager = null):
 	"""Инициализация менеджера
 	
 	Args:
 		p_parent_node: Родительский узел (Game scene), где будут размещены индикаторы
+		p_camera_manager: Менеджер камеры для отслеживания позиции
 	"""
 	parent_node = p_parent_node
+	camera_manager = p_camera_manager
 	
 	# Создаем индикаторы для всех 6 гостей
 	for guest_id in range(1, 7):
@@ -53,6 +61,12 @@ func setup(p_parent_node: Node2D):
 	
 	# Обновляем все индикаторы для начального отображения
 	refresh_all_indicators()
+	
+	# Инициализируем previous_area и скрываем карточки, если камера на общем плане
+	if camera_manager:
+		previous_area = camera_manager.current_area
+		if camera_manager.current_area == -1:
+			_hide_all_indicators_animated(false)  # Без анимации при инициализации
 	
 	print("✅ GuestPatienceIndicatorManager: создано %d индикаторов" % indicators.size())
 
@@ -246,6 +260,10 @@ func _connect_signals():
 	if GuestSettingsManager:
 		GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed)
 	
+	# Подписываемся на события камеры для управления видимостью
+	if camera_manager:
+		camera_manager.zoom_completed.connect(_on_camera_zoom_completed)
+	
 	# Таймер обновления (каждую секунду для обновления таймера)
 	# Используем _process для обновления каждую секунду
 
@@ -264,6 +282,32 @@ func _on_balance_changed(changed_guest_id: int, _new_balance: float):
 func _on_guest_settings_changed(guest_id: int):
 	"""Обработчик изменения настроек гостя (включение/выключение)"""
 	_update_indicator(guest_id)
+
+func _on_camera_zoom_completed(_zoom_type: String):
+	"""Обработчик завершения зума камеры"""
+	if not camera_manager:
+		return
+	
+	var area = camera_manager.current_area
+	
+	# Определяем, является ли область областью ставок (1-3)
+	var is_areas_zone = (area >= 1 and area <= 3)
+	var was_areas_zone = (previous_area >= 1 and previous_area <= 3)
+	
+	# Если переходим с области ставок на область ставок - ничего не делаем
+	if is_areas_zone and was_areas_zone:
+		previous_area = area
+		return
+	
+	# Если переходим на области ставок (с общего плана или карт) - показываем
+	if is_areas_zone and not was_areas_zone:
+		_show_all_indicators_animated()
+	# Если уходим с областей ставок (на общий план или карты) - скрываем
+	elif not is_areas_zone and was_areas_zone:
+		_hide_all_indicators_animated(true)  # С анимацией
+	
+	# Сохраняем текущую область как предыдущую
+	previous_area = area
 
 func _process(_delta: float):
 	"""Обновление индикаторов каждую секунду (для таймера)"""
@@ -289,8 +333,8 @@ func _update_indicator(guest_id: int):
 		indicator_control.visible = false
 		return
 	
-	# Показываем индикатор (гость включен)
-	indicator_control.visible = true
+	# ВАЖНО: Не меняем видимость здесь - это делается в _on_camera_zoom_completed
+	# Обновляем данные всегда, даже если карточка скрыта (для актуальности при появлении)
 	
 	var patience = GuestStatsManager.get_guest_patience(guest_id)
 	
@@ -383,6 +427,7 @@ func _update_indicator(guest_id: int):
 			balance_text = "%.0f" % balance
 			# Красный цвет для отрицательного баланса
 			balance_label.modulate = Color(1.0, 0.5, 0.5)
+		balance_text = "%.0f" % balance
 		balance_label.text = balance_text
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -394,3 +439,52 @@ func refresh_all_indicators():
 	for guest_id in range(1, 7):
 		if GuestSettingsManager.is_guest_enabled(guest_id):
 			_update_indicator(guest_id)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ ВИДИМОСТЬЮ С АНИМАЦИЕЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _show_all_indicators_animated():
+	"""Показать все индикаторы с fade-in анимацией (0.5 сек)"""
+	for guest_id in range(1, 7):
+		if not indicators.has(guest_id):
+			continue
+		
+		var indicator = indicators[guest_id]
+		if not is_instance_valid(indicator):
+			continue
+		
+		# Показываем только если гость включен
+		if not GuestSettingsManager.is_guest_enabled(guest_id):
+			continue
+		
+		# Устанавливаем начальное состояние (прозрачный)
+		indicator.modulate.a = 0.0
+		indicator.visible = true
+		
+		# Анимация fade-in
+		var tween = create_tween()
+		tween.tween_property(indicator, "modulate:a", 1.0, 0.5)
+
+func _hide_all_indicators_animated(use_animation: bool = true):
+	"""Скрыть все индикаторы с fade-out анимацией (0.5 сек) или мгновенно"""
+	for guest_id in range(1, 7):
+		if not indicators.has(guest_id):
+			continue
+		
+		var indicator = indicators[guest_id]
+		if not is_instance_valid(indicator):
+			continue
+		
+		if not indicator.visible:
+			continue  # Уже скрыт
+		
+		if use_animation:
+			# Анимация fade-out
+			var tween = create_tween()
+			tween.tween_property(indicator, "modulate:a", 0.0, 0.5)
+			tween.tween_callback(func(): indicator.visible = false)
+		else:
+			# Мгновенное скрытие (для инициализации)
+			indicator.modulate.a = 0.0
+			indicator.visible = false

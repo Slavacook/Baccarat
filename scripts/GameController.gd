@@ -57,6 +57,7 @@ var settings_scene: CanvasLayer
 var settings_button: Button
 var survival_ui: Control
 var game_over_popup: CanvasLayer
+var crib_sheet_scene: CribSheetScene = null
 
 ## HeartBar - менеджер жизней (новая система)
 var heart_bar: HeartBar = null
@@ -226,6 +227,9 @@ func _ready():
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
 	
+	# Инициализируем шпаргалку
+	_initialize_crib_sheet()
+	
 	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
 	# Флаг сбрасывается через game_state_controller после инициализации
 	
@@ -254,7 +258,7 @@ func _setup_patience_indicators() -> void:
 	var script = load("res://scripts/ui/GuestPatienceIndicatorManager.gd")
 	indicator_manager.set_script(script)
 	add_child(indicator_manager)
-	indicator_manager.setup(self)  # Передаем Game scene как родительский узел
+	indicator_manager.setup(self, camera_manager)  # Передаем Game scene и camera_manager
 	patience_indicator_manager = indicator_manager
 	print("✅ GuestPatienceIndicatorManager инициализирован")
 
@@ -262,6 +266,20 @@ func _initialize_survival_state_provider() -> void:
 	"""Инициализировать провайдер состояния режима выживания"""
 	survival_state = SurvivalStateProvider.new(heart_bar, survival_ui)
 	print("✅ SurvivalStateProvider инициализирован (heart_bar=%s, survival_ui=%s)" % [heart_bar != null, survival_ui != null])
+
+func _initialize_crib_sheet() -> void:
+	"""Инициализировать шпаргалку"""
+	var crib_scene = load("res://scenes/ui/CribSheetScene.tscn") as PackedScene
+	if crib_scene:
+		var crib_instance = crib_scene.instantiate() as CribSheetScene
+		if crib_instance:
+			add_child(crib_instance)
+			crib_sheet_scene = crib_instance
+			print("✅ CribSheetScene инициализирована")
+		else:
+			push_error("CribSheetScene: не удалось создать экземпляр")
+	else:
+		push_error("CribSheetScene: не удалось загрузить сцену")
 
 func _initialize_card_controller() -> void:
 	"""Инициализировать контроллер для управления картами"""
@@ -930,7 +948,17 @@ func _update_chip_visibility() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_help_button_pressed():
-	ui_manager.help_popup.popup_centered()
+	# Открываем шпаргалку вместо старого help_popup
+	if crib_sheet_scene:
+		# Сбрасываем фокус с кнопки, чтобы пробел не активировал её
+		if ui_manager.help_button:
+			ui_manager.help_button.release_focus()
+		# Также сбрасываем фокус со всего viewport
+		if get_viewport():
+			get_viewport().gui_release_focus()
+		crib_sheet_scene.show_cribsheet()
+	else:
+		push_warning("CribSheetScene: шпаргалка не инициализирована")
 
 func _on_lang_button_pressed():
 	var new_lang = "en" if Localization.get_lang() == "ru" else "ru"

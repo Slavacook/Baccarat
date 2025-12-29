@@ -20,3 +20,8 @@ res://scripts/heart_bet/HeartBetManager.gd
 res://scripts/GamePhaseManager.gd
 res://scripts/autoload/EventBus.gd
 res://scripts/SettingsScene.gd
+res://scripts/CameraManager.gd
+res://scripts/KeyboardFocusController.gd
+res://scripts/KeyboardNavigationController.gd
+res://scripts/ui/CribSheetScene.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd

@@ -186,9 +186,9 @@ invitation_card.png::CompressedTexture2D::7288775345268409570::1765966925::17661
 invitation_card_2.png::CompressedTexture2D::3537835305124341728::1765971036::1766188836::1::::<><><>0<>0<>388f29f72ed73b2bd8190ee91f92f336<>res://.godot/imported/invitation_card_2.png-f16287a824847fbfb1c2c7eb2726b07b.ctex::
 mystery_card.png::CompressedTexture2D::124982749276240875::1766189553::1766189615::1::::<><><>0<>0<>0df924ef7840d90ea45b81dfa3cfd4aa<>res://.godot/imported/mystery_card.png-664769e47ec0e843f14c59238ce3845c.ctex::
 revolver_card.png::CompressedTexture2D::6324040519134327166::1766132884::1766188086::1::::<><><>0<>0<>0afdf5c07315356b2e135cf88bc29f0c<>res://.godot/imported/revolver_card.png-2bfb49a284560801f4a53520cacdd372.ctex::
-::res://assets/ui/cribs/::1766993189
-cribs_1.PNG::CompressedTexture2D::1563387188382865399::1766666806::1766993191::1::::<><><>0<>0<>57cb02f558aeed1f20f214db786deab9<>res://.godot/imported/cribs_1.PNG-ea3e0bb9aa54cc9afeec54e99674d39c.ctex::
-cribs_2.PNG::CompressedTexture2D::1088979051723985606::1766667491::1766993191::1::::<><><>0<>0<>d853de2a15e6a07f1f524538e8c0957c<>res://.godot/imported/cribs_2.PNG-7ef65cf3d9050048b39077fe92ebc36e.ctex::
+::res://assets/ui/cribs/::1766993424
+cribs_1.png::CompressedTexture2D::6593837864590579854::1766666806::1766993443::1::::<><><>0<>0<>6d57cba6b22169bea502c662d0c70364<>res://.godot/imported/cribs_1.png-5a58065f679b98370ef27c9516c2fd40.ctex::
+cribs_2.png::CompressedTexture2D::2058344788536707356::1766993356::1766993443::1::::<><><>0<>0<>0736a065ac6efe5e29a7c966d570ee1c<>res://.godot/imported/cribs_2.png-036b4ab0b3840e93e2ba869e2562d494.ctex::
 ::res://assets/ui/guest_menu/::1766723440
 table_settings.png::CompressedTexture2D::848978681221614610::1766382887::1766723440::1::::<><><>0<>0<>0314d8636a3d008a77fbe9264554866a<>res://.godot/imported/table_settings.png-3ff4b50a62be45ac8107f7643c87553c.ctex::
 ::res://assets/ui/guest_menu/dossier/::1766389344

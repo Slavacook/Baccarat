@@ -53,6 +53,33 @@ func _ready() -> void:
 	print("⌨️ KeyboardFocusController инициализирован (новая логика навигации)")
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _is_crib_sheet_open() -> bool:
+	"""Проверить, открыта ли шпаргалка"""
+	# Ищем CribSheetScene в дереве сцены
+	var scene_tree = get_tree()
+	if not scene_tree:
+		return false
+	
+	# Ищем узел CribSheetScene через группу
+	var crib_sheets = get_tree().get_nodes_in_group("crib_sheet")
+	if crib_sheets.size() > 0:
+		var crib_sheet = crib_sheets[0]
+		if crib_sheet and "visible" in crib_sheet:
+			return crib_sheet.visible
+	
+	# Если не нашли через группу, ищем по имени
+	var root = scene_tree.root
+	if root:
+		var crib_sheet = root.find_child("CribSheetScene", true, false)
+		if crib_sheet and "visible" in crib_sheet:
+			return crib_sheet.visible
+	
+	return false
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА ВВОДА
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -72,7 +99,11 @@ func _unhandled_input(event: InputEvent) -> void:
 	var key_event = event as InputEventKey
 	
 	# Space работает всегда (и в фазе раздачи, и в фазе выплат)
+	# Но не работает, если шпаргалка открыта
 	if key_event.keycode == KEY_SPACE:
+		if _is_crib_sheet_open():
+			get_viewport().set_input_as_handled()
+			return
 		_handle_space_press()
 		get_viewport().set_input_as_handled()
 		return

@@ -27,7 +27,7 @@ var _scene: Node = null  # Родительская сцена для созда
 # ═══════════════════════════════════════════════════════════════════════════
 
 var is_first_deal: bool = true
-var current_area: int = 0  # Текущая активная область (0 = нет, 1-3 = область)
+var current_area: int = -1  # Текущая активная область (-1 = общий план, 0 = карты, 1-3 = область)
 var last_zoom_type: String = "out"  # Последний тип зума (для вертикальной навигации)
 var current_tween: Tween = null  # Текущий активный tween (для предотвращения конфликтов)
 
@@ -66,6 +66,7 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	var general_settings = _config.get_general_settings()
 	_camera.position = general_settings.position
 	_camera.zoom = general_settings.zoom
+	current_area = -1  # Общий план
 	last_zoom_type = "out"
 	
 	# ═══════════════════════════════════════════════════════════════════
@@ -101,7 +102,7 @@ func _zoom_in() -> void:
 
 func _zoom_out() -> void:
 	"""Внутренний метод возврата к общему плану"""
-	current_area = 0
+	current_area = -1  # Общий план
 	var settings = _config.get_general_settings()
 	_animate_to(settings.position, settings.zoom, "out")
 
@@ -180,6 +181,7 @@ func _get_target_area_by_direction(direction: String) -> int:
 				1, 2, 3: return -1  # из областей → общий план
 		"down":
 			match current_area:
+				-1: return 0  # общий план → карты
 				0: return -1  # карты → общий план
 				1, 2, 3: return 0  # из областей → карты
 		_:
@@ -218,6 +220,7 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 				1, 2, 3: return -1  # из областей → общий план
 		"down":
 			match area:
+				-1: return 0  # общий план → карты
 				0: return -1  # карты → общий план
 				1, 2, 3: return 0  # из областей → карты
 		_:
@@ -437,7 +440,7 @@ func restore_to_general() -> void:
 		_camera.position = general_settings.position
 		_camera.zoom = general_settings.zoom
 		is_first_deal = false
-		current_area = 0
+		current_area = -1  # Общий план
 		last_zoom_type = "out"
 		print("📷 CameraManager: камера восстановлена к общему плану")
 

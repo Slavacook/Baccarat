@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://wjk016gly2p4"
-path="res://.godot/imported/cribs_1.PNG-ea3e0bb9aa54cc9afeec54e99674d39c.ctex"
+uid="uid://c07dstqejt0ac"
+path="res://.godot/imported/cribs_1.png-5a58065f679b98370ef27c9516c2fd40.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/ui/cribs/cribs_1.PNG"
-dest_files=["res://.godot/imported/cribs_1.PNG-ea3e0bb9aa54cc9afeec54e99674d39c.ctex"]
+source_file="res://assets/ui/cribs/cribs_1.png"
+dest_files=["res://.godot/imported/cribs_1.png-5a58065f679b98370ef27c9516c2fd40.ctex"]
 
 [params]
 
