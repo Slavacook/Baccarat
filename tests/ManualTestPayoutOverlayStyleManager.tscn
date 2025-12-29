@@ -1,0 +1,6 @@
+[gd_scene load_steps=2 format=3 uid="uid://c6xwgxtee71i2"]
+
+[ext_resource type="Script" uid="uid://d2o43h66sf3ew" path="res://tests/manual_test_PayoutOverlay_style_manager.gd" id="1_manual_test"]
+
+[node name="ManualTestPayoutOverlayStyleManager" type="Node"]
+script = ExtResource("1_manual_test")

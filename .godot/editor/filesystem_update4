@@ -1,5 +1,4 @@
 res://scripts/PayoutOverlay.gd
-res://scenes/GuestMenuScene.tscn
-res://scripts/GameController.gd
-res://scripts/Localization.gd
-res://scenes/Game.tscn
+res://tests/ManualTestPayoutOverlayStyleManager.tscn
+res://scripts/payout/PayoutHintHandler.gd
+res://scripts/ui/PayoutKeyboardNavigator.gd

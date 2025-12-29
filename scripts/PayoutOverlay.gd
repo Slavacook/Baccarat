@@ -43,17 +43,14 @@ signal payout_completed(bet_type: String, is_correct: bool, collected: float, ex
 # МОДУЛИ
 # ═══════════════════════════════════════════════════════════════════════════
 
-var stack_manager: ChipStackManager  # Управление стопками фишек
-var validator: PayoutValidator       # Валидация выплаты
+var stack_manager: ChipStackManager             # Управление стопками фишек
+var validator: PayoutValidator                  # Валидация выплаты
+var style_manager: PayoutOverlayStyleManager    # Управление стилями UI
+var animation_controller: PayoutAnimationController  # Управление анимациями
+var hint_handler: PayoutHintHandler             # Обработка подсказок
+var keyboard_navigator: PayoutKeyboardNavigator # Клавиатурная навигация
 
-# ═══════════════════════════════════════════════════════════════════════════
-# ENUM: Уровни и элементы фокуса
-# ═══════════════════════════════════════════════════════════════════════════
-
-enum FocusLevel {
-	BOTTOM,  # Нижний уровень: фишки + кнопка "Выплатить"
-	TOP      # Верхний уровень: кнопка "Подсказка"
-}
+# ENUM FocusLevel перенесен в PayoutKeyboardNavigator
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -70,32 +67,85 @@ var hint_purchased: bool = false   # Флаг покупки подсказки 
 var is_survival_mode: bool = false  # Режим выживания
 var current_lives: int = 7          # Текущее количество жизней (для survival mode)
 
-# ← Клавиатурная навигация
-var focus_level: FocusLevel = FocusLevel.BOTTOM  # Текущий уровень навигации
-var focus_index: int = -1  # Индекс элемента в фокусе на текущем уровне (-1 = нет фокуса)
-var is_keyboard_active: bool = false  # Активна ли клавиатурная навигация
-var focus_frame: FocusFrameUI = null  # Рамка фокуса
-
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _ready():
-	# Создаём модули
+	# Инициализация по шагам (Template Method pattern)
+	_initialize_modules()
+	_connect_signals()
+	_initialize_data()
+	_setup_ui()
+	_initialize_subcomponents()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРИВАТНЫЕ МЕТОДЫ ИНИЦИАЛИЗАЦИИ
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ← Инициализация модулей (ChipStackManager, PayoutValidator, StyleManager, AnimationController, HintHandler)
+func _initialize_modules():
+	"""Создание и инициализация основных модулей"""
 	stack_manager = ChipStackManager.new(chip_stacks_container)
 	validator = PayoutValidator.new()
+	style_manager = PayoutOverlayStyleManager.new(
+		result_label,
+		stake_label,
+		amount_panel,
+		collected_amount_label,
+		payout_button,
+		hint_button,
+		main_panel,
+		chip_stacks_container,
+		fleet_panel,
+		chip_fleet_container
+	)
+	animation_controller = PayoutAnimationController.new(
+		self,  # owner_node для создания Tween
+		success_image,
+		error_image,
+		payout_button
+	)
+	hint_handler = PayoutHintHandler.new(
+		stack_manager,
+		validator,
+		style_manager
+	)
+	keyboard_navigator = PayoutKeyboardNavigator.new(
+		self,  # owner_node
+		chip_denominations,
+		chip_fleet_container,
+		payout_button,
+		hint_button,
+		stack_manager
+	)
+	# Настраиваем callbacks для навигатора
+	keyboard_navigator.on_payout_pressed_callback = _on_payout_pressed
+	keyboard_navigator.on_hint_pressed_callback = _on_hint_pressed
+	keyboard_navigator.on_chip_added_callback = _on_chip_added_by_keyboard  # Отдельный метод без сброса фокуса
+	keyboard_navigator.is_button_blocked_callback = func(): return is_button_blocked
 
-	# Подписываемся на события
+# ← Подключение сигналов (от модулей, EventBus, кнопок)
+func _connect_signals():
+	"""Подключение всех сигналов"""
+	# Сигналы от модулей
 	stack_manager.total_changed.connect(_on_total_changed)
 	stack_manager.stack_added.connect(_on_stack_added)
 	GameModeManager.mode_changed.connect(_on_mode_changed)
 
-	# Подписываемся на потерю жизни для обновления сердечек
+	# Сигналы от EventBus
 	# HeartBar - единственный источник истины для жизней
 	# Все обновления идут через EventBus.life_lost
 	EventBus.payout_wrong.connect(_on_payout_wrong_event)
 	EventBus.life_lost.connect(_on_life_lost)
 
+	# Сигналы кнопок
+	payout_button.pressed.connect(_on_payout_pressed)
+	hint_button.pressed.connect(_on_hint_pressed)
+
+# ← Инициализация данных (номиналы фишек, проверка компонентов)
+func _initialize_data():
+	"""Инициализация данных и проверка наличия компонентов"""
 	# Получаем номиналы фишек
 	_update_chip_denominations()
 
@@ -105,8 +155,14 @@ func _ready():
 	else:
 		push_error("❌ PayoutOverlay: survival_info НЕ НАЙДЕН!")
 
-	# Настройка стилей
-	_setup_styles()
+	# Обновляем отображение очков
+	_update_score_display()
+
+# ← Настройка UI (стили, видимость, создание элементов)
+func _setup_ui():
+	"""Настройка интерфейса: стили, видимость элементов, создание кнопок"""
+	# Настройка стилей через StyleManager
+	style_manager.setup_all_styles()
 
 	# Скрываем контейнер обратной связи по умолчанию (если есть)
 	if feedback_container:
@@ -123,27 +179,17 @@ func _ready():
 	# Создаём кнопки номиналов
 	_create_chip_buttons()
 
-	# Подключаем сигналы кнопок
-	payout_button.pressed.connect(_on_payout_pressed)
-	hint_button.pressed.connect(_on_hint_pressed)
-
 	# Данные передаются через show_payout() из GameController
 	# (НЕ загружаем из GameDataManager - overlay режим)
 
-	# Обновляем отображение очков
-	_update_score_display()
-	
+# ← Инициализация подсистем (клавиатурная навигация, обработчики мыши)
+func _initialize_subcomponents():
+	"""Инициализация подсистем: навигация, обработчики мыши"""
 	# Инициализируем систему навигации
-	_initialize_keyboard_navigation()
+	keyboard_navigator.initialize()
 	
 	# Подключаем обработчики мыши для сброса фокуса
-	_connect_mouse_handlers()
-	
-	# Инициализируем систему навигации
-	_initialize_keyboard_navigation()
-	
-	# Подключаем обработчики мыши для сброса фокуса
-	_connect_mouse_handlers()
+	keyboard_navigator.connect_mouse_handlers()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА КЛАВИАТУРЫ
@@ -165,7 +211,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	
 	# Обработка клавиш навигации
 	if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_A, KEY_D, KEY_W, KEY_S]:
-		_handle_navigation_input(key_event)
+		keyboard_navigator.handle_navigation_input(key_event)
 		get_viewport().set_input_as_handled()
 		return
 	
@@ -173,11 +219,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	if key_event.keycode == KEY_SPACE:
 		get_viewport().set_input_as_handled()
 		
-		# Если есть фокус - действие на элементе в фокусе
-		if is_keyboard_active and focus_index >= 0:
-			_handle_focus_action()
+		# Проверяем состояние навигации
+		# ВАЖНО: Проверяем напрямую, без промежуточных переменных, чтобы избежать race condition
+		if keyboard_navigator.is_keyboard_active and keyboard_navigator.focus_index >= 0:
+			# Есть активная навигация - выполняем действие на элементе в фокусе
+			print("⌨️ PayoutOverlay: Пробел при активной навигации (active=%s, index=%d)" % [keyboard_navigator.is_keyboard_active, keyboard_navigator.focus_index])
+			keyboard_navigator.handle_focus_action()
 		else:
-			# Если нет фокуса - всегда "Выплатить"
+			# Нет активной навигации - выполняем выплату (поведение по умолчанию)
+			print("⌨️ PayoutOverlay: Пробел без активной навигации - выполняем выплату")
 			if not is_button_blocked and not payout_button.disabled:
 				_on_payout_pressed()
 
@@ -207,17 +257,22 @@ func setup_payout(winner: String, stake: float, payout: float):
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# ← Обработка клика на номинал фишки (добавление)
+# ← Обработка клика на номинал фишки (добавление через мышь)
 func _on_chip_clicked(denomination: float):
 	# Сбрасываем клавиатурную навигацию при клике мышью
-	_clear_keyboard_focus()
+	keyboard_navigator.clear_focus()
+	stack_manager.add_chip(denomination)
+
+# ← Обработка добавления фишки через клавиатуру (без сброса фокуса)
+func _on_chip_added_by_keyboard(denomination: float):
+	# НЕ сбрасываем фокус - продолжаем навигацию
 	stack_manager.add_chip(denomination)
 
 # ← Обработка правого клика по кнопке фишки (удаление)
 func _on_chip_button_input(event: InputEvent, denomination: float):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		# Сбрасываем клавиатурную навигацию при клике мышью
-		_clear_keyboard_focus()
+		keyboard_navigator.clear_focus()
 		stack_manager.remove_chip(denomination)
 
 # ← Обработчик добавления новой стопки (подключаем обработчик кликов)
@@ -229,7 +284,7 @@ func _on_stack_added(stack: ChipStack, _index: int):
 func _on_stack_clicked(event: InputEvent, stack: ChipStack):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
 		# Сбрасываем клавиатурную навигацию при клике мышью
-		_clear_keyboard_focus()
+		keyboard_navigator.clear_focus()
 		stack_manager.remove_chip(stack.denomination)
 
 # ← Обновление суммы при изменении стопок
@@ -266,46 +321,29 @@ func _on_payout_pressed():
 func _on_hint_pressed():
 	# Если подсказка еще не куплена, проверяем доступность и покупаем
 	if not hint_purchased:
-		var hint_check: Dictionary = _check_hint_availability()
+		var hint_check: Dictionary = hint_handler.check_availability(is_survival_mode, current_lives)
 		if not hint_check.can_use:
-			# Показываем сообщение об ошибке внутри окна выплат
-			_show_hint_error_message(Localization.t(hint_check.error_key))
+			# Показываем сообщение об ошибке
+			hint_handler.show_error_message(hint_check.error_key)
 			DebugLogger.log("❌ Нельзя использовать подсказку: %s" % hint_check.error_key)
 			return
 		
 		# Покупаем подсказку: отнимаем ресурсы
-		EventBus.hint_used.emit()
+		hint_handler.purchase_hint()
 		# Оповещение о потере сердца показывается автоматически через FeedbackAnimationManager._on_life_lost()
 		# поэтому здесь не показываем сообщение
 		
 		# Меняем состояние и цвет кнопки
 		hint_purchased = true
-		_update_hint_button_style(true)  # Зеленая кнопка
+		hint_handler.update_button_style(true)  # Зеленая кнопка
 	
 	# Формируем выплату (покупка уже сделана или была куплена ранее)
-	_apply_hint()
-	
-	DebugLogger.log("💡 Подсказка применена! Ожидаемая выплата: %s" % expected_payout)
-
-# ← Применить подсказку (сформировать выплату)
-func _apply_hint():
-	"""Применить подсказку - очистить стопки и добавить правильные фишки"""
-	# Очищаем текущие стопки
-	stack_manager.clear_all()
-
-	# Рассчитываем оптимальное распределение фишек
-	var hint: Array = validator.calculate_hint(expected_payout, chip_denominations)
-
-	# Добавляем фишки согласно подсказке
-	for item in hint:
-		var denomination: float = item["denomination"]
-		var count: int = item["count"]
-
-		for i in range(count):
-			stack_manager.add_chip(denomination)
+	hint_handler.apply_hint(expected_payout, chip_denominations)
 	
 	# Отправляем сигнал
 	hint_used.emit()
+	
+	DebugLogger.log("💡 Подсказка применена! Ожидаемая выплата: %s" % expected_payout)
 
 # ← Обработчик изменения режима игры
 func _on_mode_changed(_mode: String):
@@ -317,158 +355,6 @@ func _on_mode_changed(_mode: String):
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - НАСТРОЙКА UI
 # ═══════════════════════════════════════════════════════════════════════════
-
-func _setup_styles():
-
-	# === ЗАГОЛОВОК (ResultLabel) ===
-	result_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_RESULT_LABEL)
-	result_label.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.9))
-	result_label.add_theme_constant_override("outline_size", 3)
-
-	# === СТАВКА (StakeLabel) ===
-	stake_label.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_STAKE_LABEL)
-	stake_label.add_theme_color_override("font_color", Color(0.9, 0.8, 0.5))  # Золотистый
-
-	# === ПАНЕЛЬ СУММЫ (AmountPanel) ===
-	var amount_style: StyleBoxFlat = StyleBoxFlat.new()
-	amount_style.bg_color = GameConstants.AMOUNT_PANEL_BG_COLOR
-	amount_style.border_width_left = 2
-	amount_style.border_width_top = 2
-	amount_style.border_width_right = 2
-	amount_style.border_width_bottom = 2
-	amount_style.border_color = GameConstants.AMOUNT_PANEL_BORDER_COLOR
-	amount_style.corner_radius_top_left = 6
-	amount_style.corner_radius_top_right = 6
-	amount_style.corner_radius_bottom_left = 6
-	amount_style.corner_radius_bottom_right = 6
-	amount_panel.add_theme_stylebox_override("panel", amount_style)
-
-	# Число (сумма выплаты)
-	collected_amount_label.add_theme_font_size_override("font_size", 36)
-	collected_amount_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95))
-
-	# === КНОПКА "ВЫПЛАТИТЬ" (зеленая, яркая) ===
-	payout_button.text = "Выплатить"
-	payout_button.add_theme_font_size_override("font_size", GameConstants.FONT_SIZE_PAYOUT_BUTTON)
-
-	var payout_style_normal: StyleBoxFlat = StyleBoxFlat.new()
-	payout_style_normal.bg_color = Color(0.15, 0.6, 0.3)  # Зелёная
-	payout_style_normal.border_width_left = 3
-	payout_style_normal.border_width_top = 3
-	payout_style_normal.border_width_right = 3
-	payout_style_normal.border_width_bottom = 3
-	payout_style_normal.border_color = Color(0.7, 0.5, 0.2)  # Золотистая рамка
-	payout_style_normal.corner_radius_top_left = 8
-	payout_style_normal.corner_radius_top_right = 8
-	payout_style_normal.corner_radius_bottom_left = 8
-	payout_style_normal.corner_radius_bottom_right = 8
-	payout_button.add_theme_stylebox_override("normal", payout_style_normal)
-
-	var payout_style_hover: StyleBoxFlat = StyleBoxFlat.new()
-	payout_style_hover.bg_color = Color(0.2, 0.7, 0.4)
-	payout_style_hover.border_width_left = 3
-	payout_style_hover.border_width_top = 3
-	payout_style_hover.border_width_right = 3
-	payout_style_hover.border_width_bottom = 3
-	payout_style_hover.border_color = Color(0.8, 0.6, 0.3)
-	payout_style_hover.corner_radius_top_left = 8
-	payout_style_hover.corner_radius_top_right = 8
-	payout_style_hover.corner_radius_bottom_left = 8
-	payout_style_hover.corner_radius_bottom_right = 8
-	payout_button.add_theme_stylebox_override("hover", payout_style_hover)
-
-	payout_button.add_theme_color_override("font_color", Color(1, 1, 1))
-
-	# === КНОПКА "?" (подсказка) ===
-	hint_button.text = "?"
-	hint_button.add_theme_font_size_override("font_size", 28)
-	
-	# Устанавливаем начальный стиль (красная кнопка - не куплена)
-	_update_hint_button_style(false)
-
-# ← Обновить стиль кнопки подсказки
-func _update_hint_button_style(purchased: bool):
-	"""Обновить стиль кнопки подсказки в зависимости от состояния покупки
-	
-	Args:
-		purchased: true если подсказка куплена (зеленая), false если не куплена (красная)
-	"""
-	if not hint_button:
-		return
-
-	var hint_style_normal: StyleBoxFlat = StyleBoxFlat.new()
-	var hint_style_hover: StyleBoxFlat = StyleBoxFlat.new()
-	
-	if purchased:
-		# Зеленая кнопка (куплена)
-		hint_style_normal.bg_color = Color(0.2, 0.6, 0.3)  # Зелёный
-		hint_style_hover.bg_color = Color(0.3, 0.7, 0.4)   # Светло-зелёный
-	else:
-		# Красная кнопка (не куплена)
-		hint_style_normal.bg_color = Color(0.6, 0.2, 0.2)  # Красный
-		hint_style_hover.bg_color = Color(0.7, 0.3, 0.3)   # Светло-красный
-	
-	# Общие настройки для обоих стилей
-	hint_style_normal.border_width_left = 2
-	hint_style_normal.border_width_top = 2
-	hint_style_normal.border_width_right = 2
-	hint_style_normal.border_width_bottom = 2
-	hint_style_normal.border_color = Color(0.7, 0.5, 0.2)
-	hint_style_normal.corner_radius_top_left = 8
-	hint_style_normal.corner_radius_top_right = 8
-	hint_style_normal.corner_radius_bottom_left = 8
-	hint_style_normal.corner_radius_bottom_right = 8
-	
-	hint_style_hover.border_width_left = 2
-	hint_style_hover.border_width_top = 2
-	hint_style_hover.border_width_right = 2
-	hint_style_hover.border_width_bottom = 2
-	hint_style_hover.border_color = Color(0.8, 0.6, 0.3)
-	hint_style_hover.corner_radius_top_left = 8
-	hint_style_hover.corner_radius_top_right = 8
-	hint_style_hover.corner_radius_bottom_left = 8
-	hint_style_hover.corner_radius_bottom_right = 8
-	
-	hint_button.add_theme_stylebox_override("normal", hint_style_normal)
-	hint_button.add_theme_stylebox_override("hover", hint_style_hover)
-	hint_button.add_theme_color_override("font_color", Color(1, 1, 1))
-
-	# === ГЛАВНАЯ ПАНЕЛЬ (MainPanel - стопки фишек) ===
-	var main_style: StyleBoxFlat = StyleBoxFlat.new()
-	main_style.bg_color = GameConstants.MAIN_PANEL_BG_COLOR
-	main_style.border_width_left = 2
-	main_style.border_width_top = 2
-	main_style.border_width_right = 2
-	main_style.border_width_bottom = 2
-	main_style.border_color = GameConstants.MAIN_PANEL_BORDER_COLOR
-	main_style.corner_radius_top_left = 8
-	main_style.corner_radius_top_right = 8
-	main_style.corner_radius_bottom_left = 8
-	main_style.corner_radius_bottom_right = 8
-	main_panel.add_theme_stylebox_override("panel", main_style)
-
-	# Размеры контейнера стопок
-	chip_stacks_container.custom_minimum_size = Vector2(0, 240)  # ← Уменьшили высоту с 280 до 240
-	chip_stacks_container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	chip_stacks_container.size_flags_vertical = Control.SIZE_SHRINK_BEGIN  # ← Выравнивание по верху
-	chip_stacks_container.add_theme_constant_override("separation", 5)  # ← Уменьшили с 10 до 5
-
-	# === ПАНЕЛЬ ФЛОТА (FleetPanel - кнопки фишек) ===
-	var fleet_style: StyleBoxFlat = StyleBoxFlat.new()
-	fleet_style.bg_color = GameConstants.FLEET_PANEL_BG_COLOR
-	fleet_style.border_width_left = 2
-	fleet_style.border_width_top = 2
-	fleet_style.border_width_right = 2
-	fleet_style.border_width_bottom = 2
-	fleet_style.border_color = GameConstants.FLEET_PANEL_BORDER_COLOR
-	fleet_style.corner_radius_top_left = 8
-	fleet_style.corner_radius_top_right = 8
-	fleet_style.corner_radius_bottom_left = 8
-	fleet_style.corner_radius_bottom_right = 8
-	fleet_panel.add_theme_stylebox_override("panel", fleet_style)
-
-	# Размеры контейнера флота
-	chip_fleet_container.add_theme_constant_override("separation", 10)
 
 # ← Создание кнопок для каждого номинала фишки
 func _create_chip_buttons():
@@ -547,86 +433,19 @@ func _format_amount(amount: float) -> String:
 	else:
 		return str(amount)
 
-# ← Показать сообщение об ошибке подсказки
-func _show_hint_error_message(message: String):
-	"""Показать сообщение об ошибке при попытке использовать подсказку"""
-	_show_feedback_message(message, Color(0.9, 0.2, 0.2), 2.0)
-
-# ← Показать сообщение об успешном использовании подсказки
-func _show_hint_success_message():
-	"""Показать сообщение об успешном использовании подсказки"""
-	# Используем сохранённую переменную вместо get_parent()
-	var message: String
-
-	if is_survival_mode:
-		# Режим выживания: показываем "-1 Сердце"
-		message = Localization.t("HINT_USED_HEART")
-	else:
-		# Обычный режим: показываем стоимость подсказки
-		message = Localization.t("HINT_USED_SCORE", [GameConstants.HINT_COST_SCORE])
-
-	# Показываем сообщение зеленым цветом
-	_show_feedback_message(message, Color(0.2, 0.9, 0.2), 2.0)
-
-# ← Универсальная функция для показа красивого сообщения
-func _show_feedback_message(message: String, color: Color, duration: float = 2.0):
-	"""Показать красивое сообщение с анимацией (использует FeedbackAnimationManager)
-	
-	Args:
-		message: Текст сообщения
-		color: Цвет текста
-		duration: Длительность показа в секундах
-	"""
-	# Используем новый FeedbackAnimationManager для всех оповещений
-	if FeedbackAnimationManager:
-		FeedbackAnimationManager.show_feedback(message, color, duration)
-	else:
-		# Fallback на overlay-уведомление
-		if OverlayNotificationManager:
-			if color == Color(0.9, 0.2, 0.2):  # Красный = ошибка
-				OverlayNotificationManager.show_error(message, duration)
-			else:  # Зелёный = успех
-				OverlayNotificationManager.show_success(message, duration)
-
-# ← Проверка доступности подсказки
-func _check_hint_availability() -> Dictionary:
-	"""Проверяет, можно ли использовать подсказку
-
-	Возвращает словарь с полями:
-	- can_use: bool - можно ли использовать
-	- error_key: String - ключ сообщения об ошибке (если can_use = false)
-
-	В режиме выживания: нужно минимум MIN_LIVES_FOR_HINT жизней
-	В обычном режиме: нужно минимум HINT_COST_SCORE очков
-	"""
-	# Используем сохранённые переменные вместо get_parent()
-	if is_survival_mode:
-		# Режим выживания: проверяем жизни
-		# Нужно минимум MIN_LIVES_FOR_HINT жизней (1 для использования, 1 чтобы не было геймовера)
-		if current_lives < GameConstants.MIN_LIVES_FOR_HINT:
-			return {"can_use": false, "error_key": "ERR_HINT_NO_HEARTS"}
-		return {"can_use": true, "error_key": ""}
-	else:
-		# Обычный режим: проверяем очки
-		var score: int = SaveManager.instance.score
-		# Нужно минимум 6 очков (меньше 6 = недоступна, при 5 очках = геймовер)
-		if score < 6:
-			return {"can_use": false, "error_key": "ERR_HINT_NO_SCORE"}
-		return {"can_use": true, "error_key": ""}
-
 # ═══════════════════════════════════════════════════════════════════════════
 # АНИМАЦИИ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _show_success_animation(is_correct: bool, collected: float, expected: float):
 	# Показываем изображение "Верно!"
-	_show_success_image()
+	animation_controller.show_success_animation()
 	
 	# Ждем время показа
 	await get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
 	
 	# Скрываем изображение
-	_hide_success_image()
+	await animation_controller.hide_success_animation()
 	
 	# Возвращаемся к игре с результатом
 	_return_to_game(is_correct, collected, expected)
@@ -638,96 +457,17 @@ func _show_error_animation(_collected: float):
 	# ← СРАЗУ очищаем фишки, чтобы можно было начать вводить новую выплату
 	stack_manager.clear_all()
 
-	# Показываем изображение "Ошибка!"
-	_show_error_image()
-
-	# Анимация тряски кнопки
-	var tween: Tween = create_tween()
-	var original_pos: Vector2 = payout_button.position
-	var shake: float = GameConstants.SHAKE_OFFSET
-	var dur: float = GameConstants.SHAKE_DURATION
-	tween.tween_property(payout_button, "position:x", original_pos.x + shake, dur)
-	tween.tween_property(payout_button, "position:x", original_pos.x - shake, dur)
-	tween.tween_property(payout_button, "position:x", original_pos.x + shake, dur)
-	tween.tween_property(payout_button, "position:x", original_pos.x - shake, dur)
-	tween.tween_property(payout_button, "position:x", original_pos.x, dur)
+	# Показываем изображение "Ошибка!" и тряску кнопки
+	animation_controller.show_error_animation()
 
 	await get_tree().create_timer(GameConstants.ERROR_ANIMATION_DURATION).timeout
 	is_button_blocked = false
 	payout_button.disabled = false
 
 	# Скрываем изображение
-	_hide_error_image()
+	await animation_controller.hide_error_animation()
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
-
-# ═══════════════════════════════════════════════════════════════════════════
-# ПОКАЗ/СКРЫТИЕ PNG ИЗОБРАЖЕНИЙ ОПОВЕЩЕНИЙ
-# ═══════════════════════════════════════════════════════════════════════════
-
-func _show_success_image():
-	"""Показать изображение 'Верно!' с анимацией fade in"""
-	if not success_image:
-		return
-	
-	# Сбрасываем состояние перед показом
-	success_image.modulate = Color(1, 1, 1, 0.0)  # Начинаем с прозрачного
-	success_image.visible = true
-	
-	# Анимация fade in (без зума)
-	var tween: Tween = create_tween()
-	tween.tween_property(success_image, "modulate:a", 1.0, 0.3)
-
-func _hide_success_image():
-	"""Скрыть изображение 'Верно!' с анимацией fade out и движением вверх"""
-	if not success_image:
-		return
-	
-	# Сохраняем оригинальную позицию
-	var original_position: Vector2 = success_image.position
-
-	# Анимация fade out с движением вверх
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(success_image, "modulate:a", 0.0, 0.2)
-	tween.tween_property(success_image, "position:y", original_position.y - 30.0, 0.2)
-	await tween.finished
-	
-	# Возвращаем позицию на место
-	success_image.position = original_position
-	success_image.visible = false
-
-func _show_error_image():
-	"""Показать изображение 'Ошибка!' с анимацией fade in"""
-	if not error_image:
-		return
-	
-	# Сбрасываем состояние перед показом
-	error_image.modulate = Color(1, 1, 1, 0.0)  # Начинаем с прозрачного
-	error_image.visible = true
-	
-	# Анимация fade in (без зума)
-	var tween: Tween = create_tween()
-	tween.tween_property(error_image, "modulate:a", 1.0, 0.3)
-
-func _hide_error_image():
-	"""Скрыть изображение 'Ошибка!' с анимацией fade out и движением вверх"""
-	if not error_image:
-		return
-	
-	# Сохраняем оригинальную позицию
-	var original_position: Vector2 = error_image.position
-
-	# Анимация fade out с движением вверх
-	var tween: Tween = create_tween()
-	tween.set_parallel(true)
-	tween.tween_property(error_image, "modulate:a", 0.0, 0.2)
-	tween.tween_property(error_image, "position:y", original_position.y - 30.0, 0.2)
-	await tween.finished
-	
-	# Возвращаем позицию на место
-	error_image.position = original_position
-	error_image.visible = false
 
 func _on_payout_wrong_event(_collected: float, _expected: float, _bet_type: String, _position_index: int):
 	"""Обработчик события неправильной выплаты
@@ -785,11 +525,10 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	InputContextManager.set_context(InputContextManager.InputContext.PAYOUT)
 	
 	# Сбрасываем клавиатурную навигацию при открытии окна
-	_clear_keyboard_focus()
+	keyboard_navigator.clear_focus()
 	
-	# Убеждаемся, что FocusFrame создан
-	if not focus_frame:
-		_create_focus_frame()
+	# Обновляем номиналы в навигаторе (могут измениться)
+	keyboard_navigator.chip_denominations = chip_denominations
 	
 	# Сохраняем состояние игры (вместо get_parent())
 	is_survival_mode = is_survival
@@ -799,7 +538,7 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 
 	# Сбрасываем состояние подсказки для нового окна выплат
 	hint_purchased = false
-	_update_hint_button_style(false)  # Красная кнопка (не куплена)
+	hint_handler.update_button_style(false)  # Красная кнопка (не куплена)
 	
 	# ВАЖНО: Сбрасываем блокировку кнопки для нового окна
 	is_button_blocked = false
@@ -847,219 +586,8 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	hide()
 	
 	# Сбрасываем клавиатурную навигацию при закрытии
-	_clear_keyboard_focus()
+	keyboard_navigator.clear_focus()
 
 	DebugLogger.log("💰 PayoutOverlay скрыт: bet_type=%s, correct=%s, collected=%.1f, expected=%.1f" % [current_winner, is_correct, collected, expected])
 
-# ═══════════════════════════════════════════════════════════════════════════
-# КЛАВИАТУРНАЯ НАВИГАЦИЯ
-# ═══════════════════════════════════════════════════════════════════════════
-
-func _initialize_keyboard_navigation() -> void:
-	"""Инициализация системы клавиатурной навигации"""
-	# Создаём FocusFrame прямо в PayoutOverlay (CanvasLayer)
-	_create_focus_frame()
-	
-	# Изначально навигация неактивна (управление мышью)
-	is_keyboard_active = false
-	focus_index = -1
-	focus_level = FocusLevel.BOTTOM
-
-func _create_focus_frame() -> void:
-	"""Создать FocusFrameUI для PayoutOverlay (в том же CanvasLayer)"""
-	if focus_frame:
-		return  # Уже создан
-	
-	# Проверяем, нет ли уже FocusFrame в PayoutOverlay
-	var existing = find_child("PayoutFocusFrame", true, false)
-	if existing:
-		focus_frame = existing as FocusFrameUI
-		return
-	
-	# Создаём новый FocusFrameUI
-	focus_frame = FocusFrameUI.new()
-	focus_frame.name = "PayoutFocusFrame"
-	
-	# Добавляем в PayoutOverlay (CanvasLayer)
-	# Нужно добавить в корневой элемент (ColorRect), чтобы рамка была в той же системе координат
-	var color_rect = get_node_or_null("ColorRect")
-	if color_rect:
-		color_rect.add_child(focus_frame)
-		# Устанавливаем z_index чтобы рамка была поверх всех элементов
-		focus_frame.z_index = 1000
-		print("🔲 PayoutOverlay: FocusFrame создан в ColorRect, z_index=%d" % focus_frame.z_index)
-	else:
-		# Если ColorRect не найден, добавляем в сам CanvasLayer
-		add_child(focus_frame)
-		focus_frame.z_index = 1000
-		print("🔲 PayoutOverlay: FocusFrame создан в CanvasLayer, z_index=%d" % focus_frame.z_index)
-
-func _clear_keyboard_focus() -> void:
-	"""Сбросить клавиатурный фокус (при использовании мыши)"""
-	is_keyboard_active = false
-	focus_index = -1
-	if focus_frame:
-		focus_frame.hide_frame()
-
-func _activate_keyboard_navigation() -> void:
-	"""Активировать клавиатурную навигацию"""
-	if is_keyboard_active:
-		return
-	
-	# Проверка безопасности: если chip_denominations пуст, не активируем навигацию
-	if chip_denominations.is_empty():
-		push_warning("PayoutOverlay: Невозможно активировать навигацию - chip_denominations пуст")
-		return
-	
-	is_keyboard_active = true
-	focus_level = FocusLevel.BOTTOM
-	# Устанавливаем фокус на 5-ю фишку (индекс 4, так как начинается с 0)
-	focus_index = 4
-	if focus_index >= chip_denominations.size():
-		# Если фишек меньше 5, берем последнюю
-		focus_index = chip_denominations.size() - 1
-	if focus_index < 0:
-		focus_index = 0
-	
-	_update_focus_frame()
-
-func _handle_navigation_input(key_event: InputEventKey) -> void:
-	"""Обработка навигации клавиатурой"""
-	# Если навигация не активна - активируем
-	if not is_keyboard_active:
-		_activate_keyboard_navigation()
-		return
-	
-	# Обрабатываем навигацию в зависимости от нажатой клавиши
-	match key_event.keycode:
-		KEY_LEFT, KEY_A:
-			_navigate_left()
-		KEY_RIGHT, KEY_D:
-			_navigate_right()
-		KEY_UP, KEY_W:
-			_navigate_up()
-		KEY_DOWN, KEY_S:
-			_navigate_down()
-	
-	_update_focus_frame()
-
-func _navigate_left() -> void:
-	"""Навигация влево (предыдущий элемент на текущем уровне)"""
-	if focus_level == FocusLevel.BOTTOM:
-		# На нижнем уровне: фишки + кнопка выплатить
-		var total_items = chip_denominations.size() + 1  # +1 для кнопки выплатить
-		focus_index = (focus_index - 1 + total_items) % total_items
-	elif focus_level == FocusLevel.TOP:
-		# На верхнем уровне только кнопка подсказки (ничего не делаем)
-		pass
-
-func _navigate_right() -> void:
-	"""Навигация вправо (следующий элемент на текущем уровне)"""
-	if focus_level == FocusLevel.BOTTOM:
-		# На нижнем уровне: фишки + кнопка выплатить
-		var total_items = chip_denominations.size() + 1  # +1 для кнопки выплатить
-		focus_index = (focus_index + 1) % total_items
-	elif focus_level == FocusLevel.TOP:
-		# На верхнем уровне только кнопка подсказки (ничего не делаем)
-		pass
-
-func _navigate_up() -> void:
-	"""Навигация вверх (переключение на верхний уровень)"""
-	if focus_level == FocusLevel.BOTTOM:
-		# Переходим на верхний уровень (кнопка подсказки)
-		focus_level = FocusLevel.TOP
-		focus_index = 0  # На верхнем уровне только один элемент
-
-func _navigate_down() -> void:
-	"""Навигация вниз (переключение на нижний уровень или удаление фишки)"""
-	if focus_level == FocusLevel.BOTTOM:
-		# Если фокус на фишке - удаляем фишку этого номинала
-		if focus_index < chip_denominations.size():
-			var denomination = chip_denominations[focus_index]
-			# Проверяем, есть ли стек с таким номиналом перед удалением
-			var has_stack = false
-			for stack in stack_manager.get_stacks():
-				if stack.denomination == denomination:
-					has_stack = true
-					break
-			if has_stack:
-				stack_manager.remove_chip(denomination)
-	elif focus_level == FocusLevel.TOP:
-		# Переходим на нижний уровень
-		focus_level = FocusLevel.BOTTOM
-		# Сохраняем последний индекс или устанавливаем на 5-ю фишку
-		if focus_index < 0 or focus_index >= chip_denominations.size() + 1:
-			focus_index = 4
-			if focus_index >= chip_denominations.size():
-				focus_index = chip_denominations.size() - 1
-			if focus_index < 0:
-				focus_index = 0
-
-func _update_focus_frame() -> void:
-	"""Обновить позицию рамки фокуса"""
-	if not is_keyboard_active or focus_index < 0:
-		if focus_frame:
-			focus_frame.hide_frame()
-		return
-	
-	if not focus_frame:
-		_create_focus_frame()
-	
-	if not focus_frame:
-		return
-	
-	var target_node: Control = null
-	
-	if focus_level == FocusLevel.BOTTOM:
-		if focus_index < chip_denominations.size():
-			# Фокус на фишке
-			var chip_buttons = chip_fleet_container.get_children()
-			if focus_index < chip_buttons.size():
-				target_node = chip_buttons[focus_index] as Control
-		else:
-			# Фокус на кнопке "Выплатить"
-			target_node = payout_button
-	elif focus_level == FocusLevel.TOP:
-		# Фокус на кнопке "Подсказка"
-		target_node = hint_button
-	
-	if target_node:
-		print("🔲 PayoutOverlay: Показываем рамку на элементе: %s, позиция: %s" % [target_node.name, target_node.position])
-		focus_frame.show_on_node(target_node)
-	else:
-		focus_frame.hide_frame()
-
-func _connect_mouse_handlers() -> void:
-	"""Подключить обработчики мыши для сброса клавиатурного фокуса"""
-	if payout_button and not payout_button.gui_input.is_connected(_on_payout_button_mouse_input):
-		payout_button.gui_input.connect(_on_payout_button_mouse_input)
-	if hint_button and not hint_button.gui_input.is_connected(_on_hint_button_mouse_input):
-		hint_button.gui_input.connect(_on_hint_button_mouse_input)
-
-func _on_payout_button_mouse_input(event: InputEvent) -> void:
-	"""Обработка ввода мыши на кнопке выплаты"""
-	if event is InputEventMouseButton and event.pressed:
-		_clear_keyboard_focus()
-
-func _on_hint_button_mouse_input(event: InputEvent) -> void:
-	"""Обработка ввода мыши на кнопке подсказки"""
-	if event is InputEventMouseButton and event.pressed:
-		_clear_keyboard_focus()
-
-func _handle_focus_action() -> void:
-	"""Обработать действие на элементе в фокусе (пробел)"""
-	if not is_keyboard_active or focus_index < 0:
-		return
-	
-	if focus_level == FocusLevel.BOTTOM:
-		if focus_index < chip_denominations.size():
-			# Добавляем фишку выбранного номинала
-			var denomination = chip_denominations[focus_index]
-			stack_manager.add_chip(denomination)
-		else:
-			# Нажимаем кнопку "Выплатить"
-			if not is_button_blocked and not payout_button.disabled:
-				_on_payout_pressed()
-	elif focus_level == FocusLevel.TOP:
-		# Нажимаем кнопку "Подсказка"
-		_on_hint_pressed()
+# Клавиатурная навигация теперь управляется через keyboard_navigator
