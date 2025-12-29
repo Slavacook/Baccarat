@@ -118,46 +118,27 @@ func handle_navigation_input(key_event: InputEventKey) -> void:
 
 func handle_focus_action() -> void:
 	"""Обработать действие на элементе в фокусе (пробел)"""
-	# Дополнительная проверка состояния перед выполнением
-	if not is_keyboard_active:
-		print("⚠️ PayoutKeyboardNavigator: handle_focus_action вызван, но навигация неактивна")
+	if not is_keyboard_active or focus_index < 0:
 		return
-	
-	if focus_index < 0:
-		print("⚠️ PayoutKeyboardNavigator: handle_focus_action вызван, но focus_index < 0")
-		return
-	
-	print("⌨️ PayoutKeyboardNavigator: handle_focus_action - level=%d, index=%d" % [focus_level, focus_index])
 	
 	if focus_level == FocusLevel.BOTTOM:
 		if focus_index < chip_denominations.size():
 			# Добавляем фишку выбранного номинала
 			var denomination = chip_denominations[focus_index]
-			print("⌨️ PayoutKeyboardNavigator: Добавляем фишку номиналом %.1f" % denomination)
 			if on_chip_added_callback.is_valid():
 				on_chip_added_callback.call(denomination)
-			else:
-				print("⚠️ PayoutKeyboardNavigator: on_chip_added_callback не установлен!")
 		else:
 			# Нажимаем кнопку "Выплатить"
-			print("⌨️ PayoutKeyboardNavigator: Нажимаем кнопку 'Выплатить'")
 			var is_blocked = false
 			if is_button_blocked_callback.is_valid():
 				is_blocked = is_button_blocked_callback.call()
 			if not is_blocked and not payout_button.disabled:
 				if on_payout_pressed_callback.is_valid():
 					on_payout_pressed_callback.call()
-				else:
-					print("⚠️ PayoutKeyboardNavigator: on_payout_pressed_callback не установлен!")
-			else:
-				print("⚠️ PayoutKeyboardNavigator: Кнопка заблокирована или disabled")
 	elif focus_level == FocusLevel.TOP:
 		# Нажимаем кнопку "Подсказка"
-		print("⌨️ PayoutKeyboardNavigator: Нажимаем кнопку 'Подсказка'")
 		if on_hint_pressed_callback.is_valid():
 			on_hint_pressed_callback.call()
-		else:
-			print("⚠️ PayoutKeyboardNavigator: on_hint_pressed_callback не установлен!")
 
 func clear_focus() -> void:
 	"""Сбросить клавиатурный фокус (при использовании мыши)"""
@@ -270,12 +251,10 @@ func _create_focus_frame() -> void:
 		color_rect.add_child(focus_frame)
 		# Устанавливаем z_index чтобы рамка была поверх всех элементов
 		focus_frame.z_index = 1000
-		print("🔲 PayoutKeyboardNavigator: FocusFrame создан в ColorRect, z_index=%d" % focus_frame.z_index)
 	else:
 		# Если ColorRect не найден, добавляем в сам owner_node
 		owner_node.add_child(focus_frame)
 		focus_frame.z_index = 1000
-		print("🔲 PayoutKeyboardNavigator: FocusFrame создан в owner_node, z_index=%d" % focus_frame.z_index)
 
 func _update_focus_frame() -> void:
 	"""Обновить позицию рамки фокуса"""
@@ -306,7 +285,6 @@ func _update_focus_frame() -> void:
 		target_node = hint_button
 	
 	if target_node:
-		print("🔲 PayoutKeyboardNavigator: Показываем рамку на элементе: %s, позиция: %s" % [target_node.name, target_node.position])
 		focus_frame.show_on_node(target_node)
 	else:
 		focus_frame.hide_frame()

@@ -70,8 +70,11 @@ var card_controller: CardController
 # Обработчик результатов выплат (Extract Class)
 var payout_result_handler: PayoutResultHandler
 
-# Обработчик кликов на фишки (Extract Class)
+# Обработчик кликов на фишек (Extract Class)
 var chip_click_handler: ChipClickHandler
+
+# Обработчик событий настроек (Extract Class)
+var settings_handler: SettingsEventHandler
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
@@ -197,6 +200,7 @@ func _ready():
 	
 	# Инициализируем обработчик кликов на фишки (после инициализации менеджеров)
 	_initialize_chip_click_handler()
+	_initialize_settings_handler()
 	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
@@ -298,6 +302,44 @@ func _initialize_chip_click_handler() -> void:
 	chip_click_handler.set_show_payout_overlay_callback(_show_payout_overlay_instance)
 	chip_click_handler.set_open_payout_scene_callback(_open_payout_scene)
 	print("✅ ChipClickHandler инициализирован")
+
+func _initialize_settings_handler() -> void:
+	"""Инициализировать обработчик событий настроек"""
+	settings_handler = SettingsEventHandler.new(
+		limits_manager,
+		phase_manager,
+		chip_visual_manager,
+		ui_manager,
+		pair_betting_manager,
+		survival_state
+	)
+	
+	# Устанавливаем callbacks для доступа к pending_mode_change
+	settings_handler.get_pending_mode_change_callback = func(): return pending_mode_change
+	settings_handler.set_pending_mode_change_callback = func(mode: String): pending_mode_change = mode
+	
+	# Подключаем сигналы настроек
+	_connect_settings_signals()
+	
+	print("✅ SettingsEventHandler инициализирован")
+
+func _connect_settings_signals() -> void:
+	"""Подключить сигналы настроек к settings_handler"""
+	if not settings_handler:
+		return
+	
+	# Сигналы от SettingsScene
+	if settings_scene:
+		settings_scene.mode_changed.connect(settings_handler.handle_mode_changed)
+		settings_scene.language_changed.connect(settings_handler.handle_language_changed)
+	
+	# Сигналы от EventBus
+	EventBus.payout_setting_changed.connect(settings_handler.handle_payout_setting_changed)
+	EventBus.card_back_style_changed.connect(settings_handler.handle_card_back_style_changed)
+	EventBus.position_mode_changed.connect(settings_handler.handle_position_mode_changed)
+	
+	# Сигнал от GameStateManager
+	GameStateManager.state_changed.connect(settings_handler.handle_game_state_changed)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -959,94 +1001,11 @@ func _on_settings_closed():
 		DebugLogger.log("⚙️ Настройки закрыты → кнопка 'Карты' включена")
 
 
-func _on_mode_changed(mode: String):
-	DebugLogger.log("Режим игры изменён на: %s" % mode)
-	
-	# ВАЖНО: Смена лимитов возможна ТОЛЬКО в состоянии WAITING
-	# В CHOOSE_WINNER раздача ещё не завершена - есть ставки для обработки
-	var current_state = GameStateManager.get_current_state()
-	var state_name = GameStateManager.get_state_name(current_state)
-	DebugLogger.log("🔍 Текущее состояние игры: %s" % state_name)
-	
-	if current_state == GameStateManager.GameState.WAITING:
-		# Можно менять сразу - применяем
-		DebugLogger.log("✅ Состояние WAITING - применяем смену лимитов сразу")
-		_apply_mode_change(mode)
-	else:
-		# Откладываем смену - НЕ меняем режим и лимиты, НЕ трогаем фишки и ставки
-		pending_mode_change = mode
-		
-		# ВАЖНО: НЕ вызываем GameModeManager.set_mode() и НЕ меняем лимиты!
-		# Режим и лимиты останутся прежними до завершения раздачи
-		# Фишки и ставки останутся на столе и будут обработаны по старым лимитам
-		
-		# Оповещаем игрока
-		var mode_display_name = Localization.t("MODE_JUNKET_NAME") if mode == "junket" else Localization.t("MODE_CLASSIC_NAME")
-		var message = Localization.t("LIMITS_CHANGE_PENDING", [mode_display_name])
-		EventBus.show_toast_info.emit(message)
-		
-		# Логируем
-		_log_mode_change(mode, state_name, true)
-		
-		DebugLogger.log("⏳ Смена лимитов отложена до состояния WAITING (текущее состояние: %s, режим и лимиты НЕ изменены, фишки и ставки сохранены)" % state_name)
-
-func _apply_mode_change(mode: String, should_clear_chips: bool = true):
-	"""Применить смену режима игры и лимитов
-	
-	Args:
-		mode: Режим игры ("junket" или "classic")
-		should_clear_chips: Нужно ли скрывать фишки и очищать ставки (true при применении в WAITING, false при отложенной смене)
-	"""
-	GameModeManager.set_mode(mode)
-	
-	# Очищаем все сгенерированные ставки при переключении режима
-	# (чтобы избежать конфликта между Classic и Junket фишками)
-	# НО только если should_clear_chips = true (т.е. мы в WAITING и можно безопасно очищать)
-	if should_clear_chips:
-		if phase_manager and phase_manager.guest_bet_storage:
-			phase_manager.guest_bet_storage.clear_all_bets()
-			DebugLogger.log("🗑️ Все ставки гостей очищены при переключении режима игры")
-		
-		# Скрываем все визуальные фишки ставок
-		if chip_visual_manager:
-			chip_visual_manager.hide_all_chips()
-			chip_visual_manager.clear_all_active_chips()
-			DebugLogger.log("🚫 Все визуальные фишки ставок скрыты при переключении режима игры")
-	else:
-		DebugLogger.log("⏳ Смена режима применена, но фишки и ставки сохранены (раздача продолжается)")
-	
-	var cfg = GameModeManager.get_config()
-	# ← set_limits() сам вызовет limits_changed.emit() → _on_limits_changed()
-	limits_manager.set_limits(
-		cfg["main_min"], cfg["main_max"], cfg["main_step"],
-		cfg["tie_min"], cfg["tie_max"], cfg["tie_step"],
-		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"]
-	)
-	
-	# Оповещаем игрока
-	var mode_display_name = Localization.t("MODE_JUNKET_NAME") if mode == "junket" else Localization.t("MODE_CLASSIC_NAME")
-	var message = Localization.t("LIMITS_CHANGED", [mode_display_name])
-	EventBus.show_overlay_info.emit(message, 2.0)
-	
-	# Логируем
-	_log_mode_change(mode, GameStateManager.get_state_name(GameStateManager.get_current_state()), false)
-	
-	DebugLogger.log("✅ Лимиты изменены на режим: %s" % mode_display_name)
-
-func _on_language_changed(_lang: String):
-	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-	# Обновление toggles третьих карт (если видимы)
-	if ui_manager.player_third_toggle.visible:
-		var state = "!" if phase_manager.player_third_selected else "?"
-		ui_manager.update_player_third_card_ui(state)
-	if ui_manager.banker_third_toggle.visible:
-		var state = "!" if phase_manager.banker_third_selected else "?"
-		ui_manager.update_banker_third_card_ui(state)
-
-func _on_survival_mode_changed(_enabled: bool):
-	"""DEPRECATED: Режим выживания теперь всегда включён"""
-	# Ничего не делаем - режим всегда включён
-	pass
+# Методы обработки настроек перенесены в SettingsEventHandler
+# _on_mode_changed -> settings_handler.handle_mode_changed
+# _apply_mode_change -> settings_handler.apply_mode_change
+# _on_language_changed -> settings_handler.handle_language_changed
+# _on_survival_mode_changed -> settings_handler.handle_survival_mode_changed
 
 func _load_survival_mode_setting():
 	"""Активировать режим выживания (всегда включён)"""
@@ -1055,16 +1014,7 @@ func _load_survival_mode_setting():
 	# StatsLabel показывает деньги (управляется в StatsManager)
 	DebugLogger.log("Режим выживания активирован (сердца + деньги)")
 
-func _on_game_state_changed(old_state: int, new_state: int):
-	var old_name = GameStateManager.get_state_name(old_state)
-	var new_name = GameStateManager.get_state_name(new_state)
-	DebugLogger.log("📊 [НОВАЯ СИСТЕМА] Состояние: %s → %s" % [old_name, new_name])
-	
-	# Если перешли в WAITING и есть отложенная смена режима - применяем её
-	if new_state == GameStateManager.GameState.WAITING and pending_mode_change != "":
-		var mode_to_apply = pending_mode_change
-		pending_mode_change = ""  # Очищаем отложенную смену
-		_apply_mode_change(mode_to_apply)
+# Метод _on_game_state_changed перенесён в SettingsEventHandler.handle_game_state_changed
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАВИАТУРНАЯ НАВИГАЦИЯ
@@ -1499,97 +1449,10 @@ func _apply_arrows_state(left_arrow: Node, right_arrow: Node, up_arrow: Node, do
 
 
 
-func _on_payout_setting_changed(bet_type: String, enabled: bool):
-	"""Обработка изменения настроек выплат из SettingsScene"""
-	if not chip_visual_manager:
-		return
-
-	# Для пар - также обновляем PairBettingManager
-	if bet_type == "PairPlayer" and pair_betting_manager:
-		pair_betting_manager.toggle_pair_player_bet(enabled)
-	elif bet_type == "PairBanker" and pair_betting_manager:
-		pair_betting_manager.toggle_pair_banker_bet(enabled)
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРИМЕНЕНИЕ ФИЛЬТРА: В WAITING применяем сразу, иначе накапливаем
-	# ═══════════════════════════════════════════════════════════════════
-	var current_state = GameStateManager.get_current_state()
-	if current_state == GameStateManager.GameState.WAITING:
-		# В состоянии ожидания - применяем фильтр сразу и обновляем snapshot
-		var chips_of_type = chip_visual_manager.get_active_chips_by_type(bet_type)
-		DebugLogger.log("💰 Настройка выплаты изменена: %s = %s (состояние: WAITING, найдено %d фишек)" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ", chips_of_type.size()])
-		
-		if enabled:
-			# Ставка включена - показываем существующие фишки или создаём новые
-			for chip in chips_of_type:
-				if chip.node and is_instance_valid(chip.node):
-					chip.node.visible = true
-					DebugLogger.log("  → Фишка %s[%d] показана" % [bet_type, chip.position_index])
-			
-			# Если фишек нет, но есть ставки в хранилище - создаём их
-			if chips_of_type.is_empty() and phase_manager and phase_manager.guest_bet_storage:
-				var guests_with_bets = phase_manager.guest_bet_storage.get_guests_with_bets()
-				for guest_id in guests_with_bets:
-					var bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
-					for bet in bets:
-						if bet.get_bet_type() == bet_type:
-							# Создаём фишку для этой ставки
-							var sector = bet.get_sector()
-							var pos_idx = bet.get_position_index()
-							var stake = bet.get_stake()
-							var coords = GuestSectorMapper.get_position_coordinates(sector, bet_type)
-							if coords != Vector2.ZERO:
-								phase_manager._show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
-								DebugLogger.log("  → Создана фишка %s[%d] для гостя %d" % [bet_type, pos_idx, guest_id])
-		else:
-			# Ставка отключена - скрываем существующие фишки
-			for chip in chips_of_type:
-				if chip.node and is_instance_valid(chip.node):
-					chip.node.visible = false
-					DebugLogger.log("  → Фишка %s[%d] скрыта (фильтр)" % [bet_type, chip.position_index])
-		
-		# Обновляем snapshot после применения изменений
-		if phase_manager:
-			phase_manager._save_filter_snapshot()
-			# Очищаем pending_changes для этого типа ставки (если был)
-			if phase_manager._pending_filter_changes.has(bet_type):
-				phase_manager._pending_filter_changes.erase(bet_type)
-			DebugLogger.log("📸 Snapshot фильтра обновлён после изменения в WAITING")
-	else:
-		# После начала раздачи - записываем в pending_changes для следующей раздачи
-		if phase_manager:
-			phase_manager._pending_filter_changes[bet_type] = enabled
-			DebugLogger.log("💰 Настройка выплаты изменена: %s = %s (состояние: %s - записано в pending_changes для следующей раздачи)" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ", GameStateManager.get_state_name(current_state)])
-		else:
-			DebugLogger.log("💰 Настройка выплаты изменена: %s = %s (состояние: %s - phase_manager недоступен)" % [bet_type, "ВКЛ" if enabled else "ВЫКЛ", GameStateManager.get_state_name(current_state)])
-
-func _on_card_back_style_changed(style: String):
-	"""Обработка изменения стиля рубашки карт из SettingsScene
-
-	Args:
-		style: "tiger" или "leopard"
-	"""
-	if not ui_manager:
-		return
-
-	# Обновляем все рубашки карт на столе
-	ui_manager.update_all_card_backs()
-
-	DebugLogger.log("🎴 Стиль рубашки карт изменён: %s" % style)
-
-
-func _on_position_mode_changed(_mode: int):
-	"""Обработка изменения режима позиций фишек из SettingsScene
-
-	Args:
-		mode: 0=DEFAULT, 1=RANDOM, 2=MAX, 3=REALISTIC
-	"""
-	if not chip_visual_manager:
-		return
-
-	# Режим всегда GUEST
-	chip_visual_manager.set_position_mode(ChipVisualManager.PositionMode.GUEST)
-	DebugLogger.log("🎲 Режим позиций фишек: GUEST (гости)")
+# Методы обработки настроек перенесены в SettingsEventHandler
+# _on_payout_setting_changed -> settings_handler.handle_payout_setting_changed
+# _on_card_back_style_changed -> settings_handler.handle_card_back_style_changed
+# _on_position_mode_changed -> settings_handler.handle_position_mode_changed
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА СТАВОК И ФИШЕК
@@ -2305,26 +2168,7 @@ func _update_guest_balance_on_collect(bet_type: String, position_index: int) -> 
 # ЛОГИРОВАНИЕ СМЕНЫ ЛИМИТОВ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _log_mode_change(mode: String, state: String, is_pending: bool) -> void:
-	"""Логировать смену режима в файл"""
-	var file = FileAccess.open("user://limits_change.log", FileAccess.READ_WRITE)
-	if not file:
-		file = FileAccess.open("user://limits_change.log", FileAccess.WRITE)
-	
-	if file:
-		file.seek_end()
-		var timestamp = Time.get_datetime_string_from_system()
-		var status = "PENDING" if is_pending else "APPLIED"
-		var log_line = "[%s] Mode: %s -> %s (State: %s, Status: %s)" % [
-			timestamp, 
-			GameModeManager.get_mode_string(), 
-			mode, 
-			state, 
-			status
-		]
-		file.store_line(log_line)
-		file.close()
-		DebugLogger.log("📝 Limits change logged: %s" % log_line)
+# Метод _log_mode_change перенесён в SettingsEventHandler.log_mode_change
 
 
 # ═══════════════════════════════════════════════════════════════════════════

@@ -88,8 +88,11 @@ func on_use() -> void:
 		EventBus.show_toast_error.emit(Localization.t("CANNOT_USE_CHANCE"))
 	else:
 		print("❤️ HeartBetChanceCard: шанс использован успешно")
-		# Уменьшаем счётчик карты
-		remove_count(1)
+		# ВАЖНО: НЕ вызываем remove_count(1) здесь!
+		# HeartBetManager.use_chance() уже уменьшает chance_count и эмитит
+		# EventBus.chance_count_changed, который обновит card.count через
+		# ChanceCardManager._on_chance_count_changed().
+		# Двойное уменьшение приводит к потере карт.
 
 func get_card_name() -> String:
 	"""Получить имя карты для локализации"""

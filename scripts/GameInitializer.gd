@@ -110,8 +110,9 @@ static func _setup_settings_and_mode(controller: Node2D, result: Dictionary) -> 
 	if controller.has_node("SettingsScene"):
 		DebugLogger.log_init("SettingsScene найден в сцене!")
 		var settings_scene: Node = controller.get_node("SettingsScene")
-		settings_scene.mode_changed.connect(controller._on_mode_changed)
-		settings_scene.language_changed.connect(controller._on_language_changed)
+		# Сигналы подключаются после инициализации settings_handler в _ready()
+		# settings_scene.mode_changed.connect(controller._on_mode_changed)
+		# settings_scene.language_changed.connect(controller._on_language_changed)
 		# survival_mode_changed удалён - режим выживания всегда включён
 		result["settings_scene"] = settings_scene
 		DebugLogger.log_init("SettingsScene подключен к GameController")
@@ -346,15 +347,17 @@ static func _restore_chips_from_table_state(_controller: Node2D, result: Diction
 
 static func _setup_event_subscriptions(controller: Node2D, result: Dictionary) -> void:
 	"""Подписка на события EventBus"""
-	GameStateManager.state_changed.connect(controller._on_game_state_changed)
+	# GameStateManager.state_changed подключается после инициализации settings_handler в _ready()
+	# GameStateManager.state_changed.connect(controller._on_game_state_changed)
 	DebugLogger.log_game_flow("GameStateManager инициализирован")
 
 	# Подписки на новые события EventBus
 	EventBus.manual_payout_requested.connect(controller._on_manual_payout_requested)
 	EventBus.table_prepared_for_new_game.connect(controller._on_table_prepared)
-	EventBus.payout_setting_changed.connect(controller._on_payout_setting_changed)
-	EventBus.card_back_style_changed.connect(controller._on_card_back_style_changed)
-	EventBus.position_mode_changed.connect(controller._on_position_mode_changed)
+	# Сигналы настроек подключаются после инициализации settings_handler в _ready()
+	# EventBus.payout_setting_changed.connect(controller._on_payout_setting_changed)
+	# EventBus.card_back_style_changed.connect(controller._on_card_back_style_changed)
+	# EventBus.position_mode_changed.connect(controller._on_position_mode_changed)
 	DebugLogger.log_init("Подписки на EventBus события установлены (payouts, flags, settings, card backs, position mode)")
 	
 	# Подписки на клавиатурное управление фокусом

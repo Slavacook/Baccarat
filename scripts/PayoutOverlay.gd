@@ -250,11 +250,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		# ВАЖНО: Проверяем напрямую, без промежуточных переменных, чтобы избежать race condition
 		if keyboard_navigator.is_keyboard_active and keyboard_navigator.focus_index >= 0:
 			# Есть активная навигация - выполняем действие на элементе в фокусе
-			print("⌨️ PayoutOverlay: Пробел при активной навигации (active=%s, index=%d)" % [keyboard_navigator.is_keyboard_active, keyboard_navigator.focus_index])
 			keyboard_navigator.handle_focus_action()
 		else:
 			# Нет активной навигации - выполняем выплату (поведение по умолчанию)
-			print("⌨️ PayoutOverlay: Пробел без активной навигации - выполняем выплату")
 			if not is_button_blocked and not payout_button.disabled:
 				_on_payout_pressed()
 

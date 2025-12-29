@@ -6,3 +6,8 @@ res://tests/manual_test_PayoutOverlay_ui_builder.gd
 res://scenes/Game.tscn
 res://scripts/ui/PayoutOverlayPaymentHandler.gd
 res://tests/manual_test_PayoutOverlay_payment_handler.gd
+res://scripts/ui/PayoutOverlayStateManager.gd
+res://scripts/GameController.gd
+res://scripts/GameInitializer.gd
+res://scripts/ui/SettingsEventHandler.gd
+res://scripts/chance_cards/implementations/HeartBetChanceCard.gd
