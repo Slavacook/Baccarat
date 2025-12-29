@@ -79,6 +79,9 @@ var settings_handler: SettingsEventHandler
 # Обработчик событий гостей (Extract Class)
 var guest_event_handler: GuestEventHandler
 
+# Контроллер Heart Bet (Extract Class)
+var heart_bet_controller: HeartBetController
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -166,9 +169,8 @@ func _ready():
 		# Heart Bet: скрытие/показ ставок гостей
 		# Сигналы guest_bets_hide_requested и guest_bets_show_requested
 		# перенесены в GuestEventHandler (подключаются в _connect_guest_signals())
-		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
-		EventBus.heart_bet_declined.connect(_on_heart_bet_declined)
-		EventBus.heart_bet_show_ui.connect(_on_heart_bet_show_ui)
+		# Сигналы heart_bet_show_ui, heart_bet_declined, heart_bet_round_complete
+		# перенесены в HeartBetController (подключаются в _connect_heart_bet_signals())
 		
 		# Настройки: включаем action_button при закрытии
 		EventBus.settings_closed.connect(_on_settings_closed)
@@ -191,6 +193,9 @@ func _ready():
 	# Инициализируем контроллер для управления картами
 	_initialize_card_controller()
 	
+	# Инициализируем обработчик событий гостей (ПЕРЕД другими обработчиками, чтобы установить callbacks)
+	_initialize_guest_event_handler()
+	
 	# Инициализируем обработчик результатов выплат (после инициализации менеджеров)
 	_initialize_payout_result_handler()
 	
@@ -200,7 +205,7 @@ func _ready():
 	# Инициализируем обработчик кликов на фишки (после инициализации менеджеров)
 	_initialize_chip_click_handler()
 	_initialize_settings_handler()
-	_initialize_guest_event_handler()
+	_initialize_heart_bet_controller()
 	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
@@ -268,6 +273,9 @@ func _initialize_payout_result_handler() -> void:
 	# Callback для обновления баланса гостя при выплате
 	if guest_event_handler:
 		payout_result_handler.set_update_guest_balance_callback(guest_event_handler.update_guest_balance_for_bet)
+		DebugLogger.log("✅ PayoutResultHandler: callback обновления баланса установлен")
+	else:
+		DebugLogger.log_warning("⚠️ PayoutResultHandler: guest_event_handler не инициализирован, callback НЕ установлен!")
 	print("✅ PayoutResultHandler инициализирован")
 
 func _initialize_game_state_controller() -> void:
@@ -357,6 +365,32 @@ func _connect_guest_signals() -> void:
 	
 	# Инициализируем видимость гостей на основе настроек
 	guest_event_handler.update_guests_visibility()
+
+func _initialize_heart_bet_controller() -> void:
+	"""Инициализировать контроллер Heart Bet"""
+	heart_bet_controller = HeartBetController.new(
+		self,
+		phase_manager,
+		guest_sprites,
+		background_666,
+		winner_selection_manager,
+		_prepare_payouts_manual  # Callback для подготовки выплат
+	)
+	
+	# Подключаем сигналы
+	_connect_heart_bet_signals()
+	
+	print("✅ HeartBetController инициализирован")
+
+func _connect_heart_bet_signals() -> void:
+	"""Подключить сигналы Heart Bet к heart_bet_controller"""
+	if not heart_bet_controller:
+		return
+	
+	# Сигналы от EventBus для Heart Bet
+	EventBus.heart_bet_show_ui.connect(heart_bet_controller.handle_heart_bet_show_ui)
+	EventBus.heart_bet_declined.connect(heart_bet_controller.handle_heart_bet_declined)
+	EventBus.heart_bet_round_complete.connect(heart_bet_controller.handle_heart_bet_round_complete)
 
 func _connect_settings_signals() -> void:
 	"""Подключить сигналы настроек к settings_handler"""
@@ -1549,97 +1583,11 @@ func _on_camera_zoom_requested(zoom_type: String) -> void:
 # _on_guest_settings_changed_visibility -> guest_event_handler.handle_guest_settings_changed_visibility
 # _update_guests_visibility -> guest_event_handler.update_guests_visibility
 
-func _enable_life_bet_atmosphere() -> void:
-	"""Включить мистическую атмосферу для игры на жизнь (последовательно)"""
-	print("🔮 Активация мистической атмосферы (игра на жизнь)")
-	
-	# 1. Гости G_1-G_6: fade-out 0.5 сек (все одновременно)
-	var tween_guests = create_tween()
-	var has_visible_guests = false
-	for guest_id in range(1, 7):
-		var sprite = guest_sprites.get(guest_id)
-		if sprite and sprite.visible:
-			tween_guests.parallel().tween_property(sprite, "modulate:a", 0.0, 0.5)
-			has_visible_guests = true
-	
-	# После fade-out скрываем гостей
-	if has_visible_guests:
-		await get_tree().create_timer(0.5).timeout
-		for guest_id in range(1, 7):
-			var sprite = guest_sprites.get(guest_id)
-			if sprite:
-				sprite.visible = false
-	
-	# 2. Background666: fade-in 1 сек
-	if background_666:
-		background_666.visible = true
-		background_666.modulate.a = 0.0
-		var tween_bg = create_tween()
-		tween_bg.tween_property(background_666, "modulate:a", 1.0, 1.0)
-	
-	# Ждём завершения fade-in Background666 (1 сек)
-	await get_tree().create_timer(1.0).timeout
-	
-	# 3. G_666: fade-in 0.5 сек
-	var guest_666 = guest_sprites.get(666)
-	if guest_666:
-		guest_666.visible = true
-		guest_666.modulate.a = 0.0
-		var tween_666 = create_tween()
-		tween_666.tween_property(guest_666, "modulate:a", 1.0, 0.5)
-
-func _disable_life_bet_atmosphere() -> void:
-	"""Вернуть обычную атмосферу после завершения игры на жизнь"""
-	print("🔮 Деактивация мистической атмосферы")
-	
-	# 1. Background666 и G_666: fade-out 1 сек (одновременно)
-	var tween_fade_out = create_tween()
-	var needs_fade_out = false
-	
-	if background_666 and background_666.visible:
-		tween_fade_out.parallel().tween_property(background_666, "modulate:a", 0.0, 1.0)
-		needs_fade_out = true
-	
-	var guest_666 = guest_sprites.get(666)
-	if guest_666 and guest_666.visible:
-		tween_fade_out.parallel().tween_property(guest_666, "modulate:a", 0.0, 1.0)
-		needs_fade_out = true
-	
-	# После fade-out скрываем узлы
-	if needs_fade_out:
-		await get_tree().create_timer(1.0).timeout
-		if background_666:
-			background_666.visible = false
-		if guest_666:
-			guest_666.visible = false
-	
-	# Background3/Background5 остаются видимыми (просто перекрыты слоем выше, проявятся автоматически)
-	
-	# 2. Гости: fade-in 0.5 сек (все одновременно)
-	var tween_guests_fade_in = create_tween()
-	for guest_id in range(1, 7):
-		var sprite = guest_sprites.get(guest_id)
-		if sprite:
-			var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
-			if is_enabled:
-				sprite.visible = true
-				sprite.modulate.a = 0.0
-				tween_guests_fade_in.parallel().tween_property(sprite, "modulate:a", 1.0, 0.5)
-
-func _create_fade_animation(node: Node, from_alpha: float, to_alpha: float, duration: float, callback: Callable = Callable()) -> void:
-	"""Создать fade анимацию для узла"""
-	if not node:
-		return
-	
-	node.modulate.a = from_alpha
-	var tween = create_tween()
-	tween.tween_property(node, "modulate:a", to_alpha, duration)
-	if callback.is_valid():
-		tween.tween_callback(callback)
-
-func _on_heart_bet_show_ui() -> void:
-	"""Обработчик начала игры на жизнь - включить мистическую атмосферу"""
-	_enable_life_bet_atmosphere()
+# Методы управления атмосферой Heart Bet перенесены в HeartBetController
+# _enable_life_bet_atmosphere -> heart_bet_controller.enable_life_bet_atmosphere
+# _disable_life_bet_atmosphere -> heart_bet_controller.disable_life_bet_atmosphere
+# _create_fade_animation -> удалён (используется только в HeartBetController)
+# _on_heart_bet_show_ui -> heart_bet_controller.handle_heart_bet_show_ui
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1674,102 +1622,9 @@ func _setup_chance_card_system() -> void:
 # _on_guest_bets_show_requested -> guest_event_handler.handle_guest_bets_show_requested
 
 
-func _on_heart_bet_declined() -> void:
-	"""Обработчик отказа от карты Heart Bet - восстанавливаем ставки"""
-	# Восстанавливаем ставки гостей из backup (если был backup)
-	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.restore_all_bets()
-	
-	# Пересоздаём фишки ставок гостей
-	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
-	# потому что фишки (узлы) могли быть удалены
-	if phase_manager:
-		phase_manager._show_guest_bets()
-		print("❤️ GameController: фишки ставок гостей пересозданы после отказа от карты")
-	
-	# Возвращаем обычную атмосферу при отказе
-	_disable_life_bet_atmosphere()
-
-
-func _on_heart_bet_round_complete() -> void:
-	"""Завершение Heart Bet раздачи - сброс без выплат
-
-	После Heart Bet раздачи игра возвращается в состояние ожидания.
-	Выплаты не производятся (это была особая раздача на жизнь).
-	"""
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H4","location":"GameController._on_heart_bet_round_complete","message":"round complete received","data":{},"timestamp":%d}' % [int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
-	print("❤️ GameController: Heart Bet раздача завершена, сбрасываем раунд без выплат")
-	
-	# Возвращаем обычную атмосферу
-	_disable_life_bet_atmosphere()
-	
-	# Разблокируем маркеры (если были заблокированы)
-	if winner_selection_manager:
-		winner_selection_manager.unlock_markers()
-		winner_selection_manager.reset()
-	
-	# Небольшая задержка чтобы увидеть результат
-	await get_tree().create_timer(1.5).timeout
-	
-	# Зум камеры на общий план
-	EventBus.camera_zoom_requested.emit("out")
-	
-	
-	# Проверяем, был ли Tie draw (карта сгорела, chance_count = 0)
-	# ВАЖНО: проверяем ДО проверки триггеров, чтобы не изменилось состояние
-	var was_tie_draw = false
-	if phase_manager and phase_manager.heart_bet_manager:
-		var hb_manager = phase_manager.heart_bet_manager
-		# Если chance_count = 0 и состояние IDLE - значит был Tie draw
-		was_tie_draw = (hb_manager.chance_count == 0 and hb_manager.current_state == HeartBetManager.State.IDLE)
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРОВЕРКА ТРИГГЕРОВ Heart Bet ДО СБРОСА!
-	# Если в этом раунде тоже был триггер - сохраняем его
-	# ═══════════════════════════════════════════════════════════════════
-	var new_trigger_available = false
-	if phase_manager and phase_manager.heart_bet_manager:
-		# Проверяем триггеры (сработает если была натуральная победа или банкир с 6)
-		phase_manager._check_heart_bet_triggers()
-		new_trigger_available = phase_manager.heart_bet_manager.is_available()
-		print("❤️ Проверка триггеров после Heart Bet раунда: %s" % ("сработал!" if new_trigger_available else "нет"))
-	# Восстанавливаем ставки гостей из backup ДО reset(), чтобы они не были очищены
-	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.restore_all_bets()
-	
-	if phase_manager:
-		# Сбрасываем флаг Heart Bet раунда
-		phase_manager.was_heart_bet_round = false
-		# При Tie draw НЕ сохраняем ставки гостей (они будут очищены в reset)
-		# Но мы уже восстановили их из backup, так что они останутся если keep_guest_bets=true
-		# При Tie draw ставки очищаются (keep_guest_bets=false), новые будут сгенерированы при новой раздаче
-		phase_manager.reset(true, not was_tie_draw)  # update_state=true, keep_guest_bets=!was_tie_draw
-		phase_manager.is_table_prepared = true  # Готовы к новой раздаче
-		print("❤️ Раунд сброшен, готов к новой раздаче (Tie draw: %s)" % was_tie_draw)
-	
-	# Восстанавливаем ФИШКИ ставок гостей ТОЛЬКО если НЕ было Tie draw
-	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
-	# потому что фишки (узлы) могли быть удалены во время Heart Bet раунда
-	if not was_tie_draw and phase_manager:
-		phase_manager._show_guest_bets()
-		print("❤️ Фишки ставок гостей пересозданы")
-	elif was_tie_draw:
-		print("❤️ Tie draw: ставки гостей очищены, новые будут показаны при начале новой раздачи")
-		# При Tie draw ставки очищены, новые будут сгенерированы и показаны
-		# при начале новой раздачи через _complete_round_and_prepare_new_game()
-	
-	
-	# ═══════════════════════════════════════════════════════════════════
-	# HEART BET: Автоматический показ сердец УБРАН!
-	# Карта шанса уже видна (если есть шансы), игрок сам нажмёт когда захочет
-	# ═══════════════════════════════════════════════════════════════════
-	if phase_manager and phase_manager.heart_bet_manager:
-		var chances = phase_manager.heart_bet_manager.get_chance_count()
-		if chances > 0:
-			print("❤️ Шансов доступно: %d (игрок может использовать карту)" % chances)
+# Методы обработки событий Heart Bet перенесены в HeartBetController
+# _on_heart_bet_declined -> heart_bet_controller.handle_heart_bet_declined
+# _on_heart_bet_round_complete -> heart_bet_controller.handle_heart_bet_round_complete
 
 
 func _on_collect_mode_toggled(enabled: bool):
@@ -1946,12 +1801,17 @@ func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected:
 		position_index = payout_overlay.get_meta("current_position_index")
 	
 	DebugLogger.log("💰 Завершена выплата в overlay режиме: bet_type=%s[%d], correct=%s, collected=%.1f, expected=%.1f" % [bet_type, position_index, is_correct, collected, expected])
+	
+	# Проверяем, что payout_result_handler инициализирован
+	if not payout_result_handler:
+		DebugLogger.log_error("❌ PayoutResultHandler не инициализирован!")
+		return
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ОБРАБОТКА РЕЗУЛЬТАТА (делегировано в PayoutResultHandler)
 	# ═══════════════════════════════════════════════════════════════════
-	if payout_result_handler:
-		payout_result_handler.handle_payout_result(bet_type, position_index, is_correct, collected, expected)
+	DebugLogger.log("💰 Вызываем payout_result_handler.handle_payout_result: %s[%d], correct=%s" % [bet_type, position_index, is_correct])
+	payout_result_handler.handle_payout_result(bet_type, position_index, is_correct, collected, expected)
 	
 	# Увеличиваем счетчик раундов (только для правильных выплат)
 	if is_correct:

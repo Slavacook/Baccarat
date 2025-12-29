@@ -12,3 +12,7 @@ res://scripts/GameInitializer.gd
 res://scripts/ui/SettingsEventHandler.gd
 res://scripts/chance_cards/implementations/HeartBetChanceCard.gd
 res://scripts/ui/GuestEventHandler.gd
+res://tests/manual_test_GuestAndHeartBet.gd
+res://tests/ManualTestGuestAndHeartBet.tscn
+res://scripts/ui/HeartBetController.gd
+res://scripts/utils/PayoutResultHandler.gd

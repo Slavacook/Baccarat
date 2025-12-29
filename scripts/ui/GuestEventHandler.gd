@@ -154,29 +154,39 @@ func update_guest_balance_for_bet(bet_type: String, position_index: int, payout:
 		position_index: Индекс позиции
 		payout: Размер выплаты
 	"""
+	DebugLogger.log("💰 GuestEventHandler.update_guest_balance_for_bet вызван: %s[%d], payout=%.0f" % [bet_type, position_index, payout])
+	
 	if not phase_manager or not phase_manager.guest_bet_storage:
+		DebugLogger.log_warning("⚠️ GuestEventHandler: phase_manager или guest_bet_storage отсутствует")
 		return
 	
 	# Определяем сектор по position_index
 	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+	DebugLogger.log("💰 GuestEventHandler: position_index=%d → sector=%d" % [position_index, sector])
+	
 	if sector < 1 or sector > 6:
 		# Не гостевые ставки - пропускаем
+		DebugLogger.log("💰 GuestEventHandler: не гостевые ставки (sector=%d), пропускаем" % sector)
 		return
 	
 	var guest_id = sector  # Сектор = ID гостя
 	
 	# Находим ставку гостя в хранилище
 	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
+	DebugLogger.log("💰 GuestEventHandler: найдено %d ставок для гостя %d" % [guest_bets.size(), guest_id])
+	
 	for bet in guest_bets:
 		if bet.get_bet_type() == bet_type and bet.get_position_index() == position_index:
 			# Нашли ставку гостя
-			# Обновляем баланс: добавляем payout (выигрыш) и вычитаем stake (ставка уже поставлена)
-			var net_profit = payout - bet.get_stake()
-			GuestStatsManager.add_to_balance(guest_id, net_profit)
-			DebugLogger.log("💰 Гость %d: баланс обновлён (+%.0f - %.0f = %.0f)" % [guest_id, payout, bet.get_stake(), net_profit])
+			# Обновляем баланс: добавляем payout (выигрыш)
+			# ВАЖНО: Ставка НЕ отнимается при постановке, поэтому просто добавляем выплату
+			var old_balance = GuestStatsManager.get_guest_balance(guest_id)
+			GuestStatsManager.add_to_balance(guest_id, payout)
+			var new_balance = GuestStatsManager.get_guest_balance(guest_id)
+			DebugLogger.log("💰 Гость %d: баланс обновлён (%.0f → %.0f, +%.0f выплата)" % [guest_id, old_balance, new_balance, payout])
 			return
 	
-	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
+	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d (всего ставок: %d)" % [bet_type, position_index, sector, guest_bets.size()])
 
 func update_guest_balance_on_collect(bet_type: String, position_index: int) -> void:
 	"""Обновить баланс гостя при сборе проигрышной ставки

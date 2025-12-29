@@ -74,7 +74,10 @@ func _handle_correct_payout(
 	
 	# Обновляем баланс гостя (если это гостевые ставки)
 	if update_guest_balance_callback.is_valid():
+		DebugLogger.log("  💰 Вызываем callback обновления баланса гостя: %s[%d], payout=%.0f" % [bet_type, position_index, expected])
 		update_guest_balance_callback.call(bet_type, position_index, expected)
+	else:
+		DebugLogger.log_warning("  ⚠️ Callback обновления баланса гостя не установлен!")
 	
 	# Помечаем ставку как оплаченную через BetCollectionPhaseManager
 	if bet_collection_manager:
