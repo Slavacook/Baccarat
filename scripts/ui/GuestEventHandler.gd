@@ -125,14 +125,31 @@ func update_guests_visibility() -> void:
 func handle_guest_bets_hide_requested() -> void:
 	"""Скрыть ставки гостей при выборе сердца для Heart Bet"""
 	# ВАЖНО: Сначала сохраняем ставки в backup, затем скрываем
+	# Если backup уже существует (после предыдущего Heart Bet), он будет перезаписан новым
 	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.backup_all_bets()
-		# Очищаем текущие ставки (чтобы они не показывались в Heart Bet раунде)
-		phase_manager.guest_bet_storage.clear_all_bets()
+		# Проверяем, есть ли уже ставки в stored_bets для backup
+		var guests_with_bets = phase_manager.guest_bet_storage.get_guests_with_bets()
+		if guests_with_bets.size() > 0:
+			# Есть ставки - создаем backup
+			phase_manager.guest_bet_storage.backup_all_bets()
+			# Очищаем текущие ставки (чтобы они не показывались в Heart Bet раунде)
+			phase_manager.guest_bet_storage.clear_all_bets()
+			DebugLogger.log("❤️ GuestEventHandler: ставки гостей скрыты и сохранены в backup (%d гостей)" % guests_with_bets.size())
+		else:
+			# Нет ставок в stored_bets - проверяем, есть ли backup
+			if phase_manager.guest_bet_storage.has_backup():
+				# Есть backup - восстанавливаем ставки перед созданием нового backup
+				phase_manager.guest_bet_storage.restore_all_bets()
+				DebugLogger.log("❤️ GuestEventHandler: ставки восстановлены из backup перед созданием нового")
+				# Теперь создаем backup из восстановленных ставок
+				phase_manager.guest_bet_storage.backup_all_bets()
+				phase_manager.guest_bet_storage.clear_all_bets()
+				DebugLogger.log("❤️ GuestEventHandler: новый backup создан из восстановленных ставок")
+			else:
+				DebugLogger.log("⚠️ GuestEventHandler: нет ставок для backup (stored_bets пуст и backup пуст)")
 	
 	if chip_visual_manager:
 		chip_visual_manager.hide_all_guest_chips()
-		DebugLogger.log("❤️ GuestEventHandler: ставки гостей скрыты и сохранены в backup")
 
 func handle_guest_bets_show_requested() -> void:
 	"""Показать ставки гостей после завершения Heart Bet раздачи"""

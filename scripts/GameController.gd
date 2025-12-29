@@ -9,6 +9,9 @@
 # ═══════════════════════════════════════════════════════════════════════════
 extends Node2D
 
+# Явная загрузка классов для избежания проблем с парсингом
+const PayoutQueueHandlerScript = preload("res://scripts/payout/PayoutQueueHandler.gd")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНФИГУРАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -85,6 +88,12 @@ var heart_bet_controller: HeartBetController
 
 # Обработчик выбора победителя (Extract Class)
 var winner_selection_handler: WinnerSelectionHandler
+
+# Обработчик очереди выплат (Extract Class)
+var payout_queue_handler: PayoutQueueHandler
+
+# Координатор PayoutOverlay (Extract Class)
+var payout_overlay_coordinator: PayoutOverlayCoordinator
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
@@ -215,6 +224,8 @@ func _ready():
 	_initialize_settings_handler()
 	_initialize_heart_bet_controller()
 	_initialize_winner_selection_handler()
+	_initialize_payout_queue_handler()
+	_initialize_payout_overlay_coordinator()
 	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
@@ -462,6 +473,71 @@ func _get_tree() -> SceneTree:
 	"""Получить SceneTree (callback для WinnerSelectionHandler)"""
 	return get_tree()
 
+func _initialize_payout_queue_handler() -> void:
+	"""Инициализировать обработчик очереди выплат"""
+	var get_rounds_callback = func() -> int:
+		return survival_rounds_completed
+	
+	var set_queue_callback = func(new_queue: PayoutQueueManager) -> void:
+		payout_queue_manager = new_queue
+	
+	var get_tree_callback = func() -> SceneTree:
+		return get_tree()
+	
+	payout_queue_handler = PayoutQueueHandler.new(
+		phase_manager,
+		payout_manager,
+		payout_queue_manager,
+		bet_collection_manager,
+		chip_visual_manager,
+		hand_manager,
+		winner_selection_manager,
+		camera_manager,
+		limits_manager,
+		pair_betting_manager,
+		survival_state,
+		get_rounds_callback,
+		set_queue_callback,
+		get_tree_callback
+	)
+	print("✅ PayoutQueueHandler инициализирован")
+
+func _initialize_payout_overlay_coordinator() -> void:
+	"""Инициализировать координатор PayoutOverlay"""
+	var set_processing_callback = func(value: bool) -> void:
+		is_payout_processing = value
+	
+	var update_visibility_callback = func() -> void:
+		_update_chip_visibility()
+	
+	var get_tree_callback = func() -> SceneTree:
+		return get_tree()
+	
+	var get_rounds_callback = func() -> int:
+		return survival_rounds_completed
+	
+	payout_overlay_coordinator = PayoutOverlayCoordinator.new(
+		payout_overlay,
+		payout_result_handler,
+		survival_state,
+		ui_manager,
+		payout_queue_manager,
+		chip_visual_manager,
+		set_processing_callback,
+		update_visibility_callback,
+		get_tree_callback,
+		get_rounds_callback
+	)
+	
+	# Подключаем сигнал payout_completed от PayoutOverlay к координатору
+	if payout_overlay:
+		# Отключаем старое подключение (если было)
+		if payout_overlay.payout_completed.is_connected(_on_payout_overlay_completed):
+			payout_overlay.payout_completed.disconnect(_on_payout_overlay_completed)
+		# Подключаем к координатору
+		payout_overlay.payout_completed.connect(_on_payout_overlay_completed)
+	
+	print("✅ PayoutOverlayCoordinator инициализирован")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd (Task 2.1)
@@ -517,33 +593,11 @@ func _on_winner_selected(chosen: String):
 
 
 func _process_payout_queue_or_reset() -> void:
-	"""Обработка очереди выплат или сброс раунда (если очередь пуста)"""
-	if GameDataManager.has_more_payouts():
-		# Есть выплаты → берём первую и переходим в PayoutScene
-		var next_payout = GameDataManager.get_next_payout()
-		
-		# Сохраняем данные для PayoutScene
-		GameDataManager.set_payout_data(
-			next_payout.get_bet_type(),
-			next_payout.get_stake(),
-			next_payout.get_payout(),
-			next_payout.get_player_score(),
-			next_payout.get_banker_score()
-		)
-		
-		# Сохраняем состояние игры (сердечки, раунды)
-		var lives = survival_state.get_lives() if survival_state else 7
-		var active = survival_state.is_active_mode() if survival_state else false
-		GameDataManager.set_game_state(
-			survival_rounds_completed,
-			lives,
-			active
-		)
-		
-		get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
+	"""Обработка очереди выплат или сброс раунда (если очередь пуста) - делегировано в PayoutQueueHandler"""
+	if payout_queue_handler:
+		payout_queue_handler.process_payout_queue_or_reset(get_tree())
 	else:
-		# Нет выплат → сразу новый раунд
-		phase_manager.reset()
+		push_error("❌ PayoutQueueHandler не инициализирован!")
 
 
 
@@ -574,43 +628,14 @@ func _format_victory_toast(winner: String) -> String:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _prepare_payouts_manual(actual_winner: String) -> void:
-	"""Подготовка выплат в ручном режиме (без автоматического перехода к сцене)
-
-	Рефакторено: использует PayoutManager (SRP)
-	"""
-	# Создаем новый payout_queue_manager
-	payout_queue_manager = PayoutQueueManager.new()
-	
-	# ВАЖНО: Обновляем ссылку в phase_manager
-	phase_manager.payout_queue_manager = payout_queue_manager
-	DebugLogger.log_init("Создан новый PayoutQueueManager, ссылка обновлена в phase_manager")
-	
-	# Создаем или обновляем PayoutManager
-	if not payout_manager:
-		# Передаём guest_bet_storage и phase_manager из phase_manager
-		var guest_storage = phase_manager.guest_bet_storage if phase_manager else null
-		payout_manager = PayoutManager.new(
-			payout_queue_manager,
-			bet_collection_manager,
-			chip_visual_manager,
-			limits_manager,
-			pair_betting_manager,
-			hand_manager,
-			null,  # settings_provider (по умолчанию)
-			guest_storage,  # guest_bet_storage
-			phase_manager  # phase_manager (для доступа к snapshot фильтра)
-		)
+	"""Подготовка выплат в ручном режиме (без автоматического перехода к сцене) - делегировано в PayoutQueueHandler"""
+	if payout_queue_handler:
+		payout_queue_handler.prepare_payouts_manual(actual_winner)
+		# Обновляем ссылку на payout_queue_manager после создания нового
+		if payout_queue_handler.payout_queue_manager:
+			payout_queue_manager = payout_queue_handler.payout_queue_manager
 	else:
-		# Обновляем ссылки
-		payout_manager.payout_queue_manager = payout_queue_manager
-		payout_manager.guest_bet_storage = phase_manager.guest_bet_storage if phase_manager else null
-		payout_manager.phase_manager = phase_manager  # Обновляем ссылку на phase_manager
-	
-	# Делегируем подготовку выплат в PayoutManager
-	payout_manager.prepare_manual_payouts(actual_winner)
-	
-	# Завершаем подготовку - обновляем видимость и сохраняем состояние
-	_finalize_payouts_manual(actual_winner)
+		push_error("❌ PayoutQueueHandler не инициализирован!")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -663,124 +688,19 @@ func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -
 
 
 func _finalize_payouts_manual(actual_winner: String) -> void:
-	"""Завершение подготовки выплат - обновление видимости и сохранение состояния"""
-	# ═══════════════════════════════════════════════════════════════════
-	# УПРАВЛЕНИЕ ФИШКАМИ (показать выигравшие, скрыть проигравшие)
-	# ═══════════════════════════════════════════════════════════════════
-	_update_chip_visibility()
-
-	# ═══════════════════════════════════════════════════════════════════
-	# НАСТРОЙКА BetCollectionPhaseManager для работы с очередью выплат
-	# ═══════════════════════════════════════════════════════════════════
-	if bet_collection_manager and payout_queue_manager:
-		bet_collection_manager.setup(payout_queue_manager, actual_winner)
-		# Устанавливаем режим COLLECT по умолчанию (после определения победителя)
-		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
-		DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
-
-	# ═══════════════════════════════════════════════════════════════════
-	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
-	# ═══════════════════════════════════════════════════════════════════
-	var selected_winner = winner_selection_manager.get_selected_winner() if winner_selection_manager else ""
-	var surv_lives = survival_state.get_lives() if survival_state else 7
-	var surv_active = survival_state.is_active_mode() if survival_state else false
-
-	# Получаем состояние ставок на пары из настроек
-	var pair_player_pressed = PayoutSettingsManager.player_pair_payout_enabled
-	var pair_banker_pressed = PayoutSettingsManager.banker_pair_payout_enabled
-
-	# Получаем текущие текстуры фишек
-	var chip_textures = chip_visual_manager.current_textures if chip_visual_manager else {}
-
-	# Запрашиваем настройки камеры через EventBus
-	var camera_data = {"position": Vector2.ZERO, "zoom": Vector2.ONE, "received": false}
-	
-	if camera_manager:
-		var response_handler = func(pos: Vector2, zoom: Vector2):
-			camera_data.position = pos
-			camera_data.zoom = zoom
-			camera_data.received = true
-			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
-		
-		EventBus.camera_settings_received.connect(response_handler, CONNECT_ONE_SHOT)
-		EventBus.camera_settings_requested.emit()
-		
-		# Ждём ответ (синхронно, но с таймаутом)
-		var timeout = 0.1
-		var elapsed = 0.0
-		while not camera_data.received and elapsed < timeout:
-			await get_tree().process_frame
-			elapsed += get_process_delta_time()
-	
-	TableStateManager.save_table_state(
-		hand_manager.get_player_hand_ref(),
-		hand_manager.get_banker_hand_ref(),
-		actual_winner,
-		selected_winner,
-		payout_queue_manager.get_all_bets(),
-		camera_data.position,
-		camera_data.zoom,
-		GameModeManager.get_mode_string(),
-		survival_rounds_completed,
-		surv_lives,
-		surv_active,
-		pair_player_pressed,
-		pair_banker_pressed,
-		chip_textures,
-		"complete"  # Кнопка всегда в состоянии "complete" при переходе к выплатам
-	)
+	"""Завершение подготовки выплат - обновление видимости и сохранение состояния - делегировано в PayoutQueueHandler"""
+	if payout_queue_handler:
+		payout_queue_handler.finalize_payouts_manual(actual_winner)
+	else:
+		push_error("❌ PayoutQueueHandler не инициализирован!")
 
 
 func _update_chip_visibility() -> void:
-	"""Обновить видимость и кликабельность фишек через ChipVisualManager
-
-	Режим GUEST: работаем с каждой ставкой индивидуально (гостевые ставки)
-	- Оплаченные ставки → скрыть
-	- Собранные проигрышные ставки → скрыть
-	- Все остальные ставки (выигрышные, проигрышные, Tie push) → видимы и кликабельны
-	  (валидация клика в BetCollectionPhaseManager)
-	"""
-	if not payout_queue_manager or not chip_visual_manager:
-		return
-
-	# В режиме GUEST работаем с каждой ставкой индивидуально (гостевые ставки)
-	for bet in payout_queue_manager.get_all_bets():
-		var bet_type = bet.get_bet_type()
-		var pos_idx = bet.get_position_index()
-		var is_collected = bet.is_collected() or (bet_collection_manager and bet_collection_manager.is_bet_collected(bet_type, pos_idx))
-		
-		if bet.is_paid() or is_collected:
-			# Оплаченная или собранная → скрываем конкретную фишку
-			chip_visual_manager.hide_chip_instance(bet_type, pos_idx)
-		else:
-			# Все остальные → видимы и кликабельны
-			# В режиме GUEST фишки уже созданы через _show_guest_bets()
-			# и уже кликабельны через _on_chip_instance_pressed
-			# НЕ вызываем make_chip_clickable() - это подключит дополнительный обработчик
-			# _on_chip_pressed, который вызовет двойной сбор ставки!
-			var chip_instance = chip_visual_manager.get_chip_instance(bet.get_bet_type(), bet.get_position_index())
-			if chip_instance and chip_instance.node:
-				chip_instance.node.visible = true
-				# Убеждаемся что фишка не заблокирована
-				chip_instance.node.disabled = false
-				chip_instance.node.mouse_filter = Control.MOUSE_FILTER_STOP
-				# Создаём или обновляем label для суммы ставки
-				if chip_instance.stake > 0:
-					if chip_instance.stake_label:
-						# Обновляем существующий label
-						chip_visual_manager._update_stake_label(chip_instance)
-					else:
-						# Создаём новый label
-						chip_instance.stake_label = chip_visual_manager.create_stake_label(chip_instance)
-			
-			var status = ""
-			if bet.is_won():
-				status = "выигрышная"
-			elif bet_collection_manager and bet_collection_manager.is_tie_push_bet(bet.get_bet_type()):
-				status = "Tie push"
-			else:
-				status = "проигрышная"
-			DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.get_bet_type(), bet.get_position_index(), status])
+	"""Обновить видимость и кликабельность фишек через ChipVisualManager - делегировано в PayoutQueueHandler"""
+	if payout_queue_handler:
+		payout_queue_handler.update_chip_visibility()
+	else:
+		push_error("❌ PayoutQueueHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ UI СОБЫТИЙ
@@ -1044,31 +964,11 @@ func _restore_survival_and_queue() -> void:
 
 
 func _process_manual_payout_result(context: Dictionary) -> void:
-	"""Обработка результата текущей выплаты в ручном режиме"""
-	var bet_type = context.get("bet_type", "")
-	var position_index = context.get("position_index", -1)  # Может не быть в context
-	var is_correct = GameDataManager.get_payout_is_correct()
-	var collected = GameDataManager.get_payout_collected()
-	var expected = GameDataManager.get_payout_expected()
-	
-	if is_correct:
-		EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
-		DebugLogger.log("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
-		
-		# Отмечаем ставку как оплаченную в обоих менеджерах
-		payout_queue_manager.mark_as_paid(bet_type)
-		TableStateManager.mark_bet_as_paid(bet_type)
-		
-		# Обновляем видимость фишек
-		_update_chip_visibility()
-		
-		DebugLogger.log_init("Все выплаты оплачены! Можно начинать новый раунд")
+	"""Обработка результата текущей выплаты в ручном режиме - делегировано в PayoutOverlayCoordinator"""
+	if payout_overlay_coordinator:
+		payout_overlay_coordinator.process_manual_payout_result(context)
 	else:
-		# Здесь нет информации о position_index, используем -1
-		EventBus.payout_wrong.emit(collected, expected, bet_type, -1)
-		DebugLogger.log("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [
-			bet_type, collected, expected
-		])
+		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
 
 
 func _restore_camera_and_cleanup() -> void:
@@ -1542,93 +1442,18 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 
 
 func _show_payout_overlay_instance(bet_type: String, position_index: int, stake: float, payout: float):
-	"""Показать PayoutOverlay для конкретной фишки
-	
-	Args:
-		bet_type: Тип ставки
-		position_index: Индекс позиции фишки
-		stake: Размер ставки
-		payout: Ожидаемая выплата
-	"""
-	if not payout_overlay:
-		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
-		return
-	
-	# ЗАЩИТА: Блокируем обработку других кликов пока открыт PayoutOverlay
-	is_payout_processing = true
-
-	DebugLogger.log("💰 Показываем PayoutOverlay: %s[%d], stake=%.1f, payout=%.1f" % [bet_type, position_index, stake, payout])
-
-	# Сохраняем position_index для обработчика завершения
-	# (пока используем простой способ - храним в метаданных контекста)
-	payout_overlay.set_meta("current_position_index", position_index)
-
-	# Передаём состояние игры через параметры (вместо get_parent())
-	var lives = survival_state.get_lives() if survival_state else 7
-	payout_overlay.show_payout(bet_type, stake, payout, true, lives)  # Режим всегда активен
+	"""Показать PayoutOverlay для конкретной фишки - делегировано в PayoutOverlayCoordinator"""
+	if payout_overlay_coordinator:
+		payout_overlay_coordinator.show_payout_overlay_instance(bet_type, position_index, stake, payout)
+	else:
+		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
 
 func _open_payout_scene(bet_type: String):
-	"""Открыть PayoutScene для конкретной ставки
-
-	Использует TableStateManager для полного сохранения состояния стола
-
-	Args:
-		bet_type: Тип ставки ("main"/"player_pair"/"banker_pair")
-	"""
-	# Получаем данные ставки из TableStateManager
-	var bet_data = TableStateManager.get_bet_data(bet_type)
-	if not bet_data:
-		push_error("❌ _open_payout_scene: ставка %s не найдена в TableStateManager" % bet_type)
-		return
-
-	DebugLogger.log("💰 Открываем PayoutScene для %s: stake=%.1f, payout=%.1f" % [bet_type, bet_data.get_stake(), bet_data.get_payout()])
-
-	# Устанавливаем данные в GameDataManager (PayoutScene читает данные оттуда)
-	GameDataManager.set_payout_data(
-		bet_type,
-		bet_data.get_stake(),
-		bet_data.get_payout(),
-		0,  # player_score (не используется в ручном режиме)
-		0   # banker_score (не используется в ручном режиме)
-	)
-	DebugLogger.log("  → Установлены данные в GameDataManager: winner=%s, stake=%.1f, amount=%.1f" % [bet_type, bet_data.get_stake(), bet_data.get_payout()])
-
-	# Устанавливаем контекст для PayoutScene через старый PayoutContextManager (для совместимости)
-	PayoutContextManager.set_context({
-		"bet_type": bet_type,
-		"stake": bet_data.get_stake(),
-		"expected_payout": bet_data.get_payout(),
-		"return_to_game": true,
-		"manual_mode": true
-	})
-
-	# Передаем состояние режима выживания в GameDataManager
-	DebugLogger.log("🔍 DEBUG _open_payout_scene:")
-	DebugLogger.log("  → survival_state exists = %s" % (survival_state != null))
-	if survival_state:
-		var lives = survival_state.get_lives()
-		DebugLogger.log("  → survival_state.current_lives = %d" % lives)
-	DebugLogger.log("  → GameDataManager.survival_lives (before) = %d" % GameDataManager.get_survival_lives())
-
-	var surv_lives = 7  # Значение по умолчанию
-	if survival_state:
-		# Берем текущее количество жизней
-		surv_lives = survival_state.get_lives()
-		DebugLogger.log("  → Берем из survival_state: %d" % surv_lives)
+	"""Открыть PayoutScene для конкретной ставки - делегировано в PayoutOverlayCoordinator"""
+	if payout_overlay_coordinator:
+		payout_overlay_coordinator.open_payout_scene(bet_type)
 	else:
-		# Если survival_state не инициализирован - берем из GameDataManager
-		surv_lives = GameDataManager.get_survival_lives()
-		DebugLogger.log("  → Берем из GameDataManager: %d" % surv_lives)
-
-	GameDataManager.set_game_state(
-		survival_rounds_completed,
-		surv_lives,
-		true  # Режим всегда активен
-	)
-	DebugLogger.log("  → ✅ Установлено состояние игры: rounds=%d, lives=%d" % [survival_rounds_completed, surv_lives])
-
-	# Переходим к PayoutScene
-	get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
+		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1636,79 +1461,19 @@ func _open_payout_scene(bet_type: String):
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _show_payout_overlay(bet_type: String, stake: float, payout: float):
-	"""Показать PayoutOverlay с параметрами выплаты (новый способ)
-
-	Вызывается при клике на фишку в overlay режиме (USE_OVERLAY_PAYOUT=true).
-	Game.tscn остается в памяти, overlay показывается поверх.
-
-	Args:
-		bet_type: Тип ставки ("Player"/"Banker"/"Tie"/"PairPlayer"/"PairBanker")
-		stake: Размер ставки
-		payout: Ожидаемая выплата
-	"""
-	if not payout_overlay:
-		push_error("❌ PayoutOverlay не найден! Проверьте Game.tscn")
-		return
-
-	DebugLogger.log("💰 Показываем PayoutOverlay (overlay режим): %s, stake=%.1f, payout=%.1f" % [bet_type, stake, payout])
-
-	# Вызываем метод show_payout() из PayoutOverlay.gd
-	# Overlay сам управляет UI, фишками и валидацией
-
-	# Передаём состояние игры через параметры (вместо get_parent())
-	var lives = survival_state.get_lives() if survival_state else 7
-	payout_overlay.show_payout(bet_type, stake, payout, true, lives)  # Режим всегда активен
+	"""Показать PayoutOverlay с параметрами выплаты - делегировано в PayoutOverlayCoordinator"""
+	if payout_overlay_coordinator:
+		payout_overlay_coordinator.show_payout_overlay(bet_type, stake, payout)
+	else:
+		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
 
 
 func _on_payout_overlay_completed(bet_type: String, is_correct: bool, collected: float, expected: float):
-	"""Обработчик завершения выплаты в overlay режиме
-
-	Вызывается когда PayoutOverlay эмитит сигнал payout_completed.
-	Обрабатывает результат (правильно/неправильно) и управляет переходом к следующей выплате.
-
-	Args:
-		bet_type: Тип ставки ("Player"/"Banker"/"Tie"/"PairPlayer"/"PairBanker")
-		is_correct: Правильная ли выплата
-		collected: Собранная сумма
-		expected: Ожидаемая сумма
-	"""
-	# Получаем position_index из метаданных (устанавливается в _show_payout_overlay_instance)
-	var position_index = 0
-	if payout_overlay and payout_overlay.has_meta("current_position_index"):
-		position_index = payout_overlay.get_meta("current_position_index")
-	
-	DebugLogger.log("💰 Завершена выплата в overlay режиме: bet_type=%s[%d], correct=%s, collected=%.1f, expected=%.1f" % [bet_type, position_index, is_correct, collected, expected])
-	
-	# Проверяем, что payout_result_handler инициализирован
-	if not payout_result_handler:
-		DebugLogger.log_error("❌ PayoutResultHandler не инициализирован!")
-		return
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ОБРАБОТКА РЕЗУЛЬТАТА (делегировано в PayoutResultHandler)
-	# ═══════════════════════════════════════════════════════════════════
-	DebugLogger.log("💰 Вызываем payout_result_handler.handle_payout_result: %s[%d], correct=%s" % [bet_type, position_index, is_correct])
-	payout_result_handler.handle_payout_result(bet_type, position_index, is_correct, collected, expected)
-	
-	# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
-	if is_correct:
-		DebugLogger.log("  ✅ Правильная выплата завершена")
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ПРОВЕРКА ОСТАВШИХСЯ ВЫПЛАТ
-	# ═══════════════════════════════════════════════════════════════════
-	# TODO: Если есть еще неоплаченные выплаты - можно автоматически показать следующую
-	# Пока оставляем ручной режим - пользователь кликает на следующую фишку
-
-	# ═══════════════════════════════════════════════════════════════════
-	# ЗАВЕРШЕНИЕ РАУНДА (если все выплаты оплачены И последняя правильная)
-	# ═══════════════════════════════════════════════════════════════════
-	if is_correct:
-		# После оплаты ставки всегда активируем кнопку "Завершить"
-		# Проверка неоплаченных ставок будет при нажатии на кнопку
-		if ui_manager:
-			ui_manager.enable_action_button()
-			DebugLogger.log("  🔓 Кнопка 'Завершить' активирована после оплаты ставки")
+	"""Обработчик завершения выплаты в overlay режиме - делегировано в PayoutOverlayCoordinator"""
+	if payout_overlay_coordinator:
+		payout_overlay_coordinator.on_payout_overlay_completed(bet_type, is_correct, collected, expected)
+	else:
+		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
 
 		# Проверяем, остались ли неоплаченные выплаты
 		var has_unpaid = payout_queue_manager.has_unpaid_winnings() if payout_queue_manager else false

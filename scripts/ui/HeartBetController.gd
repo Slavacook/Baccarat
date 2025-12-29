@@ -210,26 +210,40 @@ func handle_heart_bet_round_complete() -> void:
 		new_trigger_available = phase_manager.heart_bet_manager.is_available()
 		DebugLogger.log("❤️ Проверка триггеров после Heart Bet раунда: %s" % ("сработал!" if new_trigger_available else "нет"))
 	
-	# Восстанавливаем ставки гостей из backup (если был backup)
-	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.restore_all_bets()
+	# ВАЖНО: Восстанавливаем ставки гостей из backup ПЕРЕД reset(),
+	# чтобы они не были очищены при сбросе раунда
+	# При Tie draw ставки НЕ восстанавливаем (они будут очищены в reset)
+	if not was_tie_draw:
+		if phase_manager and phase_manager.guest_bet_storage:
+			# Проверяем, есть ли backup для восстановления
+			if phase_manager.guest_bet_storage.has_backup():
+				phase_manager.guest_bet_storage.restore_all_bets()
+				DebugLogger.log("❤️ Ставки гостей восстановлены из backup перед reset()")
+			else:
+				DebugLogger.log("⚠️ Нет backup для восстановления ставок гостей")
 	
 	if phase_manager:
 		# Сбрасываем флаг Heart Bet раунда
 		phase_manager.was_heart_bet_round = false
 		# При Tie draw НЕ сохраняем ставки гостей (они будут очищены в reset)
-		# Но мы уже восстановили их из backup, так что они останутся если keep_guest_bets=true
-		# При Tie draw ставки очищаются (keep_guest_bets=false), новые будут сгенерированы при новой раздаче
+		# Если НЕ было Tie draw, то keep_guest_bets=true - ставки сохранятся
+		# (они уже восстановлены из backup выше)
 		phase_manager.reset(true, not was_tie_draw)  # update_state=true, keep_guest_bets=!was_tie_draw
 		phase_manager.is_table_prepared = true  # Готовы к новой раздаче
-		DebugLogger.log("❤️ Раунд сброшен, готов к новой раздаче (Tie draw: %s)" % was_tie_draw)
+		DebugLogger.log("❤️ Раунд сброшен, готов к новой раздаче (Tie draw: %s, keep_guest_bets: %s)" % [was_tie_draw, not was_tie_draw])
 	
 	# Восстанавливаем ФИШКИ ставок гостей ТОЛЬКО если НЕ было Tie draw
 	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
 	# потому что фишки (узлы) могли быть удалены во время Heart Bet раунда
 	if not was_tie_draw and phase_manager:
-		phase_manager._show_guest_bets()
-		DebugLogger.log("❤️ Фишки ставок гостей пересозданы")
+		# Проверяем, что ставки действительно есть в хранилище
+		if phase_manager.guest_bet_storage:
+			var guests_with_bets = phase_manager.guest_bet_storage.get_guests_with_bets()
+			if guests_with_bets.size() > 0:
+				phase_manager._show_guest_bets()
+				DebugLogger.log("❤️ Фишки ставок гостей пересозданы (%d гостей с ставками)" % guests_with_bets.size())
+			else:
+				DebugLogger.log("⚠️ Нет ставок гостей для отображения после восстановления")
 	elif was_tie_draw:
 		DebugLogger.log("❤️ Tie draw: ставки гостей очищены, новые будут показаны при начале новой раздачи")
 		# При Tie draw ставки очищены, новые будут сгенерированы и показаны

@@ -136,6 +136,8 @@ func restore_all_bets() -> void:
 	"""Восстановить все ставки из backup
 	
 	Используется после завершения Heart Bet раунда для восстановления ставок.
+	ВАЖНО: Backup НЕ очищается после восстановления, чтобы можно было использовать карту несколько раз подряд.
+	Backup очищается только при создании нового backup (в backup_all_bets).
 	"""
 	if _backup_bets.is_empty():
 		print("⚠️ GuestBetStorage: нет backup для восстановления (ставок не было)")
@@ -158,8 +160,10 @@ func restore_all_bets() -> void:
 	
 	print("💾 GuestBetStorage: ставки восстановлены из backup (%d ставок для %d гостей)" % [total_bets, stored_bets.size()])
 	
-	# Очищаем backup после восстановления
-	_backup_bets.clear()
+	# ВАЖНО: НЕ очищаем backup после восстановления!
+	# Это позволяет использовать карту Heart Bet несколько раз подряд.
+	# Backup будет очищен только при создании нового backup (в backup_all_bets).
+	# _backup_bets.clear()  # УБРАНО - backup должен сохраняться для повторного использования
 
 # ← Проверить, есть ли backup
 func has_backup() -> bool:
