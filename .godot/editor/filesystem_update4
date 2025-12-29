@@ -11,3 +11,4 @@ res://scripts/GameController.gd
 res://scripts/GameInitializer.gd
 res://scripts/ui/SettingsEventHandler.gd
 res://scripts/chance_cards/implementations/HeartBetChanceCard.gd
+res://scripts/ui/GuestEventHandler.gd

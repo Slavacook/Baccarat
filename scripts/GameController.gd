@@ -76,6 +76,9 @@ var chip_click_handler: ChipClickHandler
 # Обработчик событий настроек (Extract Class)
 var settings_handler: SettingsEventHandler
 
+# Обработчик событий гостей (Extract Class)
+var guest_event_handler: GuestEventHandler
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -161,8 +164,8 @@ func _ready():
 		EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested)
 		
 		# Heart Bet: скрытие/показ ставок гостей
-		EventBus.guest_bets_hide_requested.connect(_on_guest_bets_hide_requested)
-		EventBus.guest_bets_show_requested.connect(_on_guest_bets_show_requested)
+		# Сигналы guest_bets_hide_requested и guest_bets_show_requested
+		# перенесены в GuestEventHandler (подключаются в _connect_guest_signals())
 		EventBus.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
 		EventBus.heart_bet_declined.connect(_on_heart_bet_declined)
 		EventBus.heart_bet_show_ui.connect(_on_heart_bet_show_ui)
@@ -173,12 +176,8 @@ func _ready():
 		# Heart Bet: триггеры обрабатываются через ChanceCardManager
 		# Старые сигналы оставлены для обратной совместимости
 	
-	# Подписка на изменение настроек гостей (для очистки фишек при отключении)
-	GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed)
-	GuestSettingsManager.guest_settings_changed.connect(_on_guest_settings_changed_visibility)
-	
-	# Инициализируем видимость гостей на основе настроек
-	_update_guests_visibility()
+	# Подписка на изменение настроек гостей перенесена в GuestEventHandler
+	# (подключается в _initialize_guest_event_handler())
 	
 	# Настройка новой системы карт шанса
 	_setup_chance_card_system()
@@ -201,6 +200,7 @@ func _ready():
 	# Инициализируем обработчик кликов на фишки (после инициализации менеджеров)
 	_initialize_chip_click_handler()
 	_initialize_settings_handler()
+	_initialize_guest_event_handler()
 	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
@@ -265,7 +265,9 @@ func _initialize_payout_result_handler() -> void:
 		ui_manager
 	)
 	# Устанавливаем callbacks для методов GameController
-	payout_result_handler.set_update_guest_balance_callback(_update_guest_balance_for_bet)
+	# Callback для обновления баланса гостя при выплате
+	if guest_event_handler:
+		payout_result_handler.set_update_guest_balance_callback(guest_event_handler.update_guest_balance_for_bet)
 	print("✅ PayoutResultHandler инициализирован")
 
 func _initialize_game_state_controller() -> void:
@@ -298,7 +300,9 @@ func _initialize_chip_click_handler() -> void:
 	
 	# Устанавливаем callbacks для методов GameController
 	chip_click_handler.set_is_payout_processing_getter(func(): return is_payout_processing)
-	chip_click_handler.set_update_guest_balance_callback(_update_guest_balance_on_collect)
+	# Callback для обновления баланса гостя при сборе
+	if guest_event_handler:
+		chip_click_handler.set_update_guest_balance_callback(guest_event_handler.update_guest_balance_on_collect)
 	chip_click_handler.set_show_payout_overlay_callback(_show_payout_overlay_instance)
 	chip_click_handler.set_open_payout_scene_callback(_open_payout_scene)
 	print("✅ ChipClickHandler инициализирован")
@@ -322,6 +326,37 @@ func _initialize_settings_handler() -> void:
 	_connect_settings_signals()
 	
 	print("✅ SettingsEventHandler инициализирован")
+
+func _initialize_guest_event_handler() -> void:
+	"""Инициализировать обработчик событий гостей"""
+	guest_event_handler = GuestEventHandler.new(
+		self,
+		phase_manager,
+		chip_visual_manager,
+		guest_sprites,
+		background_666
+	)
+	
+	# Подключаем сигналы
+	_connect_guest_signals()
+	
+	print("✅ GuestEventHandler инициализирован")
+
+func _connect_guest_signals() -> void:
+	"""Подключить сигналы гостей к guest_event_handler"""
+	if not guest_event_handler:
+		return
+	
+	# Сигналы от GuestSettingsManager
+	GuestSettingsManager.guest_settings_changed.connect(guest_event_handler.handle_guest_settings_changed)
+	GuestSettingsManager.guest_settings_changed.connect(guest_event_handler.handle_guest_settings_changed_visibility)
+	
+	# Сигналы от EventBus для Heart Bet
+	EventBus.guest_bets_hide_requested.connect(guest_event_handler.handle_guest_bets_hide_requested)
+	EventBus.guest_bets_show_requested.connect(guest_event_handler.handle_guest_bets_show_requested)
+	
+	# Инициализируем видимость гостей на основе настроек
+	guest_event_handler.update_guests_visibility()
 
 func _connect_settings_signals() -> void:
 	"""Подключить сигналы настроек к settings_handler"""
@@ -982,7 +1017,7 @@ func _on_settings_button_pressed():
 			# Кнопка "Карты" включится через сигнал settings_closed
 		else:
 			# Настройки можно открыть в любое время
-			# Защита от удаления ставок во время раздачи реализована в _on_guest_settings_changed()
+			# Защита от удаления ставок во время раздачи реализована в GuestEventHandler.handle_guest_settings_changed()
 			DebugLogger.log("  → Открываем настройки")
 			settings_scene.open_settings()
 			# Отключаем кнопку "Карты" чтобы случайно не нажать
@@ -1509,81 +1544,10 @@ func _on_camera_zoom_requested(zoom_type: String) -> void:
 
 
 
-func _on_guest_settings_changed(guest_id: int) -> void:
-	"""Настройки гостя изменились - очищаем его фишки если отключён"""
-	if not GuestSettingsManager.is_guest_enabled(guest_id):
-		# ═══════════════════════════════════════════════════════════════════
-		# ЗАЩИТА: Не очищаем ставки во время раздачи
-		# Ставки можно удалять ТОЛЬКО в состоянии WAITING (до начала раздачи)
-		# Во всех остальных состояниях (включая CHOOSE_WINNER) ставки остаются
-		# до полного завершения раунда (сбор/оплата всех ставок)
-		# ═══════════════════════════════════════════════════════════════════
-		var current_state = GameStateManager.get_current_state()
-		if current_state != GameStateManager.GameState.WAITING:
-			print("👥 Гость %d отключён, но идёт раздача (состояние: %s) - ставки останутся до конца раунда" % [guest_id, GameStateManager.get_state_name(current_state)])
-			# НЕ очищаем ставки из хранилища и НЕ скрываем визуальные фишки
-			# Ставки останутся видимыми и будут использованы в текущей раздаче
-			# В следующей раздаче ставки не будут сгенерированы (гость отключен)
-			return
-		
-		print("👥 Гость %d отключён - очищаем его фишки" % guest_id)
-		# Очищаем фишки этого гостя из хранилища
-		if phase_manager and phase_manager.guest_bet_storage:
-			phase_manager.guest_bet_storage.clear_guest_bets(guest_id)
-		# Скрываем визуальные фишки этого гостя
-		if chip_visual_manager:
-			chip_visual_manager.clear_guest_chips_for_sector(guest_id)
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# 👥 УПРАВЛЕНИЕ ВИДИМОСТЬЮ ГОСТЕЙ И ФОНА
-# ═══════════════════════════════════════════════════════════════════════════
-
-func _update_guests_visibility() -> void:
-	"""Обновить видимость гостей на основе их состояния в GuestSettingsManager"""
-	# Инициализируем обычных гостей (1-6)
-	for guest_id in range(1, 7):
-		var sprite = guest_sprites.get(guest_id)
-		if sprite:
-			var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
-			# Устанавливаем видимость без анимации при инициализации
-			sprite.visible = is_enabled
-			sprite.modulate.a = 1.0 if is_enabled else 0.0
-			print("👥 Гость %d: %s" % [guest_id, "видим" if is_enabled else "скрыт"])
-	
-	# G_666 всегда скрыт в обычном состоянии
-	var guest_666 = guest_sprites.get(666)
-	if guest_666:
-		guest_666.visible = false
-		guest_666.modulate.a = 0.0
-	
-	# Background666 всегда скрыт в обычном состоянии
-	if background_666:
-		background_666.visible = false
-		background_666.modulate.a = 0.0
-
-func _on_guest_settings_changed_visibility(guest_id: int) -> void:
-	"""Обновить видимость гостей при изменении настроек (не во время Heart Bet)"""
-	# Проверяем, не активна ли сейчас игра на жизнь
-	# Если Background666 видим - значит активна мистическая атмосфера
-	if background_666 and background_666.visible:
-		# Во время игры на жизнь не обновляем видимость обычных гостей
-		return
-	
-	# Обновляем видимость конкретного гостя с анимацией
-	var sprite = guest_sprites.get(guest_id)
-	if sprite and guest_id != 666:  # Не трогаем G_666
-		var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
-		if is_enabled:
-			# Fade-in 0.5 сек
-			sprite.visible = true
-			sprite.modulate.a = 0.0
-			_create_fade_animation(sprite, 0.0, 1.0, 0.5)
-			print("👥 Гость %d: fade-in 0.5 сек" % guest_id)
-		else:
-			# Fade-out 0.5 сек
-			_create_fade_animation(sprite, 1.0, 0.0, 0.5, func(): sprite.visible = false)
-			print("👥 Гость %d: fade-out 0.5 сек" % guest_id)
+# Методы обработки событий гостей перенесены в GuestEventHandler
+# _on_guest_settings_changed -> guest_event_handler.handle_guest_settings_changed
+# _on_guest_settings_changed_visibility -> guest_event_handler.handle_guest_settings_changed_visibility
+# _update_guests_visibility -> guest_event_handler.update_guests_visibility
 
 func _enable_life_bet_atmosphere() -> void:
 	"""Включить мистическую атмосферу для игры на жизнь (последовательно)"""
@@ -1705,26 +1669,9 @@ func _setup_chance_card_system() -> void:
 	print("🎴 Система карт шанса настроена")
 
 
-func _on_guest_bets_hide_requested() -> void:
-	"""Скрыть ставки гостей при выборе сердца для Heart Bet"""
-	# ВАЖНО: Сначала сохраняем ставки в backup, затем скрываем
-	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.backup_all_bets()
-		# Очищаем текущие ставки (чтобы они не показывались в Heart Bet раунде)
-		phase_manager.guest_bet_storage.clear_all_bets()
-	
-	if chip_visual_manager:
-		chip_visual_manager.hide_all_guest_chips()
-		print("❤️ GameController: ставки гостей скрыты и сохранены в backup")
-
-
-func _on_guest_bets_show_requested() -> void:
-	"""Показать ставки гостей после завершения Heart Bet раздачи"""
-	# ВАЖНО: Используем _show_guest_bets() вместо show_all_guest_chips(),
-	# потому что фишки (узлы) могли быть удалены во время Heart Bet раунда
-	if phase_manager:
-		phase_manager._show_guest_bets()
-		print("❤️ GameController: фишки ставок гостей пересозданы")
+# Методы обработки ставок гостей перенесены в GuestEventHandler
+# _on_guest_bets_hide_requested -> guest_event_handler.handle_guest_bets_hide_requested
+# _on_guest_bets_show_requested -> guest_event_handler.handle_guest_bets_show_requested
 
 
 func _on_heart_bet_declined() -> void:
@@ -2099,69 +2046,9 @@ func _on_table_prepared():
 # ОБНОВЛЕНИЕ БАЛАНСА ГОСТЕЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _update_guest_balance_for_bet(bet_type: String, position_index: int, payout: float) -> void:
-	"""Обновить баланс гостя при правильной выплате
-	
-	Args:
-		bet_type: Тип ставки
-		position_index: Индекс позиции
-		payout: Размер выплаты
-	"""
-	if not phase_manager or not phase_manager.guest_bet_storage:
-		return
-	
-	# Определяем сектор по position_index
-	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
-	if sector < 1 or sector > 6:
-		# Не гостевые ставки - пропускаем
-		return
-	
-	var guest_id = sector  # Сектор = ID гостя
-	
-	# Находим ставку гостя в хранилище
-	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
-	for bet in guest_bets:
-		if bet.get_bet_type() == bet_type and bet.get_position_index() == position_index:
-			# Нашли ставку гостя
-			# Обновляем баланс: добавляем payout (выигрыш) и вычитаем stake (ставка уже поставлена)
-			var net_profit = payout - bet.get_stake()
-			GuestStatsManager.add_to_balance(guest_id, net_profit)
-			DebugLogger.log("💰 Гость %d: баланс обновлён (+%.0f - %.0f = %.0f)" % [guest_id, payout, bet.get_stake(), net_profit])
-			return
-	
-	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
-
-func _update_guest_balance_on_collect(bet_type: String, position_index: int) -> void:
-	"""Обновить баланс гостя при сборе проигрышной ставки
-	
-	При сборе проигрышной ставки вычитаем stake из баланса гостя
-	
-	Args:
-		bet_type: Тип ставки
-		position_index: Индекс позиции
-	"""
-	if not phase_manager or not phase_manager.guest_bet_storage:
-		return
-	
-	# Определяем сектор по position_index
-	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
-	if sector < 1 or sector > 6:
-		# Не гостевые ставки - пропускаем
-		return
-	
-	var guest_id = sector  # Сектор = ID гостя
-	
-	# Находим ставку гостя в хранилище
-	var guest_bets = phase_manager.guest_bet_storage.get_guest_bets(guest_id)
-	for bet in guest_bets:
-		if bet.get_bet_type() == bet_type and bet.get_position_index() == position_index:
-			# Нашли ставку гостя
-			# Вычитаем stake (проигрыш)
-			GuestStatsManager.subtract_from_balance(guest_id, bet.get_stake())
-			DebugLogger.log("💰 Гость %d: баланс обновлён (-%.0f за проигрыш)" % [guest_id, bet.get_stake()])
-			return
-	
-	DebugLogger.log_warning("⚠️ Не найдена ставка гостя для %s[%d] в секторе %d" % [bet_type, position_index, sector])
+# Методы обновления баланса гостей перенесены в GuestEventHandler
+# _update_guest_balance_for_bet -> guest_event_handler.update_guest_balance_for_bet
+# _update_guest_balance_on_collect -> guest_event_handler.update_guest_balance_on_collect
 
 
 # ═══════════════════════════════════════════════════════════════════════════
