@@ -25,3 +25,4 @@ res://scripts/KeyboardFocusController.gd
 res://scripts/KeyboardNavigationController.gd
 res://scripts/ui/CribSheetScene.gd
 res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/ChipVisualManager.gd

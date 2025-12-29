@@ -1111,6 +1111,9 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		# Создаём ChipInstance
 		var chip_instance = ChipVisualManager.ChipInstance.new(bet_type, position_index, original_chip, true)
 		chip_instance.stake = stake
+		# Создаём label для суммы ставки (если stake > 0)
+		if chip_instance.stake > 0:
+			chip_instance.stake_label = chip_visual_manager.create_stake_label(chip_instance)
 		chip_visual_manager.active_chips.append(chip_instance)
 	else:
 		# Создаём копию фишки (используем приватный метод через публичный интерфейс)
@@ -1143,6 +1146,9 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		# Создаём ChipInstance
 		var chip_instance = ChipVisualManager.ChipInstance.new(bet_type, position_index, new_chip, false)
 		chip_instance.stake = stake
+		# Создаём label для суммы ставки (если stake > 0)
+		if chip_instance.stake > 0:
+			chip_instance.stake_label = chip_visual_manager.create_stake_label(chip_instance)
 		chip_visual_manager.active_chips.append(chip_instance)
 
 func _is_bet_type_enabled_in_settings(bet_type: String) -> bool:
