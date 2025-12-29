@@ -16,3 +16,4 @@ res://tests/manual_test_GuestAndHeartBet.gd
 res://tests/ManualTestGuestAndHeartBet.tscn
 res://scripts/ui/HeartBetController.gd
 res://scripts/utils/PayoutResultHandler.gd
+res://scripts/heart_bet/HeartBetManager.gd

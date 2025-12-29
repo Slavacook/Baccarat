@@ -103,6 +103,7 @@ func get_chance_count() -> int:
 
 ## Использовать один шанс (вызывается при нажатии "Использовать")
 ## Возвращает true если шанс использован успешно
+## ВАЖНО: Карта НЕ отнимается здесь, только при подтверждении ставки в confirm()
 func use_chance() -> bool:
 	# #region agent log
 	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
@@ -117,10 +118,8 @@ func use_chance() -> bool:
 		print("❤️ HeartBetManager: нельзя использовать шанс (state=%s)" % State.keys()[current_state])
 		return false
 	
-	# Списываем шанс СРАЗУ
-	chance_count -= 1
-	print("❤️ Шанс использован! Осталось: %d" % chance_count)
-	EventBus.chance_count_changed.emit(chance_count)
+	# ВАЖНО: НЕ отнимаем карту здесь! Карта отнимается только при подтверждении ставки в confirm()
+	# Это позволяет игроку отказаться от ставки без потери карты
 	
 	# Переходим в фазу выбора
 	current_state = State.PENDING
@@ -132,8 +131,7 @@ func use_chance() -> bool:
 	# Показываем сердца
 	EventBus.heart_bet_show_ui.emit()
 	
-	# Блокируем карту шанса (чтобы нельзя было использовать вторую пока первая активна)
-	EventBus.chance_count_changed.emit(chance_count)  # Это обновит UI
+	print("❤️ Фаза выбора активирована (карта будет отнята только при подтверждении ставки)")
 	
 	return true
 
@@ -201,6 +199,14 @@ func confirm() -> bool:
 	match current_state:
 		State.SELECTED:
 			# Есть выбор - подтверждаем ставку
+			# ВАЖНО: Отнимаем карту ТОЛЬКО при подтверждении ставки
+			if chance_count > 0:
+				chance_count -= 1
+				print("❤️ Карта отнята при подтверждении ставки! Осталось: %d" % chance_count)
+				EventBus.chance_count_changed.emit(chance_count)
+			else:
+				print("⚠️ HeartBetManager: попытка отнять карту, но chance_count уже 0")
+			
 			current_state = State.ACTIVE
 			print("❤️ Ставка подтверждена: %s → state=ACTIVE" % selected_target)
 			# ВАЖНО: heart_bet_confirmed скроет НЕ-выбранные сердца (в HeartBetUI)
@@ -210,7 +216,8 @@ func confirm() -> bool:
 		
 		State.PENDING:
 			# Нет выбора - отказ от шанса
-			print("❤️ Нет выбора → отклоняем")
+			# ВАЖНО: Карта НЕ отнимается при отказе
+			print("❤️ Нет выбора → отклоняем (карта НЕ тратится)")
 			_decline()
 			return false
 		
