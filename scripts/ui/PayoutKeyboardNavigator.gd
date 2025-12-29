@@ -147,6 +147,19 @@ func clear_focus() -> void:
 	if focus_frame:
 		focus_frame.hide_frame()
 
+func set_focus_to_payout_button() -> void:
+	"""Установить фокус на кнопку выплаты (после использования подсказки)"""
+	if not is_keyboard_active:
+		return
+	
+	if payout_button and payout_button.focus_mode != Control.FOCUS_NONE:
+		focus_level = FocusLevel.BOTTOM
+		# Индекс кнопки выплаты = размер массива фишек (фишки: 0..size-1, выплата: size)
+		focus_index = chip_denominations.size()
+		payout_button.grab_focus()
+		_update_focus_frame()
+		DebugLogger.log("⌨️ Фокус установлен на кнопку выплаты (индекс: %d)" % focus_index)
+
 func activate() -> void:
 	"""Активировать клавиатурную навигацию"""
 	if is_keyboard_active:

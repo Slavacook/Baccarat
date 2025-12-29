@@ -347,6 +347,11 @@ func _on_hint_pressed():
 	hint_used.emit()
 	
 	DebugLogger.log("💡 Подсказка применена! Ожидаемая выплата: %s" % expected_payout)
+	
+	# Если используется клавиатурная навигация, переводим фокус на кнопку выплаты
+	if keyboard_navigator and keyboard_navigator.is_keyboard_active:
+		await get_tree().process_frame  # Небольшая задержка для завершения обработки
+		keyboard_navigator.set_focus_to_payout_button()
 
 # ← Обработчик изменения режима игры
 func _on_mode_changed(_mode: String):
