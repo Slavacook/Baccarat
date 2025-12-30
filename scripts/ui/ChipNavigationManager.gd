@@ -274,13 +274,12 @@ func _move_horizontal(direction: String) -> void:
 				current_bet_type = "PairBanker"
 			else:
 				# PairBanker → PairPlayer (следующий сектор в порядке влево)
-				var pairs_sector_order = SECTOR_ORDER
-				var pairs_current_index = pairs_sector_order.find(current_sector)
-				if pairs_current_index < 0:
+				var pairs_sector_order_left = SECTOR_ORDER
+				var pairs_current_index_left = pairs_sector_order_left.find(current_sector)
+				if pairs_current_index_left < 0:
 					return
-				
-				var pairs_next_index = (pairs_current_index + 1) % pairs_sector_order.size()
-				current_sector = pairs_sector_order[pairs_next_index]
+				var pairs_next_index_left = (pairs_current_index_left + 1) % pairs_sector_order_left.size()
+				current_sector = pairs_sector_order_left[pairs_next_index_left]
 				current_bet_type = "PairPlayer"
 		return
 	
