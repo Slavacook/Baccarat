@@ -121,6 +121,29 @@ func is_valid_key_event(event: InputEvent) -> bool:
 	var key_event = event as InputEventKey
 	return key_event.pressed and not key_event.echo
 
+func is_valid_action_event(event: InputEvent, action: String) -> bool:
+	"""Проверить, является ли событие валидным действием
+	
+	Args:
+		event: Событие ввода
+		action: Имя действия
+		
+	Returns:
+		true если событие соответствует действию и не является echo
+	"""
+	return event.is_action_pressed(action) and not event.is_echo()
+
+func is_action_just_pressed(action: String) -> bool:
+	"""Проверить, нажато ли действие (работает для клавиатуры и геймпада)
+	
+	Args:
+		action: Имя действия
+		
+	Returns:
+		true если действие только что нажато
+	"""
+	return Input.is_action_just_pressed(action)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════

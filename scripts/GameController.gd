@@ -833,37 +833,35 @@ func _on_restart_game():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _input(event: InputEvent) -> void:
-	"""Обработка клавиатурного ввода (используем _input для E, чтобы перехватить раньше)"""
-	# Обрабатываем только E здесь, остальное в _unhandled_input
-	if event is InputEventKey:
-		var key_event = event as InputEventKey
-		if key_event.keycode == KEY_E and key_event.pressed and not key_event.echo:
-			# Проверяем блокировки
-			if InputContextManager.is_blocked():
-				return
-			if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
-				return
-			
-			# E → включить/выключить навигацию по ставкам
-			DebugLogger.log("⌨️ E нажата (pressed=%s, echo=%s)" % [key_event.pressed, key_event.echo])
-			if chip_navigation_manager:
-				DebugLogger.log("⌨️ chip_navigation_manager найден, is_active=%s" % chip_navigation_manager.is_active)
-				if chip_navigation_manager.is_active:
-					chip_navigation_manager.deactivate()
-					DebugLogger.log("⌨️ Навигация деактивирована")
-				else:
-					# Активируем только если есть активные фишки
-					chip_navigation_manager.activate()
-					DebugLogger.log("⌨️ Навигация активирована")
-				get_viewport().set_input_as_handled()
-				return
+	"""Обработка ввода (клавиатура и геймпад) - используем _input для toggle_navigation, чтобы перехватить раньше"""
+	# Обрабатываем только toggle_navigation здесь, остальное в _unhandled_input
+	if event.is_action_pressed("toggle_navigation"):
+		# Проверяем блокировки
+		if InputContextManager.is_blocked():
+			return
+		if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
+			return
+		
+		# toggle_navigation → включить/выключить навигацию по ставкам
+		DebugLogger.log("⌨️ toggle_navigation нажата")
+		if chip_navigation_manager:
+			DebugLogger.log("⌨️ chip_navigation_manager найден, is_active=%s" % chip_navigation_manager.is_active)
+			if chip_navigation_manager.is_active:
+				chip_navigation_manager.deactivate()
+				DebugLogger.log("⌨️ Навигация деактивирована")
 			else:
-				DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
-				get_viewport().set_input_as_handled()
-				return
+				# Активируем только если есть активные фишки
+				chip_navigation_manager.activate()
+				DebugLogger.log("⌨️ Навигация активирована")
+			get_viewport().set_input_as_handled()
+			return
+		else:
+			DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
+			get_viewport().set_input_as_handled()
+			return
 
 func _unhandled_input(event: InputEvent) -> void:
-	"""Обработка клавиатурного ввода"""
+	"""Обработка ввода (клавиатура и геймпад)"""
 	# Проверяем блокировки через InputContextManager
 	if InputContextManager.is_blocked():
 		return
@@ -872,14 +870,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
 	
-	# Проверяем валидность события клавиатуры
-	if not InputContextManager.is_valid_key_event(event):
-		return
-	
-	var key_event = event as InputEventKey
-	
 	# Space при Game Over → рестарт игры
-	if key_event.keycode == KEY_SPACE:
+	if event.is_action_pressed("action"):
 		if game_state_controller and not game_state_controller.is_game_active():
 			# Game Over - рестарт игры
 			_on_restart_game()
@@ -889,14 +881,14 @@ func _unhandled_input(event: InputEvent) -> void:
 			get_viewport().set_input_as_handled()
 			return
 	
-	# Если навигация по ставкам активна - обрабатываем клавиши там
+	# Если навигация по ставкам активна - обрабатываем ввод там
 	if chip_navigation_manager and chip_navigation_manager.is_active:
-		if chip_navigation_manager.handle_keyboard_input(key_event):
+		if chip_navigation_manager.handle_input(event):
 			get_viewport().set_input_as_handled()
 			return
 	
 	# Escape во время игры → открыть/закрыть меню
-	if key_event.keycode == KEY_ESCAPE:
+	if event.is_action_pressed("exit"):
 		# Проверяем, не открыто ли меню гостей (приоритет выше)
 		var guest_menu = get_node_or_null("GuestMenuScene")
 		if guest_menu and guest_menu.visible:

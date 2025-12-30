@@ -1,2 +1,9 @@
 res://scenes/Game.tscn
 res://scripts/ui/ChipNavigationManager.gd
+res://scripts/GameController.gd
+res://scripts/KeyboardFocusController.gd
+res://scripts/KeyboardNavigationController.gd
+res://scripts/autoload/InputContextManager.gd
+res://scripts/UIManager.gd
+res://scripts/ui/ButtonUIManager.gd
+res://scripts/GameInitializer.gd

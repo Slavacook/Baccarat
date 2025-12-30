@@ -475,11 +475,11 @@ func _show_frame_at_coordinates(coords: Vector2) -> void:
 # ОБРАБОТКА КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func handle_keyboard_input(event: InputEventKey) -> bool:
-	"""Обработать клавиатурный ввод
+func handle_input(event: InputEvent) -> bool:
+	"""Обработать ввод (клавиатура или геймпад)
 	
 	Args:
-		event: Событие клавиатуры
+		event: Событие ввода
 		
 	Returns:
 		true если событие обработано, false если нет
@@ -487,31 +487,40 @@ func handle_keyboard_input(event: InputEventKey) -> bool:
 	if not is_active:
 		return false
 	
-	if not event.pressed:
-		return false
+	# Используем Input Actions для поддержки клавиатуры и геймпада
+	if event.is_action_pressed("left"):
+		move_focus("left")
+		return true
+	elif event.is_action_pressed("right"):
+		move_focus("right")
+		return true
+	elif event.is_action_pressed("up"):
+		move_focus("up")
+		return true
+	elif event.is_action_pressed("down"):
+		move_focus("down")
+		return true
+	elif event.is_action_pressed("action"):
+		# Активируем фишку в текущей позиции (если есть)
+		activate_current_chip()
+		return true
+	elif event.is_action_pressed("exit"):
+		deactivate()
+		return true
 	
-	match event.keycode:
-		KEY_LEFT, KEY_A:
-			move_focus("left")
-			return true
-		KEY_RIGHT, KEY_D:
-			move_focus("right")
-			return true
-		KEY_UP, KEY_W:
-			move_focus("up")
-			return true
-		KEY_DOWN, KEY_S:
-			move_focus("down")
-			return true
-		KEY_ENTER, KEY_SPACE:
-			# Активируем фишку в текущей позиции (если есть)
-			activate_current_chip()
-			return true
-		KEY_ESCAPE:
-			deactivate()
-			return true
-		_:
-			return false
+	return false
+
+# Обратная совместимость (deprecated)
+func handle_keyboard_input(event: InputEventKey) -> bool:
+	"""Обработать клавиатурный ввод (deprecated, используйте handle_input)
+	
+	Args:
+		event: Событие клавиатуры
+		
+	Returns:
+		true если событие обработано, false если нет
+	"""
+	return handle_input(event)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # АВТОМАТИЧЕСКОЕ ПЕРЕМЕЩЕНИЕ ПОСЛЕ ДЕЙСТВИЯ

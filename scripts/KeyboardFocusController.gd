@@ -92,15 +92,9 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
 	
-	# Проверяем валидность события клавиатуры
-	if not InputContextManager.is_valid_key_event(event):
-		return
-	
-	var key_event = event as InputEventKey
-	
 	# Space работает всегда (и в фазе раздачи, и в фазе выплат)
 	# Но не работает, если шпаргалка открыта
-	if key_event.keycode == KEY_SPACE:
+	if event.is_action_pressed("action"):
 		if _is_crib_sheet_open():
 			get_viewport().set_input_as_handled()
 			return
@@ -119,22 +113,19 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Не обрабатываем стрелки/WASD, пусть их обрабатывает KeyboardNavigationController
 			return
 	
-	match key_event.keycode:
-		KEY_A:
-			_handle_a_press()
-			get_viewport().set_input_as_handled()
-		
-		KEY_D:
-			_handle_d_press()
-			get_viewport().set_input_as_handled()
-		
-		KEY_W:
-			_handle_w_press()
-			get_viewport().set_input_as_handled()
-		
-		KEY_S:
-			_handle_s_press()
-			get_viewport().set_input_as_handled()
+	# Используем Input Actions для поддержки клавиатуры и геймпада
+	if event.is_action_pressed("left"):
+		_handle_a_press()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("right"):
+		_handle_d_press()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("up"):
+		_handle_w_press()
+		get_viewport().set_input_as_handled()
+	elif event.is_action_pressed("down"):
+		_handle_s_press()
+		get_viewport().set_input_as_handled()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРОВЕРКА СОСТОЯНИЯ ТРЕТЬИХ КАРТ

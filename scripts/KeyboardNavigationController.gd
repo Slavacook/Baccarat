@@ -61,23 +61,18 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not should_handle:
 		return
 
-	# Проверяем валидность события клавиатуры
-	if not InputContextManager.is_valid_key_event(event):
-		return
-	
-	var key_event = event as InputEventKey
+	# Используем Input Actions для поддержки клавиатуры и геймпада
 	var direction: String = ""
-	match key_event.keycode:
-		KEY_LEFT, KEY_A:
-			direction = "left"
-		KEY_RIGHT, KEY_D:
-			direction = "right"
-		KEY_UP, KEY_W:
-			direction = "up"
-		KEY_DOWN, KEY_S:
-			direction = "down"
-		_:
-			return
+	if event.is_action_pressed("left"):
+		direction = "left"
+	elif event.is_action_pressed("right"):
+		direction = "right"
+	elif event.is_action_pressed("up"):
+		direction = "up"
+	elif event.is_action_pressed("down"):
+		direction = "down"
+	else:
+		return
 	
 	if direction != "":
 		# Запрашиваем целевую область через EventBus
