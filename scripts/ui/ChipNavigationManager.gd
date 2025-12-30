@@ -31,12 +31,12 @@ var is_active: bool = false
 # Вниз: Player → Banker → Tie → Pairs → Player (цикл)
 # Вверх: Player → Pairs → Tie → Banker → Player (цикл)
 # Pairs включает PairPlayer и PairBanker (переключение горизонтально)
-const LEVEL_ORDER = ["Player", "Banker", "Tie", "Pairs"]  # Вниз
-const LEVEL_ORDER_REVERSE = ["Player", "Pairs", "Tie", "Banker"]  # Вверх
+const LEVEL_ORDER: Array[String] = ["Player", "Banker", "Tie", "Pairs"]  # Вниз
+const LEVEL_ORDER_REVERSE: Array[String] = ["Player", "Pairs", "Tie", "Banker"]  # Вверх
 
 # Порядок секторов для горизонтальной навигации (справа налево)
-const SECTOR_ORDER = [6, 5, 4, 3, 2, 1]  # Справа налево
-const SECTOR_ORDER_REVERSE = [1, 2, 3, 4, 5, 6]  # Слева направо
+const SECTOR_ORDER: Array[int] = [6, 5, 4, 3, 2, 1]  # Справа налево
+const SECTOR_ORDER_REVERSE: Array[int] = [1, 2, 3, 4, 5, 6]  # Слева направо
 
 # Маппинг области камеры к правому сектору в области
 const AREA_TO_RIGHT_SECTOR = {
@@ -288,14 +288,18 @@ func _move_horizontal_regular(direction: String) -> void:
 	var sector_order = SECTOR_ORDER if direction == "left" else SECTOR_ORDER_REVERSE
 	_move_to_next_sector_in_order(sector_order)
 
-func _move_to_next_sector_in_order(sector_order: Array[int]) -> void:
-	"""Переместить фокус на следующий сектор в указанном порядке"""
+func _move_to_next_sector_in_order(sector_order: Array) -> void:
+	"""Переместить фокус на следующий сектор в указанном порядке
+	
+	Args:
+		sector_order: Массив секторов в порядке навигации
+	"""
 	var current_index = sector_order.find(current_sector)
 	if current_index < 0:
 		return
 	
 	var next_index = (current_index + 1) % sector_order.size()
-	current_sector = sector_order[next_index]
+	current_sector = sector_order[next_index] as int
 
 func _move_vertical(direction: String) -> void:
 	"""Перемещение по вертикали (вверх/вниз)"""
@@ -309,14 +313,22 @@ func _move_vertical(direction: String) -> void:
 	# Устанавливаем конкретный bet_type в зависимости от уровня
 	current_bet_type = _get_bet_type_for_level(next_level)
 
-func _get_next_level_in_order(level_order: Array[String], current_level: String) -> String:
-	"""Получить следующий уровень в указанном порядке"""
+func _get_next_level_in_order(level_order: Array, current_level: String) -> String:
+	"""Получить следующий уровень в указанном порядке
+	
+	Args:
+		level_order: Массив уровней в порядке навигации
+		current_level: Текущий уровень
+		
+	Returns:
+		Следующий уровень или пустая строка если не найден
+	"""
 	var current_index = level_order.find(current_level)
 	if current_index < 0:
 		return ""
 	
 	var next_index = (current_index + 1) % level_order.size()
-	return level_order[next_index]
+	return level_order[next_index] as String
 
 func _get_bet_type_for_level(level: String) -> String:
 	"""Получить bet_type для указанного уровня"""
@@ -528,4 +540,3 @@ func _on_chip_paid(bet_type: String, position_index: int) -> void:
 	DebugLogger.log("⌨️ ChipNavigationManager: фишка %s[%d] оплачена, фокус остаётся на позиции %s[сектор %d]" % [
 		bet_type, position_index, current_bet_type, current_sector
 	])
-
