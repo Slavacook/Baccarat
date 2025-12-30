@@ -38,6 +38,14 @@ const LEVEL_ORDER_REVERSE = ["Player", "Pairs", "Tie", "Banker"]  # Вверх
 const SECTOR_ORDER = [6, 5, 4, 3, 2, 1]  # Справа налево
 const SECTOR_ORDER_REVERSE = [1, 2, 3, 4, 5, 6]  # Слева направо
 
+# Маппинг области камеры к правому сектору в области
+const AREA_TO_RIGHT_SECTOR = {
+	1: 2,  # area_1 → сектор 2
+	2: 4,  # area_2 → сектор 4
+	3: 6,  # area_3 → сектор 6
+}
+const DEFAULT_SECTOR = 6  # По умолчанию самый правый сектор
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -135,20 +143,7 @@ func _set_initial_focus_by_camera_area() -> void:
 func _set_focus_for_area(area: int) -> void:
 	"""Установить фокус для указанной области"""
 	# Определяем начальный сектор на основе области камеры
-	# area_1: секторы 1-2 → начинаем с сектора 2 (правый в области)
-	# area_2: секторы 3-4 → начинаем с сектора 4 (правый в области)
-	# area_3: секторы 5-6 → начинаем с сектора 6 (правый в области)
-	# Если область не определена или общий план → начинаем с сектора 6
-	
-	match area:
-		1:
-			current_sector = 2  # Правый сектор в area_1
-		2:
-			current_sector = 4  # Правый сектор в area_2
-		3:
-			current_sector = 6  # Правый сектор в area_3
-		_:
-			current_sector = 6  # По умолчанию самый правый сектор
+	current_sector = AREA_TO_RIGHT_SECTOR.get(area, DEFAULT_SECTOR)
 	
 	# Всегда начинаем с Player
 	current_bet_type = "Player"
@@ -246,45 +241,55 @@ func move_focus(direction: String) -> void:
 
 func _move_horizontal(direction: String) -> void:
 	"""Перемещение по горизонтали (влево/вправо)"""
-	# Для пар: последовательный обход всех секторов с чередованием PairBanker/PairPlayer
-	# Порядок вправо: сектор1 PairBanker → PairPlayer → сектор2 PairBanker → PairPlayer → ...
-	# Порядок влево: сектор6 PairPlayer → PairBanker → сектор5 PairPlayer → PairBanker → ...
-	if current_bet_type == "PairPlayer" or current_bet_type == "PairBanker":
-		if direction == "right":
-			# Вправо: используем SECTOR_ORDER_REVERSE [1, 2, 3, 4, 5, 6]
-			# PairBanker → PairPlayer (тот же сектор), PairPlayer → PairBanker (следующий сектор)
-			if current_bet_type == "PairBanker":
-				# PairBanker → PairPlayer (тот же сектор)
-				current_bet_type = "PairPlayer"
-			else:
-				# PairPlayer → PairBanker (следующий сектор)
-				var pairs_sector_order = SECTOR_ORDER_REVERSE
-				var pairs_current_index = pairs_sector_order.find(current_sector)
-				if pairs_current_index < 0:
-					return
-				
-				var pairs_next_index = (pairs_current_index + 1) % pairs_sector_order.size()
-				current_sector = pairs_sector_order[pairs_next_index]
-				current_bet_type = "PairBanker"
-		else:
-			# Влево: используем SECTOR_ORDER [6, 5, 4, 3, 2, 1]
-			# PairPlayer → PairBanker (тот же сектор), PairBanker → PairPlayer (следующий сектор в порядке влево)
-			if current_bet_type == "PairPlayer":
-				# PairPlayer → PairBanker (тот же сектор)
-				current_bet_type = "PairBanker"
-			else:
-				# PairBanker → PairPlayer (следующий сектор в порядке влево)
-				var pairs_sector_order_left = SECTOR_ORDER
-				var pairs_current_index_left = pairs_sector_order_left.find(current_sector)
-				if pairs_current_index_left < 0:
-					return
-				var pairs_next_index_left = (pairs_current_index_left + 1) % pairs_sector_order_left.size()
-				current_sector = pairs_sector_order_left[pairs_next_index_left]
-				current_bet_type = "PairPlayer"
+	# Для пар: специальная логика последовательного обхода
+	if _is_pairs_level():
+		_move_horizontal_pairs(direction)
 		return
 	
 	# Для остальных уровней: переход между секторами
+	_move_horizontal_regular(direction)
+
+func _is_pairs_level() -> bool:
+	"""Проверить, находимся ли мы на уровне пар"""
+	return current_bet_type == "PairPlayer" or current_bet_type == "PairBanker"
+
+func _move_horizontal_pairs(direction: String) -> void:
+	"""Перемещение по горизонтали для уровня пар
+	Порядок вправо: сектор1 PairBanker → PairPlayer → сектор2 PairBanker → PairPlayer → ...
+	Порядок влево: сектор6 PairPlayer → PairBanker → сектор5 PairPlayer → PairBanker → ...
+	"""
+	if direction == "right":
+		_move_pairs_right()
+	else:
+		_move_pairs_left()
+
+func _move_pairs_right() -> void:
+	"""Перемещение вправо на уровне пар"""
+	if current_bet_type == "PairBanker":
+		# PairBanker → PairPlayer (тот же сектор)
+		current_bet_type = "PairPlayer"
+	else:
+		# PairPlayer → PairBanker (следующий сектор)
+		_move_to_next_sector_in_order(SECTOR_ORDER_REVERSE)
+		current_bet_type = "PairBanker"
+
+func _move_pairs_left() -> void:
+	"""Перемещение влево на уровне пар"""
+	if current_bet_type == "PairPlayer":
+		# PairPlayer → PairBanker (тот же сектор)
+		current_bet_type = "PairBanker"
+	else:
+		# PairBanker → PairPlayer (следующий сектор в порядке влево)
+		_move_to_next_sector_in_order(SECTOR_ORDER)
+		current_bet_type = "PairPlayer"
+
+func _move_horizontal_regular(direction: String) -> void:
+	"""Перемещение по горизонтали для обычных уровней"""
 	var sector_order = SECTOR_ORDER if direction == "left" else SECTOR_ORDER_REVERSE
+	_move_to_next_sector_in_order(sector_order)
+
+func _move_to_next_sector_in_order(sector_order: Array[int]) -> void:
+	"""Переместить фокус на следующий сектор в указанном порядке"""
 	var current_index = sector_order.find(current_sector)
 	if current_index < 0:
 		return
@@ -294,35 +299,39 @@ func _move_horizontal(direction: String) -> void:
 
 func _move_vertical(direction: String) -> void:
 	"""Перемещение по вертикали (вверх/вниз)"""
-	# Определяем текущий уровень (для пар используем "Pairs")
 	var current_level = _get_level_for_bet_type(current_bet_type)
+	var level_order = LEVEL_ORDER if direction == "down" else LEVEL_ORDER_REVERSE
 	
-	var level_order: Array[String] = []
-	if direction == "down":
-		for item in LEVEL_ORDER:
-			level_order.append(item)
-	else:
-		for item in LEVEL_ORDER_REVERSE:
-			level_order.append(item)
-	
-	var current_index = level_order.find(current_level)
-	if current_index < 0:
+	var next_level = _get_next_level_in_order(level_order, current_level)
+	if next_level.is_empty():
 		return
 	
-	var next_index = (current_index + 1) % level_order.size()
-	var next_level = level_order[next_index]
-	
 	# Устанавливаем конкретный bet_type в зависимости от уровня
-	match next_level:
+	current_bet_type = _get_bet_type_for_level(next_level)
+
+func _get_next_level_in_order(level_order: Array[String], current_level: String) -> String:
+	"""Получить следующий уровень в указанном порядке"""
+	var current_index = level_order.find(current_level)
+	if current_index < 0:
+		return ""
+	
+	var next_index = (current_index + 1) % level_order.size()
+	return level_order[next_index]
+
+func _get_bet_type_for_level(level: String) -> String:
+	"""Получить bet_type для указанного уровня"""
+	match level:
 		"Player":
-			current_bet_type = "Player"
+			return "Player"
 		"Banker":
-			current_bet_type = "Banker"
+			return "Banker"
 		"Tie":
-			current_bet_type = "Tie"
+			return "Tie"
 		"Pairs":
 			# При переходе на уровень Pairs всегда начинаем с PairPlayer
-			current_bet_type = "PairPlayer"
+			return "PairPlayer"
+		_:
+			return current_bet_type
 
 func _get_level_for_bet_type(bet_type: String) -> String:
 	"""Получить уровень для типа ставки
@@ -520,97 +529,3 @@ func _on_chip_paid(bet_type: String, position_index: int) -> void:
 		bet_type, position_index, current_bet_type, current_sector
 	])
 
-func _get_next_chip_for_collection(bet_type: String, _position_index: int) -> ChipVisualManager.ChipInstance:
-	"""Получить следующую фишку для сбора после обработки текущей
-	
-	Использует последовательности из BetCollectionPhaseManager.
-	После сбора фишки переходим влево (к следующей фишке того же типа).
-	Если это последняя фишка группы - переходим на следующую группу.
-	"""
-	if not bet_collection_manager:
-		return null
-	
-	# Используем последовательности сбора
-	var group = bet_collection_manager.get_bet_group(bet_type)
-	if not bet_collection_manager.collection_sequence.has(group):
-		return null
-	
-	var sequence = bet_collection_manager.collection_sequence[group]
-	var progress = bet_collection_manager.collection_progress.get(group, 0)
-	
-	# Проверяем, есть ли ещё фишки в текущей группе
-	if progress < sequence.size():
-		var next_bet = sequence[progress]
-		if next_bet:
-			# Ищем фишку по bet_type и position_index
-			return _find_chip_by_bet(next_bet.get_bet_type(), next_bet.get_position_index())
-	
-	# Текущая группа закончена - переходим на следующую
-	# Порядок: main → tie → pairs
-	var group_order = ["main", "tie", "pairs"]
-	var current_group_index = group_order.find(group)
-	
-	for i in range(current_group_index + 1, group_order.size()):
-		var next_group = group_order[i]
-		if bet_collection_manager.collection_sequence.has(next_group):
-			var next_sequence = bet_collection_manager.collection_sequence[next_group]
-			if next_sequence.size() > 0:
-				var next_bet = next_sequence[0]
-				if next_bet:
-					return _find_chip_by_bet(next_bet.get_bet_type(), next_bet.get_position_index())
-	
-	return null
-
-func _get_next_chip_for_payment(bet_type: String, _position_index: int) -> ChipVisualManager.ChipInstance:
-	"""Получить следующую фишку для оплаты после обработки текущей
-	
-	Использует последовательности из BetCollectionPhaseManager.
-	После оплаты фишки переходим влево (к следующей фишке того же типа).
-	Если это последняя фишка группы - переходим на следующую группу.
-	"""
-	if not bet_collection_manager:
-		return null
-	
-	# Используем последовательности оплаты
-	var group = bet_collection_manager.get_bet_group(bet_type)
-	if not bet_collection_manager.payment_sequence.has(group):
-		return null
-	
-	var sequence = bet_collection_manager.payment_sequence[group]
-	var progress = bet_collection_manager.payment_progress.get(group, 0)
-	
-	# Проверяем, есть ли ещё фишки в текущей группе
-	if progress < sequence.size():
-		var next_bet = sequence[progress]
-		if next_bet:
-			return _find_chip_by_bet(next_bet.get_bet_type(), next_bet.get_position_index())
-	
-	# Текущая группа закончена - переходим на следующую
-	var group_order = ["main", "tie", "pairs"]
-	var current_group_index = group_order.find(group)
-	
-	for i in range(current_group_index + 1, group_order.size()):
-		var next_group = group_order[i]
-		if bet_collection_manager.payment_sequence.has(next_group):
-			var next_sequence = bet_collection_manager.payment_sequence[next_group]
-			if next_sequence.size() > 0:
-				var next_bet = next_sequence[0]
-				if next_bet:
-					return _find_chip_by_bet(next_bet.get_bet_type(), next_bet.get_position_index())
-	
-	return null
-
-func _find_chip_by_bet(bet_type: String, position_index: int) -> ChipVisualManager.ChipInstance:
-	"""Найти фишку по типу и индексу позиции
-	
-	Args:
-		bet_type: Тип ставки
-		position_index: Индекс позиции
-		
-	Returns:
-		ChipInstance или null если не найдена
-	"""
-	if not chip_visual_manager:
-		return null
-	
-	return chip_visual_manager.get_chip_instance(bet_type, position_index)
