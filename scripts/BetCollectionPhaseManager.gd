@@ -309,8 +309,8 @@ func _get_pairs_line_number(bet_type: String, position_index: int) -> int:
 	
 	return 0
 
-func _get_bet_group(bet_type: String) -> String:
-	"""Определить группу ставки
+func get_bet_group(bet_type: String) -> String:
+	"""Определить группу ставки (публичный метод)
 	
 	Рефакторено: использует IBetType вместо match (OCP)
 	
@@ -323,6 +323,10 @@ func _get_bet_group(bet_type: String) -> String:
 	if bet_type_obj:
 		return bet_type_obj.get_group()
 	return ""
+
+func _get_bet_group(bet_type: String) -> String:
+	"""Приватный метод для обратной совместимости"""
+	return get_bet_group(bet_type)
 
 func _get_position_coordinates(bet_type: String, position_index: int) -> Vector2:
 	"""Получить координаты позиции фишки

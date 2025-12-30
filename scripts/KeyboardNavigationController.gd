@@ -45,6 +45,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if _is_crib_sheet_open():
 		return
 	
+	# Блокируем управление камерой, если активна навигация по ставкам
+	# Проверяем через GameController (если доступен)
+	var game_controller = get_tree().get_first_node_in_group("game_controller")
+	if game_controller and game_controller.has_method("is_chip_navigation_active"):
+		if game_controller.is_chip_navigation_active():
+			return  # Блокируем управление камерой
+	
 	# Обрабатываем когда навигация активна ИЛИ когда состояние игры WAITING (карты не открыты)
 	var should_handle = is_navigation_active
 	if not should_handle and GameStateManager:

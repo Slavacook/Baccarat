@@ -1,5 +1,2 @@
 res://scenes/Game.tscn
-res://scripts/GameController.gd
-res://scripts/ui/HeartBetController.gd
-res://scripts/GuestBetStorage.gd
-res://scripts/ui/GuestEventHandler.gd
+res://scripts/ui/ChipNavigationManager.gd

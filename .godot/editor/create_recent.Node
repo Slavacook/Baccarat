@@ -1,10 +1,10 @@
+Control
+TextureRect
 Sprite2D
 HSeparator
-TextureRect
 Node2D
 TextureButton
 Button
-Control
 Label
 HBoxContainer
 VBoxContainer
@@ -12,4 +12,3 @@ ColorRect
 CanvasLayer
 OptionButton
 CheckBox
-MarginContainer

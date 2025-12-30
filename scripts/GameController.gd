@@ -95,6 +95,9 @@ var payout_queue_handler: PayoutQueueHandler
 # Координатор PayoutOverlay (Extract Class)
 var payout_overlay_coordinator: PayoutOverlayCoordinator
 
+# Менеджер клавиатурной навигации по ставкам
+var chip_navigation_manager: ChipNavigationManager
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -146,6 +149,9 @@ func _ready():
 	Было: 198 строк монолитной инициализации в _ready()
 	Стало: Делегирование в GameInitializer.initialize()
 	"""
+	# Добавляем в группу для доступа из других скриптов
+	add_to_group("game_controller")
+	
 	# Инициализация через GameInitializer (все ~200 строк вынесены в отдельный класс)
 	var initialized: Dictionary = GameInitializer.initialize(self)
 
@@ -221,6 +227,8 @@ func _ready():
 	
 	# Инициализируем обработчик кликов на фишки (после инициализации менеджеров)
 	_initialize_chip_click_handler()
+	# Инициализируем менеджер навигации по ставкам (после chip_click_handler)
+	_initialize_chip_navigation()
 	_initialize_settings_handler()
 	_initialize_heart_bet_controller()
 	_initialize_winner_selection_handler()
@@ -354,6 +362,48 @@ func _initialize_chip_click_handler() -> void:
 	chip_click_handler.set_show_payout_overlay_callback(_show_payout_overlay_instance)
 	chip_click_handler.set_open_payout_scene_callback(_open_payout_scene)
 	print("✅ ChipClickHandler инициализирован")
+
+func _initialize_chip_navigation() -> void:
+	"""Инициализировать менеджер клавиатурной навигации по ставкам"""
+	# Создаём визуальную рамку
+	var navigation_frame = ChipNavigationFrame.new()
+	
+	# Добавляем рамку в тот же родительский узел, что и фишки (scene_root)
+	# Это гарантирует правильное позиционирование
+	if chip_visual_manager and chip_visual_manager.scene_root:
+		chip_visual_manager.scene_root.add_child(navigation_frame)
+		# Устанавливаем высокий z_index чтобы рамка была поверх фишек
+		navigation_frame.z_index = 100
+	else:
+		# Fallback: используем CanvasLayer
+		var canvas_layer = CanvasLayer.new()
+		canvas_layer.name = "ChipNavigationLayer"
+		canvas_layer.layer = 100  # Высокий слой
+		add_child(canvas_layer)
+		canvas_layer.add_child(navigation_frame)
+	
+	# Создаём менеджер навигации
+	chip_navigation_manager = ChipNavigationManager.new()
+	chip_navigation_manager.setup(
+		chip_visual_manager,
+		bet_collection_manager,
+		chip_click_handler,
+		navigation_frame,
+		camera_manager
+	)
+	
+	# Подписываемся на сигналы сбора/оплаты фишек
+	if bet_collection_manager:
+		bet_collection_manager.chip_collected.connect(chip_navigation_manager._on_chip_collected)
+		bet_collection_manager.chip_paid.connect(chip_navigation_manager._on_chip_paid)
+	
+	print("✅ ChipNavigationManager инициализирован")
+
+func is_chip_navigation_active() -> bool:
+	"""Проверить, активна ли навигация по ставкам (для KeyboardNavigationController)"""
+	if chip_navigation_manager:
+		return chip_navigation_manager.is_active
+	return false
 
 func _initialize_settings_handler() -> void:
 	"""Инициализировать обработчик событий настроек"""
@@ -782,6 +832,36 @@ func _on_restart_game():
 # ОБРАБОТКА КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _input(event: InputEvent) -> void:
+	"""Обработка клавиатурного ввода (используем _input для E, чтобы перехватить раньше)"""
+	# Обрабатываем только E здесь, остальное в _unhandled_input
+	if event is InputEventKey:
+		var key_event = event as InputEventKey
+		if key_event.keycode == KEY_E and key_event.pressed and not key_event.echo:
+			# Проверяем блокировки
+			if InputContextManager.is_blocked():
+				return
+			if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
+				return
+			
+			# E → включить/выключить навигацию по ставкам
+			DebugLogger.log("⌨️ E нажата (pressed=%s, echo=%s)" % [key_event.pressed, key_event.echo])
+			if chip_navigation_manager:
+				DebugLogger.log("⌨️ chip_navigation_manager найден, is_active=%s" % chip_navigation_manager.is_active)
+				if chip_navigation_manager.is_active:
+					chip_navigation_manager.deactivate()
+					DebugLogger.log("⌨️ Навигация деактивирована")
+				else:
+					# Активируем только если есть активные фишки
+					chip_navigation_manager.activate()
+					DebugLogger.log("⌨️ Навигация активирована")
+				get_viewport().set_input_as_handled()
+				return
+			else:
+				DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
+				get_viewport().set_input_as_handled()
+				return
+
 func _unhandled_input(event: InputEvent) -> void:
 	"""Обработка клавиатурного ввода"""
 	# Проверяем блокировки через InputContextManager
@@ -806,6 +886,12 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Скрываем Game Over overlay
 			if game_over_popup and game_over_popup.visible:
 				game_over_popup.hide()
+			get_viewport().set_input_as_handled()
+			return
+	
+	# Если навигация по ставкам активна - обрабатываем клавиши там
+	if chip_navigation_manager and chip_navigation_manager.is_active:
+		if chip_navigation_manager.handle_keyboard_input(key_event):
 			get_viewport().set_input_as_handled()
 			return
 	
