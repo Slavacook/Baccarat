@@ -307,6 +307,14 @@ func open_menu():
 	
 	# Показываем меню
 	show()
+	
+	# ВАЖНО: Синхронизируем видимость гостей в игре с GuestSettingsManager
+	# Получаем GameController через дерево сцены
+	var game_scene = get_tree().current_scene
+	if game_scene and "guest_event_handler" in game_scene:
+		var guest_handler = game_scene.guest_event_handler
+		if guest_handler:
+			guest_handler.update_guests_visibility()
 
 func close_menu():
 	"""Закрыть меню"""
@@ -788,6 +796,74 @@ func _calculate_next_target(level: GuestMenuKeyboardNavigator.NavigationLevel, g
 # КЛАВИАТУРНОЕ УПРАВЛЕНИЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _input(event: InputEvent) -> void:
+	"""Обработка ввода (для геймпада - перехватываем раньше)"""
+	# Обрабатываем только когда меню видимо
+	if not visible:
+		return
+	
+	# Проверяем контекст
+	if InputContextManager.get_context() != InputContextManager.InputContext.MENU_GUEST:
+		return
+	
+	# Обрабатываем только события геймпада в _input() для более раннего перехвата
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		# Проверяем состояние выпадающего меню
+		_check_dropdown_state()
+		
+		# Escape/Exit в меню гостей → закрыть меню
+		if event.is_action_pressed("exit"):
+			close_menu()
+			get_viewport().set_input_as_handled()
+			return
+		
+		# Если выпадающее меню открыто, обрабатываем специально
+		if keyboard_navigator and keyboard_navigator.is_dropdown_open:
+			# Блокируем только горизонтальные стрелки
+			if event.is_action_pressed("left") or event.is_action_pressed("right"):
+				get_viewport().set_input_as_handled()
+				return
+			
+			# Для action (A на геймпаде) - эмулируем Space для подтверждения выбора
+			if event.is_action_pressed("action"):
+				# Эмулируем нажатие Space для popup меню
+				var space_event = InputEventKey.new()
+				space_event.keycode = KEY_SPACE
+				space_event.pressed = true
+				space_event.echo = false
+				space_event.device = -1  # Устройство по умолчанию
+				
+				# Отправляем событие через viewport, чтобы оно дошло до popup
+				get_viewport().push_input(space_event)
+				get_viewport().set_input_as_handled()
+				return
+			
+			# Для остальных событий (вверх/вниз) не обрабатываем, позволяем дойти до OptionButton
+			return
+		
+		# Обработка навигации для геймпада
+		var direction: String = ""
+		if event.is_action_pressed("left"):
+			direction = "left"
+		elif event.is_action_pressed("right"):
+			direction = "right"
+		elif event.is_action_pressed("up"):
+			direction = "up"
+		elif event.is_action_pressed("down"):
+			direction = "down"
+		
+		if direction != "":
+			get_viewport().set_input_as_handled()
+			_handle_gamepad_navigation(direction)
+			return
+		
+		# Обработка действия (A на геймпаде)
+		if event.is_action_pressed("action"):
+			get_viewport().set_input_as_handled()
+			if keyboard_navigator and keyboard_navigator.is_active:
+				keyboard_navigator.handle_action()
+			return
+
 func _unhandled_input(event: InputEvent) -> void:
 	"""Обработка клавиатурного ввода"""
 	# Обрабатываем только когда меню видимо
@@ -808,66 +884,121 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not keyboard_navigator:
 		return
 	
-	# Проверяем валидность события клавиатуры (для остальной обработки)
-	if not InputContextManager.is_valid_key_event(event):
-		return
-	
-	var key_event = event as InputEventKey
-	
 	# Проверяем, открыто ли выпадающее меню (обновляем состояние навигатора)
 	_check_dropdown_state()
 	
-	# Если выпадающее меню открыто, пропускаем события стрелок вверх/вниз и пробел,
-	# чтобы они дошли до OptionButton для навигации по пунктам меню
+	# Пропускаем события геймпада - они уже обработаны в _input()
+	if event is InputEventJoypadButton or event is InputEventJoypadMotion:
+		return
+	
+	# Обработка навигации (только для клавиатуры)
+	var direction: String = ""
+	if event.is_action_pressed("left"):
+		direction = "left"
+	elif event.is_action_pressed("right"):
+		direction = "right"
+	elif event.is_action_pressed("up"):
+		direction = "up"
+	elif event.is_action_pressed("down"):
+		direction = "down"
+	
+	# Если выпадающее меню открыто, блокируем только горизонтальные стрелки
 	if keyboard_navigator and keyboard_navigator.is_dropdown_open:
-		# Блокируем только горизонтальные стрелки (влево/вправо), остальные пропускаем
-		if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_A, KEY_D]:
+		if direction == "left" or direction == "right":
 			get_viewport().set_input_as_handled()
 			return
 		# Для остальных клавиш (вверх/вниз, пробел) не обрабатываем, позволяем дойти до OptionButton
 		return
 	
+	# Обработка навигации
+	if direction != "":
+		get_viewport().set_input_as_handled()
+		_handle_keyboard_navigation(direction)
+		return
+	
+	# Обработка действия (Space на клавиатуре)
+	if event.is_action_pressed("action"):
+		get_viewport().set_input_as_handled()
+		# Если навигация активна, обрабатываем через навигатор
+		if keyboard_navigator.is_active:
+			# Для клавиатуры используем handle_input
+			if event is InputEventKey:
+				var key_event = event as InputEventKey
+				if InputContextManager.is_valid_key_event(event):
+					keyboard_navigator.handle_input(key_event)
+		return
+	
+	# Обработка через навигатор (только для клавиатуры, для совместимости)
+	# Для геймпада уже обработано выше через Input Actions
+	if event is InputEventKey:
+		var key_event = event as InputEventKey
+		if InputContextManager.is_valid_key_event(event):
+			if keyboard_navigator.handle_input(key_event):
+				get_viewport().set_input_as_handled()
+
+func _handle_gamepad_navigation(direction: String) -> void:
+	"""Обработка навигации для геймпада (вызывается из _input())"""
+	if not keyboard_navigator:
+		return
+	
 	# Проверяем, нужно ли активировать режим клавиатуры
 	if not keyboard_navigator.is_active:
-		# Активируем при первом нажатии стрелок/WASD
-		if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_A, KEY_D, KEY_W, KEY_S]:
-			# Определяем направление
-			var direction: String = ""
-			match key_event.keycode:
-				KEY_LEFT, KEY_A:
-					direction = "left"
-				KEY_RIGHT, KEY_D:
-					direction = "right"
-				KEY_UP, KEY_W:
-					direction = "up"
-				KEY_DOWN, KEY_S:
-					direction = "down"
-			
-			if direction != "":
-				# Используем последний выделенный объект, если он был, иначе используем выбранного гостя или первого гостя
-				var current_level = last_selected_level
-				var current_guest_id = last_selected_guest_id
-				
-				# Если не было выделенного объекта, используем выбранного гостя или первого гостя
-				if current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS and current_guest_id == 0:
-					current_guest_id = menu_state.get_selected_guest() if menu_state else 0
-					if current_guest_id == 0:
-						current_guest_id = 1
-				
-				# Вычисляем следующий объект в направлении нажатой клавиши
-				var next_target = _calculate_next_target(current_level, current_guest_id, direction)
-				var target_level = next_target.level
-				var target_guest_id = next_target.guest_id
-				
-				keyboard_navigator.activate_with_level(target_level, target_guest_id)
-				if menu_state:
-					menu_state.clear_hover()  # Сбрасываем hover от мыши
-				get_viewport().set_input_as_handled()
-				return
+		# Активируем при первом нажатии
+		var current_level = last_selected_level
+		var current_guest_id = last_selected_guest_id
+		
+		if current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS and current_guest_id == 0:
+			current_guest_id = menu_state.get_selected_guest() if menu_state else 0
+			if current_guest_id == 0:
+				current_guest_id = 1
+		
+		var next_target = _calculate_next_target(current_level, current_guest_id, direction)
+		keyboard_navigator.activate_with_level(next_target.level, next_target.guest_id)
+		if menu_state:
+			menu_state.clear_hover()
+	else:
+		# Навигация уже активна - обрабатываем напрямую
+		match direction:
+			"left":
+				keyboard_navigator.navigate_left()
+			"right":
+				keyboard_navigator.navigate_right()
+			"up":
+				keyboard_navigator.navigate_up()
+			"down":
+				keyboard_navigator.navigate_down()
+
+func _handle_keyboard_navigation(direction: String) -> void:
+	"""Обработка навигации для клавиатуры (вызывается из _unhandled_input())"""
+	if not keyboard_navigator:
+		return
 	
-	# Обрабатываем через навигатор
-	if keyboard_navigator.handle_input(key_event):
-			get_viewport().set_input_as_handled()
+	# Проверяем, нужно ли активировать режим клавиатуры
+	if not keyboard_navigator.is_active:
+		# Активируем при первом нажатии
+		var current_level = last_selected_level
+		var current_guest_id = last_selected_guest_id
+		
+		if current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS and current_guest_id == 0:
+			current_guest_id = menu_state.get_selected_guest() if menu_state else 0
+			if current_guest_id == 0:
+				current_guest_id = 1
+		
+		var next_target = _calculate_next_target(current_level, current_guest_id, direction)
+		keyboard_navigator.activate_with_level(next_target.level, next_target.guest_id)
+		if menu_state:
+			menu_state.clear_hover()
+	else:
+		# Навигация уже активна - обрабатываем напрямую
+		match direction:
+			"left":
+				keyboard_navigator.navigate_left()
+			"right":
+				keyboard_navigator.navigate_right()
+			"up":
+				keyboard_navigator.navigate_up()
+			"down":
+				keyboard_navigator.navigate_down()
 
 func _check_dropdown_state() -> void:
 	"""Проверить, открыто ли выпадающее меню и обновить состояние навигатора"""

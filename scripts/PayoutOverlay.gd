@@ -231,19 +231,25 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	
-	if not InputContextManager.is_valid_key_event(event):
-		return
+	# Обработка навигации (клавиатура и геймпад через Input Actions)
+	var direction: String = ""
+	if event.is_action_pressed("left"):
+		direction = "left"
+	elif event.is_action_pressed("right"):
+		direction = "right"
+	elif event.is_action_pressed("up"):
+		direction = "up"
+	elif event.is_action_pressed("down"):
+		direction = "down"
 	
-	var key_event = event as InputEventKey
-	
-	# Обработка клавиш навигации
-	if key_event.keycode in [KEY_LEFT, KEY_RIGHT, KEY_UP, KEY_DOWN, KEY_A, KEY_D, KEY_W, KEY_S]:
-		keyboard_navigator.handle_navigation_input(key_event)
+	if direction != "":
 		get_viewport().set_input_as_handled()
+		# Используем единый метод для клавиатуры и геймпада
+		keyboard_navigator.handle_navigation_direction(direction)
 		return
 	
-	# Обработка пробела
-	if key_event.keycode == KEY_SPACE:
+	# Обработка действия (Space/A на геймпаде)
+	if event.is_action_pressed("action"):
 		get_viewport().set_input_as_handled()
 		
 		# Проверяем состояние навигации
@@ -255,6 +261,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Нет активной навигации - выполняем выплату (поведение по умолчанию)
 			if not is_button_blocked and not payout_button.disabled:
 				_on_payout_pressed()
+
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ

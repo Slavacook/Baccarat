@@ -164,11 +164,45 @@ func handle_input(key_event: InputEventKey) -> bool:
 	
 	return false
 
+func handle_action() -> void:
+	"""Обработать действие (Space/A на геймпаде) - публичный метод для геймпада"""
+	if not is_active:
+		return
+	_handle_space()
+
 func set_dropdown_open(open: bool):
 	"""Установить состояние выпадающего меню (вызывается извне)"""
 	is_dropdown_open = open
 	if not open and update_visibility_callback.is_valid():
 		update_visibility_callback.call()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПУБЛИЧНЫЕ МЕТОДЫ - НАВИГАЦИЯ (для геймпада)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func navigate_left() -> void:
+	"""Навигация влево (публичный метод для геймпада)"""
+	if not is_active:
+		return
+	_handle_left()
+
+func navigate_right() -> void:
+	"""Навигация вправо (публичный метод для геймпада)"""
+	if not is_active:
+		return
+	_handle_right()
+
+func navigate_up() -> void:
+	"""Навигация вверх (публичный метод для геймпада)"""
+	if not is_active:
+		return
+	_handle_up()
+
+func navigate_down() -> void:
+	"""Навигация вниз (публичный метод для геймпада)"""
+	if not is_active:
+		return
+	_handle_down()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ

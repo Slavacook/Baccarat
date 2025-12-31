@@ -103,9 +103,15 @@ func update_guests_visibility() -> void:
 		if sprite:
 			var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
 			# Устанавливаем видимость без анимации при инициализации
-			sprite.visible = is_enabled
-			sprite.modulate.a = 1.0 if is_enabled else 0.0
-			DebugLogger.log("👥 Гость %d: %s" % [guest_id, "видим" if is_enabled else "скрыт"])
+			# ВАЖНО: При инициализации устанавливаем состояние напрямую, без анимации
+			# Просто устанавливаем финальное состояние, игнорируя любые активные анимации
+			if is_enabled:
+				sprite.visible = true
+				sprite.modulate.a = 1.0
+			else:
+				sprite.modulate.a = 0.0
+				sprite.visible = false
+			DebugLogger.log("👥 Гость %d: %s (visible=%s, alpha=%.2f)" % [guest_id, "видим" if is_enabled else "скрыт", sprite.visible, sprite.modulate.a])
 	
 	# G_666 всегда скрыт в обычном состоянии
 	var guest_666 = guest_sprites.get(666)

@@ -116,6 +116,26 @@ func handle_navigation_input(key_event: InputEventKey) -> void:
 	
 	_update_focus_frame()
 
+func handle_navigation_direction(direction: String) -> void:
+	"""Обработка навигации по направлению (для геймпада и клавиатуры через Input Actions)"""
+	# Если навигация не активна - активируем
+	if not is_keyboard_active:
+		activate()
+		return
+	
+	# Обрабатываем навигацию в зависимости от направления
+	match direction:
+		"left":
+			navigate_left()
+		"right":
+			navigate_right()
+		"up":
+			navigate_up()
+		"down":
+			navigate_down()
+	
+	_update_focus_frame()
+
 func handle_focus_action() -> void:
 	"""Обработать действие на элементе в фокусе (пробел)"""
 	if not is_keyboard_active or focus_index < 0:
@@ -152,13 +172,18 @@ func set_focus_to_payout_button() -> void:
 	if not is_keyboard_active:
 		return
 	
-	if payout_button and payout_button.focus_mode != Control.FOCUS_NONE:
-		focus_level = FocusLevel.BOTTOM
-		# Индекс кнопки выплаты = размер массива фишек (фишки: 0..size-1, выплата: size)
-		focus_index = chip_denominations.size()
-		payout_button.grab_focus()
-		_update_focus_frame()
-		DebugLogger.log("⌨️ Фокус установлен на кнопку выплаты (индекс: %d)" % focus_index)
+	# ВАЖНО: НЕ используем grab_focus(), чтобы не создавать системную рамку фокуса Godot
+	# Просто обновляем внутреннее состояние навигатора и показываем нашу рамку
+	focus_level = FocusLevel.BOTTOM
+	# Индекс кнопки выплаты = размер массива фишек (фишки: 0..size-1, выплата: size)
+	focus_index = chip_denominations.size()
+	
+	# Убираем системный фокус с кнопки, если он был установлен
+	if payout_button:
+		payout_button.release_focus()
+	
+	_update_focus_frame()
+	DebugLogger.log("⌨️ Фокус установлен на кнопку выплаты (индекс: %d)" % focus_index)
 
 func activate() -> void:
 	"""Активировать клавиатурную навигацию"""
@@ -169,6 +194,9 @@ func activate() -> void:
 	if chip_denominations.is_empty():
 		push_warning("PayoutKeyboardNavigator: Невозможно активировать навигацию - chip_denominations пуст")
 		return
+	
+	# ВАЖНО: Убираем системный фокус со всех элементов, чтобы не было конфликтов с нашей рамкой
+	_release_all_focus()
 	
 	is_keyboard_active = true
 	focus_level = FocusLevel.BOTTOM
@@ -181,6 +209,17 @@ func activate() -> void:
 		focus_index = 0
 	
 	_update_focus_frame()
+
+func _release_all_focus() -> void:
+	"""Убрать системный фокус со всех элементов, чтобы не было конфликтов с нашей рамкой"""
+	if payout_button:
+		payout_button.release_focus()
+	if hint_button:
+		hint_button.release_focus()
+	if chip_fleet_container:
+		for child in chip_fleet_container.get_children():
+			if child is Control:
+				(child as Control).release_focus()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - НАВИГАЦИЯ
@@ -247,10 +286,13 @@ func _create_focus_frame() -> void:
 	if focus_frame:
 		return  # Уже создан
 	
-	# Проверяем, нет ли уже FocusFrame в owner_node
+	# Проверяем, нет ли уже FocusFrame в owner_node (включая поиск по всему дереву)
 	var existing = owner_node.find_child("PayoutFocusFrame", true, false)
 	if existing:
+		# Если нашли существующий, используем его и удаляем все остальные дубликаты
 		focus_frame = existing as FocusFrameUI
+		# Удаляем все остальные PayoutFocusFrame, кроме найденного
+		_remove_duplicate_focus_frames(existing)
 		return
 	
 	# Создаём новый FocusFrameUI
@@ -268,6 +310,31 @@ func _create_focus_frame() -> void:
 		# Если ColorRect не найден, добавляем в сам owner_node
 		owner_node.add_child(focus_frame)
 		focus_frame.z_index = 1000
+
+func _remove_duplicate_focus_frames(keep_frame: Node) -> void:
+	"""Удалить все дубликаты PayoutFocusFrame, кроме указанного"""
+	if not owner_node:
+		return
+	
+	var color_rect = owner_node.get_node_or_null("ColorRect")
+	var search_root = color_rect if color_rect else owner_node
+	
+	# Ищем все PayoutFocusFrame
+	var all_frames = []
+	_find_all_focus_frames(search_root, all_frames)
+	
+	# Удаляем все, кроме keep_frame
+	for frame in all_frames:
+		if frame != keep_frame and frame.name == "PayoutFocusFrame":
+			frame.queue_free()
+
+func _find_all_focus_frames(node: Node, result: Array) -> void:
+	"""Рекурсивно найти все FocusFrameUI в дереве"""
+	if node.name == "PayoutFocusFrame":
+		result.append(node)
+	
+	for child in node.get_children():
+		_find_all_focus_frames(child, result)
 
 func _update_focus_frame() -> void:
 	"""Обновить позицию рамки фокуса"""
