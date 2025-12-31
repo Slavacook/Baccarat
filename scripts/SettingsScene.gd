@@ -255,30 +255,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	
-	# Action (Space/Enter/геймпад A) - активировать текущий элемент
-	if event.is_action_pressed("action"):
-		var focused = get_viewport().gui_get_focus_owner()
-		if focused:
-			# Если это кнопка - нажимаем её
-			if focused is Button:
-				var button = focused as Button
-				# Для toggle кнопок - переключаем состояние
-				if button.toggle_mode:
-					button.button_pressed = !button.button_pressed
-					# Эмитим сигнал toggled для toggle кнопок
-					button.toggled.emit(button.button_pressed)
-				else:
-					# Для обычных кнопок - эмитим pressed
-					button.pressed.emit()
-			# Если это SpinBox - активируем его для редактирования
-			elif focused is SpinBox:
-				var spinbox = focused as SpinBox
-				spinbox.grab_focus()
-			get_viewport().set_input_as_handled()
-			return
+	# Action обрабатывается в _input() для перехвата событий геймпада
 
 func _input(event: InputEvent) -> void:
-	"""Обработка ввода (используем _input для перехвата Escape даже если фокус на кнопке)"""
+	"""Обработка ввода (используем _input для перехвата Escape и action даже если фокус на кнопке)"""
 	# Обрабатываем только когда меню видимо
 	if not visible:
 		return
@@ -293,6 +273,62 @@ func _input(event: InputEvent) -> void:
 		close_settings()
 		get_viewport().set_input_as_handled()
 		return
+	
+	# Action (Space/Enter/геймпад кнопка 2) - обрабатываем в _input чтобы перехватить раньше
+	# Проверяем как через action, так и напрямую через событие геймпада
+	var is_action = event.is_action_pressed("action")
+	var is_gamepad_button_2 = false
+	
+	# Дополнительная проверка для геймпада (кнопка 2 = button_index 2 в project.godot)
+	if event is InputEventJoypadButton:
+		var joypad_event = event as InputEventJoypadButton
+		# В project.godot указан button_index=2 для action
+		if joypad_event.pressed and joypad_event.button_index == 2:
+			is_gamepad_button_2 = true
+			print("🎮 SettingsScene: обнаружена геймпад кнопка 2 (button_index=2)")
+	
+	if is_action or is_gamepad_button_2:
+		# Отладка: логируем событие
+		if event is InputEventJoypadButton:
+			var joypad_event = event as InputEventJoypadButton
+			print("🎮 SettingsScene: геймпад кнопка %d нажата (action)" % joypad_event.button_index)
+		elif event is InputEventKey:
+			var key_event = event as InputEventKey
+			print("⌨️ SettingsScene: клавиша %d нажата (action)" % key_event.keycode)
+		
+		var focused = get_viewport().gui_get_focus_owner()
+		if focused:
+			print("🎯 SettingsScene: фокус на %s" % focused.name)
+			# Если это кнопка Apply (ОК) - закрываем меню
+			if focused == apply_button:
+				print("✅ SettingsScene: закрываем меню через Apply")
+				close_settings()
+				get_viewport().set_input_as_handled()
+				return
+			
+			# Если это кнопка - нажимаем её
+			if focused is Button:
+				var button = focused as Button
+				print("🔘 SettingsScene: активируем кнопку %s (toggle_mode: %s)" % [button.name, button.toggle_mode])
+				# Для toggle кнопок - переключаем состояние
+				if button.toggle_mode:
+					button.button_pressed = !button.button_pressed
+					# Эмитим сигнал toggled для toggle кнопок
+					button.toggled.emit(button.button_pressed)
+					print("🔄 SettingsScene: toggle кнопка переключена: %s" % button.button_pressed)
+				else:
+					# Для обычных кнопок - эмитим pressed
+					button.pressed.emit()
+					print("👆 SettingsScene: обычная кнопка нажата")
+			# Если это SpinBox - активируем его для редактирования
+			elif focused is SpinBox:
+				var spinbox = focused as SpinBox
+				spinbox.grab_focus()
+				print("🔢 SettingsScene: SpinBox активирован")
+			get_viewport().set_input_as_handled()
+			return
+		else:
+			print("⚠️ SettingsScene: нет фокуса при нажатии action")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - ЗАГРУЗКА
