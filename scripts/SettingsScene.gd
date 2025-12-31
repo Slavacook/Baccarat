@@ -53,6 +53,10 @@ signal language_changed(lang: String)  # "ru" или "en"
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 @onready var apply_button: Button = find_child("ApplyButton", true, false)
 
+# === АНИМАЦИЯ ===
+@onready var panel_container: PanelContainer = find_child("PanelContainer", true, false)
+var tween: Tween
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -77,6 +81,9 @@ func _ready():
 
 	# Обновляем тексты (локализация)
 	_update_texts()
+	
+	# Настраиваем навигацию с клавиатуры
+	_setup_keyboard_navigation()
 
 func _connect_signals():
 	"""Подключение всех сигналов UI элементов"""
@@ -142,6 +149,37 @@ func open_settings():
 
 	# Показываем окно
 	show()
+	
+	# Анимация появления
+	if panel_container:
+		# Ждём кадр, чтобы панель получила правильный размер
+		await get_tree().process_frame
+		
+		# Устанавливаем pivot_offset в центр для масштабирования из центра
+		var panel_size = panel_container.size
+		if panel_size.x > 0 and panel_size.y > 0:
+			panel_container.pivot_offset = panel_size / 2.0
+		else:
+			# Если размер ещё не известен, используем rect_size
+			panel_container.pivot_offset = panel_container.get_rect().size / 2.0
+		
+		panel_container.scale = Vector2(0.8, 0.8)
+		panel_container.modulate.a = 0.0
+		
+		if tween:
+			tween.kill()
+		tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(panel_container, "scale", Vector2(1.0, 1.0), 0.3)
+		tween.tween_property(panel_container, "modulate:a", 1.0, 0.3)
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_BACK)
+		
+		# Настраиваем навигацию и устанавливаем начальный focus
+		_setup_keyboard_navigation()
+		if junket_button:
+			junket_button.grab_focus()
+	
 	EventBus.settings_opened.emit()
 	print("⚙️  Окно настроек открыто")
 
@@ -149,6 +187,26 @@ func close_settings():
 	"""Закрыть окно настроек"""
 	# Возвращаем контекст игры
 	InputContextManager.set_context(InputContextManager.InputContext.GAME)
+	
+	# Анимация исчезновения
+	if panel_container:
+		# Убеждаемся, что pivot_offset установлен в центр
+		var panel_size = panel_container.size
+		if panel_size.x > 0 and panel_size.y > 0:
+			panel_container.pivot_offset = panel_size / 2.0
+		else:
+			# Если размер ещё не известен, используем rect_size
+			panel_container.pivot_offset = panel_container.get_rect().size / 2.0
+		
+		if tween:
+			tween.kill()
+		tween = create_tween()
+		tween.set_parallel(true)
+		tween.tween_property(panel_container, "scale", Vector2(0.8, 0.8), 0.2)
+		tween.tween_property(panel_container, "modulate:a", 0.0, 0.2)
+		tween.set_ease(Tween.EASE_IN)
+		tween.set_trans(Tween.TRANS_BACK)
+		await tween.finished
 	
 	hide()
 	EventBus.settings_closed.emit()
@@ -175,6 +233,29 @@ func _input(event: InputEvent) -> void:
 		close_settings()
 		get_viewport().set_input_as_handled()
 		return
+	
+	# Обработка Tab для циклической навигации
+	if event is InputEventKey and event.pressed and not event.echo:
+		var key_event = event as InputEventKey
+		
+		# Tab - переход к следующему элементу
+		if key_event.keycode == KEY_TAB:
+			if key_event.shift_pressed:
+				# Shift+Tab - переход к предыдущему элементу
+				_focus_previous()
+			else:
+				# Tab - переход к следующему элементу
+				_focus_next()
+			get_viewport().set_input_as_handled()
+			return
+		
+		# Enter/Space на кнопке Apply - закрыть меню
+		if key_event.keycode == KEY_ENTER or key_event.keycode == KEY_SPACE:
+			var focused = get_viewport().gui_get_focus_owner()
+			if focused == apply_button:
+				close_settings()
+				get_viewport().set_input_as_handled()
+				return
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - ЗАГРУЗКА
@@ -216,6 +297,201 @@ func _load_current_values():
 
 	# Рубашка карт
 	_update_card_back_buttons()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# НАВИГАЦИЯ С КЛАВИАТУРЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _focus_next():
+	"""Перейти к следующему элементу меню"""
+	var current_focus = get_viewport().gui_get_focus_owner()
+	if not current_focus:
+		if junket_button:
+			junket_button.grab_focus()
+		return
+	
+	# Список всех элементов в порядке навигации
+	var navigation_order = [
+		junket_button,
+		classic_button,
+		bet_player_button,
+		bet_banker_button,
+		bet_tie_button,
+		bet_pair_button,
+		guest_settings_button,
+		tip_percentage_spinbox,
+		ru_button,
+		en_button,
+		tiger_button,
+		leopard_button,
+		test_cards_button,
+		apply_button
+	]
+	
+	# Убираем null элементы
+	navigation_order = navigation_order.filter(func(item): return item != null)
+	
+	# Находим текущий индекс
+	var current_index = -1
+	for i in range(navigation_order.size()):
+		if navigation_order[i] == current_focus:
+			current_index = i
+			break
+	
+	# Переходим к следующему элементу (с закольцовыванием)
+	var next_index = (current_index + 1) % navigation_order.size()
+	if navigation_order[next_index]:
+		navigation_order[next_index].grab_focus()
+
+func _focus_previous():
+	"""Перейти к предыдущему элементу меню"""
+	var current_focus = get_viewport().gui_get_focus_owner()
+	if not current_focus:
+		if apply_button:
+			apply_button.grab_focus()
+		return
+	
+	# Список всех элементов в порядке навигации
+	var navigation_order = [
+		junket_button,
+		classic_button,
+		bet_player_button,
+		bet_banker_button,
+		bet_tie_button,
+		bet_pair_button,
+		guest_settings_button,
+		tip_percentage_spinbox,
+		ru_button,
+		en_button,
+		tiger_button,
+		leopard_button,
+		test_cards_button,
+		apply_button
+	]
+	
+	# Убираем null элементы
+	navigation_order = navigation_order.filter(func(item): return item != null)
+	
+	# Находим текущий индекс
+	var current_index = -1
+	for i in range(navigation_order.size()):
+		if navigation_order[i] == current_focus:
+			current_index = i
+			break
+	
+	# Переходим к предыдущему элементу (с закольцовыванием)
+	var prev_index = (current_index - 1 + navigation_order.size()) % navigation_order.size()
+	if navigation_order[prev_index]:
+		navigation_order[prev_index].grab_focus()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# НАСТРОЙКА НАВИГАЦИИ С КЛАВИАТУРЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _setup_keyboard_navigation():
+	"""Настроить навигацию с клавиатуры между элементами меню"""
+	# ЛЕВАЯ КОЛОНКА: Режим игры
+	if junket_button and classic_button:
+		# Junket → Classic (вправо)
+		junket_button.focus_neighbor_right = classic_button.get_path()
+		# Classic → Junket (влево)
+		classic_button.focus_neighbor_left = junket_button.get_path()
+		# Junket → BetPlayer (вниз)
+		junket_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else ""
+		# Classic → BetPlayer (вниз)
+		classic_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else ""
+	
+	# СРЕДНЯЯ КОЛОНКА: Фильтр ставок
+	if bet_player_button:
+		# BetPlayer → Junket (вверх)
+		bet_player_button.focus_neighbor_top = junket_button.get_path() if junket_button else ""
+		# BetPlayer → BetBanker (вниз)
+		bet_player_button.focus_neighbor_bottom = bet_banker_button.get_path() if bet_banker_button else ""
+		# BetPlayer → TipPercentageSpinBox (вправо)
+		bet_player_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+	
+	if bet_banker_button:
+		# BetBanker → BetPlayer (вверх)
+		bet_banker_button.focus_neighbor_top = bet_player_button.get_path() if bet_player_button else ""
+		# BetBanker → BetTie (вниз)
+		bet_banker_button.focus_neighbor_bottom = bet_tie_button.get_path() if bet_tie_button else ""
+		# BetBanker → TipPercentageSpinBox (вправо)
+		bet_banker_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+	
+	if bet_tie_button:
+		# BetTie → BetBanker (вверх)
+		bet_tie_button.focus_neighbor_top = bet_banker_button.get_path() if bet_banker_button else ""
+		# BetTie → BetPair (вниз)
+		bet_tie_button.focus_neighbor_bottom = bet_pair_button.get_path() if bet_pair_button else ""
+		# BetTie → RuButton (вправо)
+		bet_tie_button.focus_neighbor_right = ru_button.get_path() if ru_button else ""
+	
+	if bet_pair_button:
+		# BetPair → BetTie (вверх)
+		bet_pair_button.focus_neighbor_top = bet_tie_button.get_path() if bet_tie_button else ""
+		# BetPair → GuestSettingsButton (вниз)
+		bet_pair_button.focus_neighbor_bottom = guest_settings_button.get_path() if guest_settings_button else ""
+		# BetPair → RuButton (вправо)
+		bet_pair_button.focus_neighbor_right = ru_button.get_path() if ru_button else ""
+	
+	if guest_settings_button:
+		# GuestSettingsButton → BetPair (вверх)
+		guest_settings_button.focus_neighbor_top = bet_pair_button.get_path() if bet_pair_button else ""
+		# GuestSettingsButton → ApplyButton (вниз)
+		guest_settings_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else ""
+		# GuestSettingsButton → TigerButton (вправо)
+		guest_settings_button.focus_neighbor_right = tiger_button.get_path() if tiger_button else ""
+	
+	# ПРАВАЯ КОЛОНКА: Чаевые, Язык, Рубашка
+	if tip_percentage_spinbox:
+		# TipPercentageSpinBox → BetPlayer (влево)
+		tip_percentage_spinbox.focus_neighbor_left = bet_player_button.get_path() if bet_player_button else ""
+		# TipPercentageSpinBox → RuButton (вниз)
+		tip_percentage_spinbox.focus_neighbor_bottom = ru_button.get_path() if ru_button else ""
+	
+	if ru_button and en_button:
+		# RuButton → EnButton (вправо)
+		ru_button.focus_neighbor_right = en_button.get_path()
+		# EnButton → RuButton (влево)
+		en_button.focus_neighbor_left = ru_button.get_path()
+		# RuButton → TipPercentageSpinBox (вверх)
+		ru_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+		# EnButton → TipPercentageSpinBox (вверх)
+		en_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+		# RuButton → TigerButton (вниз)
+		ru_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else ""
+		# EnButton → TigerButton (вниз)
+		en_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else ""
+	
+	if tiger_button and leopard_button:
+		# TigerButton → LeopardButton (вправо)
+		tiger_button.focus_neighbor_right = leopard_button.get_path()
+		# LeopardButton → TigerButton (влево)
+		leopard_button.focus_neighbor_left = tiger_button.get_path()
+		# TigerButton → RuButton (вверх)
+		tiger_button.focus_neighbor_top = ru_button.get_path() if ru_button else ""
+		# LeopardButton → RuButton (вверх)
+		leopard_button.focus_neighbor_top = ru_button.get_path() if ru_button else ""
+		# TigerButton → TestCardsButton (вниз)
+		tiger_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else ""
+		# LeopardButton → TestCardsButton (вниз)
+		leopard_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else ""
+	
+	if test_cards_button:
+		# TestCardsButton → TigerButton (вверх)
+		test_cards_button.focus_neighbor_top = tiger_button.get_path() if tiger_button else ""
+		# TestCardsButton → ApplyButton (вниз)
+		test_cards_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else ""
+	
+	# КНОПКА ПРИМЕНЕНИЯ
+	if apply_button:
+		# ApplyButton → GuestSettingsButton (вверх)
+		apply_button.focus_neighbor_top = guest_settings_button.get_path() if guest_settings_button else NodePath("")
+		# ApplyButton → TestCardsButton (вверх, альтернативный путь)
+		if apply_button.focus_neighbor_top.is_empty():
+			apply_button.focus_neighbor_top = test_cards_button.get_path() if test_cards_button else NodePath("")
+		# ApplyButton → JunketButton (закольцовывание вверх)
+		# Это позволит Tab циклически переходить по меню
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI
@@ -492,26 +768,48 @@ func _update_bet_button_style(button: Button, enabled: bool) -> void:
 	
 	# Создаём StyleBoxFlat для кнопки
 	var style_normal = StyleBoxFlat.new()
-	style_normal.corner_radius_top_left = 8
-	style_normal.corner_radius_top_right = 8
-	style_normal.corner_radius_bottom_left = 8
-	style_normal.corner_radius_bottom_right = 8
-	style_normal.border_width_left = 2
-	style_normal.border_width_top = 2
-	style_normal.border_width_right = 2
-	style_normal.border_width_bottom = 2
+	var style_hover = StyleBoxFlat.new()
+	var style_pressed = StyleBoxFlat.new()
+	
+	# Общие настройки для всех состояний
+	for style in [style_normal, style_hover, style_pressed]:
+		style.corner_radius_top_left = 10
+		style.corner_radius_top_right = 10
+		style.corner_radius_bottom_left = 10
+		style.corner_radius_bottom_right = 10
+		style.border_width_left = 2
+		style.border_width_top = 2
+		style.border_width_right = 2
+		style.border_width_bottom = 2
 	
 	if enabled:
-		# Включено: белая рамка, нормальная прозрачность
-		style_normal.bg_color = Color(0.2, 0.2, 0.2, 0.8)  # Темно-серый фон
-		style_normal.border_color = Color.WHITE
+		# Включено: яркая рамка, активный фон
+		style_normal.bg_color = Color(0.25, 0.35, 0.25, 0.9)  # Зеленоватый фон
+		style_normal.border_color = Color(0.4, 0.7, 0.4, 1.0)  # Яркая зеленая рамка
+		
+		style_hover.bg_color = Color(0.3, 0.4, 0.3, 0.95)
+		style_hover.border_color = Color(0.5, 0.8, 0.5, 1.0)
+		
+		style_pressed.bg_color = Color(0.2, 0.3, 0.2, 0.9)
+		style_pressed.border_color = Color(0.4, 0.7, 0.4, 1.0)
+		
 		button.modulate.a = 1.0
+		button.add_theme_color_override("font_color", Color(0.95, 1.0, 0.95, 1.0))
 	else:
-		# Выключено: серая рамка, пониженная прозрачность
-		style_normal.bg_color = Color(0.1, 0.1, 0.1, 0.5)  # Очень темный фон
-		style_normal.border_color = Color(0.5, 0.5, 0.5, 0.5)
-		button.modulate.a = 0.6
+		# Выключено: тусклая рамка, неактивный фон
+		style_normal.bg_color = Color(0.15, 0.15, 0.15, 0.6)  # Темный фон
+		style_normal.border_color = Color(0.4, 0.4, 0.4, 0.6)  # Серая рамка
+		
+		style_hover.bg_color = Color(0.18, 0.18, 0.18, 0.7)
+		style_hover.border_color = Color(0.5, 0.5, 0.5, 0.7)
+		
+		style_pressed.bg_color = Color(0.12, 0.12, 0.12, 0.5)
+		style_pressed.border_color = Color(0.4, 0.4, 0.4, 0.6)
+		
+		button.modulate.a = 0.65
+		button.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1.0))
 	
 	button.add_theme_stylebox_override("normal", style_normal)
-	button.add_theme_stylebox_override("pressed", style_normal)
-	button.add_theme_stylebox_override("hover", style_normal)
+	button.add_theme_stylebox_override("pressed", style_pressed)
+	button.add_theme_stylebox_override("hover", style_hover)
+	button.add_theme_font_size_override("font_size", 16)

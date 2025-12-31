@@ -10,3 +10,4 @@ res://scripts/ui/GuestEventHandler.gd
 res://scripts/ui/PayoutOverlayPaymentHandler.gd
 res://scripts/ui/PayoutOverlayStateManager.gd
 res://resources/CameraConfig.gd
+res://scripts/SettingsScene.gd
