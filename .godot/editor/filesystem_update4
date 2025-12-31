@@ -1,3 +1,4 @@
 res://scripts/GameController.gd
 res://scripts/ui/PayButton.gd
 res://scenes/Game.tscn
+res://scripts/GuestMenuScene.gd

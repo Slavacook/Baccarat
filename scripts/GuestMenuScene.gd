@@ -808,6 +808,12 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not keyboard_navigator:
 		return
 	
+	# Проверяем валидность события клавиатуры (для остальной обработки)
+	if not InputContextManager.is_valid_key_event(event):
+		return
+	
+	var key_event = event as InputEventKey
+	
 	# Проверяем, открыто ли выпадающее меню (обновляем состояние навигатора)
 	_check_dropdown_state()
 	
