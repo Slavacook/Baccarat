@@ -170,13 +170,8 @@ func _input(event: InputEvent) -> void:
 	if InputContextManager.get_context() != InputContextManager.InputContext.MENU_SETTINGS:
 		return
 	
-	if not InputContextManager.is_valid_key_event(event):
-		return
-	
-	var key_event = event as InputEventKey
-	
-	# Escape в меню → закрыть меню (работает даже если фокус на кнопке)
-	if key_event.keycode == KEY_ESCAPE:
+	# Escape/Exit в меню → закрыть меню (работает для клавиатуры и геймпада, даже если фокус на кнопке)
+	if event.is_action_pressed("exit"):
 		close_settings()
 		get_viewport().set_input_as_handled()
 		return

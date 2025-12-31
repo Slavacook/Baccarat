@@ -487,7 +487,14 @@ func handle_input(event: InputEvent) -> bool:
 	if not is_active:
 		return false
 	
+	# Отладка: логируем события геймпада
+	if event is InputEventJoypadButton:
+		var joypad_event = event as InputEventJoypadButton
+		if joypad_event.pressed:
+			DebugLogger.log("🎮 ChipNavigationManager: геймпад кнопка %d нажата" % joypad_event.button_index)
+	
 	# Используем Input Actions для поддержки клавиатуры и геймпада
+	# В handle_input() используем event.is_action_pressed() для проверки конкретного события
 	if event.is_action_pressed("left"):
 		move_focus("left")
 		return true

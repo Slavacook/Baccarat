@@ -154,6 +154,9 @@ func _ready():
 	
 	# Инициализация через GameInitializer (все ~200 строк вынесены в отдельный класс)
 	var initialized: Dictionary = GameInitializer.initialize(self)
+	
+	# Проверка подключения геймпадов (после инициализации, чтобы DebugLogger был готов)
+	_check_gamepad_connection()
 
 	# Распаковка результатов в member variables
 	deck = initialized["deck"]
@@ -834,16 +837,57 @@ func _on_restart_game():
 
 func _input(event: InputEvent) -> void:
 	"""Обработка ввода (клавиатура и геймпад) - используем _input для toggle_navigation, чтобы перехватить раньше"""
+	# Отладка: логируем все события геймпада
+	if event is InputEventJoypadButton:
+		var joypad_event = event as InputEventJoypadButton
+		print("🎮 [GameController._input] Геймпад событие - кнопка %d, device=%d, pressed=%s" % [
+			joypad_event.button_index, joypad_event.device, joypad_event.pressed
+		])
+		DebugLogger.log("🎮 _input: Геймпад событие - кнопка %d, device=%d, pressed=%s, pressure=%.2f" % [
+			joypad_event.button_index, joypad_event.device, joypad_event.pressed, joypad_event.pressure
+		])
+		if joypad_event.pressed:
+			# Проверяем, соответствует ли это действию toggle_navigation
+			if event.is_action("toggle_navigation"):
+				DebugLogger.log("🎮 ✅ toggle_navigation обнаружено через is_action()")
+			elif event.is_action_pressed("toggle_navigation"):
+				DebugLogger.log("🎮 ✅ toggle_navigation обнаружено через is_action_pressed()")
+			# Проверяем напрямую
+			if joypad_event.button_index == 4 or joypad_event.button_index == 6:
+				DebugLogger.log("🎮 Найдена кнопка toggle_navigation: %d" % joypad_event.button_index)
+	
+	# Отладка: логируем события джойстика (аналоговые стики)
+	if event is InputEventJoypadMotion:
+		var motion_event = event as InputEventJoypadMotion
+		if abs(motion_event.axis_value) > 0.1:  # Только если есть значимое движение
+			DebugLogger.log("🎮 _input: Джойстик - ось %d, значение=%.2f (device=%d)" % [
+				motion_event.axis, motion_event.axis_value, motion_event.device
+			])
+	
 	# Обрабатываем только toggle_navigation здесь, остальное в _unhandled_input
+	# В _input() нужно использовать event.is_action_pressed(), а не Input.is_action_just_pressed()
+	var is_toggle = false
 	if event.is_action_pressed("toggle_navigation"):
+		is_toggle = true
+		DebugLogger.log("⌨️ toggle_navigation через event.is_action_pressed")
+	elif event is InputEventJoypadButton:
+		var joypad_event = event as InputEventJoypadButton
+		# Проверяем кнопки напрямую (4 = Y/Triangle, 6 = Back/Select)
+		if joypad_event.pressed and (joypad_event.button_index == 4 or joypad_event.button_index == 6):
+			is_toggle = true
+			DebugLogger.log("⌨️ toggle_navigation через прямую проверку геймпада (кнопка %d)" % joypad_event.button_index)
+	
+	if is_toggle:
 		# Проверяем блокировки
 		if InputContextManager.is_blocked():
+			DebugLogger.log("⚠️ toggle_navigation заблокирована")
 			return
 		if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
+			DebugLogger.log("⚠️ toggle_navigation: неправильный контекст")
 			return
 		
 		# toggle_navigation → включить/выключить навигацию по ставкам
-		DebugLogger.log("⌨️ toggle_navigation нажата")
+		DebugLogger.log("⌨️ toggle_navigation обработана")
 		if chip_navigation_manager:
 			DebugLogger.log("⌨️ chip_navigation_manager найден, is_active=%s" % chip_navigation_manager.is_active)
 			if chip_navigation_manager.is_active:
@@ -886,6 +930,25 @@ func _unhandled_input(event: InputEvent) -> void:
 		if chip_navigation_manager.handle_input(event):
 			get_viewport().set_input_as_handled()
 			return
+	
+	# Переключение режима сбора/выплаты ставок (геймпад или клавиатура)
+	if event.is_action_pressed("toggle_collect_pay_mode"):
+		# Проверяем, что кнопка PayButton видима (режим сбора/выплаты активен)
+		if ui_manager and ui_manager.button_ui:
+			var pay_button = ui_manager.button_ui.pay_button
+			if pay_button and pay_button.visible:
+				# Переключаем состояние PayButton
+				if pay_button.has_method("toggle_state"):
+					pay_button.toggle_state()
+					DebugLogger.log("🔄 Режим сбора/выплаты переключен через геймпад/клавиатуру")
+				else:
+					# Fallback: вызываем напрямую _on_pressed, если метод не найден
+					pay_button._on_pressed()
+					DebugLogger.log("🔄 Режим сбора/выплаты переключен (fallback)")
+			else:
+				DebugLogger.log("⚠️ PayButton не видима, переключение режима невозможно")
+		get_viewport().set_input_as_handled()
+		return
 	
 	# Escape во время игры → открыть/закрыть меню
 	if event.is_action_pressed("exit"):
@@ -1687,6 +1750,75 @@ func _on_focus_activated(target: String) -> void:
 		
 		_:
 			DebugLogger.log_warning("⚠️ Неизвестная цель фокуса: %s" % target)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРОВЕРКА ГЕЙМПАДА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _check_gamepad_connection() -> void:
+	"""Проверить подключение геймпадов и вывести информацию"""
+	# Используем print для гарантированного вывода (на случай если DebugLogger не готов)
+	var connected_joypads = Input.get_connected_joypads()
+	print("🎮 [GameController] Проверка геймпадов: найдено устройств = ", connected_joypads.size())
+	DebugLogger.log("🎮 Проверка геймпадов: найдено устройств = %d" % connected_joypads.size())
+	
+	if connected_joypads.size() > 0:
+		print("🎮 [GameController] Подключено геймпадов: ", connected_joypads.size())
+		DebugLogger.log("🎮 Подключено геймпадов: %d" % connected_joypads.size())
+		for device_id in connected_joypads:
+			var joypad_name = Input.get_joy_name(device_id)
+			var guid = Input.get_joy_guid(device_id)
+			print("🎮 [GameController] Геймпад %d: %s (GUID: %s)" % [device_id, joypad_name, guid])
+			DebugLogger.log("🎮 Геймпад %d: %s (GUID: %s)" % [device_id, joypad_name, guid])
+			# Проверяем, какие кнопки доступны
+			for button in range(0, 15):
+				if Input.is_joy_button_pressed(device_id, button):
+					print("🎮 [GameController] Кнопка %d нажата на геймпаде %d" % [button, device_id])
+					DebugLogger.log("🎮 Кнопка %d нажата на геймпаде %d" % [button, device_id])
+	else:
+		print("⚠️ [GameController] Геймпады не подключены")
+		DebugLogger.log("⚠️ Геймпады не подключены")
+		DebugLogger.log("💡 Подсказка: подключите геймпад и перезапустите игру")
+
+func _process(_delta: float) -> void:
+	"""Проверка подключения геймпадов каждый кадр (для отладки)"""
+	# Проверяем подключение геймпадов периодически (раз в секунду)
+	if not has_meta("last_gamepad_check"):
+		set_meta("last_gamepad_check", Time.get_ticks_msec())
+		set_meta("gamepad_check_count", 0)
+		set_meta("last_connected_count", 0)
+	
+	var last_check = get_meta("last_gamepad_check", 0) as int
+	var current_time = Time.get_ticks_msec()
+	var check_count = get_meta("gamepad_check_count", 0) as int
+	var last_connected_count = get_meta("last_connected_count", 0) as int
+	
+	if current_time - last_check > 1000:  # Раз в секунду
+		set_meta("last_gamepad_check", current_time)
+		set_meta("gamepad_check_count", check_count + 1)
+		
+		var connected = Input.get_connected_joypads()
+		
+		# Если количество подключенных геймпадов изменилось - логируем
+		if connected.size() != last_connected_count:
+			set_meta("last_connected_count", connected.size())
+			print("🎮 [GameController._process] Изменение: найдено устройств = %d (было %d)" % [connected.size(), last_connected_count])
+			DebugLogger.log("🎮 _process: Изменение подключения геймпадов: найдено устройств = %d" % connected.size())
+			
+			if connected.size() > 0:
+				# Выводим информацию о подключенных геймпадах
+				for device_id in connected:
+					var joypad_name = Input.get_joy_name(device_id)
+					var guid = Input.get_joy_guid(device_id)
+					print("🎮 [GameController._process] Геймпад подключен: device_id=%d, name=%s, GUID=%s" % [device_id, joypad_name, guid])
+					DebugLogger.log("🎮 Геймпад подключен: device_id=%d, name=%s, GUID=%s" % [device_id, joypad_name, guid])
+		
+		if check_count == 1 or check_count % 5 == 0:  # Логируем при первой проверке и каждые 5 секунд
+			print("🎮 [GameController._process] Проверка геймпадов (проверка #%d): найдено устройств = %d" % [check_count, connected.size()])
+			DebugLogger.log("🎮 _process: Проверка геймпадов (проверка #%d): найдено устройств = %d" % [check_count, connected.size()])
+		
+		# Убрана проверка через Input.is_joy_button_pressed() - теперь используем только события из _input()
+		# Это более надежно и не создает дублирования активации
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI - СЧЕТЧИК РАУНДОВ

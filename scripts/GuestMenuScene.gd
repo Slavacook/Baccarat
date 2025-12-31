@@ -799,14 +799,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	if InputContextManager.get_context() != InputContextManager.InputContext.MENU_GUEST:
 		return
 	
-	# Проверяем валидность события клавиатуры
-	if not InputContextManager.is_valid_key_event(event):
-		return
-	
-	var key_event = event as InputEventKey
-	
-	# Escape в меню гостей → закрыть меню
-	if key_event.keycode == KEY_ESCAPE:
+	# Escape/Exit в меню гостей → закрыть меню (работает для клавиатуры и геймпада)
+	if event.is_action_pressed("exit"):
 		close_menu()
 		get_viewport().set_input_as_handled()
 		return

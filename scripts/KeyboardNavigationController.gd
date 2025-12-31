@@ -61,7 +61,14 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not should_handle:
 		return
 
+	# Отладка: логируем события геймпада
+	if event is InputEventJoypadButton:
+		var joypad_event = event as InputEventJoypadButton
+		if joypad_event.pressed:
+			DebugLogger.log("🎮 KeyboardNavigationController: геймпад кнопка %d нажата" % joypad_event.button_index)
+	
 	# Используем Input Actions для поддержки клавиатуры и геймпада
+	# В _unhandled_input() используем event.is_action_pressed() для проверки конкретного события
 	var direction: String = ""
 	if event.is_action_pressed("left"):
 		direction = "left"
