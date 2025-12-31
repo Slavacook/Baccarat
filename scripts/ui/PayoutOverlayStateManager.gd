@@ -86,11 +86,15 @@ func handle_payout_wrong_event(_collected: float, _expected: float, _bet_type: S
 	
 	Вызывается когда EventBus.payout_wrong эмитится.
 	Обновляем отображение сердечек после потери жизни.
+	
+	ВАЖНО: Этот метод НЕ должен менять режим PayButton (COLLECT/PAY).
+	Режим должен оставаться тем же, что был до ошибки.
 	"""
 	# Небольшая задержка чтобы SurvivalUI/StatsManager успел обновить жизни/очки
 	await owner_node.get_tree().create_timer(0.1).timeout
 
 	# Обновляем отображение сердечек/очков
+	# НЕ меняем режим PayButton - он должен оставаться в текущем состоянии
 	update_score_display()
 
 func handle_life_lost(remaining_lives: int) -> void:

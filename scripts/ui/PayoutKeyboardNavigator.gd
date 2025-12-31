@@ -97,24 +97,21 @@ func connect_mouse_handlers() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func handle_navigation_input(key_event: InputEventKey) -> void:
-	"""Обработка навигации клавиатурой"""
-	# Если навигация не активна - активируем
-	if not is_keyboard_active:
-		activate()
-		return
-	
-	# Обрабатываем навигацию в зависимости от нажатой клавиши
+	"""Обработка навигации клавиатурой (deprecated, используйте handle_navigation_direction)"""
+	# Конвертируем keycode в направление
+	var direction: String = ""
 	match key_event.keycode:
 		KEY_LEFT, KEY_A:
-			navigate_left()
+			direction = "left"
 		KEY_RIGHT, KEY_D:
-			navigate_right()
+			direction = "right"
 		KEY_UP, KEY_W:
-			navigate_up()
+			direction = "up"
 		KEY_DOWN, KEY_S:
-			navigate_down()
+			direction = "down"
 	
-	_update_focus_frame()
+	if direction != "":
+		handle_navigation_direction(direction)
 
 func handle_navigation_direction(direction: String) -> void:
 	"""Обработка навигации по направлению (для геймпада и клавиатуры через Input Actions)"""
@@ -286,55 +283,42 @@ func _create_focus_frame() -> void:
 	if focus_frame:
 		return  # Уже создан
 	
-	# Проверяем, нет ли уже FocusFrame в owner_node (включая поиск по всему дереву)
+	# Проверяем, нет ли уже FocusFrame в owner_node
 	var existing = owner_node.find_child("PayoutFocusFrame", true, false)
 	if existing:
-		# Если нашли существующий, используем его и удаляем все остальные дубликаты
 		focus_frame = existing as FocusFrameUI
-		# Удаляем все остальные PayoutFocusFrame, кроме найденного
 		_remove_duplicate_focus_frames(existing)
 		return
 	
 	# Создаём новый FocusFrameUI
 	focus_frame = FocusFrameUI.new()
 	focus_frame.name = "PayoutFocusFrame"
+	focus_frame.z_index = 1000
 	
-	# Добавляем в owner_node (CanvasLayer)
-	# Нужно добавить в корневой элемент (ColorRect), чтобы рамка была в той же системе координат
+	# Добавляем в корневой элемент (ColorRect), чтобы рамка была в той же системе координат
 	var color_rect = owner_node.get_node_or_null("ColorRect")
-	if color_rect:
-		color_rect.add_child(focus_frame)
-		# Устанавливаем z_index чтобы рамка была поверх всех элементов
-		focus_frame.z_index = 1000
-	else:
-		# Если ColorRect не найден, добавляем в сам owner_node
-		owner_node.add_child(focus_frame)
-		focus_frame.z_index = 1000
+	var parent = color_rect if color_rect else owner_node
+	parent.add_child(focus_frame)
 
 func _remove_duplicate_focus_frames(keep_frame: Node) -> void:
 	"""Удалить все дубликаты PayoutFocusFrame, кроме указанного"""
-	if not owner_node:
+	if not owner_node or not keep_frame:
 		return
 	
 	var color_rect = owner_node.get_node_or_null("ColorRect")
 	var search_root = color_rect if color_rect else owner_node
 	
-	# Ищем все PayoutFocusFrame
-	var all_frames = []
-	_find_all_focus_frames(search_root, all_frames)
-	
-	# Удаляем все, кроме keep_frame
-	for frame in all_frames:
-		if frame != keep_frame and frame.name == "PayoutFocusFrame":
-			frame.queue_free()
+	# Рекурсивно ищем и удаляем все PayoutFocusFrame, кроме keep_frame
+	_remove_duplicates_recursive(search_root, keep_frame)
 
-func _find_all_focus_frames(node: Node, result: Array) -> void:
-	"""Рекурсивно найти все FocusFrameUI в дереве"""
-	if node.name == "PayoutFocusFrame":
-		result.append(node)
+func _remove_duplicates_recursive(node: Node, keep_frame: Node) -> void:
+	"""Рекурсивно найти и удалить все PayoutFocusFrame, кроме keep_frame"""
+	if node.name == "PayoutFocusFrame" and node != keep_frame:
+		node.queue_free()
+		return
 	
 	for child in node.get_children():
-		_find_all_focus_frames(child, result)
+		_remove_duplicates_recursive(child, keep_frame)
 
 func _update_focus_frame() -> void:
 	"""Обновить позицию рамки фокуса"""

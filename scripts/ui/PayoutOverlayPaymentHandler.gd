@@ -107,7 +107,11 @@ func _show_success_animation(is_correct: bool, collected: float, expected: float
 		on_payment_success_callback.call(is_correct, collected, expected)
 
 func _show_error_animation(_collected: float) -> void:
-	"""Показать анимацию ошибки и разблокировать кнопку"""
+	"""Показать анимацию ошибки и разблокировать кнопку
+	
+	ВАЖНО: Этот метод НЕ должен менять режим PayButton (COLLECT/PAY).
+	Режим должен оставаться в PAY, чтобы игрок мог попробовать снова.
+	"""
 	# Блокируем кнопку
 	if set_button_blocked_callback.is_valid():
 		set_button_blocked_callback.call(true)
@@ -130,8 +134,10 @@ func _show_error_animation(_collected: float) -> void:
 	await animation_controller.hide_error_animation()
 
 	# Вызываем callback для обработки ошибки (если нужен)
+	# ВАЖНО: Callback не должен менять режим PayButton
 	if on_payment_error_callback.is_valid():
 		on_payment_error_callback.call(_collected)
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
+	# Режим PayButton остается в PAY
 

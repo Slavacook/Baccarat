@@ -826,15 +826,7 @@ func _input(event: InputEvent) -> void:
 			
 			# Для action (A на геймпаде) - эмулируем Space для подтверждения выбора
 			if event.is_action_pressed("action"):
-				# Эмулируем нажатие Space для popup меню
-				var space_event = InputEventKey.new()
-				space_event.keycode = KEY_SPACE
-				space_event.pressed = true
-				space_event.echo = false
-				space_event.device = -1  # Устройство по умолчанию
-				
-				# Отправляем событие через viewport, чтобы оно дошло до popup
-				get_viewport().push_input(space_event)
+				_emulate_space_for_dropdown()
 				get_viewport().set_input_as_handled()
 				return
 			
@@ -854,7 +846,7 @@ func _input(event: InputEvent) -> void:
 		
 		if direction != "":
 			get_viewport().set_input_as_handled()
-			_handle_gamepad_navigation(direction)
+			_handle_navigation(direction)
 			return
 		
 		# Обработка действия (A на геймпаде)
@@ -913,7 +905,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Обработка навигации
 	if direction != "":
 		get_viewport().set_input_as_handled()
-		_handle_keyboard_navigation(direction)
+		_handle_navigation(direction)
 		return
 	
 	# Обработка действия (Space на клавиатуре)
@@ -921,11 +913,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		# Если навигация активна, обрабатываем через навигатор
 		if keyboard_navigator.is_active:
-			# Для клавиатуры используем handle_input
-			if event is InputEventKey:
-				var key_event = event as InputEventKey
-				if InputContextManager.is_valid_key_event(event):
-					keyboard_navigator.handle_input(key_event)
+			keyboard_navigator.handle_action()
 		return
 	
 	# Обработка через навигатор (только для клавиатуры, для совместимости)
@@ -936,8 +924,8 @@ func _unhandled_input(event: InputEvent) -> void:
 			if keyboard_navigator.handle_input(key_event):
 				get_viewport().set_input_as_handled()
 
-func _handle_gamepad_navigation(direction: String) -> void:
-	"""Обработка навигации для геймпада (вызывается из _input())"""
+func _handle_navigation(direction: String) -> void:
+	"""Обработка навигации (для геймпада и клавиатуры)"""
 	if not keyboard_navigator:
 		return
 	
@@ -968,37 +956,14 @@ func _handle_gamepad_navigation(direction: String) -> void:
 			"down":
 				keyboard_navigator.navigate_down()
 
-func _handle_keyboard_navigation(direction: String) -> void:
-	"""Обработка навигации для клавиатуры (вызывается из _unhandled_input())"""
-	if not keyboard_navigator:
-		return
-	
-	# Проверяем, нужно ли активировать режим клавиатуры
-	if not keyboard_navigator.is_active:
-		# Активируем при первом нажатии
-		var current_level = last_selected_level
-		var current_guest_id = last_selected_guest_id
-		
-		if current_level == GuestMenuKeyboardNavigator.NavigationLevel.GUESTS and current_guest_id == 0:
-			current_guest_id = menu_state.get_selected_guest() if menu_state else 0
-			if current_guest_id == 0:
-				current_guest_id = 1
-		
-		var next_target = _calculate_next_target(current_level, current_guest_id, direction)
-		keyboard_navigator.activate_with_level(next_target.level, next_target.guest_id)
-		if menu_state:
-			menu_state.clear_hover()
-	else:
-		# Навигация уже активна - обрабатываем напрямую
-		match direction:
-			"left":
-				keyboard_navigator.navigate_left()
-			"right":
-				keyboard_navigator.navigate_right()
-			"up":
-				keyboard_navigator.navigate_up()
-			"down":
-				keyboard_navigator.navigate_down()
+func _emulate_space_for_dropdown() -> void:
+	"""Эмулировать нажатие Space для подтверждения выбора в выпадающем меню"""
+	var space_event = InputEventKey.new()
+	space_event.keycode = KEY_SPACE
+	space_event.pressed = true
+	space_event.echo = false
+	space_event.device = -1
+	get_viewport().push_input(space_event)
 
 func _check_dropdown_state() -> void:
 	"""Проверить, открыто ли выпадающее меню и обновить состояние навигатора"""
