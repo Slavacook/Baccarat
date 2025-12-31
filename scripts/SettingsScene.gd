@@ -216,9 +216,69 @@ func close_settings():
 # ОБРАБОТКА КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _unhandled_input(event: InputEvent) -> void:
+	"""Обработка ввода (клавиатура и геймпад) - используем _unhandled_input для навигации"""
+	# Обрабатываем только когда меню видимо
+	if not visible:
+		return
+	
+	# Проверяем блокировки через InputContextManager
+	if InputContextManager.is_blocked():
+		return
+	
+	# Проверяем контекст
+	if not InputContextManager.can_handle(InputContextManager.InputContext.MENU_SETTINGS):
+		return
+	
+	# Escape/Exit в меню → закрыть меню (работает для клавиатуры и геймпада)
+	if event.is_action_pressed("exit"):
+		close_settings()
+		get_viewport().set_input_as_handled()
+		return
+	
+	# Навигация стрелками/WASD/геймпадом
+	# Используем focus_neighbor для автоматической навигации
+	if event.is_action_pressed("left"):
+		_navigate_focus("left")
+		get_viewport().set_input_as_handled()
+		return
+	elif event.is_action_pressed("right"):
+		_navigate_focus("right")
+		get_viewport().set_input_as_handled()
+		return
+	elif event.is_action_pressed("up"):
+		_navigate_focus("up")
+		get_viewport().set_input_as_handled()
+		return
+	elif event.is_action_pressed("down"):
+		_navigate_focus("down")
+		get_viewport().set_input_as_handled()
+		return
+	
+	# Action (Space/Enter/геймпад A) - активировать текущий элемент
+	if event.is_action_pressed("action"):
+		var focused = get_viewport().gui_get_focus_owner()
+		if focused:
+			# Если это кнопка - нажимаем её
+			if focused is Button:
+				var button = focused as Button
+				# Для toggle кнопок - переключаем состояние
+				if button.toggle_mode:
+					button.button_pressed = !button.button_pressed
+					# Эмитим сигнал toggled для toggle кнопок
+					button.toggled.emit(button.button_pressed)
+				else:
+					# Для обычных кнопок - эмитим pressed
+					button.pressed.emit()
+			# Если это SpinBox - активируем его для редактирования
+			elif focused is SpinBox:
+				var spinbox = focused as SpinBox
+				spinbox.grab_focus()
+			get_viewport().set_input_as_handled()
+			return
+
 func _input(event: InputEvent) -> void:
-	"""Обработка клавиатурного ввода (используем _input вместо _unhandled_input, 
-	чтобы перехватывать Escape даже если фокус на кнопке)"""
+	"""Обработка ввода (используем _input для перехвата Escape даже если фокус на кнопке)"""
 	# Обрабатываем только когда меню видимо
 	if not visible:
 		return
@@ -233,29 +293,6 @@ func _input(event: InputEvent) -> void:
 		close_settings()
 		get_viewport().set_input_as_handled()
 		return
-	
-	# Обработка Tab для циклической навигации
-	if event is InputEventKey and event.pressed and not event.echo:
-		var key_event = event as InputEventKey
-		
-		# Tab - переход к следующему элементу
-		if key_event.keycode == KEY_TAB:
-			if key_event.shift_pressed:
-				# Shift+Tab - переход к предыдущему элементу
-				_focus_previous()
-			else:
-				# Tab - переход к следующему элементу
-				_focus_next()
-			get_viewport().set_input_as_handled()
-			return
-		
-		# Enter/Space на кнопке Apply - закрыть меню
-		if key_event.keycode == KEY_ENTER or key_event.keycode == KEY_SPACE:
-			var focused = get_viewport().gui_get_focus_owner()
-			if focused == apply_button:
-				close_settings()
-				get_viewport().set_input_as_handled()
-				return
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - ЗАГРУЗКА
@@ -299,8 +336,49 @@ func _load_current_values():
 	_update_card_back_buttons()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# НАВИГАЦИЯ С КЛАВИАТУРЫ
+# НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА
 # ═══════════════════════════════════════════════════════════════════════════
+
+func _navigate_focus(direction: String):
+	"""Навигация по меню с помощью стрелок/WASD/геймпада
+	
+	Args:
+		direction: Направление ("left", "right", "up", "down")
+	"""
+	var current_focus = get_viewport().gui_get_focus_owner()
+	if not current_focus:
+		# Если нет фокуса, устанавливаем на первую кнопку
+		if junket_button:
+			junket_button.grab_focus()
+		return
+	
+	# Используем встроенную систему focus_neighbor для навигации
+	# Получаем соседний элемент через focus_neighbor
+	var neighbor_path: NodePath = NodePath("")
+	
+	match direction:
+		"left":
+			neighbor_path = current_focus.focus_neighbor_left
+		"right":
+			neighbor_path = current_focus.focus_neighbor_right
+		"up":
+			neighbor_path = current_focus.focus_neighbor_top
+		"down":
+			neighbor_path = current_focus.focus_neighbor_bottom
+	
+	# Если нашли соседа через focus_neighbor - переходим к нему
+	if neighbor_path and not neighbor_path.is_empty():
+		var next_focus = get_node_or_null(neighbor_path) as Control
+		if next_focus:
+			next_focus.grab_focus()
+			return
+	
+	# Fallback: если focus_neighbor не настроен, используем циклическую навигацию
+	match direction:
+		"left", "up":
+			_focus_previous()
+		"right", "down":
+			_focus_next()
 
 func _focus_next():
 	"""Перейти к следующему элементу меню"""
