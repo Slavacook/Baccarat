@@ -98,6 +98,9 @@ var payout_overlay_coordinator: PayoutOverlayCoordinator
 # Менеджер клавиатурной навигации по ставкам
 var chip_navigation_manager: ChipNavigationManager
 
+# Навигатор для карт шансов
+var chance_card_navigator: ChanceCardNavigator = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -209,6 +212,9 @@ func _ready():
 	
 	# Настройка новой системы карт шанса
 	_setup_chance_card_system()
+	
+	# Инициализируем навигатор карт шансов (после настройки системы карт)
+	_initialize_chance_card_navigation()
 	
 	# Инициализируем HeartBar (если ещё не инициализирован)
 	_initialize_heart_bar()
@@ -836,7 +842,34 @@ func _on_restart_game():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _input(event: InputEvent) -> void:
-	"""Обработка ввода (клавиатура и геймпад) - используем _input для toggle_navigation, чтобы перехватить раньше"""
+	"""Обработка ввода (клавиатура и геймпад) - используем _input для перехвата раньше"""
+	# Переключение режима навигации по картам (C/кнопка 4) - обрабатываем в _input для раннего перехвата
+	if event.is_action_pressed("chance_cards"):
+		# Проверяем блокировки
+		if InputContextManager.is_blocked():
+			return
+		# Проверяем контекст GAME или CHANCE_CARDS_NAV для переключения режима
+		var current_context = InputContextManager.get_context()
+		if current_context == InputContextManager.InputContext.GAME or \
+		   current_context == InputContextManager.InputContext.CHANCE_CARDS_NAV:
+			if chance_card_navigator:
+				if chance_card_navigator.is_active:
+					chance_card_navigator.deactivate()
+				else:
+					chance_card_navigator.activate()
+				get_viewport().set_input_as_handled()
+				return
+	
+	# Обработка навигации по картам - обрабатываем в _input для раннего перехвата
+	if chance_card_navigator and chance_card_navigator.is_active:
+		# Проверяем контекст для навигации по картам
+		if not InputContextManager.is_blocked():
+			var current_context = InputContextManager.get_context()
+			if current_context == InputContextManager.InputContext.CHANCE_CARDS_NAV:
+				if chance_card_navigator.handle_input(event):
+					get_viewport().set_input_as_handled()
+					return
+	
 	# Обрабатываем только toggle_navigation здесь, остальное в _unhandled_input
 	# В _input() используем event.is_action_pressed() для проверки конкретного события
 	if event.is_action_pressed("toggle_navigation"):
@@ -865,7 +898,10 @@ func _unhandled_input(event: InputEvent) -> void:
 	if InputContextManager.is_blocked():
 		return
 	
-	# Проверяем контекст (работаем только в контексте GAME)
+	# Обработка навигации по картам уже обработана в _input() для раннего перехвата
+	# Здесь не обрабатываем, чтобы избежать дублирования
+	
+	# Проверяем контекст (работаем только в контексте GAME для остальных действий)
 	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
 		return
 	
@@ -1485,6 +1521,35 @@ func _setup_chance_card_system() -> void:
 	
 	print("🎴 Система карт шанса настроена")
 
+func _initialize_chance_card_navigation() -> void:
+	"""Инициализировать навигатор карт шансов"""
+	# Ждём, пока система карт полностью инициализируется
+	await get_tree().process_frame
+	
+	# Проверяем, что хранилище и сцена полного экрана доступны
+	if not ChanceCardManager.storage:
+		push_warning("⚠️ ChanceCardStorage не доступен для навигатора")
+		return
+	
+	# Создаём сцену полного экрана если её ещё нет
+	if not ChanceCardManager.fullscreen_scene:
+		var scene_path = "res://scenes/chance_cards/BaseChanceCardScene.tscn"
+		var scene = load(scene_path) as PackedScene
+		if scene:
+			ChanceCardManager.fullscreen_scene = scene.instantiate()
+			get_tree().root.add_child(ChanceCardManager.fullscreen_scene)
+			print("🎴 BaseChanceCardScene создана для навигатора")
+		else:
+			push_warning("⚠️ BaseChanceCardScene.tscn не найден")
+			return
+	
+	# Создаём навигатор
+	chance_card_navigator = ChanceCardNavigator.new(
+		ChanceCardManager.storage,
+		ChanceCardManager.fullscreen_scene
+	)
+	
+	print("✅ ChanceCardNavigator инициализирован")
 
 # Методы обработки ставок гостей перенесены в GuestEventHandler
 # _on_guest_bets_hide_requested -> guest_event_handler.handle_guest_bets_hide_requested

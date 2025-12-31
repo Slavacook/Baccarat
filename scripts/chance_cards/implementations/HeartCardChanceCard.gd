@@ -32,10 +32,22 @@ func _init():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func can_use() -> bool:
-	"""Проверка, можно ли использовать карту - всегда true если есть карты"""
-	# Карта всегда доступна для использования если есть в наличии
-	# Кнопка "Использовать" показывается всегда
-	return count > 0
+	"""Проверка, можно ли использовать карту - проверяем наличие карт и максимум жизней"""
+	# Проверяем наличие карт
+	if count <= 0:
+		return false
+	
+	# Получаем HeartBar через ChanceCardManager
+	var heart_bar = _get_heart_bar()
+	if not heart_bar:
+		return false
+	
+	# Проверяем, не достигнут ли максимум жизней
+	# Если жизни на максимуме - карту нельзя использовать
+	if heart_bar.get_lives() >= heart_bar.max_lives:
+		return false
+	
+	return true
 
 func on_use() -> void:
 	"""Использовать карту - добавить +1 жизнь"""
@@ -53,13 +65,15 @@ func on_use() -> void:
 		return
 	
 	# Проверяем, не достигнут ли максимум жизней
+	# Эта проверка уже выполнена в can_use(), но на всякий случай проверяем ещё раз
 	if heart_bar.get_lives() >= heart_bar.max_lives:
-		print("⚠️ HeartCardChanceCard: достигнут максимум жизней, но карта всё равно используется")
-		EventBus.show_toast_info.emit("Максимум жизней!")
-	else:
-		# Добавляем жизнь только если не на максимуме
-		heart_bar.add_life(1)
-		print("❤️ HeartCardChanceCard: добавлена 1 жизнь")
+		print("⚠️ HeartCardChanceCard: достигнут максимум жизней, карта не может быть использована")
+		EventBus.show_toast_error.emit("Максимум жизней!")
+		return  # Не используем карту и не уменьшаем счётчик
+	
+	# Добавляем жизнь
+	heart_bar.add_life(1)
+	print("❤️ HeartCardChanceCard: добавлена 1 жизнь")
 	
 	# Уменьшаем счётчик через метод базового класса
 	# Обновление хранилища произойдет автоматически через ChanceCardManager._on_card_used()

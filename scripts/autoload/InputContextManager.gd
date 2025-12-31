@@ -16,7 +16,8 @@ enum InputContext {
 	MENU_SETTINGS,  # Меню настроек
 	PAYOUT,         # Фаза выплат
 	GAME_OVER,      # Game Over
-	CHANCE_CARD     # Карта шанса открыта
+	CHANCE_CARD,    # Карта шанса открыта
+	CHANCE_CARDS_NAV  # Навигация по картам шансов
 }
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -78,6 +79,8 @@ func _get_context_name(context: InputContext) -> String:
 			return "GAME_OVER"
 		InputContext.CHANCE_CARD:
 			return "CHANCE_CARD"
+		InputContext.CHANCE_CARDS_NAV:
+			return "CHANCE_CARDS_NAV"
 		_:
 			return "UNKNOWN"
 

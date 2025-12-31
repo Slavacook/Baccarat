@@ -170,6 +170,18 @@ func show_fullscreen(card: BaseChanceCard, storage_pos: Vector2 = Vector2.ZERO):
 	# Явно обновляем видимость кнопок после show(), чтобы они отображались сразу
 	_update_use_button_visibility()
 	
+	# Устанавливаем фокус на кнопку после открытия
+	await get_tree().process_frame
+	var target_button: Button = null
+	if use_button and use_button.visible:
+		target_button = use_button
+	elif close_button and close_button.visible:
+		target_button = close_button
+	
+	if target_button:
+		target_button.grab_focus()
+		print("🎴 BaseChanceCardScene: фокус установлен на кнопку %s" % target_button.name)
+	
 	# Восстанавливаем input
 	background.mouse_filter = Control.MOUSE_FILTER_STOP
 	if use_button:
@@ -231,6 +243,19 @@ func hide_card():
 	else:
 		# Без анимации - просто скрываем
 		_actually_hide_card()
+
+## Установить фокус на кнопку (для навигатора)
+func _focus_button_for_navigator():
+	"""Установить фокус на кнопку (вызывается из навигатора)"""
+	var target_button: Button = null
+	if use_button and use_button.visible:
+		target_button = use_button
+	elif close_button and close_button.visible:
+		target_button = close_button
+	
+	if target_button:
+		target_button.grab_focus()
+		print("🎴 BaseChanceCardScene: фокус установлен на кнопку %s (из навигатора)" % target_button.name)
 
 ## Фактическое скрытие карты (вызывается после анимации или сразу)
 func _actually_hide_card():
