@@ -1,13 +1,2 @@
-res://scripts/GameController.gd
-res://scripts/ui/PayButton.gd
-res://scenes/Game.tscn
-res://scripts/GuestMenuScene.gd
-res://scripts/PayoutOverlay.gd
-res://scripts/ui/GuestMenuKeyboardNavigator.gd
-res://scenes/GuestMenuScene.tscn
-res://scripts/ui/PayoutKeyboardNavigator.gd
-res://scripts/ui/GuestEventHandler.gd
-res://scripts/ui/PayoutOverlayPaymentHandler.gd
-res://scripts/ui/PayoutOverlayStateManager.gd
-res://resources/CameraConfig.gd
 res://scripts/SettingsScene.gd
+res://scenes/Game.tscn

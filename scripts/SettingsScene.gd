@@ -397,57 +397,57 @@ func _setup_keyboard_navigation():
 		# Classic → Junket (влево)
 		classic_button.focus_neighbor_left = junket_button.get_path()
 		# Junket → BetPlayer (вниз)
-		junket_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else ""
+		junket_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else NodePath("")
 		# Classic → BetPlayer (вниз)
-		classic_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else ""
+		classic_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else NodePath("")
 	
 	# СРЕДНЯЯ КОЛОНКА: Фильтр ставок
 	if bet_player_button:
 		# BetPlayer → Junket (вверх)
-		bet_player_button.focus_neighbor_top = junket_button.get_path() if junket_button else ""
+		bet_player_button.focus_neighbor_top = junket_button.get_path() if junket_button else NodePath("")
 		# BetPlayer → BetBanker (вниз)
-		bet_player_button.focus_neighbor_bottom = bet_banker_button.get_path() if bet_banker_button else ""
+		bet_player_button.focus_neighbor_bottom = bet_banker_button.get_path() if bet_banker_button else NodePath("")
 		# BetPlayer → TipPercentageSpinBox (вправо)
-		bet_player_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+		bet_player_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
 	
 	if bet_banker_button:
 		# BetBanker → BetPlayer (вверх)
-		bet_banker_button.focus_neighbor_top = bet_player_button.get_path() if bet_player_button else ""
+		bet_banker_button.focus_neighbor_top = bet_player_button.get_path() if bet_player_button else NodePath("")
 		# BetBanker → BetTie (вниз)
-		bet_banker_button.focus_neighbor_bottom = bet_tie_button.get_path() if bet_tie_button else ""
+		bet_banker_button.focus_neighbor_bottom = bet_tie_button.get_path() if bet_tie_button else NodePath("")
 		# BetBanker → TipPercentageSpinBox (вправо)
-		bet_banker_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+		bet_banker_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
 	
 	if bet_tie_button:
 		# BetTie → BetBanker (вверх)
-		bet_tie_button.focus_neighbor_top = bet_banker_button.get_path() if bet_banker_button else ""
+		bet_tie_button.focus_neighbor_top = bet_banker_button.get_path() if bet_banker_button else NodePath("")
 		# BetTie → BetPair (вниз)
-		bet_tie_button.focus_neighbor_bottom = bet_pair_button.get_path() if bet_pair_button else ""
+		bet_tie_button.focus_neighbor_bottom = bet_pair_button.get_path() if bet_pair_button else NodePath("")
 		# BetTie → RuButton (вправо)
-		bet_tie_button.focus_neighbor_right = ru_button.get_path() if ru_button else ""
+		bet_tie_button.focus_neighbor_right = ru_button.get_path() if ru_button else NodePath("")
 	
 	if bet_pair_button:
 		# BetPair → BetTie (вверх)
-		bet_pair_button.focus_neighbor_top = bet_tie_button.get_path() if bet_tie_button else ""
+		bet_pair_button.focus_neighbor_top = bet_tie_button.get_path() if bet_tie_button else NodePath("")
 		# BetPair → GuestSettingsButton (вниз)
-		bet_pair_button.focus_neighbor_bottom = guest_settings_button.get_path() if guest_settings_button else ""
+		bet_pair_button.focus_neighbor_bottom = guest_settings_button.get_path() if guest_settings_button else NodePath("")
 		# BetPair → RuButton (вправо)
-		bet_pair_button.focus_neighbor_right = ru_button.get_path() if ru_button else ""
+		bet_pair_button.focus_neighbor_right = ru_button.get_path() if ru_button else NodePath("")
 	
 	if guest_settings_button:
 		# GuestSettingsButton → BetPair (вверх)
-		guest_settings_button.focus_neighbor_top = bet_pair_button.get_path() if bet_pair_button else ""
+		guest_settings_button.focus_neighbor_top = bet_pair_button.get_path() if bet_pair_button else NodePath("")
 		# GuestSettingsButton → ApplyButton (вниз)
-		guest_settings_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else ""
+		guest_settings_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else NodePath("")
 		# GuestSettingsButton → TigerButton (вправо)
-		guest_settings_button.focus_neighbor_right = tiger_button.get_path() if tiger_button else ""
+		guest_settings_button.focus_neighbor_right = tiger_button.get_path() if tiger_button else NodePath("")
 	
 	# ПРАВАЯ КОЛОНКА: Чаевые, Язык, Рубашка
 	if tip_percentage_spinbox:
 		# TipPercentageSpinBox → BetPlayer (влево)
-		tip_percentage_spinbox.focus_neighbor_left = bet_player_button.get_path() if bet_player_button else ""
+		tip_percentage_spinbox.focus_neighbor_left = bet_player_button.get_path() if bet_player_button else NodePath("")
 		# TipPercentageSpinBox → RuButton (вниз)
-		tip_percentage_spinbox.focus_neighbor_bottom = ru_button.get_path() if ru_button else ""
+		tip_percentage_spinbox.focus_neighbor_bottom = ru_button.get_path() if ru_button else NodePath("")
 	
 	if ru_button and en_button:
 		# RuButton → EnButton (вправо)
@@ -455,13 +455,13 @@ func _setup_keyboard_navigation():
 		# EnButton → RuButton (влево)
 		en_button.focus_neighbor_left = ru_button.get_path()
 		# RuButton → TipPercentageSpinBox (вверх)
-		ru_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+		ru_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
 		# EnButton → TipPercentageSpinBox (вверх)
-		en_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else ""
+		en_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
 		# RuButton → TigerButton (вниз)
-		ru_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else ""
+		ru_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else NodePath("")
 		# EnButton → TigerButton (вниз)
-		en_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else ""
+		en_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else NodePath("")
 	
 	if tiger_button and leopard_button:
 		# TigerButton → LeopardButton (вправо)
@@ -469,19 +469,19 @@ func _setup_keyboard_navigation():
 		# LeopardButton → TigerButton (влево)
 		leopard_button.focus_neighbor_left = tiger_button.get_path()
 		# TigerButton → RuButton (вверх)
-		tiger_button.focus_neighbor_top = ru_button.get_path() if ru_button else ""
+		tiger_button.focus_neighbor_top = ru_button.get_path() if ru_button else NodePath("")
 		# LeopardButton → RuButton (вверх)
-		leopard_button.focus_neighbor_top = ru_button.get_path() if ru_button else ""
+		leopard_button.focus_neighbor_top = ru_button.get_path() if ru_button else NodePath("")
 		# TigerButton → TestCardsButton (вниз)
-		tiger_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else ""
+		tiger_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else NodePath("")
 		# LeopardButton → TestCardsButton (вниз)
-		leopard_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else ""
+		leopard_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else NodePath("")
 	
 	if test_cards_button:
 		# TestCardsButton → TigerButton (вверх)
-		test_cards_button.focus_neighbor_top = tiger_button.get_path() if tiger_button else ""
+		test_cards_button.focus_neighbor_top = tiger_button.get_path() if tiger_button else NodePath("")
 		# TestCardsButton → ApplyButton (вниз)
-		test_cards_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else ""
+		test_cards_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else NodePath("")
 	
 	# КНОПКА ПРИМЕНЕНИЯ
 	if apply_button:
