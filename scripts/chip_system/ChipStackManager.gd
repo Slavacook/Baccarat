@@ -191,6 +191,13 @@ func get_stack_count() -> int:
 func is_empty() -> bool:
 	return chip_stacks.is_empty()
 
+# ← Проверить, есть ли стек с указанным номиналом
+func has_stack(denomination: float) -> bool:
+	for stack in chip_stacks:
+		if stack.denomination == denomination:
+			return true
+	return false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - УПРАВЛЕНИЕ СЛОТАМИ
 # ═══════════════════════════════════════════════════════════════════════════

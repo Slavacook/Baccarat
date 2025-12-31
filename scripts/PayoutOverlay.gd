@@ -305,7 +305,9 @@ func _on_chip_button_input(event: InputEvent, denomination: float):
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_RIGHT:
 		# Сбрасываем клавиатурную навигацию при клике мышью
 		keyboard_navigator.clear_focus()
-		stack_manager.remove_chip(denomination)
+		# Проверяем, есть ли стек с таким номиналом перед удалением
+		if stack_manager.has_stack(denomination):
+			stack_manager.remove_chip(denomination)
 
 # ← Обработчик добавления новой стопки (подключаем обработчик кликов)
 func _on_stack_added(stack: ChipStack, _index: int):
