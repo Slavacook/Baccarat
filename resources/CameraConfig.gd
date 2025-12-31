@@ -10,9 +10,9 @@ class_name CameraConfig
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЩЕГО ПЛАНА
-var general_position: Vector2 = Vector2(570, 400)
+var general_position: Vector2 = Vector2(570, 50)
 # Масштаб камеры для общего плана
-var general_zoom: Vector2 = Vector2(0.4, 0.4)
+var general_zoom: Vector2 = Vector2(0.28, 0.28)
 var general_description: String = "Показывает весь стол"
 
 # ═══════════════════════════════════════════════════════════════════════════
