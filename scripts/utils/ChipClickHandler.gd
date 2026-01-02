@@ -246,11 +246,11 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 			var guest_id = sector
 			var patience_before = GuestStatsManager.get_guest_patience(guest_id)
 			
-			# Уменьшаем терпение на 10%
-			GuestStatsManager.decrease_patience(guest_id, 10)
+			# Уменьшаем терпение на 20%
+			GuestStatsManager.decrease_patience(guest_id, 20)
 			var patience_after = GuestStatsManager.get_guest_patience(guest_id)
 			
-			DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-10%%) из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, patience_before, patience_after, bet_type, position_index])
+			DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-20%%) из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, patience_before, patience_after, bet_type, position_index])
 			
 			# Определяем штраф в зависимости от терпения ДО уменьшения
 			if patience_before == 100:

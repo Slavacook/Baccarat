@@ -1,5 +1,9 @@
-res://scripts/chance_cards/ChanceCardNavigator.gd
+res://scripts/GamePhaseManager.gd
 res://scenes/Game.tscn
-res://scripts/GameController.gd
 res://scripts/PayoutOverlay.gd
-res://scripts/chip_system/ChipStackManager.gd
+res://scripts/ui/PayoutOverlayStyleManager.gd
+res://scripts/ui/PayoutKeyboardNavigator.gd
+res://scripts/autoload/PatienceTimerManager.gd
+res://scripts/ui/FeedbackTypes.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/utils/ChipClickHandler.gd

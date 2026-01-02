@@ -384,7 +384,7 @@ func _update_indicator(guest_id: int):
 		var timer_remaining = 0
 		if PatienceTimerManager.has_active_timer(guest_id):
 			timer_remaining = PatienceTimerManager.get_remaining_time(guest_id)
-			# Форматируем время: минуты и секунды для таймера 5 минут
+			# Форматируем время: минуты и секунды для таймера 10 минут
 			var minutes = int(float(timer_remaining) / 60.0)
 			var seconds = timer_remaining % 60
 			if minutes > 0:

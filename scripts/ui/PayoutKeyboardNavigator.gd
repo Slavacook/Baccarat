@@ -366,4 +366,3 @@ func _on_hint_button_mouse_input(event: InputEvent) -> void:
 	"""Обработка ввода мыши на кнопке подсказки"""
 	if event is InputEventMouseButton and event.pressed:
 		clear_focus()
-

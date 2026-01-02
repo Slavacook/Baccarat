@@ -10,7 +10,7 @@ extends RefCounted
 
 enum Type {
 	TIPS,      # "+100 ЧАЕВЫЕ" - зеленый
-	PATIENCE,  # "-10% Терпение. Гость 1" - красный
+	PATIENCE,  # "-20% Терпение. Гость 1" - красный
 	HEART,     # "-1 Сердце" - красный
 	PENALTY    # "ШТРАФ НА ЧАЕВЫЕ: 100" - оранжевый
 }
@@ -28,7 +28,7 @@ const CONFIGS = {
 	Type.PATIENCE: {
 		"color": Color(0.9, 0.2, 0.2),  # Красный
 		"duration": 2.0,
-		"format": "-10%% Терпение. Гость %d"
+		"format": "-20%% Терпение. Гость %d"
 	},
 	Type.HEART: {
 		"color": Color(0.9, 0.2, 0.2),  # Красный

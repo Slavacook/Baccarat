@@ -238,4 +238,3 @@ func _setup_fleet_panel_style():
 func _setup_chip_fleet_container_style():
 	"""Стилизация контейнера кнопок фишек"""
 	chip_fleet_container.add_theme_constant_override("separation", 10)
-

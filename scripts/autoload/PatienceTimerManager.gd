@@ -1,6 +1,6 @@
 # res://scripts/autoload/PatienceTimerManager.gd
 # Autoload синглтон для управления таймерами терпения гостей
-# Каждый гость имеет таймер: всегда 5 минут, восстанавливает терпение на 10 очков (увеличивает)
+# Каждый гость имеет таймер: всегда 10 минут, восстанавливает терпение на 10 очков (увеличивает)
 
 extends Node
 
@@ -18,7 +18,7 @@ signal timer_expired(guest_id: int)
 # Ключ: guest_id (int), Значение: {"started_at": int (msec), "duration": int (msec)}
 var active_timers: Dictionary = {}
 
-const TIMER_DURATION_MSEC: int = 300000  # 300 секунд = 5 минут
+const TIMER_DURATION_MSEC: int = 600000  # 600 секунд = 10 минут
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -35,7 +35,7 @@ func _ready():
 # ═══════════════════════════════════════════════════════════════════════════
 
 ## Запустить таймер для гостя
-## Отменяет старый таймер (если есть) и создает новый на 5 минут
+## Отменяет старый таймер (если есть) и создает новый на 10 минут
 func start_timer(guest_id: int) -> void:
 	if guest_id < 1 or guest_id > 6:
 		push_error("PatienceTimerManager: неверный guest_id %d" % guest_id)
@@ -57,13 +57,13 @@ func start_timer(guest_id: int) -> void:
 	if active_timers.has(guest_id):
 		print("⏱️  Гость %d: отменен предыдущий таймер (новая ошибка)" % guest_id)
 	
-	# Создаем новый таймер на 5 минут
+	# Создаем новый таймер на 10 минут
 	var started_at = Time.get_ticks_msec()
 	active_timers[guest_id] = {
 		"started_at": started_at,
 		"duration": TIMER_DURATION_MSEC
 	}
-	print("⏱️  Гость %d: запущен таймер терпения (5 минут, терпение=%d)" % [guest_id, current_patience])
+	print("⏱️  Гость %d: запущен таймер терпения (10 минут, терпение=%d)" % [guest_id, current_patience])
 
 ## Остановить таймер гостя
 func stop_timer(guest_id: int) -> void:

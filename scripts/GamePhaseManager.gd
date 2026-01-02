@@ -1550,6 +1550,104 @@ func _handle_invalid_card_selection_in_final(instructions: Dictionary = {}) -> v
 	ui.update_banker_third_card_ui("?")
 
 
+func _apply_penalties_for_unpaid_bets() -> void:
+	"""Применить штрафы за неоплаченные выигрышные ставки
+	
+	Для каждой неоплаченной ставки:
+	- Уменьшает терпение гостя на -20%
+	- Штрафует на -100 чаевых
+	- Если чаевые заканчиваются, отнимает максимум 1 сердце
+	"""
+	if not payout_queue_manager:
+		return
+	
+	# Получаем все неоплаченные выигрышные ставки
+	var unpaid_bets = payout_queue_manager.get_unpaid_winning_bets()
+	if unpaid_bets.is_empty():
+		return
+	
+	# Фильтруем ставки, исключая Tie push (если есть bet_collection_manager)
+	var filtered_unpaid_bets: Array = []
+	for bet in unpaid_bets:
+		if bet_collection_manager:
+			var bet_type = bet.get_bet_type()
+			if bet_collection_manager.is_tie_push_bet(bet_type):
+				continue  # Пропускаем Tie push ставки
+		filtered_unpaid_bets.append(bet)
+	
+	if filtered_unpaid_bets.is_empty():
+		return
+	
+	DebugLogger.log_separator("ПРИМЕНЕНИЕ ШТРАФОВ ЗА НЕОПЛАЧЕННЫЕ СТАВКИ")
+	DebugLogger.log("  Неоплаченных ставок: %d" % filtered_unpaid_bets.size())
+	
+	var total_tip_penalty = 0
+	
+	# Словарь для группировки штрафов по гостям (для логирования)
+	var penalties_by_guest: Dictionary = {}  # {guest_id: {patience: int, tips: int, bets: Array}}
+	
+	# Применяем штрафы к каждой неоплаченной ставке
+	for bet in filtered_unpaid_bets:
+		var bet_type = bet.get_bet_type()
+		var position_index = bet.get_position_index()
+		
+		# Определяем гостя по position_index и bet_type
+		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+		
+		# Пропускаем не гостевые ставки
+		if sector < 1 or sector > 6:
+			DebugLogger.log("  ⚠️ Ставка %s[%d] не является гостевой, пропускаем" % [bet_type, position_index])
+			continue
+		
+		var guest_id = sector
+		
+		# Инициализируем словарь для гостя если нужно
+		if not penalties_by_guest.has(guest_id):
+			penalties_by_guest[guest_id] = {
+				"patience": 0,
+				"tips": 0,
+				"bets": []
+			}
+		
+		# Уменьшаем терпение гостя на -20% за каждую ставку
+		GuestStatsManager.decrease_patience(guest_id, 20)
+		penalties_by_guest[guest_id].patience += 20
+		penalties_by_guest[guest_id].bets.append("%s[%d]" % [bet_type, position_index])
+		
+		# Штрафуем на -100 чаевых за каждую ставку
+		var tip_penalty = 100
+		total_tip_penalty += tip_penalty
+		penalties_by_guest[guest_id].tips += tip_penalty
+		
+		DebugLogger.log("  💸 Гость %d: -20%% терпения, -100 чаевых за ставку %s[%d]" % [guest_id, bet_type, position_index])
+	
+	# Логируем итоги по каждому гостю
+	for guest_id in penalties_by_guest.keys():
+		var penalty_data = penalties_by_guest[guest_id]
+		DebugLogger.log("  👤 Гость %d: итого -%d%% терпения, -%d чаевых (%d ставок: %s)" % [
+			guest_id,
+			penalty_data.patience,
+			penalty_data.tips,
+			penalty_data.bets.size(),
+			str(penalty_data.bets)
+		])
+	
+	# Применяем штрафы к чаевым
+	if total_tip_penalty > 0:
+		var tips_before = SaveManager.instance.score
+		SaveManager.instance.subtract_score(total_tip_penalty)
+		var tips_after = SaveManager.instance.score
+		
+		DebugLogger.log("  💰 Чаевые: %d → %d (-%d)" % [tips_before, tips_after, total_tip_penalty])
+		
+		# Если чаевые закончились (стали 0) из-за штрафа, отнимаем максимум 1 сердце
+		if tips_before > 0 and tips_after == 0 and total_tip_penalty > tips_before:
+			EventBus.action_error.emit("unpaid_bets_heart_penalty", "")
+			DebugLogger.log("  ❌ Чаевые закончились - отнимается 1 сердце (было %d, штраф %d)" % [tips_before, total_tip_penalty])
+	
+	DebugLogger.log_separator("ШТРАФЫ ПРИМЕНЕНЫ")
+
+
 func _can_complete_round() -> bool:
 	"""Проверка возможности завершения раунда (нет неоплаченных ставок)
 
@@ -1566,6 +1664,16 @@ func _can_complete_round() -> bool:
 		var error_type = completion_check.get("error_type", "")
 		var reasons = completion_check.get("reasons", [])
 		
+		# Если есть неоплаченные выигрышные ставки - применяем штрафы вместо отнятия сердца
+		if error_type == "unpaid_bets" or (error_type == "incomplete_bets" and reasons.has("unpaid_winnings")):
+			_apply_penalties_for_unpaid_bets()
+			if not error_key.is_empty():
+				EventBus.show_toast_error.emit(Localization.t(error_key))
+			ui.disable_action_button()
+			DebugLogger.log("🔒 Кнопка 'Завершить' дезактивирована (причины: %s)" % str(reasons))
+			return false
+		
+		# Для других ошибок - обычная логика (отнимаем сердце)
 		if not error_key.is_empty():
 			EventBus.show_toast_error.emit(Localization.t(error_key))
 		EventBus.action_error.emit(error_type, error_key)
