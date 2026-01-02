@@ -10,6 +10,16 @@ extends Node
 
 signal guest_balance_changed(guest_id: int, new_balance: float)
 signal guest_patience_changed(guest_id: int, new_patience: int)
+signal guest_left(guest_id: int)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# КОНСТАНТЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Начальные балансы по статусу богатства
+const POOR_BALANCE: float = 300000.0    # Бедный
+const MEDIUM_BALANCE: float = 700000.0   # Средний
+const RICH_BALANCE: float = 1500000.0    # Богатый
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -18,6 +28,10 @@ signal guest_patience_changed(guest_id: int, new_patience: int)
 # Баланс 6 гостей (индекс 0-5 соответствует гостю 1-6)
 # Баланс может быть отрицательным (проигрыш) или положительным (выигрыш)
 var guest_balances: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+# Начальные балансы 6 гостей (индекс 0-5 соответствует гостю 1-6)
+# Используется для расчета изменения баланса
+var guest_initial_balances: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # Терпение 6 гостей (индекс 0-5 соответствует гостю 1-6)
 # Терпение 0-100 (100 = полное терпение/спокоен, 0 = нет терпения/раздражен)
@@ -31,6 +45,10 @@ var guest_patience: Array[int] = [100, 100, 100, 100, 100, 100]
 func _ready():
 	# Загружаем сохранённые балансы
 	_load_stats()
+	
+	# Инициализируем балансы всех включенных гостей
+	_initialize_all_enabled_guests()
+	
 	print("💰 GuestStatsManager загружен: балансы %d гостей" % guest_balances.size())
 	
 	# Подписываемся на событие рестарта игры для сброса терпения
@@ -94,6 +112,105 @@ func get_balance_string(guest_id: int) -> String:
 		return "+%.0f" % balance
 	else:
 		return "%.0f" % balance
+
+# ═══════════════════════════════════════════════════════════════════════════
+# МЕТОДЫ РАБОТЫ С НАЧАЛЬНЫМИ БАЛАНСАМИ
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ← Инициализировать баланс гостя по статусу богатства
+func initialize_guest_balance(guest_id: int) -> void:
+	if guest_id < 1 or guest_id > 6:
+		push_error("GuestStatsManager: неверный guest_id %d" % guest_id)
+		return
+	
+	if not GuestSettingsManager:
+		push_error("GuestStatsManager: GuestSettingsManager не найден!")
+		return
+	
+	# Получаем статус богатства гостя
+	var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
+	var initial_balance: float = 0.0
+	
+	match wealth:
+		GuestSettingsManager.GuestWealth.POOR:
+			initial_balance = POOR_BALANCE
+		GuestSettingsManager.GuestWealth.MEDIUM:
+			initial_balance = MEDIUM_BALANCE
+		GuestSettingsManager.GuestWealth.RICH:
+			initial_balance = RICH_BALANCE
+		_:
+			initial_balance = MEDIUM_BALANCE  # По умолчанию средний
+	
+	# Устанавливаем начальный баланс
+	guest_initial_balances[guest_id - 1] = initial_balance
+	set_guest_balance(guest_id, initial_balance)
+	
+	print("💰 Гость %d: начальный баланс установлен = %.0f (статус: %s)" % [guest_id, initial_balance, GuestSettingsManager.GuestWealth.keys()[wealth]])
+
+# ← Получить начальный баланс гостя
+func get_initial_balance(guest_id: int) -> float:
+	if guest_id < 1 or guest_id > 6:
+		push_error("GuestStatsManager: неверный guest_id %d (должен быть 1-6)" % guest_id)
+		return 0.0
+	return guest_initial_balances[guest_id - 1]
+
+# ← Получить изменение баланса (текущий - начальный)
+func get_balance_change(guest_id: int) -> float:
+	if guest_id < 1 or guest_id > 6:
+		push_error("GuestStatsManager: неверный guest_id %d (должен быть 1-6)" % guest_id)
+		return 0.0
+	
+	var current_balance = get_guest_balance(guest_id)
+	var initial_balance = get_initial_balance(guest_id)
+	return current_balance - initial_balance
+
+# ← Проверить балансы всех гостей в конце раунда
+func check_guests_balance_at_round_end() -> void:
+	"""Проверяет всех включенных гостей и выключает тех, кто ушел в минус"""
+	if not GuestSettingsManager:
+		push_error("GuestStatsManager: GuestSettingsManager не найден!")
+		return
+	
+	if not GuestReturnManager:
+		push_error("GuestStatsManager: GuestReturnManager не найден!")
+		return
+	
+	# Получаем текущий номер раунда
+	var current_round = GuestReturnManager.get_current_round()
+	
+	# Проверяем всех включенных гостей
+	for guest_id in range(1, 7):
+		if not GuestSettingsManager.is_guest_enabled(guest_id):
+			continue  # Пропускаем выключенных гостей
+		
+		var balance = get_guest_balance(guest_id)
+		
+		# Если баланс отрицательный - выключаем гостя
+		if balance < 0:
+			# Выключаем гостя
+			GuestSettingsManager.set_guest_enabled(guest_id, false)
+			
+			# Отмечаем в GuestReturnManager
+			GuestReturnManager.mark_guest_left(guest_id, current_round)
+			
+			# Эмитим сигнал
+			guest_left.emit(guest_id)
+			
+			print("👋 Гость %d ушел в минус (баланс: %.0f)" % [guest_id, balance])
+
+# ← Инициализировать балансы всех включенных гостей
+func _initialize_all_enabled_guests() -> void:
+	"""Инициализирует балансы всех включенных гостей при загрузке"""
+	if not GuestSettingsManager:
+		push_error("GuestStatsManager: GuestSettingsManager не найден!")
+		return
+	
+	for guest_id in range(1, 7):
+		if GuestSettingsManager.is_guest_enabled(guest_id):
+			# Проверяем, был ли баланс уже инициализирован
+			# Если начальный баланс = 0, значит еще не инициализирован
+			if get_initial_balance(guest_id) == 0.0:
+				initialize_guest_balance(guest_id)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ РАБОТЫ С ТЕРПЕНИЕМ
@@ -180,10 +297,15 @@ func _on_payout_wrong(_collected: float, _expected: float, bet_type: String, pos
 	print("😤 Гость %d: терпение уменьшено на 10 из-за неправильной выплаты %s[%d]" % [guest_id, bet_type, position_index])
 
 func _on_game_restarted() -> void:
-	"""Обработчик рестарта игры - сбрасываем все терпения"""
+	"""Обработчик рестарта игры - сбрасываем все терпения и балансы"""
 	reset_all_patience()
 	if PatienceTimerManager:
 		PatienceTimerManager.reset_all_timers()
+	
+	# Сбрасываем начальные балансы и переинициализируем включенных гостей
+	for i in range(6):
+		guest_initial_balances[i] = 0.0
+	_initialize_all_enabled_guests()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОХРАНЕНИЕ/ЗАГРУЗКА

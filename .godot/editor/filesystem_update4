@@ -7,3 +7,7 @@ res://scripts/autoload/PatienceTimerManager.gd
 res://scripts/ui/FeedbackTypes.gd
 res://scripts/ui/GuestPatienceIndicatorManager.gd
 res://scripts/utils/ChipClickHandler.gd
+res://scripts/ToastManager.gd
+res://scripts/autoload/GuestSettingsManager.gd
+res://scripts/autoload/GuestStatsManager.gd
+res://scripts/ui/GuestBalanceIndicatorManager.gd

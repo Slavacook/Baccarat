@@ -100,6 +100,15 @@ func set_guest_enabled(guest_id: int, enabled: bool) -> void:
 	_save_settings()
 	guest_settings_changed.emit(guest_id)
 	print("👥 Гость %d: %s" % [guest_id, "включён" if enabled else "выключен"])
+	
+	# Управление балансом при включении/выключении
+	if GuestStatsManager:
+		if enabled:
+			# При включении - инициализируем начальный баланс
+			GuestStatsManager.initialize_guest_balance(guest_id)
+		else:
+			# При выключении - сбрасываем баланс
+			GuestStatsManager.reset_guest_balance(guest_id)
 
 # ← Установить характер гостя
 func set_guest_character(guest_id: int, character: GuestCharacter) -> void:
@@ -122,6 +131,10 @@ func set_guest_wealth(guest_id: int, wealth: GuestWealth) -> void:
 	_save_settings()
 	guest_settings_changed.emit(guest_id)
 	print("👥 Гость %d: обеспеченность = %s" % [guest_id, GuestWealth.keys()[wealth]])
+	
+	# Переинициализируем баланс при изменении статуса богатства
+	if GuestStatsManager:
+		GuestStatsManager.initialize_guest_balance(guest_id)
 
 # ← Получить список активных гостей (возвращает массив guest_id: 1-6)
 func get_active_guests() -> Array[int]:

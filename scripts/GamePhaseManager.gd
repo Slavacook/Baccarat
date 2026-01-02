@@ -1711,6 +1711,10 @@ func _complete_round_and_prepare_new_game() -> void:
 	
 	DebugLogger.log_separator("ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
 	
+	# Проверяем балансы гостей и выключаем тех, кто ушел в минус
+	if GuestStatsManager:
+		GuestStatsManager.check_guests_balance_at_round_end()
+	
 	var result = table_preparation_executor.execute_preparation_actions(
 		instructions,
 		resolve_heart_bet,  # Callable для разрешения Heart Bet

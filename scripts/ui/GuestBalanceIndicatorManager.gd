@@ -66,7 +66,7 @@ func _create_indicator(guest_id: int):
 	panel_style.corner_radius_bottom_left = 5
 	panel_style.corner_radius_bottom_right = 5
 	panel.add_theme_stylebox_override("panel", panel_style)
-	panel.size = Vector2(200, 50)  # Размер панели для баланса
+	panel.size = Vector2(200, 70)  # Размер панели для баланса (увеличен для двух полей)
 	indicator.add_child(panel)
 	
 	# Создаем VBoxContainer для содержимого
@@ -82,19 +82,35 @@ func _create_indicator(guest_id: int):
 	var balance_label = Label.new()
 	balance_label.name = "BalanceLabel"
 	balance_label.text = "Баланс"
-	balance_label.add_theme_font_size_override("font_size", 12)
+	balance_label.add_theme_font_size_override("font_size", 11)
 	balance_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	vbox.add_child(balance_label)
 	
-	# Создаем Label для суммы баланса
+	# Создаем Label для абсолютного значения баланса
 	var amount_label = Label.new()
 	amount_label.name = "AmountLabel"
 	amount_label.text = "0"
-	amount_label.add_theme_font_size_override("font_size", 14)
+	amount_label.add_theme_font_size_override("font_size", 13)
 	amount_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	# Цвет зависит от знака (зеленый для положительного, красный для отрицательного)
 	amount_label.modulate = Color(1.0, 1.0, 1.0)  # По умолчанию белый
 	vbox.add_child(amount_label)
+	
+	# Создаем Label для текста "Изменение"
+	var change_header_label = Label.new()
+	change_header_label.name = "ChangeHeaderLabel"
+	change_header_label.text = "Изменение"
+	change_header_label.add_theme_font_size_override("font_size", 11)
+	change_header_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	vbox.add_child(change_header_label)
+	
+	# Создаем Label для изменения баланса
+	var change_label = Label.new()
+	change_label.name = "ChangeLabel"
+	change_label.text = "0"
+	change_label.add_theme_font_size_override("font_size", 13)
+	change_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	change_label.modulate = Color(1.0, 1.0, 1.0)  # По умолчанию белый
+	vbox.add_child(change_label)
 	
 	# Добавляем в родительский узел
 	if parent_node:
@@ -186,26 +202,34 @@ func _update_indicator(guest_id: int):
 		return
 	
 	var amount_label = vbox.get_node_or_null("AmountLabel")
+	var change_label = vbox.get_node_or_null("ChangeLabel")
 	
-	# Получаем баланс гостя
+	# Получаем баланс гостя и изменение
 	var balance = GuestStatsManager.get_guest_balance(guest_id)
+	var balance_change = GuestStatsManager.get_balance_change(guest_id)
 	
-	# Обновляем сумму баланса
+	# Обновляем абсолютное значение баланса
 	if amount_label:
-		# Форматируем баланс
-		var balance_text: String
-		if balance >= 0:
-			balance_text = "+%.0f" % balance
-			# Зеленый цвет для положительного баланса
-			amount_label.modulate = Color(0.5, 1.0, 0.5)
-		else:
-			balance_text = "%.0f" % balance
-			# Красный цвет для отрицательного баланса
-			amount_label.modulate = Color(1.0, 0.5, 0.5)
-		
-		amount_label.text = balance_text
+		# Показываем абсолютное значение без знака
+		amount_label.text = "%.0f" % balance
+		amount_label.modulate = Color(1.0, 1.0, 1.0)  # Белый цвет для абсолютного значения
 	
-	# Текст "Баланс" всегда один и тот же, не обновляем
+	# Обновляем изменение баланса
+	if change_label:
+		# Форматируем изменение
+		var change_text: String
+		if balance_change >= 0:
+			change_text = "+%.0f" % balance_change
+			# Зеленый цвет для положительного изменения
+			change_label.modulate = Color(0.5, 1.0, 0.5)
+		else:
+			change_text = "%.0f" % balance_change
+			# Красный цвет для отрицательного изменения
+			change_label.modulate = Color(1.0, 0.5, 0.5)
+		
+		change_label.text = change_text
+	
+	# Тексты заголовков всегда одни и те же, не обновляем
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
