@@ -252,8 +252,8 @@ func _initialize_guest_nodes():
 			if not change_label:
 				change_label = Label.new()
 				change_label.name = "ChangeLabel%d" % guest_id
-				change_label.layout_mode = Control.LAYOUT_MODE_ANCHORS
 				# Используем абсолютные координаты, как у BalanceLabel
+				# layout_mode устанавливается автоматически при использовании offset
 				change_label.offset_left = 393.0
 				change_label.offset_top = 600.0
 				change_label.offset_right = 593.0
@@ -275,8 +275,8 @@ func _initialize_guest_nodes():
 			if not plus_button:
 				plus_button = Button.new()
 				plus_button.name = "BalancePlusButton%d" % guest_id
-				plus_button.layout_mode = Control.LAYOUT_MODE_ANCHORS
 				# Позиционируем справа от BalanceLabel (абсолютные координаты экрана)
+				# layout_mode устанавливается автоматически при использовании offset
 				plus_button.offset_left = 610.0
 				plus_button.offset_top = 544.0
 				plus_button.offset_right = 660.0
@@ -300,8 +300,8 @@ func _initialize_guest_nodes():
 			if not minus_button:
 				minus_button = Button.new()
 				minus_button.name = "BalanceMinusButton%d" % guest_id
-				minus_button.layout_mode = Control.LAYOUT_MODE_ANCHORS
 				# Позиционируем слева от BalanceLabel (абсолютные координаты экрана)
+				# layout_mode устанавливается автоматически при использовании offset
 				minus_button.offset_left = 330.0
 				minus_button.offset_top = 544.0
 				minus_button.offset_right = 380.0

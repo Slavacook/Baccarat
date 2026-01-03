@@ -5,9 +5,9 @@
 extends Node
 
 func _ready():
-	print("=" * 80)
+	print("=".repeat(80))
 	print("🧪 МАНУАЛЬНЫЙ ТЕСТ: PayoutOverlayUIBuilder")
-	print("=" * 80)
+	print("=".repeat(80))
 	print("")
 	print("📋 ЧЕКЛИСТ ДЛЯ ПРОВЕРКИ:")
 	print("")
@@ -44,6 +44,6 @@ func _ready():
 	print("   □ Проверить, что старые кнопки удалены")
 	print("   □ Проверить, что новые кнопки созданы с правильными номиналами")
 	print("")
-	print("=" * 80)
+	print("=".repeat(80))
 	print("✅ Если все пункты работают - рефакторинг успешен!")
-	print("=" * 80)
+	print("=".repeat(80))

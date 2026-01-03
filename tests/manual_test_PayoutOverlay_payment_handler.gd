@@ -5,9 +5,9 @@
 extends Node
 
 func _ready():
-	print("=" * 80)
+	print("=".repeat(80))
 	print("🧪 МАНУАЛЬНЫЙ ТЕСТ: PayoutOverlayPaymentHandler")
-	print("=" * 80)
+	print("=".repeat(80))
 	print("")
 	print("📋 ЧЕКЛИСТ ДЛЯ ПРОВЕРКИ:")
 	print("")
@@ -43,6 +43,6 @@ func _ready():
 	print("   □ Проверить, что правильная сумма = успех")
 	print("   □ Проверить, что неправильная сумма = ошибка")
 	print("")
-	print("=" * 80)
+	print("=".repeat(80))
 	print("✅ Если все пункты работают - рефакторинг успешен!")
-	print("=" * 80)
+	print("=".repeat(80))
