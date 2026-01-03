@@ -43,6 +43,9 @@ var dossier_textures: Array[TextureRect] = []
 
 # Label для баланса (внутри досье)
 var balance_labels: Array[Label] = []
+var change_labels: Array[Label] = []
+var balance_plus_buttons: Array[Button] = []
+var balance_minus_buttons: Array[Button] = []
 
 # Кликабельные зоны (Control узлы)
 var guest_slots: Array[Control] = []
@@ -174,7 +177,7 @@ func _initialize_text_updater():
 
 func _initialize_balance_renderer():
 	"""Инициализировать рендерер балансов"""
-	balance_renderer = GuestMenuBalanceRenderer.new(balance_labels)
+	balance_renderer = GuestMenuBalanceRenderer.new(balance_labels, change_labels)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ УЗЛОВ
@@ -187,6 +190,9 @@ func _initialize_guest_nodes():
 	hover_glow_textures.clear()
 	dossier_textures.clear()
 	balance_labels.clear()
+	change_labels.clear()
+	balance_plus_buttons.clear()
+	balance_minus_buttons.clear()
 	guest_slots.clear()
 	
 	for guest_id in range(1, 7):
@@ -218,9 +224,16 @@ func _initialize_guest_nodes():
 		var dossier = dossiers_layer.get_node_or_null("Dossier%d" % guest_id) as TextureRect
 		if dossier:
 			dossier_textures.append(dossier)
+			# Устанавливаем mouse_filter для dossier, чтобы клики проходили к дочерним элементам
+			dossier.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		else:
 			dossier_textures.append(null)
 			push_warning("GuestMenuScene: не найден Dossier%d" % guest_id)
+			# Если досье не найдено, добавляем null в массивы для сохранения индексов
+			change_labels.append(null)
+			balance_plus_buttons.append(null)
+			balance_minus_buttons.append(null)
+			continue
 		
 		# Label для баланса
 		var balance_label = dossiers_layer.get_node_or_null("Dossier%d/BalanceLabel%d" % [guest_id, guest_id]) as Label
@@ -232,10 +245,86 @@ func _initialize_guest_nodes():
 			balance_labels.append(null)
 			push_warning("GuestMenuScene: не найден BalanceLabel%d" % guest_id)
 		
+		# Создаем Label для изменения баланса (если еще не создан)
+		var change_label: Label = null
+		if dossier:
+			change_label = dossier.get_node_or_null("ChangeLabel%d" % guest_id) as Label
+			if not change_label:
+				change_label = Label.new()
+				change_label.name = "ChangeLabel%d" % guest_id
+				change_label.layout_mode = Control.LAYOUT_MODE_ANCHORS
+				# Используем абсолютные координаты, как у BalanceLabel
+				change_label.offset_left = 393.0
+				change_label.offset_top = 600.0
+				change_label.offset_right = 593.0
+				change_label.offset_bottom = 640.0
+				change_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				change_label.add_theme_font_size_override("font_size", 20)
+				change_label.text = "Изменение: +0"
+				change_label.modulate = Color(1.0, 1.0, 1.0)
+				change_label.visible = false  # Будет видимо только когда досье видимо
+				dossier.add_child(change_label)
+				print("✅ Создан ChangeLabel%d для гостя %d (родитель: %s)" % [guest_id, guest_id, dossier.name])
+		change_labels.append(change_label)
+		
+		# Создаем кнопки +/- для изменения баланса (если еще не созданы)
+		var plus_button: Button = null
+		if dossier and ui_layer:
+			# Ищем кнопку в UILayer (если уже создана)
+			plus_button = ui_layer.get_node_or_null("BalancePlusButton%d" % guest_id) as Button
+			if not plus_button:
+				plus_button = Button.new()
+				plus_button.name = "BalancePlusButton%d" % guest_id
+				plus_button.layout_mode = Control.LAYOUT_MODE_ANCHORS
+				# Позиционируем справа от BalanceLabel (абсолютные координаты экрана)
+				plus_button.offset_left = 610.0
+				plus_button.offset_top = 544.0
+				plus_button.offset_right = 660.0
+				plus_button.offset_bottom = 594.0
+				plus_button.text = "+"
+				plus_button.add_theme_font_size_override("font_size", 24)
+				plus_button.visible = false  # Будет видимо только когда досье видимо
+				plus_button.disabled = false
+				plus_button.mouse_filter = Control.MOUSE_FILTER_STOP
+				# Подключаем обработчики ДО добавления в дерево
+				plus_button.pressed.connect(_on_balance_plus_pressed.bind(guest_id))
+				plus_button.mouse_entered.connect(func(): print("🖱️ Мышь над кнопкой + гостя %d" % guest_id))
+				ui_layer.add_child(plus_button)
+				print("🔧 Кнопка + гостя %d добавлена в UILayer (parent=%s)" % [guest_id, ui_layer.name])
+		balance_plus_buttons.append(plus_button)
+		
+		var minus_button: Button = null
+		if dossier and ui_layer:
+			# Ищем кнопку в UILayer (если уже создана)
+			minus_button = ui_layer.get_node_or_null("BalanceMinusButton%d" % guest_id) as Button
+			if not minus_button:
+				minus_button = Button.new()
+				minus_button.name = "BalanceMinusButton%d" % guest_id
+				minus_button.layout_mode = Control.LAYOUT_MODE_ANCHORS
+				# Позиционируем слева от BalanceLabel (абсолютные координаты экрана)
+				minus_button.offset_left = 330.0
+				minus_button.offset_top = 544.0
+				minus_button.offset_right = 380.0
+				minus_button.offset_bottom = 594.0
+				minus_button.text = "-"
+				minus_button.add_theme_font_size_override("font_size", 24)
+				minus_button.visible = false  # Будет видимо только когда досье видимо
+				minus_button.disabled = false
+				minus_button.mouse_filter = Control.MOUSE_FILTER_STOP
+				# Подключаем обработчики ДО добавления в дерево
+				minus_button.pressed.connect(_on_balance_minus_pressed.bind(guest_id))
+				minus_button.mouse_entered.connect(func(): print("🖱️ Мышь над кнопкой - гостя %d" % guest_id))
+				ui_layer.add_child(minus_button)
+				print("🔧 Кнопка - гостя %d добавлена в UILayer (parent=%s)" % [guest_id, ui_layer.name])
+		balance_minus_buttons.append(minus_button)
+		
 		# Кликабельные зоны
 		var slot = clickable_zones_layer.get_node_or_null("GuestSlot%d" % guest_id) as Control
 		if slot:
 			guest_slots.append(slot)
+			# Устанавливаем mouse_filter = IGNORE для кликабельных зон, чтобы они не блокировали кнопки
+			# Но только если досье видимо (когда гость выбран)
+			# Это будет обновляться в _update_balance_elements_visibility
 		else:
 			guest_slots.append(null)
 			push_warning("GuestMenuScene: не найден GuestSlot%d" % guest_id)
@@ -305,6 +394,9 @@ func open_menu():
 	# Обновляем балансы
 	_update_all_balances()
 	
+	# Убеждаемся, что новые элементы видны вместе с досье
+	_update_balance_elements_visibility()
+	
 	# Показываем меню
 	show()
 	
@@ -344,6 +436,8 @@ func _update_all_guests_visibility():
 		return
 	
 	# Вычисляем визуальное состояние для всех гостей
+	# Обновляем видимость элементов баланса
+	_update_balance_elements_visibility()
 	var visual_states: Array[GuestUIVisualState] = []
 	for guest_id in range(1, 7):
 		var visual_state = _calculate_guest_visual_state(guest_id)
@@ -447,6 +541,48 @@ func _update_balance(guest_id: int):
 	"""Обновить баланс для одного гостя"""
 	if balance_renderer:
 		balance_renderer.update_balance(guest_id)
+
+func _update_balance_elements_visibility():
+	"""Обновить видимость элементов баланса (change_label, кнопки +/-) в соответствии с видимостью досье"""
+	if not menu_state:
+		return
+	
+	var selected_id = menu_state.get_selected_guest()
+	
+	for guest_id in range(1, 7):
+		var should_be_visible = (selected_id == guest_id)
+		
+		# Обновляем видимость change_label
+		var change_index = guest_id - 1
+		if change_index >= 0 and change_index < change_labels.size():
+			var change_label = change_labels[change_index]
+			if change_label:
+				change_label.visible = should_be_visible
+		
+		# Обновляем видимость кнопок
+		if change_index >= 0 and change_index < balance_plus_buttons.size():
+			var plus_button = balance_plus_buttons[change_index]
+			if plus_button:
+				plus_button.visible = should_be_visible
+				if should_be_visible:
+					print("👁️ Кнопка + видима для гостя %d (visible=%s, disabled=%s, mouse_filter=%d, size=%s, pos=%s)" % [
+						guest_id, plus_button.visible, plus_button.disabled, plus_button.mouse_filter, plus_button.size, plus_button.position
+					])
+		
+		if change_index >= 0 and change_index < balance_minus_buttons.size():
+			var minus_button = balance_minus_buttons[change_index]
+			if minus_button:
+				minus_button.visible = should_be_visible
+				if should_be_visible:
+					print("👁️ Кнопка - видима для гостя %d (visible=%s, disabled=%s, mouse_filter=%d, size=%s, pos=%s)" % [
+						guest_id, minus_button.visible, minus_button.disabled, minus_button.mouse_filter, minus_button.size, minus_button.position
+					])
+		
+		# Отключаем кликабельную зону гостя, когда досье видимо, чтобы кнопки работали
+		if change_index >= 0 and change_index < guest_slots.size():
+			var slot = guest_slots[change_index]
+			if slot:
+				slot.mouse_filter = Control.MOUSE_FILTER_IGNORE if should_be_visible else Control.MOUSE_FILTER_STOP
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ - HOVER
@@ -617,6 +753,34 @@ func _on_guest_settings_changed(guest_id: int):
 func _on_guest_balance_changed(guest_id: int, _new_balance: float):
 	"""Обработка изменения баланса гостя"""
 	_update_balance(guest_id)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ КНОПОК ИЗМЕНЕНИЯ БАЛАНСА (для тестирования)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _on_balance_plus_pressed(guest_id: int):
+	"""Обработка нажатия кнопки + для увеличения баланса"""
+	print("🔘 Кнопка + нажата для гостя %d" % guest_id)
+	if guest_id < 1 or guest_id > 6:
+		return
+	
+	# Увеличиваем баланс на 10000
+	var current_balance = GuestStatsManager.get_guest_balance(guest_id)
+	var new_balance = current_balance + 10000.0
+	GuestStatsManager.set_guest_balance(guest_id, new_balance)
+	print("💰 Тест: баланс гостя %d увеличен на 10000 (%.0f -> %.0f)" % [guest_id, current_balance, new_balance])
+
+func _on_balance_minus_pressed(guest_id: int):
+	"""Обработка нажатия кнопки - для уменьшения баланса"""
+	print("🔘 Кнопка - нажата для гостя %d" % guest_id)
+	if guest_id < 1 or guest_id > 6:
+		return
+	
+	# Уменьшаем баланс на 10000
+	var current_balance = GuestStatsManager.get_guest_balance(guest_id)
+	var new_balance = current_balance - 10000.0
+	GuestStatsManager.set_guest_balance(guest_id, new_balance)
+	print("💰 Тест: баланс гостя %d уменьшен на 10000 (%.0f -> %.0f)" % [guest_id, current_balance, new_balance])
 
 func _on_language_changed(_lang: String):
 	"""Обработка изменения языка"""
