@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://dvci1lc3qrbac"]
+[gd_scene load_steps=15 format=3 uid="uid://dvci1lc3qrbac"]
 
 [ext_resource type="Script" uid="uid://d3ov5kmwxvbem" path="res://scripts/SettingsScene.gd" id="1_8limm"]
 
@@ -55,6 +55,48 @@ corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_guest_button"]
+bg_color = Color(0.4, 0.3, 0.15, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.8, 0.65, 0.3, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0.6, 0.5, 0.2, 0.6)
+shadow_size = 6
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_guest_button_pressed"]
+bg_color = Color(0.35, 0.25, 0.12, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.7, 0.55, 0.25, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_guest_button_hover"]
+bg_color = Color(0.5, 0.4, 0.2, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.8, 0.4, 1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0.8, 0.65, 0.3, 0.8)
+shadow_size = 8
+shadow_offset = Vector2(0, 4)
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lang_button"]
 bg_color = Color(0.25, 0.25, 0.3, 1)
@@ -264,8 +306,13 @@ text = "Пары"
 layout_mode = 2
 
 [node name="GuestSettingsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
-custom_minimum_size = Vector2(0, 40)
+custom_minimum_size = Vector2(0, 50)
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
 text = "ГОСТИ"
 
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]

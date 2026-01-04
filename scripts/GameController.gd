@@ -198,7 +198,8 @@ func _ready():
 		# Сигналы heart_bet_show_ui, heart_bet_declined, heart_bet_round_complete
 		# перенесены в HeartBetController (подключаются в _connect_heart_bet_signals())
 		
-		# Настройки: включаем action_button при закрытии
+		# Настройки: скрываем/показываем UI элементы
+		EventBus.settings_opened.connect(_on_settings_opened)
 		EventBus.settings_closed.connect(_on_settings_closed)
 		
 		# Начало новой раздачи: увеличиваем счетчик раздач
@@ -960,6 +961,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			# Если меню закрыто, открываем его
 			if settings_scene:
 				settings_scene.open_settings()
+				# UI элементы будут скрыты через сигнал EventBus.settings_opened в _on_settings_opened()
 		get_viewport().set_input_as_handled()
 		return
 
@@ -982,13 +984,19 @@ func _on_settings_button_pressed():
 			# Защита от удаления ставок во время раздачи реализована в GuestEventHandler.handle_guest_settings_changed()
 			DebugLogger.log("  → Открываем настройки")
 			settings_scene.open_settings()
-			# Отключаем кнопку "Карты" чтобы случайно не нажать
-			# Напрямую disabled = true (не через disable_action_button который только для "complete")
-			if ui_manager and ui_manager.button_ui and ui_manager.button_ui.action_button:
-				ui_manager.button_ui.action_button.disabled = true
-				DebugLogger.log("⚙️ Кнопка 'Карты' отключена (настройки открыты)")
+			# UI элементы будут скрыты через сигнал EventBus.settings_opened в _on_settings_opened()
 	else:
 		DebugLogger.log("  ❌ ОШИБКА: settings_scene = null!")
+
+func _on_settings_opened():
+	"""Обработчик открытия настроек — скрываем UI элементы игры"""
+	# Отключаем кнопку "Карты" чтобы случайно не нажать
+	if ui_manager and ui_manager.button_ui and ui_manager.button_ui.action_button:
+		ui_manager.button_ui.action_button.disabled = true
+		DebugLogger.log("⚙️ Кнопка 'Карты' отключена (настройки открыты)")
+	
+	# Скрываем UI элементы игры
+	_hide_game_ui_elements()
 
 func _on_settings_closed():
 	"""Обработчик закрытия настроек — включаем кнопку 'Карты' обратно"""
@@ -996,6 +1004,131 @@ func _on_settings_closed():
 	if ui_manager and ui_manager.button_ui and ui_manager.button_ui.action_button:
 		ui_manager.button_ui.action_button.disabled = false
 		DebugLogger.log("⚙️ Настройки закрыты → кнопка 'Карты' включена")
+	
+	# Включаем обратно все UI элементы
+	_show_game_ui_elements()
+
+func _hide_game_ui_elements():
+	"""Скрыть UI элементы игры при открытии настроек"""
+	DebugLogger.log("⚙️ Начинаем скрытие UI элементов...")
+	
+	# Кнопка действия (начать/подтвердить/завершить)
+	if ui_manager and ui_manager.button_ui:
+		if ui_manager.button_ui.action_button:
+			ui_manager.button_ui.action_button.visible = false
+			DebugLogger.log("  ✅ action_button скрыта")
+		if ui_manager.button_ui.action_button_broken:
+			ui_manager.button_ui.action_button_broken.visible = false
+			DebugLogger.log("  ✅ action_button_broken скрыта")
+	
+	# Кнопка подсказки - проверяем в TopUI и в корне
+	var help_button = get_node_or_null("TopUI/HelpButton")
+	if not help_button:
+		help_button = get_node_or_null("HelpButton")
+	if help_button:
+		help_button.visible = false
+		DebugLogger.log("  ✅ help_button скрыта")
+	elif ui_manager and ui_manager.button_ui and ui_manager.button_ui.help_button:
+		ui_manager.button_ui.help_button.visible = false
+		DebugLogger.log("  ✅ help_button (из ui_manager) скрыта")
+	
+	# Сердца (SurvivalModeUI) - находится в TopUI
+	var survival = get_node_or_null("TopUI/SurvivalModeUI")
+	if survival:
+		survival.visible = false
+		DebugLogger.log("  ✅ SurvivalModeUI скрыта")
+	elif survival_ui:
+		survival_ui.visible = false
+		DebugLogger.log("  ✅ survival_ui скрыта")
+	
+	# Инвентарь с картами шансов
+	var chance_storage = get_node_or_null("TopUI/ChanceCardStorage")
+	if chance_storage:
+		chance_storage.visible = false
+		DebugLogger.log("  ✅ ChanceCardStorage скрыт")
+	
+	# Счетчик раздач - проверяем в TopUI и в корне
+	var rounds_label = get_node_or_null("TopUI/RoundsCounterLabel")
+	if not rounds_label:
+		rounds_label = rounds_counter_label
+	if rounds_label:
+		rounds_label.visible = false
+		DebugLogger.log("  ✅ rounds_counter_label скрыт")
+	
+	# Счетчик чаевых - проверяем в TopUI и в корне
+	var stats_label = get_node_or_null("TopUI/StatsLabel")
+	if not stats_label:
+		stats_label = ui_manager.stats_label if ui_manager else null
+	if stats_label:
+		stats_label.visible = false
+		DebugLogger.log("  ✅ stats_label скрыт")
+	
+	DebugLogger.log("⚙️ UI элементы игры скрыты (настройки открыты)")
+
+func _show_game_ui_elements():
+	"""Показать UI элементы игры при закрытии настроек"""
+	DebugLogger.log("⚙️ Начинаем показ UI элементов...")
+	
+	# Кнопка действия (начать/подтвердить/завершить)
+	if ui_manager and ui_manager.button_ui:
+		if ui_manager.button_ui.action_button:
+			# Показываем action_button, если он не disabled
+			# Если disabled, то broken версия будет показана через disable_action_button
+			if not ui_manager.button_ui.action_button.disabled:
+				ui_manager.button_ui.action_button.visible = true
+				if ui_manager.button_ui.action_button_broken:
+					ui_manager.button_ui.action_button_broken.visible = false
+				DebugLogger.log("  ✅ action_button показана")
+			else:
+				# Если disabled, то broken версия должна быть видна
+				ui_manager.button_ui.action_button.visible = false
+				if ui_manager.button_ui.action_button_broken:
+					ui_manager.button_ui.action_button_broken.visible = true
+				DebugLogger.log("  ✅ action_button_broken показана (action_button disabled)")
+	
+	# Кнопка подсказки - проверяем в TopUI и в корне
+	var help_button = get_node_or_null("TopUI/HelpButton")
+	if not help_button:
+		help_button = get_node_or_null("HelpButton")
+	if help_button:
+		help_button.visible = true
+		DebugLogger.log("  ✅ help_button показана")
+	elif ui_manager and ui_manager.button_ui and ui_manager.button_ui.help_button:
+		ui_manager.button_ui.help_button.visible = true
+		DebugLogger.log("  ✅ help_button (из ui_manager) показана")
+	
+	# Сердца (SurvivalModeUI) - находится в TopUI
+	var survival = get_node_or_null("TopUI/SurvivalModeUI")
+	if survival:
+		survival.visible = true
+		DebugLogger.log("  ✅ SurvivalModeUI показана")
+	elif survival_ui:
+		survival_ui.visible = true
+		DebugLogger.log("  ✅ survival_ui показана")
+	
+	# Инвентарь с картами шансов
+	var chance_storage = get_node_or_null("TopUI/ChanceCardStorage")
+	if chance_storage:
+		chance_storage.visible = true
+		DebugLogger.log("  ✅ ChanceCardStorage показан")
+	
+	# Счетчик раздач - проверяем в TopUI и в корне
+	var rounds_label = get_node_or_null("TopUI/RoundsCounterLabel")
+	if not rounds_label:
+		rounds_label = rounds_counter_label
+	if rounds_label:
+		rounds_label.visible = true
+		DebugLogger.log("  ✅ rounds_counter_label показан")
+	
+	# Счетчик чаевых - проверяем в TopUI и в корне
+	var stats_label = get_node_or_null("TopUI/StatsLabel")
+	if not stats_label:
+		stats_label = ui_manager.stats_label if ui_manager else null
+	if stats_label:
+		stats_label.visible = true
+		DebugLogger.log("  ✅ stats_label показан")
+	
+	DebugLogger.log("⚙️ UI элементы игры показаны (настройки закрыты)")
 
 
 # Методы обработки настроек перенесены в SettingsEventHandler

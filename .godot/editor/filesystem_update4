@@ -1,3 +1,2 @@
+res://scripts/GameController.gd
 res://scenes/SettingsScene.tscn
-res://scripts/Localization.gd
-res://scripts/SettingsScene.gd
