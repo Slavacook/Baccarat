@@ -148,13 +148,13 @@ var use_camera_smoothing: bool = false
 var use_adaptive_interpolation: bool = true
 
 # Параметры экспоненциального сглаживания (используется только если use_adaptive_interpolation = true)
-var min_interpolation_speed: float = 0.05  # Минимальная скорость (когда близко к цели) - чем меньше, тем медленнее
-var max_interpolation_speed: float = 0.18  # Максимальная скорость (когда далеко от цели) - чем больше, тем быстрее
+var min_interpolation_speed: float = 0.08  # Минимальная скорость (когда близко к цели) - чем меньше, тем медленнее
+var max_interpolation_speed: float = 0.22  # Максимальная скорость (когда далеко от цели) - чем больше, тем быстрее
 var distance_threshold: float = 2.0  # Расстояние, при котором начинается финальный плавный подход (пиксели) - уменьшено для более плавной остановки
 var rotation_threshold: float = 0.3  # Порог для поворота (градусы) - уменьшено для более плавной остановки
 
 # Параметры экспоненциального сглаживания для навигации по ставкам (более медленные и плавные)
-var navigation_min_interpolation_speed: float = 0.01  # Минимальная скорость для навигации (очень медленно)
+var navigation_min_interpolation_speed: float = 0.003  # Минимальная скорость для навигации (очень медленно)
 var navigation_max_interpolation_speed: float = 0.04  # Максимальная скорость для навигации (медленно)
 var navigation_distance_threshold: float = 2.5  # Порог для навигации (более строгий)
 var navigation_rotation_threshold: float = 0.3  # Порог поворота для навигации (более строгий)
