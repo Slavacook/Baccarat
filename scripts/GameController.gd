@@ -409,6 +409,7 @@ func _initialize_chip_navigation() -> void:
 	# Подписываемся на сигнал активации chip navigation
 	if EventBus:
 		EventBus.chip_navigation_activation_requested.connect(_on_chip_navigation_activation_requested)
+		EventBus.auto_switch_to_pay_mode_requested.connect(_on_auto_switch_to_pay_mode_requested)
 	
 	print("✅ ChipNavigationManager инициализирован")
 
@@ -1581,7 +1582,15 @@ func _on_pay_mode_toggled(enabled: bool):
 		if enabled:
 			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
 		else:
-			# Если режим оплаты был активен, отключаем
+			# В режиме 2 (независимый) после оплаты НЕ переключаем режим обратно на COLLECT
+			# Пользователь должен продолжать оплачивать
+			var camera_mode = SaveManager.instance.load_camera_control_mode()
+			if camera_mode == "independent":
+				# В режиме 2 не переключаем режим - остаёмся в PAY
+				DebugLogger.log("🔄 GameController: режим 2 - остаёмся в PAY после оплаты")
+				return
+			
+			# Если режим оплаты был активен, отключаем (только в режиме 1)
 			if bet_collection_manager.is_pay_mode():
 				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
 
@@ -1696,10 +1705,53 @@ func _on_chip_navigation_activation_requested(camera_linked: bool):
 	if chip_navigation_manager:
 		# Устанавливаем режим привязки камеры перед активацией
 		chip_navigation_manager.set_camera_linked(camera_linked)
-		chip_navigation_manager.activate()
-		DebugLogger.log("⌨️ ChipNavigationManager: активирован через EventBus (camera_linked=%s)" % camera_linked)
+		# Откладываем активацию до следующего кадра, чтобы payout_queue_manager был готов
+		call_deferred("_activate_chip_navigation_deferred", camera_linked)
 	else:
 		DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
+
+func _activate_chip_navigation_deferred(camera_linked: bool):
+	"""Отложенная активация chip navigation (после подготовки payout_queue_manager)"""
+	if not chip_navigation_manager:
+		return
+	
+	# Проверяем есть ли ставки для обработки (только в режиме 2 - независимом)
+	if not camera_linked:
+		if not _has_bets_to_process():
+			DebugLogger.log("⌨️ ChipNavigationManager: навигация не активирована (нет ставок для обработки)")
+			return
+	
+	chip_navigation_manager.activate()
+	DebugLogger.log("⌨️ ChipNavigationManager: активирован через EventBus (camera_linked=%s)" % camera_linked)
+
+func _has_bets_to_process() -> bool:
+	"""Проверить, есть ли ставки для обработки (проигрышные или выигрышные)"""
+	if not bet_collection_manager or not bet_collection_manager.payout_queue_manager:
+		return false
+	
+	var queue_manager = bet_collection_manager.payout_queue_manager
+	if not queue_manager.has_any_payouts():
+		return false
+	
+	# Проверяем есть ли проигрышные ставки (не собранные)
+	if bet_collection_manager.has_uncollected_losing_bets():
+		return true
+	
+	# Проверяем есть ли выигрышные ставки (не оплаченные)
+	if bet_collection_manager.has_unpaid_winnings():
+		return true
+	
+	# Нет ставок для обработки
+	return false
+
+func _on_auto_switch_to_pay_mode_requested():
+	"""Обработка запроса автоматического переключения на режим оплаты (режим 2)"""
+	if bet_collection_manager and ui_manager and ui_manager.button_ui:
+		# Переключаем режим в BetCollectionPhaseManager
+		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
+		# Обновляем UI кнопки
+		ui_manager.button_ui.set_pay_mode(true)
+		DebugLogger.log("🔄 GameController: автоматически переключено COLLECT → PAY (режим 2)")
 
 func _on_table_prepared():
 	"""Обработка подготовки стола к новой игре"""

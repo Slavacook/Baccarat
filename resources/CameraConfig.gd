@@ -102,11 +102,56 @@ var area_6_rotation: float = 15.0
 var area_6_description: String = "Область ставок 6"
 
 # ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): РЕЖИМ 2 (СПРАВА)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для РЕЖИМ 2 (СПРАВА)
+var mode2_right_position: Vector2 = Vector2(970, 120)
+# Масштаб камеры для режим 2 (справа)
+var mode2_right_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для режим 2 (справа) (в градусах)
+var mode2_right_rotation: float = 0.0
+var mode2_right_description: String = "Режим 2 (справа)"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): РЕЖИМ 2 (СЛЕВА)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для РЕЖИМ 2 (СЛЕВА)
+var mode2_left_position: Vector2 = Vector2(170, 120)
+# Масштаб камеры для режим 2 (слева)
+var mode2_left_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для режим 2 (слева) (в градусах)
+var mode2_left_rotation: float = 0.0
+var mode2_left_description: String = "Режим 2 (слева)"
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ОБЩИЕ НАСТРОЙКИ
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Длительность плавного перехода камеры (секунды)
-var transition_duration: float = 0.5
+var transition_duration: float = 2.2
+
+# Скорость встроенного сглаживания камеры (единиц в секунду)
+# Используется только если use_camera_smoothing = true
+var position_smoothing_speed: float = 8.0
+var rotation_smoothing_speed: float = 3.0
+
+# Использовать встроенное сглаживание Camera2D вместо Tween
+# Встроенное сглаживание не поддерживает плавный старт/финиш (ease in/out)
+# Для плавного старта и финиша используйте Tween (use_camera_smoothing = false)
+var use_camera_smoothing: bool = false
+
+# Использовать экспоненциальное сглаживание с адаптивной скоростью
+# Чем дальше камера от цели, тем быстрее движение
+# Чем ближе к цели, тем медленнее движение
+var use_adaptive_interpolation: bool = true
+
+# Параметры экспоненциального сглаживания (используется только если use_adaptive_interpolation = true)
+var min_interpolation_speed: float = 0.05  # Минимальная скорость (когда близко к цели) - чем меньше, тем медленнее
+var max_interpolation_speed: float = 0.18  # Максимальная скорость (когда далеко от цели) - чем больше, тем быстрее
+var distance_threshold: float = 5.0  # Расстояние, при котором считается что камера достигла цели (пиксели)
+var rotation_threshold: float = 0.5  # Порог для поворота (градусы)
 
 # Тип кривой анимации (TRANS):
 # "linear" - линейная (равномерная скорость)
@@ -120,12 +165,12 @@ var transition_duration: float = 0.5
 # "back" - с отскоком назад
 # "elastic" - упругая
 # "bounce" - с подпрыгиванием
-var transition_type: String = "sine"
+var transition_type: String = "quart"
 
 # Тип плавности (EASE):
 # "in" - плавное начало, быстрое завершение
-# "out" - быстрое начало, плавное завершение (рекомендуется для камеры)
-# "in_out" - плавное начало и завершение (симметрично)
+# "out" - быстрое начало, плавное завершение
+# "in_out" - плавное начало и завершение (симметрично) - рекомендуется для плавного старта и финиша
 # "out_in" - быстрое начало и завершение, плавная середина
 var ease_type: String = "in_out"
 
@@ -205,6 +250,24 @@ func get_area_6_settings() -> Dictionary:
 		"description": area_6_description
 	}
 
+func get_mode2_right_settings() -> Dictionary:
+	"""Получить настройки для режим 2 (справа)"""
+	return {
+		"position": mode2_right_position,
+		"zoom": mode2_right_zoom,
+		"rotation": mode2_right_rotation,
+		"description": mode2_right_description
+	}
+
+func get_mode2_left_settings() -> Dictionary:
+	"""Получить настройки для режим 2 (слева)"""
+	return {
+		"position": mode2_left_position,
+		"zoom": mode2_left_zoom,
+		"rotation": mode2_left_rotation,
+		"description": mode2_left_description
+	}
+
 func get_area_settings(area_index: int) -> Dictionary:
 	"""Получить настройки для области по индексу (1-6)"""
 	match area_index:
@@ -243,6 +306,10 @@ func get_settings_by_type(zoom_type: String) -> Dictionary:
 			return get_area_5_settings()
 		"area_6":
 			return get_area_6_settings()
+		"mode2_right":
+			return get_mode2_right_settings()
+		"mode2_left":
+			return get_mode2_left_settings()
 		_:
 			push_error("CameraConfig: неизвестный тип зума '%s'" % zoom_type)
 			return get_general_settings()

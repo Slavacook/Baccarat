@@ -124,41 +124,38 @@ func deactivate() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _set_initial_focus_by_camera_area() -> void:
-	"""Установить начальный фокус в зависимости от текущей области камеры"""
-	var current_area = -1
-	
-	# Пытаемся получить область напрямую из camera_manager
-	if camera_manager:
-		current_area = camera_manager.current_area
-		_set_focus_for_area(current_area)
-	else:
-		# Fallback: запрашиваем через EventBus
-		if EventBus:
-			# Используем массив для обхода проблемы с lambda capture
-			var area_container = [current_area]
-			var response_handler = func(area: int):
-				if area_container[0] == -1:
-					area_container[0] = area
-					_set_focus_for_area(area)
-			
-			EventBus.camera_current_area_received.connect(response_handler, CONNECT_ONE_SHOT)
-			EventBus.camera_current_area_requested.emit()
-			# Устанавливаем фокус с задержкой (когда область будет получена)
-			call_deferred("_set_focus_for_area", current_area)
-		else:
-			_set_focus_for_area(-1)
-
-func _set_focus_for_area(area: int) -> void:
-	"""Установить фокус для указанной области"""
-	# Определяем начальный сектор на основе области камеры
-	current_sector = AREA_TO_RIGHT_SECTOR.get(area, DEFAULT_SECTOR)
-	
+	"""Установить начальный фокус: Player на самом правом секторе с любой ставкой"""
 	# Всегда начинаем с Player
 	current_bet_type = "Player"
 	
-	DebugLogger.log("📍 ChipNavigationManager: начальный фокус установлен (область камеры: %d, позиция: %s, сектор %d)" % [
-		area, current_bet_type, current_sector
-	])
+	# Ищем самый правый сектор с любой активной ставкой
+	var rightmost_sector = _find_rightmost_sector_with_any_bet()
+	current_sector = rightmost_sector
+	
+	DebugLogger.log("📍 ChipNavigationManager: начальный фокус установлен (Player, сектор %d)" % current_sector)
+
+func _find_rightmost_sector_with_any_bet() -> int:
+	"""Найти самый правый сектор с любой активной ставкой
+	
+	Returns:
+		Номер сектора (1-6) с самой правой активной ставкой (любого типа), или 6 по умолчанию
+	"""
+	# Список всех типов ставок для проверки
+	var bet_types = ["Player", "Banker", "Tie", "PairPlayer", "PairBanker"]
+	
+	# Перебираем секторы справа налево (6, 5, 4, 3, 2, 1)
+	for sector in SECTOR_ORDER:
+		# Проверяем каждый тип ставки в этом секторе
+		for bet_type in bet_types:
+			var chip = _get_chip_at_position(bet_type, sector)
+			if chip and _is_chip_active(chip):
+				# Нашли активную ставку в этом секторе
+				DebugLogger.log("📍 ChipNavigationManager: найден самый правый сектор с ставкой: %s[сектор %d]" % [bet_type, sector])
+				return sector
+	
+	# Не нашли ни одной активной ставки - возвращаем дефолтный сектор
+	DebugLogger.log("📍 ChipNavigationManager: активных ставок не найдено, используется сектор 6")
+	return DEFAULT_SECTOR
 
 func _is_chip_active(chip: ChipVisualManager.ChipInstance) -> bool:
 	"""Проверить, активна ли фишка (не собрана и не оплачена)
@@ -198,8 +195,14 @@ func _is_chip_active(chip: ChipVisualManager.ChipInstance) -> bool:
 
 func _update_camera_for_position() -> void:
 	"""Обновить позицию камеры для текущей позиции"""
-	# Если камера не привязана к навигации - не двигаем камеру
+	# Если камера не привязана к навигации - используем специальную логику для режима 2
 	if not camera_linked:
+		# Режим 2 (независимый): камера меняется в зависимости от сектора
+		var camera_mode = SaveManager.instance.load_camera_control_mode()
+		if camera_mode == "independent":
+			var zoom_type = _get_camera_zoom_for_sector_mode2(current_sector)
+			EventBus.camera_zoom_requested.emit(zoom_type)
+			DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, режим 2)" % [zoom_type, current_sector])
 		return
 	
 	var area = _get_area_from_sector(current_sector)
@@ -207,6 +210,22 @@ func _update_camera_for_position() -> void:
 	if area > 0:
 		EventBus.camera_zoom_requested.emit("area_%d" % area)
 		DebugLogger.log("📷 ChipNavigationManager: камера → area_%d (сектор %d)" % [area, current_sector])
+
+func _get_camera_zoom_for_sector_mode2(sector: int) -> String:
+	"""Определить тип зума камеры для сектора в режиме 2 (независимый)
+	
+	Args:
+		sector: Номер сектора (1-6)
+		
+	Returns:
+		Тип зума: "mode2_left" для сектора 1, "mode2_right" для сектора 6, "out" для секторов 2-5
+	"""
+	if sector == 1:
+		return "mode2_left"
+	elif sector == 6:
+		return "mode2_right"
+	else:
+		return "out"
 
 func _get_area_from_sector(sector: int) -> int:
 	"""Определить область камеры по сектору
@@ -555,6 +574,11 @@ func _on_chip_collected(bet_type: String, position_index: int) -> void:
 	DebugLogger.log("⌨️ ChipNavigationManager: фишка %s[%d] собрана, фокус остаётся на позиции %s[сектор %d]" % [
 		bet_type, position_index, current_bet_type, current_sector
 	])
+	
+	# В режиме 2 (независимый) проверяем, можно ли завершить раунд и переключить режим
+	if not camera_linked:
+		_check_and_switch_to_pay_if_needed()
+		_check_and_deactivate_if_complete()
 
 func _on_chip_paid(bet_type: String, position_index: int) -> void:
 	"""Обработчик оплаты фишки - фокус остаётся на текущей позиции"""
@@ -567,3 +591,33 @@ func _on_chip_paid(bet_type: String, position_index: int) -> void:
 	DebugLogger.log("⌨️ ChipNavigationManager: фишка %s[%d] оплачена, фокус остаётся на позиции %s[сектор %d]" % [
 		bet_type, position_index, current_bet_type, current_sector
 	])
+	
+	# В режиме 2 (независимый) проверяем, можно ли завершить раунд
+	if not camera_linked:
+		_check_and_deactivate_if_complete()
+
+func _check_and_switch_to_pay_if_needed() -> void:
+	"""Проверить все ли проигрышные ставки собраны и переключить на режим оплаты в режиме 2"""
+	if not bet_collection_manager:
+		return
+	
+	# Проверяем все ли проигрышные ставки собраны
+	if not bet_collection_manager.has_uncollected_losing_bets():
+		# Все проигрышные ставки собраны - проверяем есть ли выигрышные для оплаты
+		if bet_collection_manager.has_unpaid_winnings():
+			# Если сейчас режим COLLECT, переключаем на PAY
+			if bet_collection_manager.is_collect_mode():
+				# Эмитим сигнал для переключения режима через GameController
+				EventBus.auto_switch_to_pay_mode_requested.emit()
+				DebugLogger.log("⌨️ ChipNavigationManager: запрошено переключение COLLECT → PAY (все проигрышные собраны, режим 2)")
+
+func _check_and_deactivate_if_complete() -> void:
+	"""Проверить можно ли завершить раунд и отключить навигацию в режиме 2"""
+	if not bet_collection_manager:
+		return
+	
+	var completion_check = bet_collection_manager.can_complete_round()
+	if completion_check.get("can", false):
+		# Все фишки обработаны - отключаем навигацию в режиме 2
+		deactivate()
+		DebugLogger.log("⌨️ ChipNavigationManager: навигация отключена (все фишки обработаны, режим 2)")

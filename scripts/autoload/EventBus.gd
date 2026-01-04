@@ -61,6 +61,10 @@ signal navigation_arrows_visibility_changed(visible: bool)
 @warning_ignore("unused_signal")
 signal chip_navigation_activation_requested(camera_linked: bool)
 
+## Запрос автоматического переключения режима сбора/оплаты (для режима 2)
+@warning_ignore("unused_signal")
+signal auto_switch_to_pay_mode_requested()
+
 ## ═══════════════════════════════════════════════════════════════════════════
 ## 📷 КАМЕРА - ЗАПРОСЫ СОСТОЯНИЯ (для полной инкапсуляции)
 ## ═══════════════════════════════════════════════════════════════════════════

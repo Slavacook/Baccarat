@@ -21,6 +21,14 @@ var _config_path: String = "res://resources/CameraConfig.gd"
 var _config: CameraConfig = null
 var _camera: Camera2D = null
 var _scene: Node = null  # Родительская сцена для создания tween
+var _process_node: Node = null  # Node для обработки _process (экспоненциальное сглаживание)
+
+# Целевые значения для экспоненциального сглаживания
+var _target_position: Vector2 = Vector2.ZERO
+var _target_zoom: Vector2 = Vector2.ONE
+var _target_rotation: float = 0.0
+var _is_interpolating: bool = false
+var _current_zoom_type: String = ""
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ ПЕРЕМЕННЫЕ (для внутреннего использования)
@@ -61,13 +69,48 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	_camera = Camera2D.new()
 	_camera.enabled = true
 	_camera.ignore_rotation = false  # Разрешаем поворот камеры
+	
+	# Настраиваем встроенное сглаживание если включено
+	if _config.use_camera_smoothing:
+		_camera.position_smoothing_enabled = true
+		_camera.position_smoothing_speed = _config.position_smoothing_speed
+		_camera.rotation_smoothing_enabled = true
+		_camera.rotation_smoothing_speed = _config.rotation_smoothing_speed
+		print("📷 CameraManager: встроенное сглаживание включено (position_speed=%.1f, rotation_speed=%.1f)" % [_config.position_smoothing_speed, _config.rotation_smoothing_speed])
+	else:
+		_camera.position_smoothing_enabled = false
+		_camera.rotation_smoothing_enabled = false
+		print("📷 CameraManager: встроенное сглаживание отключено (используется Tween)")
+	
 	parent_scene.add_child(_camera)
+	
+	# Создаём Node для обработки _process (экспоненциальное сглаживание)
+	_process_node = Node.new()
+	_process_node.name = "CameraInterpolationNode"
+	
+	# Загружаем скрипт для обработки _process
+	var script_path = "res://scripts/CameraInterpolationNode.gd"
+	var script = load(script_path) as GDScript
+	if script:
+		_process_node.set_script(script)
+	
+	parent_scene.add_child(_process_node)
+	
+	# Настраиваем node через setup если метод доступен
+	if _process_node.has_method("setup"):
+		_process_node.setup(self)
+	else:
+		# Если скрипт не загружен, устанавливаем process вручную
+		_process_node.set_process(false)  # Начинаем с выключенным, включается при старте интерполяции
 	
 	# Начинаем с общего плана (из конфигурации)
 	var general_settings = _config.get_general_settings()
 	_camera.position = general_settings.position
 	_camera.zoom = general_settings.zoom
 	_camera.rotation_degrees = general_settings.get("rotation", 0.0)
+	_target_position = general_settings.position
+	_target_zoom = general_settings.zoom
+	_target_rotation = general_settings.get("rotation", 0.0)
 	current_area = -1  # Общий план
 	last_zoom_type = "out"
 	
@@ -107,6 +150,18 @@ func _zoom_out() -> void:
 	current_area = -1  # Общий план
 	var settings = _config.get_general_settings()
 	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out")
+
+func _zoom_mode2_right() -> void:
+	"""Внутренний метод зума на режим 2 (справа)"""
+	current_area = -1  # Остаёмся на общем плане для режима 2
+	var settings = _config.get_mode2_right_settings()
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_right")
+
+func _zoom_mode2_left() -> void:
+	"""Внутренний метод зума на режим 2 (слева)"""
+	current_area = -1  # Остаёмся на общем плане для режима 2
+	var settings = _config.get_mode2_left_settings()
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left")
 
 func _zoom_area(area_index: int) -> void:
 	"""Внутренний метод зума на указанную область (1-6)"""
@@ -289,54 +344,162 @@ func get_last_zoom_type() -> String:
 # ПРИВАТНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _process_interpolation(delta: float) -> void:
+	"""Обработка экспоненциального сглаживания камеры в _process"""
+	if not _is_interpolating or not _camera:
+		return
+	
+	# Вычисляем расстояние до цели
+	var position_distance = _camera.position.distance_to(_target_position)
+	var rotation_distance = abs(_camera.rotation_degrees - _target_rotation)
+	
+	# Вычисляем адаптивный коэффициент интерполяции на основе расстояния
+	# Чем дальше, тем больше коэффициент (быстрее), чем ближе, тем меньше (медленнее)
+	var max_distance = 1000.0  # Максимальное ожидаемое расстояние для нормализации
+	var distance_factor = clamp(position_distance / max_distance, 0.0, 1.0)
+	var interpolation_speed = lerp(_config.min_interpolation_speed, _config.max_interpolation_speed, distance_factor)
+	
+	# Интерполируем позицию
+	_camera.position = _camera.position.lerp(_target_position, interpolation_speed)
+	
+	# Интерполируем поворот (используем меньший коэффициент для более плавного поворота)
+	var rotation_speed = interpolation_speed * 0.7  # Поворот чуть медленнее
+	var current_rot = _camera.rotation_degrees
+	_camera.rotation_degrees = lerp(current_rot, _target_rotation, rotation_speed)
+	
+	# Zoom интерполируем отдельно (можно использовать тот же коэффициент или отдельный)
+	var zoom_speed = interpolation_speed
+	_camera.zoom = _camera.zoom.lerp(_target_zoom, zoom_speed)
+	
+	# Проверяем, достигли ли мы цели
+	var position_reached = position_distance < _config.distance_threshold
+	var rotation_reached = rotation_distance < _config.rotation_threshold
+	var zoom_reached = _camera.zoom.distance_to(_target_zoom) < 0.01
+	
+	if position_reached and rotation_reached and zoom_reached:
+		# Камера достигла цели - финализируем значения
+		_camera.position = _target_position
+		_camera.rotation_degrees = _target_rotation
+		_camera.zoom = _target_zoom
+		
+		# Останавливаем интерполяцию
+		_is_interpolating = false
+		_process_node.set_process(false)
+		
+		# Эмитим сигнал завершения
+		zoom_completed.emit(_current_zoom_type)
+		print("📷 CameraManager: камера достигла цели через экспоненциальное сглаживание")
+
 func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String) -> void:
 	"""Анимировать камеру к заданной позиции, зуму и повороту"""
 	if not _camera or not _scene or not _config:
 		return
+	
+	last_zoom_type = zoom_type
+	_current_zoom_type = zoom_type
+	zoom_started.emit(zoom_type)
 	
 	# Останавливаем предыдущую анимацию если она ещё идёт (защита от быстрых нажатий)
 	if current_tween and current_tween.is_valid():
 		current_tween.kill()
 		current_tween = null
 	
-	var current_rotation_deg = _camera.rotation_degrees
-	print("📷 CameraManager: ДО анимации - текущий rotation_degrees: %.1f°, целевой: %.1f°" % [current_rotation_deg, target_rotation])
+	# Останавливаем интерполяцию если она активна
+	if _is_interpolating and _process_node:
+		_is_interpolating = false
+		if _process_node.has_method("set_process"):
+			_process_node.set_process(false)
 	
-	last_zoom_type = zoom_type
-	zoom_started.emit(zoom_type)
+	# Если используется экспоненциальное сглаживание с адаптивной скоростью
+	if _config.use_adaptive_interpolation:
+		# Устанавливаем целевые значения
+		_target_position = target_pos
+		_target_zoom = target_zoom
+		_target_rotation = target_rotation
+		
+		# Запускаем интерполяцию
+		_is_interpolating = true
+		if _process_node:
+			if _process_node.has_method("set_process"):
+				_process_node.set_process(true)
+			else:
+				_process_node.set_process_mode(Node.PROCESS_MODE_ALWAYS)
+		
+		print("📷 CameraManager: %s (экспоненциальное сглаживание: pos %s, zoom %.1f, rotation %.1f°)" % [
+			_get_zoom_name(zoom_type),
+			target_pos,
+			target_zoom.x,
+			target_rotation
+		])
+		return
 	
-	var tween = _scene.create_tween()
-	current_tween = tween  # Сохраняем ссылку для возможности остановки
-	tween.set_parallel(true)  # Позиция, зум и поворот меняются одновременно
-	
-	# Используем настройки из конфигурации
-	var transition_type = _get_transition_type(_config.transition_type)
-	var ease_type = _get_ease_type(_config.ease_type)
-	tween.set_trans(transition_type)
-	tween.set_ease(ease_type)
-	
-	# Используем длительность из конфигурации
-	tween.tween_property(_camera, "position", target_pos, _config.transition_duration)
-	tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
-	# Устанавливаем rotation_degrees (может не работать визуально в Godot 4.5 Camera2D)
-	tween.tween_property(_camera, "rotation_degrees", target_rotation, _config.transition_duration)
-	print("📷 CameraManager: tween_property rotation_degrees установлен: %.1f°" % target_rotation)
-	
-	# Сигнал завершения после окончания анимации
-	tween.finished.connect(func(): 
-		var final_rotation_deg = _camera.rotation_degrees
-		print("📷 CameraManager: ПОСЛЕ анимации - rotation_degrees камеры: %.1f°, ожидалось: %.1f°" % [final_rotation_deg, target_rotation])
-		current_tween = null  # Очищаем ссылку после завершения
-		zoom_completed.emit(zoom_type)
-	)
-	
-	var _settings = _config.get_settings_by_type(zoom_type)
-	print("📷 CameraManager: %s (zoom %.1f, pos %s, rotation %.1f°)" % [
-		_get_zoom_name(zoom_type), 
-		target_zoom.x,
-		target_pos,
-		target_rotation
-	])
+	# Если используется встроенное сглаживание Camera2D
+	if _config.use_camera_smoothing:
+		
+		# Используем Tween только для zoom (так как Camera2D не имеет встроенного сглаживания для zoom)
+		var tween = _scene.create_tween()
+		current_tween = tween
+		tween.set_parallel(false)
+		
+		# Используем настройки из конфигурации
+		var transition_type = _get_transition_type(_config.transition_type)
+		var ease_type = _get_ease_type(_config.ease_type)
+		tween.set_trans(transition_type)
+		tween.set_ease(ease_type)
+		
+		# Анимируем только zoom через Tween
+		tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
+		
+		# Позицию и поворот устанавливаем напрямую - камера сама плавно движется к цели
+		_camera.position = target_pos
+		_camera.rotation_degrees = target_rotation
+		
+		# Сигнал завершения после окончания анимации zoom
+		tween.finished.connect(func(): 
+			current_tween = null  # Очищаем ссылку после завершения
+			zoom_completed.emit(zoom_type)
+		)
+		
+		print("📷 CameraManager: %s (zoom %.1f через Tween, pos %s, rotation %.1f° через сглаживание)" % [
+			_get_zoom_name(zoom_type), 
+			target_zoom.x,
+			target_pos,
+			target_rotation
+		])
+	else:
+		# Старый способ: используем Tween для всего
+		var tween = _scene.create_tween()
+		current_tween = tween  # Сохраняем ссылку для возможности остановки
+		tween.set_parallel(true)  # Позиция, зум и поворот меняются одновременно
+		
+		# Используем настройки из конфигурации
+		var transition_type = _get_transition_type(_config.transition_type)
+		var ease_type = _get_ease_type(_config.ease_type)
+		tween.set_trans(transition_type)
+		tween.set_ease(ease_type)
+		
+		# Используем длительность из конфигурации
+		tween.tween_property(_camera, "position", target_pos, _config.transition_duration)
+		tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
+		# Устанавливаем rotation_degrees (может не работать визуально в Godot 4.5 Camera2D)
+		tween.tween_property(_camera, "rotation_degrees", target_rotation, _config.transition_duration)
+		print("📷 CameraManager: tween_property rotation_degrees установлен: %.1f°" % target_rotation)
+		
+		# Сигнал завершения после окончания анимации
+		tween.finished.connect(func(): 
+			var final_rotation_deg = _camera.rotation_degrees
+			print("📷 CameraManager: ПОСЛЕ анимации - rotation_degrees камеры: %.1f°, ожидалось: %.1f°" % [final_rotation_deg, target_rotation])
+			current_tween = null  # Очищаем ссылку после завершения
+			zoom_completed.emit(zoom_type)
+		)
+		
+		var _settings = _config.get_settings_by_type(zoom_type)
+		print("📷 CameraManager: %s (zoom %.1f, pos %s, rotation %.1f°)" % [
+			_get_zoom_name(zoom_type), 
+			target_zoom.x,
+			target_pos,
+			target_rotation
+		])
 
 func _get_transition_type(type_name: String) -> Tween.TransitionType:
 	"""Преобразует строковое название типа анимации в Tween.TransitionType"""
@@ -435,6 +598,10 @@ func _on_zoom_requested(zoom_type: String) -> void:
 			_zoom_area(5)
 		"area_6":
 			_zoom_area(6)
+		"mode2_right":
+			_zoom_mode2_right()
+		"mode2_left":
+			_zoom_mode2_left()
 		"next_area":
 			_zoom_next_area()
 		"prev_area":

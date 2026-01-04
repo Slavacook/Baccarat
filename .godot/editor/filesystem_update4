@@ -7,3 +7,5 @@ res://scripts/GamePhaseManager.gd
 res://scripts/SaveManager.gd
 res://scripts/SettingsScene.gd
 res://scripts/autoload/EventBus.gd
+res://scenes/SettingsScene.tscn
+res://scripts/CameraInterpolationNode.gd
