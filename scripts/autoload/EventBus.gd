@@ -46,8 +46,9 @@ signal table_prepared_for_new_game()
 ## Запрос на зум камеры (от GamePhaseManager)
 ## zoom_type: "in" (карты), "out" (общий план), "area_1/2/3" (области ставок)
 ## "next_area", "prev_area" - переключение между областями
+## is_navigation: true если запрос от навигатора по ставкам (для медленной анимации)
 @warning_ignore("unused_signal")
-signal camera_zoom_requested(zoom_type: String)
+signal camera_zoom_requested(zoom_type: String, is_navigation: bool)
 
 ## Показать/скрыть кнопки областей (для выбора области после определения победителя)
 @warning_ignore("unused_signal")

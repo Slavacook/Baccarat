@@ -150,7 +150,7 @@ func _show_completion_message() -> void:
 
 func _execute_camera_zoom() -> void:
 	"""Выполнить зум камеры на общий план"""
-	EventBus.camera_zoom_requested.emit("out")
+	EventBus.camera_zoom_requested.emit("out", false)
 	EventBus.area_buttons_visibility_changed.emit(false)
 	EventBus.navigation_arrows_visibility_changed.emit(false)
 	DebugLogger.log("  → ✅ Камера отзумлена, кнопки областей скрыты")
@@ -167,4 +167,3 @@ func _execute_guest_bet_generation() -> void:
 	if guest_bet_factory:
 		guest_bet_factory.generate_bets_for_all_guests()
 		DebugLogger.log("  → ✅ Ставки гостей сгенерированы")
-

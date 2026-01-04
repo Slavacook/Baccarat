@@ -29,6 +29,8 @@ var _target_zoom: Vector2 = Vector2.ONE
 var _target_rotation: float = 0.0
 var _is_interpolating: bool = false
 var _current_zoom_type: String = ""
+var _is_navigation_mode: bool = false  # Флаг режима навигации (для медленной анимации)
+var _initial_distance: float = 0.0  # Начальное расстояние для плавного старта
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ ПЕРЕМЕННЫЕ (для внутреннего использования)
@@ -139,31 +141,31 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 # ПРИВАТНЫЕ МЕТОДЫ ЗУМА (внутренняя логика)
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _zoom_in() -> void:
+func _zoom_in(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на область карт"""
 	current_area = 0
 	var settings = _config.get_cards_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "in")
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "in", is_navigation)
 
-func _zoom_out() -> void:
+func _zoom_out(is_navigation: bool = false) -> void:
 	"""Внутренний метод возврата к общему плану"""
 	current_area = -1  # Общий план
 	var settings = _config.get_general_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out")
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out", is_navigation)
 
-func _zoom_mode2_right() -> void:
+func _zoom_mode2_right(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на режим 2 (справа)"""
 	current_area = -1  # Остаёмся на общем плане для режима 2
 	var settings = _config.get_mode2_right_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_right")
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_right", is_navigation)
 
-func _zoom_mode2_left() -> void:
+func _zoom_mode2_left(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на режим 2 (слева)"""
 	current_area = -1  # Остаёмся на общем плане для режима 2
 	var settings = _config.get_mode2_left_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left")
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left", is_navigation)
 
-func _zoom_area(area_index: int) -> void:
+func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на указанную область (1-6)"""
 	if area_index < 1 or area_index > 6:
 		push_error("CameraManager: неверный индекс области %d" % area_index)
@@ -172,7 +174,7 @@ func _zoom_area(area_index: int) -> void:
 	var settings = _config.get_area_settings(area_index)
 	var rotation_value = settings.get("rotation", 0.0)
 	print("📷 CameraManager: _zoom_area(%d) - rotation из конфига: %.1f°" % [area_index, rotation_value])
-	_animate_to(settings.position, settings.zoom, rotation_value, "area_%d" % area_index)
+	_animate_to(settings.position, settings.zoom, rotation_value, "area_%d" % area_index, is_navigation)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ НАВИГАЦИИ (внутренняя логика)
@@ -352,19 +354,48 @@ func _process_interpolation(_delta: float) -> void:
 	# Вычисляем расстояние до цели (ДО интерполяции)
 	var position_distance = _camera.position.distance_to(_target_position)
 	
+	# Выбираем настройки в зависимости от типа анимации (обычная или навигация)
+	var min_speed: float
+	var max_speed: float
+	var distance_thresh: float
+	var rotation_thresh: float
+	
+	if _is_navigation_mode:
+		# Используем медленные настройки для навигации
+		min_speed = _config.navigation_min_interpolation_speed
+		max_speed = _config.navigation_max_interpolation_speed
+		distance_thresh = _config.navigation_distance_threshold
+		rotation_thresh = _config.navigation_rotation_threshold
+	else:
+		# Обычные настройки
+		min_speed = _config.min_interpolation_speed
+		max_speed = _config.max_interpolation_speed
+		distance_thresh = _config.distance_threshold
+		rotation_thresh = _config.rotation_threshold
+	
 	# Вычисляем адаптивный коэффициент интерполяции на основе расстояния
 	# Чем дальше, тем больше коэффициент (быстрее), чем ближе, тем меньше (медленнее)
 	var max_distance = 1000.0  # Максимальное ожидаемое расстояние для нормализации
 	var distance_factor = clamp(position_distance / max_distance, 0.0, 1.0)
-	var interpolation_speed = lerp(_config.min_interpolation_speed, _config.max_interpolation_speed, distance_factor)
+	
+	# Для плавного старта: применяем нелинейную функцию (степень для плавного ускорения)
+	# Это делает старт медленнее, а затем плавное ускорение
+	if _is_navigation_mode:
+		# Для навигации используем более плавное ускорение (степень 2.5)
+		distance_factor = pow(distance_factor, 2.5)
+	else:
+		# Для обычной анимации используем стандартное ускорение (степень 1.5)
+		distance_factor = pow(distance_factor, 1.5)
+	
+	var interpolation_speed = lerp(min_speed, max_speed, distance_factor)
 	
 	# Если камера очень близко к цели, используем минимальную скорость для плавного завершения
 	# Это предотвращает рывок в момент остановки
-	if position_distance < _config.distance_threshold * 3.0:
+	if position_distance < distance_thresh * 3.0:
 		# Когда очень близко, используем минимальную скорость для плавного подхода
 		# Чем ближе, тем медленнее
-		var close_factor = clamp(position_distance / (_config.distance_threshold * 3.0), 0.0, 1.0)
-		interpolation_speed = lerp(_config.min_interpolation_speed * 0.2, _config.min_interpolation_speed, close_factor)
+		var close_factor = clamp(position_distance / (distance_thresh * 3.0), 0.0, 1.0)
+		interpolation_speed = lerp(min_speed * 0.2, min_speed, close_factor)
 	
 	# Интерполируем позицию
 	_camera.position = _camera.position.lerp(_target_position, interpolation_speed)
@@ -386,7 +417,7 @@ func _process_interpolation(_delta: float) -> void:
 	# Используем очень строгие пороги для остановки (почти вплотную к цели)
 	# Это гарантирует, что камера действительно достигла цели без рывка
 	var position_reached = new_position_distance < 0.05  # Очень маленький порог
-	var rotation_reached = new_rotation_distance < 0.02  # Очень маленький порог
+	var rotation_reached = new_rotation_distance < rotation_thresh * 0.1  # Пропорционально порогу
 	var zoom_reached = new_zoom_distance < 0.001  # Очень маленький порог
 	
 	if position_reached and rotation_reached and zoom_reached:
@@ -405,13 +436,22 @@ func _process_interpolation(_delta: float) -> void:
 		zoom_completed.emit(_current_zoom_type)
 		print("📷 CameraManager: камера достигла цели через экспоненциальное сглаживание")
 
-func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String) -> void:
-	"""Анимировать камеру к заданной позиции, зуму и повороту"""
+func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_navigation: bool = false) -> void:
+	"""Анимировать камеру к заданной позиции, зуму и повороту
+	
+	Args:
+		target_pos: Целевая позиция камеры
+		target_zoom: Целевой зум камеры
+		target_rotation: Целевой поворот камеры (в градусах)
+		zoom_type: Тип зума (для логирования)
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
 	if not _camera or not _scene or not _config:
 		return
 	
 	last_zoom_type = zoom_type
 	_current_zoom_type = zoom_type
+	_is_navigation_mode = is_navigation
 	zoom_started.emit(zoom_type)
 	
 	# Останавливаем предыдущую анимацию если она ещё идёт (защита от быстрых нажатий)
@@ -431,6 +471,9 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		_target_position = target_pos
 		_target_zoom = target_zoom
 		_target_rotation = target_rotation
+		
+		# Сохраняем начальное расстояние для плавного старта
+		_initial_distance = _camera.position.distance_to(target_pos)
 		
 		# Запускаем интерполяцию
 		_is_interpolating = true
@@ -592,31 +635,31 @@ func _get_zoom_name(zoom_type: String) -> String:
 # ОБРАБОТЧИКИ EVENTBUS - КОМАНДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _on_zoom_requested(zoom_type: String) -> void:
+func _on_zoom_requested(zoom_type: String, is_navigation: bool = false) -> void:
 	"""Обработка запроса зума через EventBus"""
 	match zoom_type:
 		"in":
-			_zoom_in()
+			_zoom_in(is_navigation)
 		"out":
-			_zoom_out()
+			_zoom_out(is_navigation)
 		"cards":
-			_zoom_in()
+			_zoom_in(is_navigation)
 		"area_1":
-			_zoom_area(1)
+			_zoom_area(1, is_navigation)
 		"area_2":
-			_zoom_area(2)
+			_zoom_area(2, is_navigation)
 		"area_3":
-			_zoom_area(3)
+			_zoom_area(3, is_navigation)
 		"area_4":
-			_zoom_area(4)
+			_zoom_area(4, is_navigation)
 		"area_5":
-			_zoom_area(5)
+			_zoom_area(5, is_navigation)
 		"area_6":
-			_zoom_area(6)
+			_zoom_area(6, is_navigation)
 		"mode2_right":
-			_zoom_mode2_right()
+			_zoom_mode2_right(is_navigation)
 		"mode2_left":
-			_zoom_mode2_left()
+			_zoom_mode2_left(is_navigation)
 		"next_area":
 			_zoom_next_area()
 		"prev_area":

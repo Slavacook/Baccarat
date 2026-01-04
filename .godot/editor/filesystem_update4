@@ -1,3 +1,12 @@
 res://scripts/GameController.gd
 res://scenes/SettingsScene.tscn
 res://scripts/GamePhaseManager.gd
+res://resources/CameraConfig.gd
+res://scripts/CameraManager.gd
+res://scripts/autoload/EventBus.gd
+res://scripts/ui/ChipNavigationManager.gd
+res://scripts/KeyboardNavigationController.gd
+res://scripts/SwipeNavigationController.gd
+res://scripts/TablePreparationExecutor.gd
+res://scripts/ui/AreaButton.gd
+res://scripts/ui/HeartBetController.gd

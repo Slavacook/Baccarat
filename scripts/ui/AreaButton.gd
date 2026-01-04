@@ -54,7 +54,7 @@ func _on_pressed() -> void:
 	print("🔘 Нажата кнопка области %d" % area_index)
 	
 	# Запрашиваем зум на эту область через EventBus
-	EventBus.camera_zoom_requested.emit("area_%d" % area_index)
+	EventBus.camera_zoom_requested.emit("area_%d" % area_index, false)
 	
 	# Скрываем кнопки областей (они больше не нужны после выбора)
 	EventBus.area_buttons_visibility_changed.emit(false)

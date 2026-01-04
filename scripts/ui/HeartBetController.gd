@@ -189,7 +189,7 @@ func handle_heart_bet_round_complete() -> void:
 	await owner_node.get_tree().create_timer(1.5).timeout
 	
 	# Зум камеры на общий план
-	EventBus.camera_zoom_requested.emit("out")
+	EventBus.camera_zoom_requested.emit("out", false)
 	
 	# Проверяем, был ли Tie draw (карта сгорела, chance_count = 0)
 	# ВАЖНО: проверяем ДО проверки триггеров, чтобы не изменилось состояние

@@ -1383,19 +1383,19 @@ func _handle_payout_queue() -> void:
 
 func camera_zoom_in():
 	"""Плавный зум на область карт (через EventBus)"""
-	EventBus.camera_zoom_requested.emit("in")
+	EventBus.camera_zoom_requested.emit("in", false)
 
 func camera_zoom_out():
 	"""Возврат к общему плану (через EventBus)"""
-	EventBus.camera_zoom_requested.emit("out")
+	EventBus.camera_zoom_requested.emit("out", false)
 
 func camera_zoom_cards():
 	"""Плавный зум на область карт (через EventBus)"""
-	EventBus.camera_zoom_requested.emit("cards")
+	EventBus.camera_zoom_requested.emit("cards", false)
 
 func camera_zoom_area(area_index: int):
 	"""Плавный зум на область ставок (через EventBus)"""
-	EventBus.camera_zoom_requested.emit("area_%d" % area_index)
+	EventBus.camera_zoom_requested.emit("area_%d" % area_index, false)
 
 
 func _on_left_arrow_pressed():
@@ -1424,11 +1424,11 @@ func _request_camera_target_area(direction: String) -> void:
 	var response_handler = func(dir: String, area: int):
 		if dir == direction:
 			if area > 0:
-				EventBus.camera_zoom_requested.emit("area_%d" % area)
+				EventBus.camera_zoom_requested.emit("area_%d" % area, false)
 			elif area == -1:
-				EventBus.camera_zoom_requested.emit("out")
+				EventBus.camera_zoom_requested.emit("out", false)
 			else:
-				EventBus.camera_zoom_requested.emit("in")
+				EventBus.camera_zoom_requested.emit("in", false)
 			_update_arrows_state()
 			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
 	
@@ -1600,7 +1600,7 @@ func _update_area_highlights(area_idx: int) -> void:
 			hl.modulate.a = 1.0 if active else 0.0
 
 
-func _on_camera_zoom_requested(zoom_type: String) -> void:
+func _on_camera_zoom_requested(zoom_type: String, _is_navigation: bool = false) -> void:
 	"""Мгновенно подсвечиваем целевую область по запросу зума (до завершения анимации)"""
 	var target_area := camera_manager.predict_target_area(zoom_type)
 	_update_area_highlights(target_area)

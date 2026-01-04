@@ -205,11 +205,11 @@ func _request_target_area(direction: String) -> void:
 func _handle_target_area_response(direction: String, target_area: int) -> void:
 	"""Обработка ответа от CameraManager"""
 	if target_area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area, false)
 	elif target_area == -1:
-		EventBus.camera_zoom_requested.emit("out")
+		EventBus.camera_zoom_requested.emit("out", false)
 	else:
-		EventBus.camera_zoom_requested.emit("in")
+		EventBus.camera_zoom_requested.emit("in", false)
 	
 	var direction_name = direction.capitalize()
 	var target_name = "out" if target_area == -1 else ("area_%d" % target_area if target_area > 0 else "in")

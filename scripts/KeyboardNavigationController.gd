@@ -109,11 +109,11 @@ func _handle_target_area_response(direction: String, target_area: int) -> void:
 		target_area: Целевая область (-1 = общий план, 0 = карты, 1-3 = области ставок)
 	"""
 	if target_area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % target_area)
+		EventBus.camera_zoom_requested.emit("area_%d" % target_area, false)
 	elif target_area == -1:
-		EventBus.camera_zoom_requested.emit("out")
+		EventBus.camera_zoom_requested.emit("out", false)
 	else:
-		EventBus.camera_zoom_requested.emit("in")
+		EventBus.camera_zoom_requested.emit("in", false)
 	
 	var key_name = direction.capitalize()
 	var target_name = "out" if target_area == -1 else ("area_%d" % target_area if target_area > 0 else "in")

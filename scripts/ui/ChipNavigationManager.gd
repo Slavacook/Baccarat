@@ -201,15 +201,15 @@ func _update_camera_for_position() -> void:
 		var camera_mode = SaveManager.instance.load_camera_control_mode()
 		if camera_mode == "independent":
 			var zoom_type = _get_camera_zoom_for_sector_mode2(current_sector)
-			EventBus.camera_zoom_requested.emit(zoom_type)
-			DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, режим 2)" % [zoom_type, current_sector])
+			EventBus.camera_zoom_requested.emit(zoom_type, true)  # true = навигация (медленная анимация)
+			DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, режим 2, навигация)" % [zoom_type, current_sector])
 		return
 	
 	var area = _get_area_from_sector(current_sector)
 	
 	if area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % area)
-		DebugLogger.log("📷 ChipNavigationManager: камера → area_%d (сектор %d)" % [area, current_sector])
+		EventBus.camera_zoom_requested.emit("area_%d" % area, true)  # true = навигация (медленная анимация)
+		DebugLogger.log("📷 ChipNavigationManager: камера → area_%d (сектор %d, навигация)" % [area, current_sector])
 
 func _get_camera_zoom_for_sector_mode2(sector: int) -> String:
 	"""Определить тип зума камеры для сектора в режиме 2 (независимый)

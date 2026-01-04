@@ -375,7 +375,7 @@ func deal_first_four():
 	# Зум на карты при первой раздаче ИЛИ после подготовки стола
 	if is_first_deal or is_table_prepared:
 		DebugLogger.log("  → Условие зума выполнено → вызываем camera_zoom_requested")
-		EventBus.camera_zoom_requested.emit("in")
+		EventBus.camera_zoom_requested.emit("in", false)
 		is_first_deal = false
 		EventBus.first_deal_completed.emit()
 		# Сбрасываем флаг подготовки (начинаем новую игру)
@@ -673,7 +673,7 @@ func on_tie_button_pressed():
 		EventBus.show_toast_success.emit("Игалите")
 
 	# Возвращаем камеру на общий план и показываем кнопки областей
-	EventBus.camera_zoom_requested.emit("out")
+	EventBus.camera_zoom_requested.emit("out", false)
 	EventBus.area_buttons_visibility_changed.emit(true)
 	# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 	EventBus.navigation_arrows_visibility_changed.emit(true)
@@ -1443,7 +1443,7 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	
 	if camera_mode == "independent":
 		# Режим 2 (независимый): общий план + автоматическая активация chip navigation
-		EventBus.camera_zoom_requested.emit("out")  # Общий план
+		EventBus.camera_zoom_requested.emit("out", false)  # Общий план
 		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 		EventBus.navigation_arrows_visibility_changed.emit(true)
 		# Запрашиваем активацию chip navigation с отключенной привязкой камеры
@@ -1451,7 +1451,7 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	else:
 		# Режим 1 (привязанный): как обычно - зум на область
 		var target_area = _find_rightmost_area_with_bets()
-		EventBus.camera_zoom_requested.emit(target_area)
+		EventBus.camera_zoom_requested.emit(target_area, false)
 		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 		EventBus.navigation_arrows_visibility_changed.emit(true)
 
