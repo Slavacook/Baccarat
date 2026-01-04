@@ -344,15 +344,13 @@ func get_last_zoom_type() -> String:
 # ПРИВАТНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _process_interpolation(delta: float) -> void:
+func _process_interpolation(_delta: float) -> void:
 	"""Обработка экспоненциального сглаживания камеры в _process"""
 	if not _is_interpolating or not _camera:
 		return
 	
 	# Вычисляем расстояние до цели (ДО интерполяции)
 	var position_distance = _camera.position.distance_to(_target_position)
-	var rotation_distance = abs(_camera.rotation_degrees - _target_rotation)
-	var zoom_distance = _camera.zoom.distance_to(_target_zoom)
 	
 	# Вычисляем адаптивный коэффициент интерполяции на основе расстояния
 	# Чем дальше, тем больше коэффициент (быстрее), чем ближе, тем меньше (медленнее)
