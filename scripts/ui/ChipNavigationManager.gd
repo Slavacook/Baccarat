@@ -203,14 +203,13 @@ func _get_area_from_sector(sector: int) -> int:
 		sector: Номер сектора (1-6)
 		
 	Returns:
-		Номер области (1-3): 1-2 → area_1, 3-4 → area_2, 5-6 → area_3
+		Номер области (1-6): сектор N → area_N (1:1 соответствие)
 	"""
-	if sector <= 2:
-		return 1
-	elif sector <= 4:
-		return 2
+	if sector >= 1 and sector <= 6:
+		return sector
 	else:
-		return 3
+		push_error("ChipNavigationManager: неверный номер сектора %d" % sector)
+		return 1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ЛОГИКА НАВИГАЦИИ

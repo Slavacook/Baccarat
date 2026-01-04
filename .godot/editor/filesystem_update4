@@ -1,3 +1,4 @@
 res://scripts/CameraManager.gd
 res://scenes/Game.tscn
 res://resources/CameraConfig.gd
+res://scripts/ui/ChipNavigationManager.gd

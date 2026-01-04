@@ -109,8 +109,8 @@ func _zoom_out() -> void:
 	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out")
 
 func _zoom_area(area_index: int) -> void:
-	"""Внутренний метод зума на указанную область (1, 2 или 3)"""
-	if area_index < 1 or area_index > 3:
+	"""Внутренний метод зума на указанную область (1-6)"""
+	if area_index < 1 or area_index > 6:
 		push_error("CameraManager: неверный индекс области %d" % area_index)
 		return
 	current_area = area_index
@@ -164,30 +164,36 @@ func _get_target_area_by_direction(direction: String) -> int:
 		direction: "left", "right", "up", "down"
 	
 	Returns:
-		Целевая область (1-3), 0 для карт, -1 для общего плана
+		Целевая область (1-6), 0 для карт, -1 для общего плана
 	"""
 	match direction:
 		"left":
 			match current_area:
 				0: return 1  # карты → area_1
-				1: return 1  # area_1 → остаётся (нет перехода)
+				1: return 6  # area_1 → area_6 (циклически)
 				2: return 1  # area_2 → area_1
 				3: return 2  # area_3 → area_2
+				4: return 3  # area_4 → area_3
+				5: return 4  # area_5 → area_4
+				6: return 5  # area_6 → area_5
 		"right":
 			match current_area:
-				0: return 3  # карты → area_3
+				0: return 6  # карты → area_6
 				1: return 2  # area_1 → area_2
 				2: return 3  # area_2 → area_3
-				3: return 3  # area_3 → остаётся (нет перехода)
+				3: return 4  # area_3 → area_4
+				4: return 5  # area_4 → area_5
+				5: return 6  # area_5 → area_6
+				6: return 1  # area_6 → area_1 (циклически)
 		"up":
 			match current_area:
-				0: return 2  # карты → area_2
-				1, 2, 3: return -1  # из областей → общий план
+				0: return 4  # карты → area_4 (центральная)
+				1, 2, 3, 4, 5, 6: return -1  # из областей → общий план
 		"down":
 			match current_area:
 				-1: return 0  # общий план → карты
 				0: return -1  # карты → общий план
-				1, 2, 3: return 0  # из областей → карты
+				1, 2, 3, 4, 5, 6: return 0  # из областей → карты
 		_:
 			return 0
 	return 0
@@ -199,40 +205,46 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 	Используется для предсказания состояния стрелок на основе целевой области.
 	
 	Args:
-		area: Исходная область (0 = карты, 1-3 = области ставок, -1 = общий план)
+		area: Исходная область (0 = карты, 1-6 = области ставок, -1 = общий план)
 		direction: "left", "right", "up", "down"
 	
 	Returns:
-		Целевая область (1-3), 0 для карт, -1 для общего плана
+		Целевая область (1-6), 0 для карт, -1 для общего плана
 	"""
 	match direction:
 		"left":
 			match area:
 				0: return 1  # карты → area_1
-				1: return 1  # area_1 → остаётся (нет перехода)
+				1: return 6  # area_1 → area_6 (циклически)
 				2: return 1  # area_2 → area_1
 				3: return 2  # area_3 → area_2
+				4: return 3  # area_4 → area_3
+				5: return 4  # area_5 → area_4
+				6: return 5  # area_6 → area_5
 		"right":
 			match area:
-				0: return 3  # карты → area_3
+				0: return 6  # карты → area_6
 				1: return 2  # area_1 → area_2
 				2: return 3  # area_2 → area_3
-				3: return 3  # area_3 → остаётся (нет перехода)
+				3: return 4  # area_3 → area_4
+				4: return 5  # area_4 → area_5
+				5: return 6  # area_5 → area_6
+				6: return 1  # area_6 → area_1 (циклически)
 		"up":
 			match area:
-				0: return 2  # карты → area_2
-				1, 2, 3: return -1  # из областей → общий план
+				0: return 4  # карты → area_4 (центральная)
+				1, 2, 3, 4, 5, 6: return -1  # из областей → общий план
 		"down":
 			match area:
 				-1: return 0  # общий план → карты
 				0: return -1  # карты → общий план
-				1, 2, 3: return 0  # из областей → карты
+				1, 2, 3, 4, 5, 6: return 0  # из областей → карты
 		_:
 			return 0
 	return 0
 
 func predict_target_area(zoom_type: String) -> int:
-	"""Предсказать целевую область (1-3) по zoom_type, 0 — если карты/общий план
+	"""Предсказать целевую область (1-6) по zoom_type, 0 — если карты/общий план
 	
 	Использует _get_target_area_by_direction() для единообразия логики.
 	Публичный метод для GameController (используется для подсветки областей).
@@ -244,6 +256,12 @@ func predict_target_area(zoom_type: String) -> int:
 			return 2
 		"area_3":
 			return 3
+		"area_4":
+			return 4
+		"area_5":
+			return 5
+		"area_6":
+			return 6
 		"next_area":
 			return _get_target_area_by_direction("right")
 		"prev_area":
@@ -261,7 +279,7 @@ func is_on_cards() -> bool:
 
 func is_on_area() -> bool:
 	"""Проверка, находится ли камера на области ставок"""
-	return current_area >= 1 and current_area <= 3
+	return current_area >= 1 and current_area <= 6
 
 func get_last_zoom_type() -> String:
 	"""Получить последний тип зума"""
@@ -291,10 +309,11 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	current_tween = tween  # Сохраняем ссылку для возможности остановки
 	tween.set_parallel(true)  # Позиция, зум и поворот меняются одновременно
 	
-	# Используем тип анимации из конфигурации
+	# Используем настройки из конфигурации
 	var transition_type = _get_transition_type(_config.transition_type)
+	var ease_type = _get_ease_type(_config.ease_type)
 	tween.set_trans(transition_type)
-	tween.set_ease(Tween.EASE_IN_OUT)
+	tween.set_ease(ease_type)
 	
 	# Используем длительность из конфигурации
 	tween.tween_property(_camera, "position", target_pos, _config.transition_duration)
@@ -324,16 +343,42 @@ func _get_transition_type(type_name: String) -> Tween.TransitionType:
 	match type_name.to_lower():
 		"linear":
 			return Tween.TRANS_LINEAR
+		"sine":
+			return Tween.TRANS_SINE
+		"quad":
+			return Tween.TRANS_QUAD
 		"cubic":
 			return Tween.TRANS_CUBIC
-		"elastic":
-			return Tween.TRANS_ELASTIC
+		"quart":
+			return Tween.TRANS_QUART
+		"quint":
+			return Tween.TRANS_QUINT
+		"expo":
+			return Tween.TRANS_EXPO
+		"circ":
+			return Tween.TRANS_CIRC
 		"back":
 			return Tween.TRANS_BACK
+		"elastic":
+			return Tween.TRANS_ELASTIC
 		"bounce":
 			return Tween.TRANS_BOUNCE
 		_:
-			return Tween.TRANS_CUBIC  # По умолчанию
+			return Tween.TRANS_QUINT  # По умолчанию
+
+func _get_ease_type(type_name: String) -> Tween.EaseType:
+	"""Преобразует строковое название типа плавности в Tween.EaseType"""
+	match type_name.to_lower():
+		"in":
+			return Tween.EASE_IN
+		"out":
+			return Tween.EASE_OUT
+		"in_out":
+			return Tween.EASE_IN_OUT
+		"out_in":
+			return Tween.EASE_OUT_IN
+		_:
+			return Tween.EASE_OUT  # По умолчанию
 
 func _get_zoom_name(zoom_type: String) -> String:
 	"""Получить человекочитаемое название зума"""
@@ -343,11 +388,17 @@ func _get_zoom_name(zoom_type: String) -> String:
 		"out":
 			return "Общий план"
 		"area_1":
-			return "Область 1 (левая)"
+			return "Область 1"
 		"area_2":
-			return "Область 2 (центр)"
+			return "Область 2"
 		"area_3":
-			return "Область 3 (правая)"
+			return "Область 3"
+		"area_4":
+			return "Область 4"
+		"area_5":
+			return "Область 5"
+		"area_6":
+			return "Область 6"
 		"up":
 			return "Навигация вверх"
 		"down":
@@ -378,6 +429,12 @@ func _on_zoom_requested(zoom_type: String) -> void:
 			_zoom_area(2)
 		"area_3":
 			_zoom_area(3)
+		"area_4":
+			_zoom_area(4)
+		"area_5":
+			_zoom_area(5)
+		"area_6":
+			_zoom_area(6)
 		"next_area":
 			_zoom_next_area()
 		"prev_area":
