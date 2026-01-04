@@ -349,15 +349,24 @@ func _process_interpolation(delta: float) -> void:
 	if not _is_interpolating or not _camera:
 		return
 	
-	# Вычисляем расстояние до цели
+	# Вычисляем расстояние до цели (ДО интерполяции)
 	var position_distance = _camera.position.distance_to(_target_position)
 	var rotation_distance = abs(_camera.rotation_degrees - _target_rotation)
+	var zoom_distance = _camera.zoom.distance_to(_target_zoom)
 	
 	# Вычисляем адаптивный коэффициент интерполяции на основе расстояния
 	# Чем дальше, тем больше коэффициент (быстрее), чем ближе, тем меньше (медленнее)
 	var max_distance = 1000.0  # Максимальное ожидаемое расстояние для нормализации
 	var distance_factor = clamp(position_distance / max_distance, 0.0, 1.0)
 	var interpolation_speed = lerp(_config.min_interpolation_speed, _config.max_interpolation_speed, distance_factor)
+	
+	# Если камера очень близко к цели, используем минимальную скорость для плавного завершения
+	# Это предотвращает рывок в момент остановки
+	if position_distance < _config.distance_threshold * 3.0:
+		# Когда очень близко, используем минимальную скорость для плавного подхода
+		# Чем ближе, тем медленнее
+		var close_factor = clamp(position_distance / (_config.distance_threshold * 3.0), 0.0, 1.0)
+		interpolation_speed = lerp(_config.min_interpolation_speed * 0.2, _config.min_interpolation_speed, close_factor)
 	
 	# Интерполируем позицию
 	_camera.position = _camera.position.lerp(_target_position, interpolation_speed)
@@ -371,20 +380,28 @@ func _process_interpolation(delta: float) -> void:
 	var zoom_speed = interpolation_speed
 	_camera.zoom = _camera.zoom.lerp(_target_zoom, zoom_speed)
 	
-	# Проверяем, достигли ли мы цели
-	var position_reached = position_distance < _config.distance_threshold
-	var rotation_reached = rotation_distance < _config.rotation_threshold
-	var zoom_reached = _camera.zoom.distance_to(_target_zoom) < 0.01
+	# Вычисляем новые расстояния ПОСЛЕ интерполяции для проверки достижения цели
+	var new_position_distance = _camera.position.distance_to(_target_position)
+	var new_rotation_distance = abs(_camera.rotation_degrees - _target_rotation)
+	var new_zoom_distance = _camera.zoom.distance_to(_target_zoom)
+	
+	# Используем очень строгие пороги для остановки (почти вплотную к цели)
+	# Это гарантирует, что камера действительно достигла цели без рывка
+	var position_reached = new_position_distance < 0.05  # Очень маленький порог
+	var rotation_reached = new_rotation_distance < 0.02  # Очень маленький порог
+	var zoom_reached = new_zoom_distance < 0.001  # Очень маленький порог
 	
 	if position_reached and rotation_reached and zoom_reached:
-		# Камера достигла цели - финализируем значения
+		# Камера действительно достигла цели - устанавливаем финальные значения
+		# На этом этапе камера уже очень близко, поэтому рывка не будет
 		_camera.position = _target_position
 		_camera.rotation_degrees = _target_rotation
 		_camera.zoom = _target_zoom
 		
 		# Останавливаем интерполяцию
 		_is_interpolating = false
-		_process_node.set_process(false)
+		if _process_node and _process_node.has_method("set_process"):
+			_process_node.set_process(false)
 		
 		# Эмитим сигнал завершения
 		zoom_completed.emit(_current_zoom_type)
