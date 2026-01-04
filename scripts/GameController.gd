@@ -406,6 +406,10 @@ func _initialize_chip_navigation() -> void:
 		bet_collection_manager.chip_collected.connect(chip_navigation_manager._on_chip_collected)
 		bet_collection_manager.chip_paid.connect(chip_navigation_manager._on_chip_paid)
 	
+	# Подписываемся на сигнал активации chip navigation
+	if EventBus:
+		EventBus.chip_navigation_activation_requested.connect(_on_chip_navigation_activation_requested)
+	
 	print("✅ ChipNavigationManager инициализирован")
 
 func is_chip_navigation_active() -> bool:
@@ -1686,6 +1690,16 @@ func _restore_cards_ui():
 func _on_manual_payout_requested(winner: String):
 	"""Обработка запроса подготовки выплат от GamePhaseManager через EventBus"""
 	_prepare_payouts_manual(winner)
+
+func _on_chip_navigation_activation_requested(camera_linked: bool):
+	"""Обработка запроса активации chip navigation через EventBus"""
+	if chip_navigation_manager:
+		# Устанавливаем режим привязки камеры перед активацией
+		chip_navigation_manager.set_camera_linked(camera_linked)
+		chip_navigation_manager.activate()
+		DebugLogger.log("⌨️ ChipNavigationManager: активирован через EventBus (camera_linked=%s)" % camera_linked)
+	else:
+		DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
 
 func _on_table_prepared():
 	"""Обработка подготовки стола к новой игре"""

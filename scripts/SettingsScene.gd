@@ -47,6 +47,10 @@ signal language_changed(lang: String)  # "ru" или "en"
 @onready var tiger_button: Button = find_child("TigerButton", true, false)
 @onready var leopard_button: Button = find_child("LeopardButton", true, false)
 
+# === РАЗДЕЛ 6.5: РЕЖИМ УПРАВЛЕНИЯ КАМЕРОЙ ===
+@onready var camera_linked_button: Button = find_child("CameraLinkedButton", true, false)
+@onready var camera_independent_button: Button = find_child("CameraIndependentButton", true, false)
+
 # === РАЗДЕЛ 7: ТЕСТОВЫЕ КАРТЫ (для отладки) ===
 @onready var test_cards_button: Button = find_child("TestCardsButton", true, false)
 
@@ -126,6 +130,12 @@ func _connect_signals():
 		tiger_button.pressed.connect(_on_tiger_pressed)
 	if leopard_button:
 		leopard_button.pressed.connect(_on_leopard_pressed)
+	
+	# Режим управления камерой
+	if camera_linked_button:
+		camera_linked_button.pressed.connect(_on_camera_linked_pressed)
+	if camera_independent_button:
+		camera_independent_button.pressed.connect(_on_camera_independent_pressed)
 	
 	# Тестовые карты
 	if test_cards_button:
@@ -353,6 +363,9 @@ func _load_current_values():
 
 	# Рубашка карт
 	_update_card_back_buttons()
+	
+	# Режим управления камерой
+	_update_camera_control_buttons()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА
@@ -662,6 +675,15 @@ func _update_card_back_buttons():
 	tiger_button.disabled = (current_style == "tiger")
 	leopard_button.disabled = (current_style == "leopard")
 
+func _update_camera_control_buttons():
+	"""Обновить состояние кнопок режима управления камерой"""
+	if not camera_linked_button or not camera_independent_button:
+		return
+
+	var current_mode = SaveManager.instance.load_camera_control_mode()
+	camera_linked_button.disabled = (current_mode == "linked")
+	camera_independent_button.disabled = (current_mode == "independent")
+
 func _setup_bet_size_options():
 	"""Настроить опции для OptionButton размера ставок"""
 	if not bet_size_option:
@@ -796,6 +818,19 @@ func _on_leopard_pressed():
 	_update_card_back_buttons()
 	EventBus.card_back_style_changed.emit("leopard")
 	print("🎴 Рубашка карт изменена: Леопард")
+
+# === РЕЖИМ УПРАВЛЕНИЯ КАМЕРОЙ ===
+func _on_camera_linked_pressed():
+	"""Обработка нажатия кнопки Linked (режим 1)"""
+	SaveManager.instance.save_camera_control_mode("linked")
+	_update_camera_control_buttons()
+	print("📷 Режим управления камерой изменён: Привязанный (режим 1)")
+
+func _on_camera_independent_pressed():
+	"""Обработка нажатия кнопки Independent (режим 2)"""
+	SaveManager.instance.save_camera_control_mode("independent")
+	_update_camera_control_buttons()
+	print("📷 Режим управления камерой изменён: Независимый (режим 2)")
 
 # === ТЕСТОВЫЕ КАРТЫ ===
 func _on_test_cards_pressed():

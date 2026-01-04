@@ -57,6 +57,10 @@ signal area_buttons_visibility_changed(visible: bool)
 @warning_ignore("unused_signal")
 signal navigation_arrows_visibility_changed(visible: bool)
 
+## Запрос активации навигации по фишкам (chip navigation)
+@warning_ignore("unused_signal")
+signal chip_navigation_activation_requested(camera_linked: bool)
+
 ## ═══════════════════════════════════════════════════════════════════════════
 ## 📷 КАМЕРА - ЗАПРОСЫ СОСТОЯНИЯ (для полной инкапсуляции)
 ## ═══════════════════════════════════════════════════════════════════════════

@@ -76,7 +76,8 @@ func load_settings() -> Dictionary:
 	return {
 		"game_mode": "junket",
 		"survival_mode": true,
-		"language": "ru"  # По умолчанию русский
+		"language": "ru",  # По умолчанию русский
+		"camera_control_mode": "linked"  # По умолчанию режим 1 (привязанный)
 	}
 
 func save_game_mode(mode: String):
@@ -107,6 +108,18 @@ func load_language() -> String:
 	"""Загрузить язык (по умолчанию "ru")"""
 	var settings = load_settings()
 	return settings.get("language", "ru")
+
+# ← Настройки режима управления камерой
+func save_camera_control_mode(mode: String):
+	"""Сохранить режим управления камерой: "linked" (режим 1) или "independent" (режим 2)"""
+	var settings = load_settings()
+	settings["camera_control_mode"] = mode
+	save_settings(settings)
+
+func load_camera_control_mode() -> String:
+	"""Загрузить режим управления камерой (по умолчанию "linked" - режим 1)"""
+	var settings = load_settings()
+	return settings.get("camera_control_mode", "linked")
 
 # ← Настройки рубашки карт
 func save_card_back_style(style: String):

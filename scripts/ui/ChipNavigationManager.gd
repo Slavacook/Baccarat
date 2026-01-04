@@ -16,6 +16,9 @@ var chip_click_handler: ChipClickHandler = null
 var navigation_frame: Control = null  # ChipNavigationFrame
 var camera_manager: CameraManager = null  # Для определения текущей области камеры
 
+# Флаг привязки камеры к навигации (true = камера движется вместе с фокусом, false = камера остается на общем плане)
+var camera_linked: bool = true
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ НАВИГАЦИИ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -73,6 +76,11 @@ func setup(
 	camera_manager = p_camera_manager
 	
 	DebugLogger.log("✅ ChipNavigationManager: настроен")
+
+func set_camera_linked(linked: bool) -> void:
+	"""Установить режим привязки камеры к навигации"""
+	camera_linked = linked
+	DebugLogger.log("📷 ChipNavigationManager: camera_linked = %s" % linked)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ АКТИВАЦИЕЙ
@@ -190,6 +198,10 @@ func _is_chip_active(chip: ChipVisualManager.ChipInstance) -> bool:
 
 func _update_camera_for_position() -> void:
 	"""Обновить позицию камеры для текущей позиции"""
+	# Если камера не привязана к навигации - не двигаем камеру
+	if not camera_linked:
+		return
+	
 	var area = _get_area_from_sector(current_sector)
 	
 	if area > 0:

@@ -357,6 +357,48 @@ text = "ЛЕОПАРД"
 [node name="HSeparator6" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 
+[node name="CameraControlSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HBoxContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection"]
+layout_mode = 2
+
+[node name="Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection/HBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "КАМЕРА:"
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+
+[node name="CameraControlButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="CameraLinkedButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection/CameraControlButtons"]
+custom_minimum_size = Vector2(140, 45)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Режим 1"
+theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
+theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
+theme_override_font_sizes/font_size = 14
+
+[node name="CameraIndependentButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection/CameraControlButtons"]
+custom_minimum_size = Vector2(140, 45)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Режим 2"
+theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
+theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
+theme_override_font_sizes/font_size = 14
+
+[node name="HSeparator7" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
 [node name="TestCardsSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 theme_override_constants/separation = 8

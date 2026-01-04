@@ -1428,11 +1428,22 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	var victory_msg = victory_message_formatter.format_victory_message(actual_winner, player_score, banker_score)
 	EventBus.show_toast_success.emit(victory_msg)
 
-	# Определяем самую правую зону со ставками для автоматического перемещения камеры
-	var target_area = _find_rightmost_area_with_bets()
-	EventBus.camera_zoom_requested.emit(target_area)
-	# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
-	EventBus.navigation_arrows_visibility_changed.emit(true)
+	# Проверяем режим управления камерой
+	var camera_mode = SaveManager.instance.load_camera_control_mode()
+	
+	if camera_mode == "independent":
+		# Режим 2 (независимый): общий план + автоматическая активация chip navigation
+		EventBus.camera_zoom_requested.emit("out")  # Общий план
+		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
+		EventBus.navigation_arrows_visibility_changed.emit(true)
+		# Запрашиваем активацию chip navigation с отключенной привязкой камеры
+		EventBus.chip_navigation_activation_requested.emit(false)
+	else:
+		# Режим 1 (привязанный): как обычно - зум на область
+		var target_area = _find_rightmost_area_with_bets()
+		EventBus.camera_zoom_requested.emit(target_area)
+		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
+		EventBus.navigation_arrows_visibility_changed.emit(true)
 
 	# Вызываем метод формирования очереди выплат через EventBus
 	EventBus.manual_payout_requested.emit(actual_winner)
