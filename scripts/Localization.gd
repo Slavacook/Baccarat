@@ -132,7 +132,7 @@ const DATA = {
 		
 		# === НАСТРОЙКИ ГОСТЕЙ ===
 		"GUEST_SETTINGS_TITLE": "Настройки гостей",
-		"GUEST_SETTINGS_BUTTON": "Ставки",
+		"GUEST_SETTINGS_BUTTON": "ГОСТИ",
 		"GUEST_ENABLED": "Включён",
 		"GUEST_CHARACTER": "Характер:",
 		"GUEST_WEALTH": "Обеспеченность:",
@@ -290,7 +290,7 @@ const DATA = {
 		
 		# === GUEST SETTINGS ===
 		"GUEST_SETTINGS_TITLE": "Guest Settings",
-		"GUEST_SETTINGS_BUTTON": "Bets",
+		"GUEST_SETTINGS_BUTTON": "GUESTS",
 		"GUEST_ENABLED": "Enabled",
 		"GUEST_CHARACTER": "Character:",
 		"GUEST_WEALTH": "Wealth:",

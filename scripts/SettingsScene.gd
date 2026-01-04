@@ -718,7 +718,7 @@ func _switch_game_mode(mode: String):
 # === СТАВКИ ===
 
 func _on_guest_settings_pressed():
-	"""Обработка нажатия кнопки 'Ставки' для открытия меню настроек гостей"""
+	"""Обработка нажатия кнопки 'ГОСТИ' для открытия меню настроек гостей"""
 	# Ищем меню в сцене Game
 	var game_scene = get_tree().get_first_node_in_group("game")
 	if not game_scene:
