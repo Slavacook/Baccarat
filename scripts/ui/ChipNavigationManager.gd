@@ -218,13 +218,13 @@ func _get_camera_zoom_for_sector_mode2(sector: int) -> String:
 		sector: Номер сектора (1-6)
 		
 	Returns:
-		Тип зума: "mode2_left" для сектора 1, "mode2_right" для сектора 6, "out" для секторов 2-5
+		Тип зума: "mode2_left" для секторов 1-2, "mode2_right" для секторов 5-6, "out" для секторов 3-4
 	"""
-	if sector == 1:
+	if sector == 1 or sector == 2:
 		return "mode2_left"
-	elif sector == 6:
+	elif sector == 5 or sector == 6:
 		return "mode2_right"
-	else:
+	else:  # sector == 3 or sector == 4
 		return "out"
 
 func _get_area_from_sector(sector: int) -> int:
