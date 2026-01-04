@@ -10,3 +10,4 @@ res://scripts/SwipeNavigationController.gd
 res://scripts/TablePreparationExecutor.gd
 res://scripts/ui/AreaButton.gd
 res://scripts/ui/HeartBetController.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd

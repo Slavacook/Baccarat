@@ -62,11 +62,14 @@ func setup(p_parent_node: Node2D, p_camera_manager: CameraManager = null):
 	# Обновляем все индикаторы для начального отображения
 	refresh_all_indicators()
 	
-	# Инициализируем previous_area и скрываем карточки, если камера на общем плане
+	# Инициализируем previous_area и скрываем карточки, если камера на общем плане (только в режиме 1)
 	if camera_manager:
 		previous_area = camera_manager.current_area
-		if camera_manager.current_area == -1:
-			_hide_all_indicators_animated(false)  # Без анимации при инициализации
+		var camera_mode = SaveManager.instance.load_camera_control_mode()
+		if camera_mode == "linked" and camera_manager.current_area == -1:
+			_hide_all_indicators_animated(false)  # Без анимации при инициализации (режим 1, общий план)
+		else:
+			_show_all_indicators_animated()  # В режиме 2 показываем сразу
 	
 	print("✅ GuestPatienceIndicatorManager: создано %d индикаторов" % indicators.size())
 
@@ -290,9 +293,18 @@ func _on_camera_zoom_completed(_zoom_type: String):
 	
 	var area = camera_manager.current_area
 	
-	# Определяем, является ли область областью ставок (1-3)
-	var is_areas_zone = (area >= 1 and area <= 3)
-	var was_areas_zone = (previous_area >= 1 and previous_area <= 3)
+	# Проверяем режим камеры
+	var camera_mode = SaveManager.instance.load_camera_control_mode()
+	
+	if camera_mode == "independent":
+		# Режим 2: индикаторы всегда видны (если гость за столом)
+		_show_all_indicators_animated()
+		previous_area = area
+		return
+	
+	# Режим 1: показываем только на area_1-6 (не на общем плане и не на картах)
+	var is_areas_zone = (area >= 1 and area <= 6)  # Исправлено: было 1-3, стало 1-6
+	var was_areas_zone = (previous_area >= 1 and previous_area <= 6)  # Исправлено
 	
 	# Если переходим с области ставок на область ставок - ничего не делаем
 	if is_areas_zone and was_areas_zone:
