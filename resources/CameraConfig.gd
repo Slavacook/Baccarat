@@ -13,6 +13,8 @@ class_name CameraConfig
 var general_position: Vector2 = Vector2(570, 50)
 # Масштаб камеры для общего плана
 var general_zoom: Vector2 = Vector2(0.28, 0.28)
+# Поворот камеры для общего плана (в градусах)
+var general_rotation: float = 0.0
 var general_description: String = "Показывает весь стол"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -23,6 +25,8 @@ var general_description: String = "Показывает весь стол"
 var cards_position: Vector2 = Vector2(595, 400)
 # Масштаб камеры для зума на карты
 var cards_zoom: Vector2 = Vector2(1.2, 1.2)
+# Поворот камеры для зума на карты (в градусах)
+var cards_rotation: float = 0.0
 var cards_description: String = "Фокус на зоне раздачи карт"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -33,6 +37,8 @@ var cards_description: String = "Фокус на зоне раздачи кар�
 var area_1_position: Vector2 = Vector2(-300, 220)
 # Масштаб камеры для области 1
 var area_1_zoom: Vector2 = Vector2(1.0, 1.0)
+# Поворот камеры для области 1 (в градусах)
+var area_1_rotation: float = -20.0
 var area_1_description: String = "Левая область ставок"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -43,6 +49,8 @@ var area_1_description: String = "Левая область ставок"
 var area_2_position: Vector2 = Vector2(570, 120)
 # Масштаб камеры для области 2
 var area_2_zoom: Vector2 = Vector2(1.0, 1.0)
+# Поворот камеры для области 2 (в градусах)
+var area_2_rotation: float = 0.0
 var area_2_description: String = "Центральная область ставок"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -53,6 +61,8 @@ var area_2_description: String = "Центральная область став
 var area_3_position: Vector2 = Vector2(1450, 220)
 # Масштаб камеры для области 3
 var area_3_zoom: Vector2 = Vector2(1.0, 1.0)
+# Поворот камеры для области 3 (в градусах)
+var area_3_rotation: float = 20.0
 var area_3_description: String = "Правая область ставок"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -73,6 +83,7 @@ func get_general_settings() -> Dictionary:
 	return {
 		"position": general_position,
 		"zoom": general_zoom,
+		"rotation": general_rotation,
 		"description": general_description
 	}
 
@@ -81,6 +92,7 @@ func get_cards_settings() -> Dictionary:
 	return {
 		"position": cards_position,
 		"zoom": cards_zoom,
+		"rotation": cards_rotation,
 		"description": cards_description
 	}
 
@@ -89,6 +101,7 @@ func get_area_1_settings() -> Dictionary:
 	return {
 		"position": area_1_position,
 		"zoom": area_1_zoom,
+		"rotation": area_1_rotation,
 		"description": area_1_description
 	}
 
@@ -97,6 +110,7 @@ func get_area_2_settings() -> Dictionary:
 	return {
 		"position": area_2_position,
 		"zoom": area_2_zoom,
+		"rotation": area_2_rotation,
 		"description": area_2_description
 	}
 
@@ -105,6 +119,7 @@ func get_area_3_settings() -> Dictionary:
 	return {
 		"position": area_3_position,
 		"zoom": area_3_zoom,
+		"rotation": area_3_rotation,
 		"description": area_3_description
 	}
 

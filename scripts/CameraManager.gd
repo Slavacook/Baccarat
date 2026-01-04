@@ -60,12 +60,14 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	# Создаём камеру
 	_camera = Camera2D.new()
 	_camera.enabled = true
+	_camera.ignore_rotation = false  # Разрешаем поворот камеры
 	parent_scene.add_child(_camera)
 	
 	# Начинаем с общего плана (из конфигурации)
 	var general_settings = _config.get_general_settings()
 	_camera.position = general_settings.position
 	_camera.zoom = general_settings.zoom
+	_camera.rotation_degrees = general_settings.get("rotation", 0.0)
 	current_area = -1  # Общий план
 	last_zoom_type = "out"
 	
@@ -98,13 +100,13 @@ func _zoom_in() -> void:
 	"""Внутренний метод зума на область карт"""
 	current_area = 0
 	var settings = _config.get_cards_settings()
-	_animate_to(settings.position, settings.zoom, "in")
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "in")
 
 func _zoom_out() -> void:
 	"""Внутренний метод возврата к общему плану"""
 	current_area = -1  # Общий план
 	var settings = _config.get_general_settings()
-	_animate_to(settings.position, settings.zoom, "out")
+	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out")
 
 func _zoom_area(area_index: int) -> void:
 	"""Внутренний метод зума на указанную область (1, 2 или 3)"""
@@ -113,7 +115,9 @@ func _zoom_area(area_index: int) -> void:
 		return
 	current_area = area_index
 	var settings = _config.get_area_settings(area_index)
-	_animate_to(settings.position, settings.zoom, "area_%d" % area_index)
+	var rotation_value = settings.get("rotation", 0.0)
+	print("📷 CameraManager: _zoom_area(%d) - rotation из конфига: %.1f°" % [area_index, rotation_value])
+	_animate_to(settings.position, settings.zoom, rotation_value, "area_%d" % area_index)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ НАВИГАЦИИ (внутренняя логика)
@@ -267,8 +271,8 @@ func get_last_zoom_type() -> String:
 # ПРИВАТНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -> void:
-	"""Анимировать камеру к заданной позиции и зуму"""
+func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String) -> void:
+	"""Анимировать камеру к заданной позиции, зуму и повороту"""
 	if not _camera or not _scene or not _config:
 		return
 	
@@ -277,12 +281,15 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 		current_tween.kill()
 		current_tween = null
 	
+	var current_rotation_deg = _camera.rotation_degrees
+	print("📷 CameraManager: ДО анимации - текущий rotation_degrees: %.1f°, целевой: %.1f°" % [current_rotation_deg, target_rotation])
+	
 	last_zoom_type = zoom_type
 	zoom_started.emit(zoom_type)
 	
 	var tween = _scene.create_tween()
 	current_tween = tween  # Сохраняем ссылку для возможности остановки
-	tween.set_parallel(true)  # Позиция и зум меняются одновременно
+	tween.set_parallel(true)  # Позиция, зум и поворот меняются одновременно
 	
 	# Используем тип анимации из конфигурации
 	var transition_type = _get_transition_type(_config.transition_type)
@@ -292,18 +299,24 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, zoom_type: String) -
 	# Используем длительность из конфигурации
 	tween.tween_property(_camera, "position", target_pos, _config.transition_duration)
 	tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
+	# Устанавливаем rotation_degrees (может не работать визуально в Godot 4.5 Camera2D)
+	tween.tween_property(_camera, "rotation_degrees", target_rotation, _config.transition_duration)
+	print("📷 CameraManager: tween_property rotation_degrees установлен: %.1f°" % target_rotation)
 	
 	# Сигнал завершения после окончания анимации
 	tween.finished.connect(func(): 
+		var final_rotation_deg = _camera.rotation_degrees
+		print("📷 CameraManager: ПОСЛЕ анимации - rotation_degrees камеры: %.1f°, ожидалось: %.1f°" % [final_rotation_deg, target_rotation])
 		current_tween = null  # Очищаем ссылку после завершения
 		zoom_completed.emit(zoom_type)
 	)
-
+	
 	var _settings = _config.get_settings_by_type(zoom_type)
-	print("📷 CameraManager: %s (zoom %.1f, pos %s)" % [
+	print("📷 CameraManager: %s (zoom %.1f, pos %s, rotation %.1f°)" % [
 		_get_zoom_name(zoom_type), 
 		target_zoom.x,
-		target_pos
+		target_pos,
+		target_rotation
 	])
 
 func _get_transition_type(type_name: String) -> Tween.TransitionType:
@@ -439,6 +452,7 @@ func restore_to_general() -> void:
 		var general_settings = _config.get_general_settings()
 		_camera.position = general_settings.position
 		_camera.zoom = general_settings.zoom
+		_camera.rotation_degrees = general_settings.get("rotation", 0.0)
 		is_first_deal = false
 		current_area = -1  # Общий план
 		last_zoom_type = "out"
