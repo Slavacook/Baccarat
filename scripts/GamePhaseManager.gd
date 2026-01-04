@@ -704,6 +704,11 @@ func _emit_chance_card_triggers(triggers: Dictionary) -> void:
 # ========================================
 
 func _validate_and_execute_third_cards() -> void:
+	# Проверка: если ничего не изменено (обе кнопки не активированы), то подтверждать нечего
+	if not player_third_selected and not banker_third_selected:
+		DebugLogger.log("⚠️ Нет изменений для подтверждения: обе кнопки третьих карт не активированы")
+		return
+	
 	# Используем валидатор для чистой логики валидации
 	var ps: int = hand_manager.get_player_initial_score()
 	var bs: int = hand_manager.get_banker_initial_score()
@@ -907,6 +912,11 @@ func _validate_banker_after_player():
 	
 	if not instructions.get("should_validate", false):
 		complete_game()
+		return
+	
+	# Проверка: если кнопка банкира не активирована, то подтверждать нечего
+	if not banker_third_selected:
+		DebugLogger.log("⚠️ Нет изменений для подтверждения: кнопка третьей карты банкира не активирована")
 		return
 	
 	var validation_result = instructions.get("validation_result", {})
