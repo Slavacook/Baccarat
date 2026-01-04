@@ -1,29 +1,188 @@
 # res://scripts/ui/ChipNavigationFrame.gd
 # Визуальная рамка для выделения выбранной фишки при навигации
-# Следует за фокусом и отображает текущую выбранную фишку
+# Использует PNG-картинки с независимыми координатами и размерами
 
-extends ColorRect
+extends TextureRect
 class_name ChipNavigationFrame
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТАНТЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Отступ рамки от краёв фишки (в пикселях)
-const FRAME_PADDING: int = 20
+# Настройки текстур для каждой комбинации bet_type + sector
+# Каждая текстура имеет свой путь, позицию и масштаб (независимо от позиции фишек)
+const FRAME_TEXTURES = {
+	"Player": {
+		1: {
+			"texture": "res://assets/ui/navigation_frames/sector_1/Player_sector_1.png",
+			"position": Vector2(-987, 2),
+			"scale": 1.75
+		},
+		2: {
+			"texture": "res://assets/ui/navigation_frames/sector_2/Player_sector_2.png",
+			"position": Vector2(-608, -125),
+			"scale": 1.75
+		},
+		3: {
+			"texture": "res://assets/ui/navigation_frames/sector_3/Player_sector_3.png",
+			"position": Vector2(-18, -132),
+			"scale": 1.75
+		},
+		4: {
+			"texture": "res://assets/ui/navigation_frames/sector_4/Player_sector_4.png",
+			"position": Vector2(501, -108),
+			"scale": 1.75
+		},
+		5: {
+			"texture": "res://assets/ui/navigation_frames/sector_5/Player_sector_5.png",
+			"position": Vector2(1014, -126),
+			"scale": 1.75
+		},
+		6: {
+			"texture": "res://assets/ui/navigation_frames/sector_6/Player_sector_6.png",
+			"position": Vector2(1588, 45),
+			"scale": 1.75
+		},
+	},
+	"Banker": {
+		1: {
+			"texture": "res://assets/ui/navigation_frames/sector_1/Banker_sector_1.png",
+			"position": Vector2(-805, 90),
+			"scale": 1.75
+		},
+		2: {
+			"texture": "res://assets/ui/navigation_frames/sector_2/Banker_sector_2.png",
+			"position": Vector2(-526, -56),
+			"scale": 1.75
+		},
+		3: {
+			"texture": "res://assets/ui/navigation_frames/sector_3/Banker_sector_3.png",
+			"position": Vector2(25, -28),
+			"scale": 1.75
+		},
+		4: {
+			"texture": "res://assets/ui/navigation_frames/sector_4/Banker_sector_4.png",
+			"position": Vector2(523, -23),
+			"scale": 1.75
+		},
+		5: {
+			"texture": "res://assets/ui/navigation_frames/sector_5/Banker_sector_5.png",
+			"position": Vector2(970, -45),
+			"scale": 1.75
+		},
+		6: {
+			"texture": "res://assets/ui/navigation_frames/sector_6/Banker_sector_6.png",
+			"position": Vector2(1475, 83),
+			"scale": 1.75
+		},
+	},
+	"Tie": {
+		1: {
+			"texture": "res://assets/ui/navigation_frames/sector_1/Tie_sector_1.png",
+			"position": Vector2(-690, 123),
+			"scale": 1.75
+		},
+		2: {
+			"texture": "res://assets/ui/navigation_frames/sector_2/Tie_sector_2.png",
+			"position": Vector2(-428, 38),
+			"scale": 1.75
+		},
+		3: {
+			"texture": "res://assets/ui/navigation_frames/sector_3/Tie_sector_3.png",
+			"position": Vector2(91, 50),
+			"scale": 1.75
+		},
+		4: {
+			"texture": "res://assets/ui/navigation_frames/sector_4/Tie_sector_4.png",
+			"position": Vector2(524, 40),
+			"scale": 1.75
+		},
+		5: {
+			"texture": "res://assets/ui/navigation_frames/sector_5/Tie_sector_5.png",
+			"position": Vector2(907, 30),
+			"scale": 1.75
+		},
+		6: {
+			"texture": "res://assets/ui/navigation_frames/sector_6/Tie_sector_6.png",
+			"position": Vector2(1410, 126),
+			"scale": 1.75
+		},
+	},
+	"PairPlayer": {
+		1: {
+			"texture": "res://assets/ui/navigation_frames/sector_1/PairPlayer_sector_1.png",
+			"position": Vector2(-527, 147),
+			"scale": 1.75
+		},
+		2: {
+			"texture": "res://assets/ui/navigation_frames/sector_2/PairPlayer_sector_2.png",
+			"position": Vector2(-135, 112),
+			"scale": 1.75
+		},
+		3: {
+			"texture": "res://assets/ui/navigation_frames/sector_3/PairPlayer_sector_3.png",
+			"position": Vector2(344,133),
+			"scale": 1.75
+		},
+		4: {
+			"texture": "res://assets/ui/navigation_frames/sector_4/PairPlayer_sector_4.png",
+			"position": Vector2(680, 116),
+			"scale": 1.75
+		},
+		5: {
+			"texture": "res://assets/ui/navigation_frames/sector_5/PairPlayer_sector_5.png",
+			"position": Vector2(1043, 127),
+			"scale": 1.75
+		},
+		6: {
+			"texture": "res://assets/ui/navigation_frames/sector_6/PairPlayer_sector_6.png",
+			"position": Vector2(1440, 300),
+			"scale": 1.75
+		},
+	},
+	"PairBanker": {
+		1: {
+			"texture": "res://assets/ui/navigation_frames/sector_1/PairBanker_sector_1.png",
+			"position": Vector2(-634, 280),
+			"scale": 1.75
+		},
+		2: {
+			"texture": "res://assets/ui/navigation_frames/sector_2/PairBanker_sector_2.png",
+			"position": Vector2(-363, 81),
+			"scale": 1.75
+		},
+		3: {
+			"texture": "res://assets/ui/navigation_frames/sector_3/PairBanker_sector_3.png",
+			"position": Vector2(146,121),
+			"scale": 1.75
+		},
+		4: {
+			"texture": "res://assets/ui/navigation_frames/sector_4/PairBanker_sector_4.png",
+			"position": Vector2(512, 128),
+			"scale": 1.75
+		},
+		5: {
+			"texture": "res://assets/ui/navigation_frames/sector_5/PairBanker_sector_5.png",
+			"position": Vector2(820, 107),
+			"scale": 1.75
+		},
+		6: {
+			"texture": "res://assets/ui/navigation_frames/sector_6/PairBanker_sector_6.png",
+			"position": Vector2(1295, 156),
+			"scale": 1.75
+		},
+	},
+}
 
-# Цвет рамки (жёлтый с прозрачностью)
-const FRAME_COLOR: Color = Color(1.0, 0.84, 0.0, 0.7)  # Жёлтый, 70% прозрачности
-
-# Толщина рамки
-const FRAME_BORDER_WIDTH: int = 3
+# Прозрачность рамки (для видимости фишки под ней)
+const FRAME_ALPHA: float = 0.7  # 70% непрозрачности
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-var current_chip: ChipVisualManager.ChipInstance = null
-var tween: Tween = null
+var current_bet_type: String = ""
+var current_sector: int = -1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -31,174 +190,149 @@ var tween: Tween = null
 
 func _ready() -> void:
 	"""Инициализация рамки"""
-	# Настройка внешнего вида - делаем рамку более заметной
-	# Используем полупрозрачный жёлтый фон для лучшей видимости
-	color = Color(1.0, 0.84, 0.0, 0.3)  # Жёлтый фон с прозрачностью
-	
-	# Используем StyleBox для рамки
-	var style_box = StyleBoxFlat.new()
-	style_box.bg_color = Color(1.0, 0.84, 0.0, 0.2)  # Полупрозрачный жёлтый фон
-	style_box.border_color = FRAME_COLOR
-	style_box.border_width_left = FRAME_BORDER_WIDTH
-	style_box.border_width_right = FRAME_BORDER_WIDTH
-	style_box.border_width_top = FRAME_BORDER_WIDTH
-	style_box.border_width_bottom = FRAME_BORDER_WIDTH
-	style_box.corner_radius_top_left = 5
-	style_box.corner_radius_top_right = 5
-	style_box.corner_radius_bottom_left = 5
-	style_box.corner_radius_bottom_right = 5
-	
-	# Устанавливаем стиль
-	add_theme_stylebox_override("panel", style_box)
+	# Настройка TextureRect для работы с заданным размером
+	# STRETCH_KEEP_ASPECT_CENTERED - масштабирует текстуру с сохранением пропорций,
+	# центрирует в заданном размере (может оставить пустые области, но не обрезает)
+	stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	
 	# Изначально скрыта
 	visible = false
-	mouse_filter = Control.MOUSE_FILTER_IGNORE  # Игнорируем клики
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
-	# Устанавливаем минимальный размер для видимости
-	size = Vector2(100, 100)
-	
-	# Убеждаемся, что рамка будет видна поверх других элементов
+	# Базовые настройки
 	z_index = 1000
 	z_as_relative = false
-	
-	# Устанавливаем anchor для правильного позиционирования
 	set_anchors_preset(Control.PRESET_TOP_LEFT)
+	modulate = Color(1.0, 1.0, 1.0, FRAME_ALPHA)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func show_at_chip(chip: ChipVisualManager.ChipInstance) -> void:
-	"""Показать рамку у указанной фишки (для обратной совместимости)
+func show_at_position(_coords: Vector2, bet_type: String, sector: int = -1) -> void:
+	"""Показать рамку с PNG-текстурой на независимых координатах
 	
 	Args:
-		chip: Фишка, которую нужно выделить
+		_coords: Координаты позиции (игнорируются, используются координаты из FRAME_TEXTURES)
+		bet_type: Тип ставки ("Player", "Banker", etc.)
+		sector: Номер сектора (1-6)
 	"""
-	if not chip or not chip.node:
-		hide_frame()
+	current_bet_type = bet_type
+	if sector >= 1 and sector <= 6:
+		current_sector = sector
+	else:
+		current_sector = 1
+	
+	var config = _get_frame_config(bet_type, current_sector)
+	if config.is_empty():
+		visible = false
 		return
 	
-	if not is_instance_valid(chip.node):
-		hide_frame()
-		return
-	
-	current_chip = chip
-	
-	# Обновляем позицию и размер
-	_update_position_and_size()
-	
-	# Показываем рамку
+	# Устанавливаем текстуру, позицию и размер
+	texture = config.texture
+	_apply_position(config.position)
+	size = config.size
 	visible = true
-	modulate = Color.WHITE  # Полная непрозрачность
-	modulate.a = 1.0
 	
-	# Убеждаемся, что рамка видна
-	z_index = 1000
-	z_as_relative = false
-	
-	DebugLogger.log("📦 ChipNavigationFrame: показана у фишки %s[%d] (visible=%s, position=%s, size=%s)" % [
-		chip.bet_type, chip.position_index, visible, position, size
+	DebugLogger.log("📦 ChipNavigationFrame: показана (bet_type=%s, sector=%d, position=%s, size=%s, scale=%.2f)" % [
+		bet_type, current_sector, str(config.position), str(config.size), config.scale
 	])
 
-func show_at_position(coords: Vector2, bet_type: String) -> void:
-	"""Показать рамку на указанных координатах (фиксированная позиция)
+func show_at_chip(chip: ChipVisualManager.ChipInstance) -> void:
+	"""Показать рамку у указанной фишки (для обратной совместимости)"""
+	if not chip or not chip.node or not is_instance_valid(chip.node):
+		hide_frame()
+		return
 	
-	Args:
-		coords: Координаты позиции (Vector2)
-		bet_type: Тип ставки (для определения размера)
-	"""
-	current_chip = null  # Очищаем ссылку на фишку
+	# Пытаемся использовать конфигурацию для этого типа ставки
+	current_bet_type = chip.bet_type
+	current_sector = 1  # Fallback
 	
-	# Получаем размер фишки для этого типа
-	var chip_size = Vector2(100, 100)  # Размер по умолчанию
-	if ChipVisualManager.ALTERNATIVE_POSITIONS.has(bet_type):
-		# Используем размер из оригинальной фишки, если доступен
-		# TODO: можно получить реальный размер из chip_visual_manager
-		pass
-	
-	# Вычисляем позицию и размер рамки
-	var frame_pos = coords - Vector2(FRAME_PADDING, FRAME_PADDING)
-	var frame_size = chip_size + Vector2(FRAME_PADDING * 2, FRAME_PADDING * 2)
-	
-	# Устанавливаем позицию
-	var parent = get_parent()
-	if parent is CanvasLayer:
-		global_position = frame_pos
+	var config = _get_frame_config(chip.bet_type, current_sector)
+	if not config.is_empty():
+		# Используем конфигурацию
+		texture = config.texture
+		_apply_position(config.position)
+		size = config.size
+		visible = true
 	else:
-		position = frame_pos
-	
-	size = frame_size
-	visible = true
-	modulate = Color.WHITE
-	modulate.a = 1.0
-	z_index = 1000
-	z_as_relative = false
-	
-	DebugLogger.log("📦 ChipNavigationFrame: показана на позиции %s (bet_type=%s, size=%s)" % [
-		str(coords), bet_type, str(frame_size)
-	])
+		# Fallback: используем позицию фишки
+		texture = null
+		var chip_node = chip.node
+		if get_parent() is CanvasLayer:
+			_apply_position(chip_node.global_position)
+		else:
+			_apply_position(chip_node.position)
+		size = chip_node.size
+		visible = true
 
 func hide_frame() -> void:
 	"""Скрыть рамку"""
-	current_chip = null
 	visible = false
-	if tween:
-		tween.kill()
-		tween = null
+	texture = null
 
 func update_position() -> void:
 	"""Обновить позицию рамки (вызывается при изменении фокуса)"""
-	if current_chip and current_chip.node:
-		_update_position_and_size()
+	if current_bet_type == "" or current_sector <= 0:
+		return
+	
+	var config = _get_frame_config(current_bet_type, current_sector)
+	if not config.is_empty():
+		_apply_position(config.position)
+		size = config.size
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _update_position_and_size() -> void:
-	"""Обновить позицию и размер рамки относительно фишки"""
-	if not current_chip or not current_chip.node:
-		return
+func _apply_position(pos: Vector2) -> void:
+	"""Установить позицию рамки с учетом типа родителя
 	
-	var chip_node = current_chip.node
-	if not is_instance_valid(chip_node):
-		return
-	
-	# Получаем позицию и размер фишки
-	var chip_pos = chip_node.position  # Local position относительно родителя
-	var chip_size = chip_node.size
-	
-	# Вычисляем позицию и размер рамки с отступом
-	var frame_pos = chip_pos - Vector2(FRAME_PADDING, FRAME_PADDING)
-	var frame_size = chip_size + Vector2(FRAME_PADDING * 2, FRAME_PADDING * 2)
-	
-	# Если рамка в том же родителе, что и фишка - используем local position
-	var parent = get_parent()
-	if parent is CanvasLayer:
-		# CanvasLayer - используем global_position
-		var chip_global_pos = chip_node.global_position
-		global_position = chip_global_pos - Vector2(FRAME_PADDING, FRAME_PADDING)
+	Args:
+		pos: Позиция (глобальная для CanvasLayer, локальная для обычного родителя)
+	"""
+	if get_parent() is CanvasLayer:
+		global_position = pos
 	else:
-		# Обычный узел (тот же родитель, что и фишка) - используем position
-		position = frame_pos
-	
-	size = frame_size
-	
-	# Убеждаемся, что рамка видна
-	visible = true
-	modulate = Color.WHITE
-	modulate.a = 1.0
-	
-	# Отладочная информация
-	var parent_name: String = "null"
-	if get_parent():
-		parent_name = get_parent().name
-	DebugLogger.log("📦 ChipNavigationFrame: позиция обновлена (chip_pos=%s, frame_pos=%s, size=%s, visible=%s, parent=%s)" % [
-		str(chip_pos), str(position), str(frame_size), visible, parent_name
-	])
+		position = pos
 
-func _process(_delta: float) -> void:
-	"""Обновление позиции каждый кадр (на случай если фишка движется)"""
-	if visible and current_chip and current_chip.node:
-		_update_position_and_size()
+func _get_frame_config(bet_type: String, sector: int) -> Dictionary:
+	"""Получить конфигурацию для указанного типа ставки и сектора
+	
+	Returns:
+		Dictionary с ключами: "texture" (Texture2D), "position" (Vector2), "size" (Vector2), "scale" (float)
+		или пустой Dictionary если конфигурация не найдена
+	"""
+	if not FRAME_TEXTURES.has(bet_type):
+		return {}
+	
+	var bet_textures = FRAME_TEXTURES[bet_type]
+	if not bet_textures.has(sector):
+		return {}
+	
+	var config = bet_textures[sector]
+	if not config is Dictionary:
+		return {}
+	
+	var texture_path = config.get("texture", "")
+	var frame_position = config.get("position", Vector2.ZERO)
+	var frame_scale = config.get("scale", 1.0)
+	
+	if texture_path.is_empty():
+		return {}
+	
+	var loaded_texture = load(texture_path)
+	if not loaded_texture:
+		DebugLogger.log_error("❌ ChipNavigationFrame: не удалось загрузить текстуру: %s" % texture_path)
+		return {}
+	
+	# Вычисляем размер на основе оригинального размера текстуры и масштаба
+	var original_size = loaded_texture.get_size()
+	var final_size = original_size * frame_scale
+	
+	return {
+		"texture": loaded_texture,
+		"position": frame_position,
+		"size": final_size,
+		"scale": frame_scale
+	}

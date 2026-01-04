@@ -71,15 +71,15 @@ func _unhandled_input(event: InputEvent) -> void:
 	# В _unhandled_input() используем event.is_action_pressed() для проверки конкретного события
 	var direction: String = ""
 	if event.is_action_pressed("left"):
-		direction = "left"
+			direction = "left"
 	elif event.is_action_pressed("right"):
-		direction = "right"
+			direction = "right"
 	elif event.is_action_pressed("up"):
-		direction = "up"
+			direction = "up"
 	elif event.is_action_pressed("down"):
-		direction = "down"
+			direction = "down"
 	else:
-		return
+			return
 	
 	if direction != "":
 		# Запрашиваем целевую область через EventBus

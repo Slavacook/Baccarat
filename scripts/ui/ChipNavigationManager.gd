@@ -433,7 +433,7 @@ func _update_frame_position() -> void:
 	
 	# Показываем рамку на фиксированной позиции
 	if navigation_frame.has_method("show_at_position"):
-		navigation_frame.show_at_position(coords, current_bet_type)
+		navigation_frame.show_at_position(coords, current_bet_type, current_sector)
 	else:
 		# Fallback: используем старый метод если доступен
 		var chip = _get_chip_at_position(current_bet_type, current_sector)

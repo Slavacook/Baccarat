@@ -115,17 +115,17 @@ func _unhandled_input(event: InputEvent) -> void:
 	
 	# Используем Input Actions для поддержки клавиатуры и геймпада
 	if event.is_action_pressed("left"):
-		_handle_a_press()
-		get_viewport().set_input_as_handled()
+			_handle_a_press()
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("right"):
-		_handle_d_press()
-		get_viewport().set_input_as_handled()
+			_handle_d_press()
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("up"):
-		_handle_w_press()
-		get_viewport().set_input_as_handled()
+			_handle_w_press()
+			get_viewport().set_input_as_handled()
 	elif event.is_action_pressed("down"):
-		_handle_s_press()
-		get_viewport().set_input_as_handled()
+			_handle_s_press()
+			get_viewport().set_input_as_handled()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРОВЕРКА СОСТОЯНИЯ ТРЕТЬИХ КАРТ
