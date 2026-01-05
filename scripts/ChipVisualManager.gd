@@ -69,6 +69,9 @@ var texture_manager: ChipTextureManager = ChipTextureManager.new()
 # Менеджер позиций фишек
 var position_manager: ChipPositionManager = ChipPositionManager.new()
 
+# Менеджер меток суммы ставки
+var stake_label_manager: StakeLabelManager = StakeLabelManager.new()
+
 # Свойство для обратной совместимости (делегирует в texture_manager)
 var current_textures: Dictionary:
 	get: return texture_manager.current_textures
