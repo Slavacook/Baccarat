@@ -812,116 +812,47 @@ func _create_chip_copy(bet_type: String, position_index: int, texture: Texture2D
 func create_stake_label(chip_instance: ChipInstance) -> Control:
 	"""Создать label для отображения суммы ставки в стиле карточек гостя
 	
+	Делегирует в StakeLabelManager.
+	
 	Args:
 		chip_instance: Экземпляр фишки
 	
 	Returns:
 		Control с label суммы ставки
 	"""
-	if not scene_root or not chip_instance or not chip_instance.node:
-		return null
-	
-	# Создаём Control как контейнер
-	var container = Control.new()
-	container.name = "StakeLabel_%s" % chip_instance.get_id()
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	container.z_index = 50  # Выше фишки, но ниже других UI
-	
-	# Создаём Panel как фон в стиле карточек гостя
-	var panel = Panel.new()
-	panel.name = "Panel"
-	var panel_style = StyleBoxFlat.new()
-	panel_style.bg_color = Color(0.1, 0.1, 0.1, 0.85)  # Черная подложка с прозрачностью
-	panel_style.corner_radius_top_left = 8
-	panel_style.corner_radius_top_right = 8
-	panel_style.corner_radius_bottom_left = 8
-	panel_style.corner_radius_bottom_right = 8
-	
-	# Золотая рамка
-	panel_style.border_width_left = 2
-	panel_style.border_width_top = 2
-	panel_style.border_width_right = 2
-	panel_style.border_width_bottom = 2
-	panel_style.border_color = Color(1.0, 0.85, 0.3, 0.8)  # Золотистая рамка
-	
-	# Тень
-	panel_style.shadow_color = Color(0, 0, 0, 0.5)
-	panel_style.shadow_size = 4
-	panel_style.shadow_offset = Vector2(2, 2)
-	
-	panel.add_theme_stylebox_override("panel", panel_style)
-	panel.size = Vector2(100, 30)  # Компактный размер для суммы ставки
-	container.add_child(panel)
-	
-	# Создаём Label для текста
-	var label = Label.new()
-	label.name = "Label"
-	label.text = _format_stake(chip_instance.stake)
-	label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.add_theme_font_size_override("font_size", 24)  # 14 * 1.5 = 21
-	label.add_theme_color_override("font_color", Color(1.0, 0.85, 0.3))  # Золотистый цвет текста
-	label.set_anchors_preset(Control.PRESET_FULL_RECT)
-	panel.add_child(label)
-	
-	# Позиционируем label рядом с фишкой (справа и немного выше)
-	var chip_pos = chip_instance.node.position
-	# Получаем размер фишки из текстуры или используем дефолтный
-	var chip_size = Vector2(64, 64)
-	if chip_instance.node.texture_normal:
-		chip_size = chip_instance.node.texture_normal.get_size() * chip_instance.node.scale
-	container.position = chip_pos + Vector2(chip_size.x + -80, 50)
-	
-	# Добавляем в scene_root
-	scene_root.add_child(container)
-	
-	return container
+	return stake_label_manager.create_stake_label(chip_instance, scene_root)
+
 
 func _format_stake(stake: float) -> String:
-	"""Форматировать сумму ставки для отображения с разделителем тысяч через пробел"""
-	if stake <= 0:
-		return "0"
+	"""Форматировать сумму ставки для отображения с разделителем тысяч через пробел
 	
-	var amount = int(stake)
-	var formatted = ""
-	var count = 0
-	
-	# Обрабатываем число справа налево, добавляя пробелы каждые 3 цифры
-	if amount == 0:
-		return "0"
-	
-	while amount > 0:
-		if count > 0 and count % 3 == 0:
-			formatted = " " + formatted
-		formatted = str(amount % 10) + formatted
-		amount = int(floor(amount / 10.0))  # Целочисленное деление через floor с приведением к int
-		count += 1
-	
-	return formatted
+	Делегирует в StakeLabelManager.
+	"""
+	return stake_label_manager.format_stake(stake)
+
 
 func _update_stake_label(chip_instance: ChipInstance) -> void:
-	"""Обновить текст label суммы ставки"""
-	if not chip_instance or not chip_instance.stake_label:
-		return
+	"""Обновить текст label суммы ставки
 	
-	var label = chip_instance.stake_label.get_node_or_null("Panel/Label")
-	if label:
-		label.text = _format_stake(chip_instance.stake)
+	Делегирует в StakeLabelManager.
+	"""
+	stake_label_manager.update_stake_label(chip_instance)
+
 
 func _remove_stake_label(chip_instance: ChipInstance) -> void:
-	"""Удалить label суммы ставки"""
-	if not chip_instance or not chip_instance.stake_label:
-		return
+	"""Удалить label суммы ставки
 	
-	if is_instance_valid(chip_instance.stake_label):
-		chip_instance.stake_label.queue_free()
-	chip_instance.stake_label = null
+	Делегирует в StakeLabelManager.
+	"""
+	stake_label_manager.remove_stake_label(chip_instance)
+
 
 func remove_all_stake_labels_for_type(bet_type: String) -> void:
-	"""Удалить все labels для конкретного типа ставки (публичный метод)"""
-	for chip in active_chips:
-		if chip.bet_type == bet_type:
-			_remove_stake_label(chip)
+	"""Удалить все labels для конкретного типа ставки (публичный метод)
+	
+	Делегирует в StakeLabelManager.
+	"""
+	stake_label_manager.remove_all_stake_labels_for_type(active_chips, bet_type)
 
 
 func _on_chip_instance_pressed(bet_type: String, position_index: int) -> void:
