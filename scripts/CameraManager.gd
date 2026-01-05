@@ -448,67 +448,33 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Сохраняем текущую позицию (откуда мы идем) ДО обновления current_area
 	var from_zoom_type = last_zoom_type  # Тип зума, откуда мы идем (стартовая точка)
 	
+	# Если камера переходит на "out", сохраняем информацию о том, была ли она на картах
+	if zoom_type == "out":
+		_was_on_cards_before_out = (from_zoom_type == "in" or from_zoom_type == "cards")
+	
 	# Определяем, является ли СТАРТОВАЯ позиция одним из режимов 2 (out, mode2_right, mode2_left)
 	var from_is_mode2 = (from_zoom_type == "out" or from_zoom_type == "mode2_right" or from_zoom_type == "mode2_left")
 	
 	# Определяем, является ли ЦЕЛЕВАЯ позиция одним из режимов 2 (out, mode2_right, mode2_left)
 	var to_is_mode2 = (zoom_type == "out" or zoom_type == "mode2_right" or zoom_type == "mode2_left")
 	
-	# Определяем, стартуем ли мы с Cards View (in или cards)
-	var from_is_cards = (from_zoom_type == "in" or from_zoom_type == "cards")
-	
-	# Отладочная информация
-	print("📷 CameraManager: _animate_to: from=%s, to=%s, _was_on_cards_before_out=%s, is_navigation=%s" % [
-		from_zoom_type, zoom_type, _was_on_cards_before_out, is_navigation
-	])
-	
-	# Если камера переходит на "out", сохраняем информацию о том, была ли она на картах
-	if zoom_type == "out":
-		_was_on_cards_before_out = from_is_cards
-		if from_is_cards:
-			print("📷 CameraManager: установлен флаг _was_on_cards_before_out=true (переход с Cards View на out)")
-	
 	# Автоматически определяем is_navigation: медленная анимация ТОЛЬКО если камера УЖЕ на одной из точек режима 2
 	# И переходит на другую точку режима 2 (обе точки должны быть в списке)
-	# ИСКЛЮЧЕНИЕ 1: если камера была на картах перед переходом на "out", то переход с "out" на mode2_right/mode2_left тоже быстрый
-	# ИСКЛЮЧЕНИЕ 2: если камера стартует с Cards View и переходит на режим 2 - ВСЕГДА быстрая анимация (игнорируем is_navigation извне)
+	# ИСКЛЮЧЕНИЕ: если камера была на картах перед переходом на "out", то переход с "out" на mode2_right/mode2_left тоже быстрый
 	var should_use_fast_animation = false
-	
-	# Исключение 1: камера была на картах → перешла на "out" → теперь переходит на mode2_right/mode2_left
-	# Это должно быть быстро, так как визуально это один переход с карт
-	# Также учитываем случай, когда камера уже на "out" и переходит на другой режим 2 (mode2_left/mode2_right)
-	# ИЛИ когда камера уже на "out" и переходит на "out" снова (но только что приехала с Cards View)
-	# ВАЖНО: эта проверка должна быть ПЕРВОЙ, чтобы переопределить is_navigation извне
 	if from_zoom_type == "out" and to_is_mode2 and _was_on_cards_before_out:
+		# Камера была на картах → перешла на "out" → теперь переходит на mode2_right/mode2_left
+		# Это должно быть быстро, так как визуально это один переход с карт
 		should_use_fast_animation = true
-		print("📷 CameraManager: Исключение 1 сработало (out → %s, _was_on_cards_before_out=true)" % zoom_type)
-		# Сбрасываем флаг после использования (всегда, независимо от zoom_type)
-		_was_on_cards_before_out = false
-		if zoom_type == "out":
-			print("📷 CameraManager: флаг _was_on_cards_before_out сброшен (повторный вызов на out)")
-		else:
-			print("📷 CameraManager: флаг _was_on_cards_before_out сброшен (переход на %s)" % zoom_type)
-	else:
-		# Отладочная информация, если проверка не сработала
-		if from_zoom_type == "out" and to_is_mode2:
-			print("📷 CameraManager: Исключение 1 НЕ сработало (out → %s, _was_on_cards_before_out=%s, to_is_mode2=%s)" % [zoom_type, _was_on_cards_before_out, to_is_mode2])
+		_was_on_cards_before_out = false  # Сбрасываем флаг после использования
 	
-	# Исключение 2: камера стартует с Cards View и переходит на режим 2 - ВСЕГДА быстрая анимация
-	# Это переопределяет параметр is_navigation, переданный извне (например, от ChipNavigationManager)
-	if from_is_cards and to_is_mode2:
-		should_use_fast_animation = true
-	
-	# Медленная анимация ТОЛЬКО если обе позиции в режиме 2 И не используем быструю анимацию
 	if from_is_mode2 and to_is_mode2 and not should_use_fast_animation:
 		is_navigation = true
 		print("📷 CameraManager: медленная анимация (режим 2: %s → %s)" % [from_zoom_type, zoom_type])
 	else:
 		is_navigation = false
 		if should_use_fast_animation:
-			if from_is_cards:
-				print("📷 CameraManager: быстрая анимация (Cards View → режим 2: %s → %s) [принудительно, игнорируя is_navigation извне]" % [from_zoom_type, zoom_type])
-			else:
-				print("📷 CameraManager: быстрая анимация (%s → %s) [камера была на картах]" % [from_zoom_type, zoom_type])
+			print("📷 CameraManager: быстрая анимация (%s → %s) [камера была на картах]" % [from_zoom_type, zoom_type])
 		else:
 			print("📷 CameraManager: быстрая анимация (%s → %s)" % [from_zoom_type, zoom_type])
 	
@@ -519,11 +485,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 			_was_on_cards_before_out = false  # Сбрасываем флаг при переходе на карты
 		"out":
 			current_area = -1  # Общий план
-			# НЕ сбрасываем _was_on_cards_before_out здесь - он нужен для следующего перехода на mode2_left/mode2_right
 		"mode2_right", "mode2_left":
 			current_area = -1  # Остаёмся на общем плане для режима 2
-			# Сбрасываем флаг только когда переходим на mode2_left/mode2_right (не на "out")
-			_was_on_cards_before_out = false
 		_:
 			if zoom_type.begins_with("area_"):
 				# Извлекаем номер области из строки "area_X" (где X от 1 до 6)

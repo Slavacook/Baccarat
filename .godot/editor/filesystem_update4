@@ -11,3 +11,6 @@ res://scripts/TablePreparationExecutor.gd
 res://scripts/ui/AreaButton.gd
 res://scripts/ui/HeartBetController.gd
 res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/GameConstants.gd
+res://scripts/utils/CardController.gd
+res://scripts/utils/GameStateController.gd
