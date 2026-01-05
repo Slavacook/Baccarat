@@ -477,7 +477,6 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Исключение 2: камера стартует с Cards View и переходит на режим 2 - всегда быстрая анимация
 	if from_is_cards and to_is_mode2:
 		should_use_fast_animation = true
-		print("📷 CameraManager: быстрая анимация (Cards View → режим 2: %s → %s)" % [from_zoom_type, zoom_type])
 	
 	# Медленная анимация ТОЛЬКО если обе позиции в режиме 2 И не используем быструю анимацию
 	if from_is_mode2 and to_is_mode2 and not should_use_fast_animation:
