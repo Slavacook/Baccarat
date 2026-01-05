@@ -648,11 +648,11 @@
 
 ## 🎯 Общий прогресс
 
-**Выполнено**: 22 из ~24 шагов (92%)  
-**Время**: ~7.5 часов  
+**Выполнено**: 23 из ~24 шагов (96%)  
+**Время**: ~8 часов  
 **Риск**: Минимальный-Средний ✅
 
-**Коммитов**: 25
+**Коммитов**: 27
 
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
@@ -678,6 +678,7 @@
 - Извлечение LinePositionCalculator из BetCollectionPhaseManager
 - Извлечение BetSorter из BetCollectionPhaseManager
 - Извлечение SequenceManager из BetCollectionPhaseManager
+- Извлечение StateConsistencyChecker из BetCollectionPhaseManager
 
 ---
 
@@ -755,7 +756,8 @@
 **ФАЗА 2: ЗАВЕРШЕНА ✅**  
 **ФАЗА 3: ЗАВЕРШЕНА ✅**  
 **ФАЗА 4: ЗАВЕРШЕНА ✅**  
-**ФАЗА 5: ЗАВЕРШЕНА ✅**  
+**ФАЗА 5: ЗАВЕРШЕНА ✅**
+
 #### ✅ Шаг 6.3: Извлечь SequenceManager из BetCollectionPhaseManager
 
 **Дата**: Сегодня  
@@ -791,7 +793,39 @@
 
 ---
 
-**ФАЗА 6: В ПРОЦЕССЕ** (3 из ~4 шагов)
+#### ✅ Шаг 6.4: Извлечь StateConsistencyChecker из BetCollectionPhaseManager
+
+**Дата**: Сегодня  
+**Коммиты**: 2
+
+**Что сделано:**
+
+- ✅ Создан новый класс `StateConsistencyChecker` в `scripts/utils/`
+- ✅ Извлечены методы:
+  - `check_state_consistency()` - проверка согласованности для собранной ставки
+  - `check_payment_state_consistency()` - проверка согласованности для оплаченной ставки
+  - `validate_all_state()` - проверка всего состояния
+- ✅ Обновлен `BetCollectionPhaseManager` для использования экземпляра `StateConsistencyChecker`
+- ✅ Сохранен публичный API (метод `validate_all_state()` остался доступным)
+- ✅ Удалены старые методы `_check_state_consistency` и `_check_payment_state_consistency`
+
+**Результаты:**
+
+- ✅ Уменьшен размер `BetCollectionPhaseManager` на ~80 строк
+- ✅ Логика проверки согласованности изолирована в отдельный класс
+- ✅ Улучшена читаемость и поддерживаемость
+- ✅ Нет ошибок компиляции
+- ✅ Публичный API не изменен
+
+**Статистика:**
+
+- Созданных классов: 4 (`LinePositionCalculator`, `BetSorter`, `SequenceManager`, `StateConsistencyChecker`)
+- Уменьшение размера: ~400 строк (всего)
+- Риск: Низкий ✅
+
+---
+
+**ФАЗА 6: В ПРОЦЕССЕ** (4 из ~4 шагов)
 
 ---
 
