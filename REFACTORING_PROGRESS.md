@@ -648,11 +648,11 @@
 
 ## 🎯 Общий прогресс
 
-**Выполнено**: 25 из ~25 шагов (100%)  
-**Время**: ~9 часов  
+**Выполнено**: 26 из ~26 шагов (100%)  
+**Время**: ~9.5 часов  
 **Риск**: Минимальный-Средний ✅
 
-**Коммитов**: 31
+**Коммитов**: 33
 
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
@@ -681,6 +681,7 @@
 - Извлечение StateConsistencyChecker из BetCollectionPhaseManager
 - Извлечение ChipTextureManager из ChipVisualManager
 - Извлечение ChipPositionManager из ChipVisualManager
+- Извлечение StakeLabelManager из ChipVisualManager
 
 ---
 
@@ -896,7 +897,40 @@
 
 ---
 
-**ФАЗА 6: ЗАВЕРШЕНА ✅** (6 из 6 шагов)
+#### ✅ Шаг 6.7: Извлечь StakeLabelManager из ChipVisualManager
+
+**Дата**: Сегодня  
+**Коммиты**: 2
+
+**Что сделано:**
+
+- ✅ Создан новый класс `StakeLabelManager` в `scripts/utils/`
+- ✅ Извлечены методы управления метками суммы ставки:
+  - `create_stake_label()` - создание label с правильным стилем
+  - `format_stake()` - форматирование суммы ставки
+  - `update_stake_label()` - обновление label
+  - `remove_stake_label()` - удаление label
+  - `remove_all_stake_labels_for_type()` - удаление всех labels для типа
+- ✅ Обновлен `ChipVisualManager` для использования экземпляра `StakeLabelManager`
+- ✅ Сохранен оригинальный стиль (StyleBoxFlat, тени, золотая рамка)
+
+**Результаты:**
+
+- ✅ Уменьшен размер `ChipVisualManager` на ~100 строк
+- ✅ Логика управления метками изолирована в отдельный класс
+- ✅ Улучшена читаемость и поддерживаемость
+- ✅ Нет ошибок компиляции
+- ✅ Сохранена обратная совместимость
+
+**Статистика:**
+
+- Созданных классов: 7 (`LinePositionCalculator`, `BetSorter`, `SequenceManager`, `StateConsistencyChecker`, `ChipTextureManager`, `ChipPositionManager`, `StakeLabelManager`)
+- Уменьшение размера: ~600 строк (всего)
+- Риск: Низкий ✅
+
+---
+
+**ФАЗА 6: ЗАВЕРШЕНА ✅** (7 из 7 шагов)
 
 ---
 
