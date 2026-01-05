@@ -535,7 +535,18 @@ func _should_banker_draw() -> bool:
 		)
 	return banker_after_player_handler.should_banker_draw()
 
-func on_action_pressed():
+# ═══════════════════════════════════════════════════════════════════════════
+# ОБРАБОТЧИКИ UI СОБЫТИЙ
+# ═══════════════════════════════════════════════════════════════════════════
+# Обработчики событий от UI элементов (кнопки, toggles)
+# Логика делегирована в соответствующие координаторы и обработчики
+
+func on_action_pressed() -> void:
+	"""Обработчик нажатия главной кнопки действия
+	
+	Определяет действие на основе текущего состояния игры через PhaseActionResolver.
+	Выполняет соответствующее действие (раздача, валидация, выбор победителя).
+	"""
 	DebugLogger.log_separator()
 	DebugLogger.log_game_flow("on_action_pressed() вызван")
 	DebugLogger.log("  → is_table_prepared = %s" % is_table_prepared)
@@ -570,7 +581,14 @@ func on_action_pressed():
 			_validate_and_execute_third_cards()
 
 
-func on_player_third_toggled(_selected: bool):
+func on_player_third_toggled(_selected: bool) -> void:
+	"""Обработчик переключения toggle третьей карты игрока
+	
+	Args:
+		_selected: Новое состояние toggle (не используется, берется из player_third_selected)
+	
+	Делегирует обработку в ThirdCardUIHandler.
+	"""
 	# Используем обработчик для получения инструкций
 	var instructions = third_card_ui_handler.handle_player_third_toggled(player_third_selected)
 	player_third_selected = instructions.get("new_selected", false)
@@ -579,7 +597,14 @@ func on_player_third_toggled(_selected: bool):
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner()
 
-func on_banker_third_toggled(_selected: bool):
+func on_banker_third_toggled(_selected: bool) -> void:
+	"""Обработчик переключения toggle третьей карты банкира
+	
+	Args:
+		_selected: Новое состояние toggle (не используется, берется из banker_third_selected)
+	
+	Делегирует обработку в ThirdCardUIHandler.
+	"""
 	# Используем обработчик для получения инструкций
 	var instructions = third_card_ui_handler.handle_banker_third_toggled(banker_third_selected)
 	banker_third_selected = instructions.get("new_selected", false)
@@ -604,7 +629,7 @@ func cancel_third_card_orders() -> void:
 		DebugLogger.log("🔄 Отменён заказ третьей карты банкира")
 
 
-func on_tie_button_pressed():
+func on_tie_button_pressed() -> void:
 	"""Обработка нажатия кнопки Игалите
 
 	Кнопка одновременно выбирает и подтверждает ничью.
@@ -699,9 +724,11 @@ func _emit_chance_card_triggers(triggers: Dictionary) -> void:
 		print("🔫 Revolver Card триггер: все 6 карт по 0 очков!")
 
 
-# ========================================
-# ВАЛИДАЦИЯ ДЕЙСТВИЙ (перенесено из CardsDealtState)
-# ========================================
+# ═══════════════════════════════════════════════════════════════════════════
+# ВАЛИДАЦИЯ И ВЫПОЛНЕНИЕ ТРЕТЬИХ КАРТ
+# ═══════════════════════════════════════════════════════════════════════════
+# Валидация и выполнение действий с третьими картами
+# Логика делегирована в ThirdCardActionValidator и ThirdCardActionExecutor
 
 func _validate_and_execute_third_cards() -> void:
 	# Проверка: если ничего не изменено (обе кнопки не активированы), то подтверждать нечего
@@ -971,6 +998,12 @@ func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> 
 		_:
 			complete_game()
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ВОССТАНОВЛЕНИЕ И ОТОБРАЖЕНИЕ СТАВОК
+# ═══════════════════════════════════════════════════════════════════════════
+# Методы для восстановления и отображения ставок гостей
+# Логика делегирована в координаторы
+
 func _restore_active_bet_chips() -> void:
 	"""Восстановить ВСЕ фишки из TableStateManager для новой раздачи
 
@@ -1169,6 +1202,12 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 			chip_instance.stake_label = chip_visual_manager.create_stake_label(chip_instance)
 		chip_visual_manager.active_chips.append(chip_instance)
 
+# ═══════════════════════════════════════════════════════════════════════════
+# ФИЛЬТРЫ СТАВОК
+# ═══════════════════════════════════════════════════════════════════════════
+# Методы для работы с фильтрами ставок (включение/выключение типов)
+# Логика делегирована в BetFilterManager
+
 func _is_bet_type_enabled_in_settings(bet_type: String) -> bool:
 	"""Проверить, включён ли тип ставки в настройках PayoutSettingsManager
 	
@@ -1250,10 +1289,16 @@ func _apply_pending_filter_changes() -> void:
 		DebugLogger.log("📋 Все накопленные изменения применены, snapshot обновлён")
 
 # ═══════════════════════════════════════════════════════════════════════════
-# УПРАВЛЕНИЕ СОСТОЯНИЕМ
+# УПРАВЛЕНИЕ СОСТОЯНИЕМ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
+# Методы для обновления и управления состоянием игры
+# Логика делегирована в GameStateUpdater
 
-func _update_game_state_manager():
+func _update_game_state_manager() -> void:
+	"""Обновить состояние игры в GameStateManager
+	
+	Делегирует обновление в GameStateUpdater.
+	"""
 	# Используем обновлятор для обновления состояния игры
 	game_state_updater.update_game_state(hand_manager)
 
@@ -1305,9 +1350,11 @@ func remove_third_cards_and_recalculate() -> void:
 	EventBus.show_toast_info.emit("Третьи карты убраны! Заказывайте заново.")
 
 
-# ========================================
-# ВАЛИДАЦИЯ ВЫБОРА ПОБЕДИТЕЛЯ (новая логика)
-# ========================================
+# ═══════════════════════════════════════════════════════════════════════════
+# ВАЛИДАЦИЯ ВЫБОРА ПОБЕДИТЕЛЯ
+# ═══════════════════════════════════════════════════════════════════════════
+# Валидация выбора победителя через маркеры
+# Логика делегирована в WinnerSelectionValidator и WinnerSelectionCoordinator
 
 func _validate_winner_selection() -> void:
 	"""Проверка выбранного победителя через маркеры"""
@@ -1493,18 +1540,31 @@ func _find_rightmost_area_with_bets() -> String:
 	return "out"
 
 # DEPRECATED: Используйте victory_message_formatter.format_victory_message()
+# ═══════════════════════════════════════════════════════════════════════════
+# ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
+# ═══════════════════════════════════════════════════════════════════════════
+# Вспомогательные методы для форматирования и обработки
+
 func _format_victory_toast(winner: String) -> String:
 	"""Форматирование сообщения победы
 	
 	DEPRECATED: Используйте victory_message_formatter.format_victory_message()
+	
+	Args:
+		winner: Победитель ("Player", "Banker", "Tie")
+	
+	Returns:
+		Отформатированное сообщение победы
 	"""
 	var player_score = hand_manager.get_player_score()
 	var banker_score = hand_manager.get_banker_score()
 	return victory_message_formatter.format_victory_message(winner, player_score, banker_score)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# РЕФАКТОРЕННЫЕ HELPER МЕТОДЫ (из on_action_pressed)
+# ОБРАБОТКА СОСТОЯНИЯ ВЫБОРА ПОБЕДИТЕЛЯ
 # ═══════════════════════════════════════════════════════════════════════════
+# Методы для обработки состояния CHOOSE_WINNER
+# Логика делегирована в WinnerSelectionStateHandler
 
 func _handle_choose_winner_state() -> void:
 	"""Обработка состояния CHOOSE_WINNER (выбор победителя и завершение раунда)
@@ -1668,6 +1728,12 @@ func _apply_penalties_for_unpaid_bets() -> void:
 	
 	DebugLogger.log_separator("ШТРАФЫ ПРИМЕНЕНЫ")
 
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ЗАВЕРШЕНИЕ РАУНДА
+# ═══════════════════════════════════════════════════════════════════════════
+# Методы для проверки и завершения раунда
+# Логика делегирована в GameCompletionCoordinator и RoundCompletionCoordinator
 
 func _can_complete_round() -> bool:
 	"""Проверка возможности завершения раунда (нет неоплаченных ставок)
