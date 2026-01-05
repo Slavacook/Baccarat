@@ -653,13 +653,6 @@ func reset_cards(back_texture: Texture2D):
 	if card_controller:
 		card_controller.reset_cards(back_texture)
 
-
-func _on_winner_selected(chosen: String):
-	"""Обработка выбора победителя игроком (делегировано в WinnerSelectionHandler)"""
-	if winner_selection_handler:
-		await winner_selection_handler.handle_winner_selected(chosen)
-
-
 # ═══════════════════════════════════════════════════════════════════════════
 # ВЫБОР ПОБЕДИТЕЛЯ
 # ═══════════════════════════════════════════════════════════════════════════
