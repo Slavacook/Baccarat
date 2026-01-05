@@ -8,15 +8,45 @@ extends Node
 # КОНСТАНТЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Абсолютные координаты позиций индикаторов для каждого гостя
-# Можно настроить индивидуальную позицию для каждого гостя (1-6)
-const INDICATOR_POSITIONS: Dictionary = {
-	1: Vector2(-750, 320),  # Гость 1: абсолютные координаты (X, Y)
-	2: Vector2(-150, -25),    # Гость 2: абсолютные координаты (X, Y)
-	3: Vector2(240, -175), # Гость 3: абсолютные координаты (X, Y)
-	4: Vector2(700, -175),  # Гость 4: абсолютные координаты (X, Y)
-	5: Vector2(1105, -25),  # Гость 5: абсолютные координаты (X, Y)
-	6: Vector2(1700, 320),    # Гость 6: абсолютные координаты (X, Y)
+# Настройки индикаторов для каждого гостя (1-6)
+# Все параметры в одном месте для удобства настройки
+const INDICATOR_SETTINGS: Dictionary = {
+	1: {
+		"position": Vector2(-1020, 50),  # Положение (X, Y)
+		"scale": Vector2(1.0, 1.0),      # Масштаб (ширина, высота)
+		"rotation": 0.0,                 # Поворот в градусах
+		"panel_size": Vector2(200, 120)  # Размер панели (ширина, высота)
+	},
+	2: {
+		"position": Vector2(-600, -200),
+		"scale": Vector2(1.0, 1.0),
+		"rotation": 0.0,
+		"panel_size": Vector2(200, 120)
+	},
+	3: {
+		"position": Vector2(180, -230),
+		"scale": Vector2(1.0, 1.0),
+		"rotation": 0.0,
+		"panel_size": Vector2(200, 120)
+	},
+	4: {
+		"position": Vector2(700, -230),
+		"scale": Vector2(1.0, 1.0),
+		"rotation": 0.0,
+		"panel_size": Vector2(200, 120)
+	},
+	5: {
+		"position": Vector2(1305, -230),
+		"scale": Vector2(1.0, 1.0),
+		"rotation": 0.0,
+		"panel_size": Vector2(200, 120)
+	},
+	6: {
+		"position": Vector2(1860, 50),
+		"scale": Vector2(1.0, 1.0),
+		"rotation": 0.0,
+		"panel_size": Vector2(200, 120)
+	}
 }
 
 # Путь к сцене индикатора (если используем сцену) или создаем программно
@@ -76,6 +106,9 @@ func setup(p_parent_node: Node2D, p_camera_manager: CameraManager = null):
 func _create_indicator(guest_id: int):
 	"""Создать индикатор для гостя"""
 	
+	# Получаем настройки для этого гостя один раз в начале функции
+	var settings = INDICATOR_SETTINGS.get(guest_id, {})
+	
 	# Создаем Control как корневой узел
 	var indicator = Control.new()
 	indicator.name = "GuestPatienceIndicator_%d" % guest_id
@@ -106,7 +139,11 @@ func _create_indicator(guest_id: int):
 	panel_style.shadow_offset = Vector2(2, 2)
 	
 	panel.add_theme_stylebox_override("panel", panel_style)
-	panel.size = Vector2(200, 120)  # Увеличили высоту для лучшего размещения элементов
+	
+	# Получаем размер панели из настроек
+	var panel_size = settings.get("panel_size", Vector2(200, 120))
+	panel.size = panel_size
+	
 	indicator.add_child(panel)
 	
 	# Создаем VBoxContainer для содержимого с отступами
@@ -230,23 +267,38 @@ func _create_indicator(guest_id: int):
 	# Сохраняем ссылку
 	indicators[guest_id] = indicator
 	
+	# Применяем настройки из конфига (положение, масштаб, поворот)
+	# Масштаб: в режиме 2 применяем дополнительный масштаб
+	var camera_mode = SaveManager.instance.load_camera_control_mode()
+	var base_scale = settings.get("scale", Vector2(1.0, 1.0))
+	if camera_mode == "independent":
+		# В режиме 2 увеличиваем масштаб в 1.5 раза
+		indicator.scale = base_scale * 1.5
+	else:
+		indicator.scale = base_scale
+	
+	# Поворот
+	var rotation = settings.get("rotation", 0.0)
+	indicator.rotation_degrees = rotation
+	
 	# Позиционируем индикатор
 	_update_indicator_position(guest_id)
 	
 	# Изначально скрываем (покажем когда гость включен)
 	indicator.visible = false
 	
-	print("  ✅ Создан индикатор для гостя %d" % guest_id)
+	print("  ✅ Создан индикатор для гостя %d (scale: %s)" % [guest_id, indicator.scale])
 
 func _update_indicator_position(guest_id: int):
-	"""Обновить позицию индикатора на основе абсолютных координат"""
+	"""Обновить позицию индикатора на основе настроек"""
 	if not indicators.has(guest_id):
 		return
 	
 	var indicator = indicators[guest_id]
 	
-	# Получаем абсолютные координаты для этого гостя из словаря
-	var position = INDICATOR_POSITIONS.get(guest_id, Vector2.ZERO)
+	# Получаем настройки для этого гостя
+	var settings = INDICATOR_SETTINGS.get(guest_id, {})
+	var position = settings.get("position", Vector2.ZERO)
 	
 	if position != Vector2.ZERO:
 		# Устанавливаем абсолютную позицию индикатора
@@ -298,7 +350,8 @@ func _on_camera_zoom_completed(_zoom_type: String):
 	
 	if camera_mode == "independent":
 		# Режим 2: индикаторы всегда видны (если гость за столом)
-		_show_all_indicators_animated()
+		# Показываем только если они еще не видны, чтобы избежать мигания
+		_show_all_indicators_if_hidden()
 		previous_area = area
 		return
 	
@@ -477,6 +530,34 @@ func _show_all_indicators_animated():
 		# Анимация fade-in
 		var tween = create_tween()
 		tween.tween_property(indicator, "modulate:a", 1.0, 0.5)
+
+func _show_all_indicators_if_hidden():
+	"""Показать все индикаторы, но только если они скрыты (без мигания)"""
+	for guest_id in range(1, 7):
+		if not indicators.has(guest_id):
+			continue
+		
+		var indicator = indicators[guest_id]
+		if not is_instance_valid(indicator):
+			continue
+		
+		# Показываем только если гость включен
+		if not GuestSettingsManager.is_guest_enabled(guest_id):
+			continue
+		
+		# Если индикатор уже видим и непрозрачен - пропускаем (избегаем мигания)
+		if indicator.visible and indicator.modulate.a >= 0.99:
+			continue
+		
+		# Если индикатор скрыт - показываем с анимацией
+		if not indicator.visible:
+			indicator.modulate.a = 0.0
+			indicator.visible = true
+			var tween = create_tween()
+			tween.tween_property(indicator, "modulate:a", 1.0, 0.5)
+		# Если индикатор видим, но прозрачный - просто делаем непрозрачным без анимации
+		elif indicator.modulate.a < 0.99:
+			indicator.modulate.a = 1.0
 
 func _hide_all_indicators_animated(use_animation: bool = true):
 	"""Скрыть все индикаторы с fade-out анимацией (0.5 сек) или мгновенно"""

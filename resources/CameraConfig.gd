@@ -34,11 +34,11 @@ var cards_description: String = "Фокус на зоне раздачи кар�
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 1 (левая часть стола)
-var area_1_position: Vector2 = Vector2(-550, 350)
+var area_1_position: Vector2 = Vector2(-650, 300)
 # Масштаб камеры для области 1
 var area_1_zoom: Vector2 = Vector2(1.0, 1.0)
 # Поворот камеры для области 1 (в градусах)
-var area_1_rotation: float = -15.0
+var area_1_rotation: float = -8.0
 var area_1_description: String = "Левая область ставок"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -46,11 +46,11 @@ var area_1_description: String = "Левая область ставок"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 2
-var area_2_position: Vector2 = Vector2(-120, 140)
+var area_2_position: Vector2 = Vector2(-120, 60)
 # Масштаб камеры для области 2
 var area_2_zoom: Vector2 = Vector2(1.0, 1.0)
 # Поворот камеры для области 2 (в градусах)
-var area_2_rotation: float = -8.0
+var area_2_rotation: float = -4.0
 var area_2_description: String = "Область ставок 2"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -58,11 +58,11 @@ var area_2_description: String = "Область ставок 2"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 3
-var area_3_position: Vector2 = Vector2(400, 120)
+var area_3_position: Vector2 = Vector2(400, 30)
 # Масштаб камеры для области 3
 var area_3_zoom: Vector2 = Vector2(1.0, 1.0)
 # Поворот камеры для области 3 (в градусах)
-var area_3_rotation: float = -4.0
+var area_3_rotation: float = 0.0
 var area_3_description: String = "Область ставок 3"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -70,11 +70,11 @@ var area_3_description: String = "Область ставок 3"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 4
-var area_4_position: Vector2 = Vector2(730, 140)
+var area_4_position: Vector2 = Vector2(730, 30)
 # Масштаб камеры для области 4
 var area_4_zoom: Vector2 = Vector2(1.0, 1.0)
 # Поворот камеры для области 4 (в градусах)
-var area_4_rotation: float = 4.0
+var area_4_rotation: float = 0.0
 var area_4_description: String = "Область ставок 4"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -82,11 +82,11 @@ var area_4_description: String = "Область ставок 4"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 5
-var area_5_position: Vector2 = Vector2(1300, 160)
+var area_5_position: Vector2 = Vector2(1330,60)
 # Масштаб камеры для области 5
 var area_5_zoom: Vector2 = Vector2(1.0, 1.0)
 # Поворот камеры для области 5 (в градусах)
-var area_5_rotation: float = 8.0
+var area_5_rotation: float = 4.0
 var area_5_description: String = "Область ставок 5"
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -94,11 +94,11 @@ var area_5_description: String = "Область ставок 5"
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 6
-var area_6_position: Vector2 = Vector2(1750, 350)
+var area_6_position: Vector2 = Vector2(1800, 300)
 # Масштаб камеры для области 6
 var area_6_zoom: Vector2 = Vector2(1.0, 1.0)
 # Поворот камеры для области 6 (в градусах)
-var area_6_rotation: float = 15.0
+var area_6_rotation: float = 8.0
 var area_6_description: String = "Область ставок 6"
 
 # ═══════════════════════════════════════════════════════════════════════════
