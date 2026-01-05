@@ -648,11 +648,11 @@
 
 ## 🎯 Общий прогресс
 
-**Выполнено**: 24 из ~24 шагов (100%)  
-**Время**: ~8.5 часов  
+**Выполнено**: 25 из ~25 шагов (100%)  
+**Время**: ~9 часов  
 **Риск**: Минимальный-Средний ✅
 
-**Коммитов**: 29
+**Коммитов**: 31
 
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
@@ -680,6 +680,7 @@
 - Извлечение SequenceManager из BetCollectionPhaseManager
 - Извлечение StateConsistencyChecker из BetCollectionPhaseManager
 - Извлечение ChipTextureManager из ChipVisualManager
+- Извлечение ChipPositionManager из ChipVisualManager
 
 ---
 
@@ -861,7 +862,41 @@
 
 ---
 
-**ФАЗА 6: ЗАВЕРШЕНА ✅** (5 из 5 шагов)
+#### ✅ Шаг 6.6: Извлечь ChipPositionManager из ChipVisualManager
+
+**Дата**: Сегодня  
+**Коммиты**: 2
+
+**Что сделано:**
+
+- ✅ Создан новый класс `ChipPositionManager` в `scripts/utils/`
+- ✅ Извлечены константа `ALTERNATIVE_POSITIONS` и методы:
+  - `get_alternative_positions()` - получение альтернативных позиций
+  - `get_random_position()` - получение случайной позиции
+  - `get_position_at_index()` - получение позиции по индексу
+  - `has_positions()` - проверка наличия позиций
+  - `get_positions_count()` - получение количества позиций
+- ✅ Обновлен `ChipVisualManager` для использования экземпляра `ChipPositionManager`
+- ✅ Сохранена обратная совместимость (константа `ALTERNATIVE_POSITIONS` осталась доступной)
+- ✅ Обновлены методы `_apply_random_position()` и `get_alternative_positions()`
+
+**Результаты:**
+
+- ✅ Уменьшен размер `ChipVisualManager` на ~60 строк
+- ✅ Логика управления позициями изолирована в отдельный класс
+- ✅ Улучшена читаемость и поддерживаемость
+- ✅ Нет ошибок компиляции
+- ✅ Сохранена обратная совместимость
+
+**Статистика:**
+
+- Созданных классов: 6 (`LinePositionCalculator`, `BetSorter`, `SequenceManager`, `StateConsistencyChecker`, `ChipTextureManager`, `ChipPositionManager`)
+- Уменьшение размера: ~500 строк (всего)
+- Риск: Низкий ✅
+
+---
+
+**ФАЗА 6: ЗАВЕРШЕНА ✅** (6 из 6 шагов)
 
 ---
 
