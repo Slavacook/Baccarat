@@ -460,6 +460,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Если камера переходит на "out", сохраняем информацию о том, была ли она на картах
 	if zoom_type == "out":
 		_was_on_cards_before_out = from_is_cards
+		if from_is_cards:
+			print("📷 CameraManager: установлен флаг _was_on_cards_before_out=true (переход с Cards View на out)")
 	
 	# Автоматически определяем is_navigation: медленная анимация ТОЛЬКО если камера УЖЕ на одной из точек режима 2
 	# И переходит на другую точку режима 2 (обе точки должны быть в списке)
@@ -469,9 +471,15 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	
 	# Исключение 1: камера была на картах → перешла на "out" → теперь переходит на mode2_right/mode2_left
 	# Это должно быть быстро, так как визуально это один переход с карт
+	# Также учитываем случай, когда камера уже на "out" и переходит на другой режим 2 (mode2_left/mode2_right)
 	if from_zoom_type == "out" and to_is_mode2 and _was_on_cards_before_out:
 		should_use_fast_animation = true
-		_was_on_cards_before_out = false  # Сбрасываем флаг после использования
+		print("📷 CameraManager: Исключение 1 сработало (out → %s, _was_on_cards_before_out=true)" % zoom_type)
+		# НЕ сбрасываем флаг сразу - он может понадобиться для следующего перехода
+		# Сбросим его только когда перейдем на mode2_left или mode2_right (не на "out")
+		if zoom_type != "out":
+			_was_on_cards_before_out = false  # Сбрасываем флаг только после перехода на mode2_left/mode2_right
+			print("📷 CameraManager: флаг _was_on_cards_before_out сброшен (переход на %s)" % zoom_type)
 	
 	# Исключение 2: камера стартует с Cards View и переходит на режим 2 - ВСЕГДА быстрая анимация
 	# Это переопределяет параметр is_navigation, переданный извне (например, от ChipNavigationManager)
@@ -499,8 +507,11 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 			_was_on_cards_before_out = false  # Сбрасываем флаг при переходе на карты
 		"out":
 			current_area = -1  # Общий план
+			# НЕ сбрасываем _was_on_cards_before_out здесь - он нужен для следующего перехода на mode2_left/mode2_right
 		"mode2_right", "mode2_left":
 			current_area = -1  # Остаёмся на общем плане для режима 2
+			# Сбрасываем флаг только когда переходим на mode2_left/mode2_right (не на "out")
+			_was_on_cards_before_out = false
 		_:
 			if zoom_type.begins_with("area_"):
 				# Извлекаем номер области из строки "area_X" (где X от 1 до 6)
