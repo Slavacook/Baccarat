@@ -26,14 +26,35 @@ func create_stake_label(chip_instance: ChipVisualManager.ChipInstance, scene_roo
 	if not chip_instance or not chip_instance.node or not scene_root:
 		return null
 	
-	# Создаём контейнер для label
+	# Создаём Control как контейнер
 	var container = Control.new()
-	container.name = "StakeLabel_%s_%d" % [chip_instance.bet_type, chip_instance.position_index]
-	container.mouse_filter = Control.MOUSE_FILTER_IGNORE  # Игнорируем клики
+	container.name = "StakeLabel_%s" % chip_instance.get_id()
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.z_index = 50  # Выше фишки, но ниже других UI
 	
-	# Создаём Panel для фона
+	# Создаём Panel как фон в стиле карточек гостя
 	var panel = Panel.new()
 	panel.name = "Panel"
+	var panel_style = StyleBoxFlat.new()
+	panel_style.bg_color = Color(0.1, 0.1, 0.1, 0.85)  # Черная подложка с прозрачностью
+	panel_style.corner_radius_top_left = 8
+	panel_style.corner_radius_top_right = 8
+	panel_style.corner_radius_bottom_left = 8
+	panel_style.corner_radius_bottom_right = 8
+	
+	# Золотая рамка
+	panel_style.border_width_left = 2
+	panel_style.border_width_top = 2
+	panel_style.border_width_right = 2
+	panel_style.border_width_bottom = 2
+	panel_style.border_color = Color(1.0, 0.85, 0.3, 0.8)  # Золотистая рамка
+	
+	# Тень
+	panel_style.shadow_color = Color(0, 0, 0, 0.5)
+	panel_style.shadow_size = 4
+	panel_style.shadow_offset = Vector2(2, 2)
+	
+	panel.add_theme_stylebox_override("panel", panel_style)
 	panel.size = Vector2(100, 30)  # Компактный размер для суммы ставки
 	container.add_child(panel)
 	
