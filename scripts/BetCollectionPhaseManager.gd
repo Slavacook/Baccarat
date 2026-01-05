@@ -50,6 +50,9 @@ var payment_progress: Dictionary = {"main": 0, "tie": 0, "pairs": 0}
 # Калькулятор номеров позиций в линиях
 var position_calculator: LinePositionCalculator = LinePositionCalculator.new()
 
+# Сортировщик ставок
+var bet_sorter: BetSorter = BetSorter.new(position_calculator)
+
 # Флаг блокировки для защиты от параллельных операций
 var is_processing: bool = false
 
@@ -271,107 +274,51 @@ func _get_position_coordinates(bet_type: String, position_index: int) -> Vector2
 	
 	return positions[position_index]
 
+# ═══════════════════════════════════════════════════════════════════════════
+# СОРТИРОВКА СТАВОК (делегировано в BetSorter)
+# ═══════════════════════════════════════════════════════════════════════════
+
 func _get_sorted_main_bets(winning: bool) -> Array:
 	"""Получить отсортированные основные ставки (Player/Banker) справа налево
+	
+	Делегирует сортировку в BetSorter.
 	
 	Args:
 		winning: true для выигрышных ставок, false для проигрышных
 		
 	Returns:
-		Отсортированный массив ставок справа налево (по X координате по убыванию)
+		Отсортированный массив ставок справа налево
 	"""
-	if not payout_queue_manager:
-		return []
-	
-	var bets: Array = []
-	
-	# Определяем какие типы собирать/оплачивать
-	var types_to_include: Array[String] = []
-	
-	if winning:
-		# Для оплаты - только выигрышные основные ставки
-		if actual_winner == "Player":
-			types_to_include = ["Player"]
-		elif actual_winner == "Banker":
-			types_to_include = ["Banker"]
-		# При Tie основные ставки не оплачиваются (push)
-	else:
-		# Для сбора - только проигрышные основные ставки
-		if actual_winner == "Player":
-			types_to_include = ["Banker"]  # Проиграл Banker
-		elif actual_winner == "Banker":
-			types_to_include = ["Player"]  # Проиграл Player
-		# При Tie основные ставки не собираются (push)
-	
-	# Собираем ставки нужных типов
-	for bet in payout_queue_manager.bets:
-		if bet.get_bet_type() in types_to_include and bet.is_won() == winning:
-			bets.append(bet)
-	
-	# Сортируем справа налево по номеру позиции (номер 1, 2, 3...)
-	bets.sort_custom(func(a, b): 
-		var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
-		var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
-		return num_a < num_b  # Меньший номер = правее = идёт первым
-	)
-	
-	return bets
+	return bet_sorter.get_sorted_main_bets(payout_queue_manager, actual_winner, winning)
 
 func _get_sorted_tie_bets(winning: bool) -> Array:
 	"""Получить отсортированные Tie ставки
+	
+	Делегирует сортировку в BetSorter.
 	- Для сбора (winning=false): слева направо (обратный порядок номеров)
 	- Для оплаты (winning=true): справа налево (прямой порядок номеров)
+	
+	Args:
+		winning: true для выигрышных ставок, false для проигрышных
+		
+	Returns:
+		Отсортированный массив Tie ставок
 	"""
-	if not payout_queue_manager:
-		return []
-	
-	var bets: Array = []
-	
-	for bet in payout_queue_manager.bets:
-		if bet.get_bet_type() == "Tie" and bet.is_won() == winning:
-			bets.append(bet)
-	
-	# Используем нумерацию позиций (1 = самый правый)
-	if winning:
-		# Оплата: справа налево (номер 1, 2, 3...)
-		bets.sort_custom(func(a, b):
-			var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
-			var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
-			return num_a < num_b  # Меньший номер = правее = идёт первым
-		)
-	else:
-		# Сбор: слева направо (номер 3, 2, 1...)
-		bets.sort_custom(func(a, b):
-			var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
-			var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
-			return num_a > num_b  # Больший номер = левее = идёт первым
-		)
-	
-	return bets
+	return bet_sorter.get_sorted_tie_bets(payout_queue_manager, winning)
 
 func _get_sorted_pair_bets(winning: bool) -> Array:
 	"""Получить отсортированные пары (PairPlayer + PairBanker вместе) справа налево
 	
+	Делегирует сортировку в BetSorter.
 	Пары объединены в одну линию и сортируются по номеру позиции (1 = самый правый)
+	
+	Args:
+		winning: true для выигрышных ставок, false для проигрышных
+		
+	Returns:
+		Отсортированный массив пар ставок
 	"""
-	if not payout_queue_manager:
-		return []
-	
-	var bets: Array = []
-	
-	for bet in payout_queue_manager.bets:
-		var bet_type = bet.get_bet_type()
-		if (bet_type == "PairPlayer" or bet_type == "PairBanker") and bet.is_won() == winning:
-			bets.append(bet)
-	
-	# Сортируем справа налево по номеру позиции (номер 1, 2, 3...)
-	bets.sort_custom(func(a, b):
-		var num_a = get_line_position_number(a.get_bet_type(), a.get_position_index())
-		var num_b = get_line_position_number(b.get_bet_type(), b.get_position_index())
-		return num_a < num_b  # Меньший номер = правее = идёт первым
-	)
-	
-	return bets
+	return bet_sorter.get_sorted_pair_bets(payout_queue_manager, winning)
 
 func _initialize_collection_sequence() -> void:
 	"""Инициализировать последовательности для сбора проигрышных ставок"""
