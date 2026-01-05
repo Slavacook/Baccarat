@@ -1098,9 +1098,9 @@ func _hide_game_ui_elements():
 	if survival:
 		survival.visible = false
 		DebugLogger.log("  ✅ SurvivalModeUI скрыта")
-	elif survival_ui:
-		survival_ui.visible = false
-		DebugLogger.log("  ✅ survival_ui скрыта")
+	elif survival_state:
+		survival_state.hide()
+		DebugLogger.log("  ✅ survival_ui скрыта через SurvivalStateProvider")
 	
 	# Инвентарь с картами шансов
 	var chance_storage = get_node_or_null("TopUI/ChanceCardStorage")
@@ -1163,9 +1163,9 @@ func _show_game_ui_elements():
 	if survival:
 		survival.visible = true
 		DebugLogger.log("  ✅ SurvivalModeUI показана")
-	elif survival_ui:
-		survival_ui.visible = true
-		DebugLogger.log("  ✅ survival_ui показана")
+	elif survival_state:
+		survival_state.show()
+		DebugLogger.log("  ✅ survival_ui показана через SurvivalStateProvider")
 	
 	# Инвентарь с картами шансов
 	var chance_storage = get_node_or_null("TopUI/ChanceCardStorage")
