@@ -168,7 +168,19 @@ signal chip_instance_clicked(bet_type: String, position_index: int)
 func setup(player_chip: TextureButton, banker_chip: TextureButton, tie_chip: TextureButton,
 		   pair_player_chip: TextureButton = null, pair_banker_chip: TextureButton = null,
 		   root_node: Node = null) -> void:
-	"""Настройка ссылок на узлы фишек"""
+	"""Настройка ссылок на узлы фишек
+	
+	Инициализирует менеджер, сохраняет ссылки на узлы фишек из сцены,
+	сохраняет начальные позиции и скрывает все фишки при старте.
+	
+	Args:
+		player_chip: Узел фишки Player
+		banker_chip: Узел фишки Banker
+		tie_chip: Узел фишки Tie
+		pair_player_chip: Узел фишки PairPlayer (опционально)
+		pair_banker_chip: Узел фишки PairBanker (опционально)
+		root_node: Корневой узел сцены для создания копий фишек (опционально)
+	"""
 	chip_nodes["Player"] = player_chip
 	chip_nodes["Banker"] = banker_chip
 	chip_nodes["Tie"] = tie_chip
@@ -328,7 +340,14 @@ func hide_all_chips() -> void:
 
 
 func is_chip_visible(bet_type: String) -> bool:
-	"""Проверить, видна ли фишка"""
+	"""Проверить, видна ли фишка
+	
+	Args:
+		bet_type: Тип ставки ("Player", "Banker", "Tie", "PairPlayer", "PairBanker")
+		
+	Returns:
+		true если фишка видна, false если скрыта или не существует
+	"""
 	if not chip_nodes.has(bet_type):
 		return false
 	return chip_nodes[bet_type].visible
@@ -339,7 +358,15 @@ func is_chip_visible(bet_type: String) -> bool:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func make_chip_clickable(bet_type: String, clickable: bool) -> void:
-	"""Сделать фишку кликабельной/некликабельной"""
+	"""Сделать фишку кликабельной/некликабельной
+	
+	При включении кликабельности подключает обработчик _on_chip_pressed.
+	При выключении отключает все обработчики.
+	
+	Args:
+		bet_type: Тип ставки
+		clickable: true для включения кликабельности, false для выключения
+	"""
 	if not chip_nodes.has(bet_type):
 		push_error("ChipVisualManager: неизвестный тип ставки '%s'" % bet_type)
 		return
@@ -367,14 +394,26 @@ func make_chip_clickable(bet_type: String, clickable: bool) -> void:
 
 
 func make_all_chips_clickable(clickable: bool) -> void:
-	"""Сделать все видимые фишки кликабельными/некликабельными"""
+	"""Сделать все видимые фишки кликабельными/некликабельными
+	
+	Применяет make_chip_clickable ко всем видимым фишкам.
+	
+	Args:
+		clickable: true для включения кликабельности, false для выключения
+	"""
 	for bet_type in chip_nodes.keys():
 		if is_chip_visible(bet_type):
 			make_chip_clickable(bet_type, clickable)
 
 
 func _on_chip_pressed(bet_type: String) -> void:
-	"""Обработка нажатия на фишку"""
+	"""Обработка нажатия на фишку
+	
+	Эмитит сигнал chip_clicked с типом ставки.
+	
+	Args:
+		bet_type: Тип ставки, на которую кликнули
+	"""
 	print("🖱️  ChipVisualManager: клик на фишку %s" % bet_type)
 	chip_clicked.emit(bet_type)
 
@@ -395,22 +434,47 @@ func _get_random_texture(bet_type: String) -> String:
 
 
 func get_random_texture(bet_type: String) -> String:
-	"""Публичный метод для получения случайной текстуры БЕЗ показа фишки"""
+	"""Публичный метод для получения случайной текстуры БЕЗ показа фишки
+	
+	Args:
+		bet_type: Тип ставки
+		
+	Returns:
+		Путь к случайной текстуре или пустая строка если текстуры не найдены
+	"""
 	return _get_random_texture(bet_type)
 
 
 func get_current_texture(bet_type: String) -> String:
-	"""Получить текущую текстуру фишки"""
+	"""Получить текущую текстуру фишки
+	
+	Args:
+		bet_type: Тип ставки
+		
+	Returns:
+		Путь к текущей текстуре или пустая строка если текстура не установлена
+	"""
 	return current_textures.get(bet_type, "")
 
 
 func set_current_texture(bet_type: String, texture_path: String) -> void:
-	"""Установить текущую текстуру фишки (без показа фишки)"""
+	"""Установить текущую текстуру фишки (без показа фишки)
+	
+	Сохраняет путь к текстуре, но не применяет её к узлу фишки.
+	
+	Args:
+		bet_type: Тип ставки
+		texture_path: Путь к текстуре
+	"""
 	current_textures[bet_type] = texture_path
 
 
 func get_visible_chips() -> Array:
-	"""Получить список видимых фишек"""
+	"""Получить список видимых фишек
+	
+	Returns:
+		Массив типов ставок, которые в данный момент видимы
+	"""
 	var visible_chips = []
 	for bet_type in chip_nodes.keys():
 		if is_chip_visible(bet_type):
@@ -487,7 +551,14 @@ func randomize_all_positions() -> void:
 
 
 func get_alternative_positions(bet_type: String) -> Array:
-	"""Получить список альтернативных позиций для типа ставки"""
+	"""Получить список альтернативных позиций для типа ставки
+	
+	Args:
+		bet_type: Тип ставки
+		
+	Returns:
+		Массив Vector2 с альтернативными позициями или пустой массив если позиции не найдены
+	"""
 	if ALTERNATIVE_POSITIONS.has(bet_type):
 		return ALTERNATIVE_POSITIONS[bet_type]
 	return []
@@ -499,7 +570,11 @@ func is_random_mode_enabled() -> bool:
 
 
 func get_position_mode() -> PositionMode:
-	"""Получить текущий режим позиций"""
+	"""Получить текущий режим позиций
+	
+	Returns:
+		Текущий режим позиций (всегда PositionMode.GUEST)
+	"""
 	return current_mode
 
 
