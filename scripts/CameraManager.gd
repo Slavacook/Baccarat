@@ -464,17 +464,17 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Автоматически определяем is_navigation: медленная анимация ТОЛЬКО если камера УЖЕ на одной из точек режима 2
 	# И переходит на другую точку режима 2 (обе точки должны быть в списке)
 	# ИСКЛЮЧЕНИЕ 1: если камера была на картах перед переходом на "out", то переход с "out" на mode2_right/mode2_left тоже быстрый
-	# ИСКЛЮЧЕНИЕ 2: если камера стартует с Cards View и переходит на режим 2 - всегда быстрая анимация
+	# ИСКЛЮЧЕНИЕ 2: если камера стартует с Cards View и переходит на режим 2 - ВСЕГДА быстрая анимация (игнорируем is_navigation извне)
 	var should_use_fast_animation = false
 	
 	# Исключение 1: камера была на картах → перешла на "out" → теперь переходит на mode2_right/mode2_left
+	# Это должно быть быстро, так как визуально это один переход с карт
 	if from_zoom_type == "out" and to_is_mode2 and _was_on_cards_before_out:
-		# Камера была на картах → перешла на "out" → теперь переходит на mode2_right/mode2_left
-		# Это должно быть быстро, так как визуально это один переход с карт
 		should_use_fast_animation = true
 		_was_on_cards_before_out = false  # Сбрасываем флаг после использования
 	
-	# Исключение 2: камера стартует с Cards View и переходит на режим 2 - всегда быстрая анимация
+	# Исключение 2: камера стартует с Cards View и переходит на режим 2 - ВСЕГДА быстрая анимация
+	# Это переопределяет параметр is_navigation, переданный извне (например, от ChipNavigationManager)
 	if from_is_cards and to_is_mode2:
 		should_use_fast_animation = true
 	
@@ -486,7 +486,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		is_navigation = false
 		if should_use_fast_animation:
 			if from_is_cards:
-				print("📷 CameraManager: быстрая анимация (Cards View → режим 2: %s → %s)" % [from_zoom_type, zoom_type])
+				print("📷 CameraManager: быстрая анимация (Cards View → режим 2: %s → %s) [принудительно, игнорируя is_navigation извне]" % [from_zoom_type, zoom_type])
 			else:
 				print("📷 CameraManager: быстрая анимация (%s → %s) [камера была на картах]" % [from_zoom_type, zoom_type])
 		else:
