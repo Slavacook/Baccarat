@@ -648,11 +648,11 @@
 
 ## 🎯 Общий прогресс
 
-**Выполнено**: 21 из ~24 шагов (88%)  
-**Время**: ~7 часов  
+**Выполнено**: 22 из ~24 шагов (92%)  
+**Время**: ~7.5 часов  
 **Риск**: Минимальный-Средний ✅
 
-**Коммитов**: 23
+**Коммитов**: 25
 
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
@@ -677,6 +677,7 @@
 - Улучшение документации GuestMenuScene
 - Извлечение LinePositionCalculator из BetCollectionPhaseManager
 - Извлечение BetSorter из BetCollectionPhaseManager
+- Извлечение SequenceManager из BetCollectionPhaseManager
 
 ---
 
@@ -755,7 +756,42 @@
 **ФАЗА 3: ЗАВЕРШЕНА ✅**  
 **ФАЗА 4: ЗАВЕРШЕНА ✅**  
 **ФАЗА 5: ЗАВЕРШЕНА ✅**  
-**ФАЗА 6: В ПРОЦЕССЕ** (2 из ~4 шагов)
+#### ✅ Шаг 6.3: Извлечь SequenceManager из BetCollectionPhaseManager
+
+**Дата**: Сегодня  
+**Коммиты**: 3
+
+**Что сделано:**
+
+- ✅ Создан новый класс `SequenceManager` в `scripts/utils/`
+- ✅ Извлечены методы:
+  - `initialize_collection_sequence()` - инициализация последовательности сбора
+  - `initialize_payment_sequence()` - инициализация последовательности оплаты
+  - `get_expected_next_bet()` - получение следующей ожидаемой ставки
+  - `increment_progress()` - увеличение прогресса обработки
+  - `reset()` - сброс состояния
+- ✅ Перенесены данные: `collection_sequence`, `payment_sequence`, `collection_progress`, `payment_progress`
+- ✅ Добавлены свойства для обратной совместимости (делегируют в `sequence_manager`)
+- ✅ Обновлен `BetCollectionPhaseManager` для использования экземпляра `SequenceManager`
+- ✅ Удалены старые методы `_initialize_collection_sequence` и `_initialize_payment_sequence`
+
+**Результаты:**
+
+- ✅ Уменьшен размер `BetCollectionPhaseManager` на ~120 строк
+- ✅ Логика управления последовательностями изолирована в отдельный класс
+- ✅ Улучшена читаемость и поддерживаемость
+- ✅ Нет ошибок компиляции
+- ✅ Сохранена обратная совместимость через свойства
+
+**Статистика:**
+
+- Созданных классов: 3 (`LinePositionCalculator`, `BetSorter`, `SequenceManager`)
+- Уменьшение размера: ~320 строк (всего)
+- Риск: Низкий ✅
+
+---
+
+**ФАЗА 6: В ПРОЦЕССЕ** (3 из ~4 шагов)
 
 ---
 
