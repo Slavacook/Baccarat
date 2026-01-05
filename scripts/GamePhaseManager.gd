@@ -356,7 +356,15 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 # РАЗДАЧА КАРТ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func deal_first_four():
+func deal_first_four() -> void:
+	"""Раздать первые 4 карты (по 2 игроку и банкиру)
+	
+	Выполняет раздачу первых карт, проверяет ставки, обрабатывает Heart Bet,
+	проверяет триггеры карт шанса (Third Card Change, Mystery Card),
+	и обновляет состояние игры.
+	
+	Делегирует логику в FirstFourDealCoordinator и другие координаторы.
+	"""
 	DebugLogger.log_game_flow("deal_first_four() вызван")
 
 	# Используем координатор для проверки ставок
@@ -456,7 +464,12 @@ func deal_first_four():
 
 	_update_game_state_manager()
 
-func draw_player_third():
+func draw_player_third() -> void:
+	"""Раздать третью карту игроку
+	
+	Делегирует раздачу в ThirdCardDrawingCoordinator.
+	Обновляет UI и состояние игры после раздачи.
+	"""
 	# Используем координатор для раздачи третьей карты игроку
 	if not third_card_drawing_coordinator:
 		DebugLogger.log_error("❌ ThirdCardDrawingCoordinator не инициализирован!")
@@ -477,7 +490,12 @@ func draw_player_third():
 	player_third_selected = false
 	_update_game_state_manager()
 
-func draw_banker_third():
+func draw_banker_third() -> void:
+	"""Раздать третью карту банкиру
+	
+	Делегирует раздачу в ThirdCardDrawingCoordinator.
+	Обновляет UI и состояние игры после раздачи.
+	"""
 	# Используем координатор для раздачи третьей карты банкиру
 	if not third_card_drawing_coordinator:
 		DebugLogger.log_error("❌ ThirdCardDrawingCoordinator не инициализирован!")
@@ -499,8 +517,14 @@ func draw_banker_third():
 	_update_game_state_manager()
 
 
-func complete_game():
-	"""Завершить фазу третьих карт и перейти к выбору победителя"""
+func complete_game() -> void:
+	"""Завершить фазу третьих карт и перейти к выбору победителя
+	
+	Вызывается после раздачи всех необходимых карт.
+	Обновляет UI, скрывает toggles третьих карт, переводит игру в состояние CHOOSE_WINNER.
+	
+	Делегирует логику в GameCompletionCoordinator.
+	"""
 	if not game_completion_coordinator:
 		DebugLogger.log_error("❌ GameCompletionCoordinator не инициализирован!")
 		# Fallback на прямое обновление UI
@@ -525,7 +549,15 @@ func complete_game():
 
 
 func _should_banker_draw() -> bool:
-	"""Проверить, должен ли банкир взять третью карту (DEPRECATED: используйте banker_after_player_handler)"""
+	"""Проверить, должна ли банкиру раздаваться третья карта
+	
+	DEPRECATED: Используйте banker_after_player_handler.should_banker_draw()
+	
+	Использует BankerAfterPlayerHandler для определения необходимости третьей карты.
+	
+	Returns:
+		true если банкир должен взять третью карту, false иначе
+	"""
 	if not banker_after_player_handler:
 		# Fallback на прямую проверку
 		return BaccaratRules.banker_should_draw(
@@ -710,7 +742,11 @@ func on_tie_button_pressed() -> void:
 	DebugLogger.log_init("Игалите подтверждена!")
 
 func _emit_chance_card_triggers(triggers: Dictionary) -> void:
-	"""Эмитить события для активированных триггеров карт шанса"""
+	"""Эмитить события для активированных триггеров карт шанса
+	
+	Args:
+		triggers: Словарь с флагами триггеров (heart_card, heart_bet_card, revolver_card)
+	"""
 	if triggers.get("heart_card", false):
 		EventBus.heart_card_triggered.emit()
 		print("❤️ Heart Card триггер: банкир выиграл с 6!")
@@ -731,6 +767,13 @@ func _emit_chance_card_triggers(triggers: Dictionary) -> void:
 # Логика делегирована в ThirdCardActionValidator и ThirdCardActionExecutor
 
 func _validate_and_execute_third_cards() -> void:
+	"""Валидировать и выполнить действия с третьими картами
+	
+	Проверяет выборы игрока и банкира, валидирует их через ThirdCardActionValidator,
+	и выполняет соответствующие действия (раздача карт, завершение игры).
+	
+	Делегирует валидацию в ThirdCardActionValidator и выполнение в ThirdCardActionExecutor.
+	"""
 	# Проверка: если ничего не изменено (обе кнопки не активированы), то подтверждать нечего
 	if not player_third_selected and not banker_third_selected:
 		DebugLogger.log("⚠️ Нет изменений для подтверждения: обе кнопки третьих карт не активированы")
@@ -756,6 +799,18 @@ func _validate_and_execute_third_cards() -> void:
 # ========================================
 
 func _handle_validation_result(result: Dictionary, player_score: int, banker_score: int) -> void:
+	"""Обработать результат валидации третьих карт
+	
+	Выполняет действия на основе результата валидации:
+	- Раздача карт игроку и/или банкиру
+	- Завершение игры
+	- Показ ошибок валидации
+	
+	Args:
+		result: Результат валидации от ThirdCardActionValidator
+		player_score: Очки игрока (начальные)
+		banker_score: Очки банкира (начальные)
+	"""
 	"""Обработать результат валидации от ThirdCardActionValidator
 	
 	Args:
@@ -833,6 +888,10 @@ func _handle_natural_case() -> void:
 
 # State 2: Карта каждому (банкир 0-2, игрок 0-5)
 func _handle_card_to_each() -> void:
+	"""Обработать случай раздачи третьих карт обеим сторонам
+	
+	Раздает третью карту и игроку, и банкиру, затем завершает игру.
+	"""
 	if not player_third_selected or not banker_third_selected:
 		EventBus.show_toast_error.emit(Localization.t("BOTH_CARDS_NEEDED"))
 		EventBus.action_error.emit("both_wrong", Localization.t("BOTH_CARDS_NEEDED"))
@@ -907,7 +966,7 @@ func _handle_card_to_banker_only(ps: int, bs: int) -> void:
 	draw_banker_third()
 	complete_game()
 
-func _handle_banker_after_player():
+func _handle_banker_after_player() -> void:
 	"""Обработать решение банкира после того, как игрок взял третью карту
 	
 	После раздачи карты игроку устанавливаем состояние ожидания.
@@ -929,8 +988,14 @@ func _handle_banker_after_player():
 	else:
 		complete_game()
 
-func _validate_banker_after_player():
-	"""Валидировать выбор банкира после того, как игрок взял третью карту"""
+func _validate_banker_after_player() -> void:
+	"""Валидировать выбор банкира после того, как игрок взял третью карту
+	
+	Вызывается когда игрок нажал кнопку "Карты" в состоянии CARD_TO_BANKER_AFTER_PLAYER.
+	Валидирует выбор банкира и выполняет соответствующее действие.
+	
+	Делегирует валидацию в BankerAfterPlayerHandler.
+	"""
 	if not banker_after_player_handler:
 		DebugLogger.log_error("❌ BankerAfterPlayerHandler не инициализирован!")
 		return
