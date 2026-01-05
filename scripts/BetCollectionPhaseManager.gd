@@ -322,33 +322,6 @@ func _get_sorted_pair_bets(winning: bool) -> Array:
 	"""
 	return bet_sorter.get_sorted_pair_bets(payout_queue_manager, winning)
 
-func _initialize_collection_sequence() -> void:
-	"""Инициализировать последовательности для сбора проигрышных ставок"""
-	collection_sequence.clear()
-	collection_progress = {"main": 0, "tie": 0, "pairs": 0}
-	
-	collection_sequence["main"] = _get_sorted_main_bets(false)
-	collection_sequence["tie"] = _get_sorted_tie_bets(false)
-	collection_sequence["pairs"] = _get_sorted_pair_bets(false)
-	
-	DebugLogger.log("📋 Последовательности сбора инициализированы:")
-	DebugLogger.log("  Основные: %d, Tie: %d, Пары: %d" % [
-		collection_sequence["main"].size(),
-		collection_sequence["tie"].size(),
-		collection_sequence["pairs"].size()
-	])
-	
-	# Отладочный вывод порядка пар (если есть)
-	if collection_sequence["pairs"].size() > 0:
-		DebugLogger.log("  📍 Порядок пар (справа налево):")
-		for i in range(collection_sequence["pairs"].size()):
-			var bet = collection_sequence["pairs"][i]
-			var bet_type = bet.get_bet_type()
-			var pos_idx = bet.get_position_index()
-			var pos_num = get_line_position_number(bet_type, pos_idx)
-			var pos = _get_position_coordinates(bet_type, pos_idx)
-			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
-
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ ПОСЛЕДОВАТЕЛЬНОСТЕЙ (делегировано в SequenceManager)
 # ═══════════════════════════════════════════════════════════════════════════
