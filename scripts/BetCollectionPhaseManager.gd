@@ -48,6 +48,9 @@ var bet_sorter: BetSorter = BetSorter.new(position_calculator)
 # Менеджер последовательностей (управляет collection_sequence, payment_sequence, progress)
 var sequence_manager: SequenceManager = SequenceManager.new(bet_sorter, position_calculator)
 
+# Проверка согласованности состояния
+var state_checker: StateConsistencyChecker = StateConsistencyChecker.new()
+
 # Свойства для обратной совместимости (делегируют в sequence_manager)
 var collection_sequence: Dictionary:
 	get: return sequence_manager.collection_sequence
@@ -627,7 +630,7 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 		sequence_manager.increment_progress(group, true)
 	
 	# Проверяем согласованность состояния после обновления
-	if not _check_state_consistency(bet, bet_id):
+	if not state_checker.check_state_consistency(bet, bet_id, collected_bets_by_id):
 		# Rollback при ошибке
 		bet.set_collected(old_collected_state)
 		collected_bets_by_id.erase(bet_id)
@@ -744,7 +747,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 		return false
 	
 	# Проверяем согласованность состояния после обновления
-	if not _check_payment_state_consistency(bet):
+	if not state_checker.check_payment_state_consistency(bet):
 		# Rollback при ошибке
 		bet.set_paid(old_paid_state)
 		if not group.is_empty() and payment_progress.has(group):
