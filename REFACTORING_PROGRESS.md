@@ -601,11 +601,83 @@
 - Анализ ChipVisualManager
 - Улучшение документации ChipVisualManager
 
+#### ✅ Шаг 5.5: Анализ GuestMenuScene
+**Дата**: Сегодня  
+**Коммиты**: 1
+
+**Что сделано:**
+
+- ✅ Создан анализ GuestMenuScene (GUESTMENUSCENE_ANALYSIS.md)
+- ✅ Составлена карта всех 29 методов
+- ✅ Определены 14 логических групп методов
+- ✅ Документированы 5 извлеченных классов
+- ✅ Определены рекомендации по рефакторингу
+
+**Результаты:**
+
+- ✅ Полное понимание структуры GuestMenuScene
+- ✅ Выявлено, что файл уже хорошо рефакторен (5 извлеченных классов)
+- ✅ Определены безопасные улучшения
+
+#### ✅ Шаг 5.6: Улучшить документацию GuestMenuScene
+**Дата**: Сегодня  
+**Коммиты**: 1
+
+**Что сделано:**
+
+- ✅ Добавлены docstrings к методам:
+  - _ready, _initialize_menu_state, _initialize_keyboard_navigator
+  - _is_guest_enabled_for_navigator, _initialize_ui_renderer
+  - _initialize_text_updater, _initialize_balance_renderer
+  - _initialize_guest_nodes
+  - open_menu, close_menu
+  - _update_all_guests_visibility, _update_guest_visibility
+  - _calculate_guest_visual_state
+- ✅ Улучшены аннотации типов возврата (-> void)
+- ✅ Улучшена документация параметров и возвращаемых значений
+
+**Результаты:**
+
+- ✅ Код стал более самодокументируемым
+- ✅ Улучшена читаемость методов
+- ✅ Нет ошибок компиляции
+
+---
+
+## 🎯 Общий прогресс
+
+**Выполнено**: 19 из ~20 шагов (95%)  
+**Время**: ~6 часов  
+**Риск**: Минимальный ✅
+
+**Коммитов**: 21
+- Улучшение структуры GameController (секции)
+- Исправление дубликата функции
+- Улучшение документации методов
+- Использование констант
+- Замена прямых использований на SurvivalStateProvider
+- Вынесение строковых литералов в константы
+- Добавление docstrings к обработчикам событий
+- Улучшение CardController
+- Улучшение GameStateController
+- Проверка PayoutResultHandler
+- Проверка ChipClickHandler
+- Проверка SettingsEventHandler
+- Анализ GamePhaseManager
+- Улучшение структуры GamePhaseManager
+- Улучшение документации GamePhaseManager
+- Анализ BetCollectionPhaseManager
+- Улучшение документации BetCollectionPhaseManager
+- Анализ ChipVisualManager
+- Улучшение документации ChipVisualManager
+- Анализ GuestMenuScene
+- Улучшение документации GuestMenuScene
+
 **ФАЗА 1: ЗАВЕРШЕНА ✅**  
 **ФАЗА 2: ЗАВЕРШЕНА ✅**  
 **ФАЗА 3: ЗАВЕРШЕНА ✅**  
 **ФАЗА 4: ЗАВЕРШЕНА ✅**  
-**ФАЗА 5: ЗАВЕРШЕНА ✅** (4 из 4 шагов)
+**ФАЗА 5: ЗАВЕРШЕНА ✅** (6 из 6 шагов)
 
 ---
 
