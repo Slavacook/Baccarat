@@ -286,4 +286,3 @@ func update_chip_visibility() -> void:
 			else:
 				status = "проигрышная"
 			DebugLogger.log("💰 Фишка %s[%d] видна (%s)" % [bet.get_bet_type(), bet.get_position_index(), status])
-
