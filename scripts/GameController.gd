@@ -832,7 +832,12 @@ func _update_chip_visibility() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 # Обработчики событий от UI элементов (кнопки, переключатели)
 
-func _on_help_button_pressed():
+func _on_help_button_pressed() -> void:
+	"""Обработчик нажатия кнопки помощи - открывает шпаргалку
+	
+	Открывает CribSheetScene для отображения правил игры.
+	Сбрасывает фокус с кнопки, чтобы пробел не активировал её повторно.
+	"""
 	# Открываем шпаргалку вместо старого help_popup
 	if crib_sheet_scene:
 		# Сбрасываем фокус с кнопки, чтобы пробел не активировал её
@@ -845,7 +850,12 @@ func _on_help_button_pressed():
 	else:
 		push_warning("CribSheetScene: шпаргалка не инициализирована")
 
-func _on_lang_button_pressed():
+func _on_lang_button_pressed() -> void:
+	"""Обработчик нажатия кнопки переключения языка
+	
+	Переключает язык между русским и английским.
+	Обновляет все UI элементы, включая кнопки и toggles третьих карт.
+	"""
 	var new_lang = GameConstants.LANG_EN if Localization.get_lang() == GameConstants.LANG_RU else GameConstants.LANG_RU
 	Localization.set_lang(new_lang)
 	ui_manager.update_lang_button()
@@ -860,7 +870,17 @@ func _on_lang_button_pressed():
 	# Обновление текста кнопок collect/pay
 	ui_manager.button_ui.update_collect_pay_buttons_text()
 
-func _on_payout_confirmed(is_correct: bool, collected: float, expected: float):
+func _on_payout_confirmed(is_correct: bool, collected: float, expected: float) -> void:
+	"""Обработчик подтверждения выплаты (старый метод, для обратной совместимости)
+	
+	Args:
+		is_correct: Правильно ли рассчитана выплата
+		collected: Собранная сумма
+		expected: Ожидаемая сумма
+	
+	Примечание: Для старого метода нет информации о bet_type/position_index.
+	Передаются пустые значения - StatsManager пропустит такие случаи.
+	"""
 	if is_correct:
 		# Для старого метода нет информации о bet_type/position_index
 		# Передаем пустые значения - StatsManager пропустит такие случаи
@@ -1030,7 +1050,12 @@ func _unhandled_input(event: InputEvent) -> void:
 # НАСТРОЙКИ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _on_settings_button_pressed():
+func _on_settings_button_pressed() -> void:
+	"""Обработчик нажатия кнопки настроек
+	
+	Открывает или закрывает меню настроек в зависимости от текущего состояния.
+	UI элементы игры скрываются/показываются автоматически через сигналы.
+	"""
 	DebugLogger.log("🔘 Кнопка настроек нажата!")
 	DebugLogger.log("  settings_scene существует: %s" % (settings_scene != null))
 
@@ -1485,20 +1510,32 @@ func camera_zoom_area(area_index: int) -> void:
 # Обработчики навигации по областям через стрелки
 # Все запросы идут через EventBus
 
-func _on_left_arrow_pressed():
-	"""Обработчик нажатия левой стрелки (через EventBus)"""
+func _on_left_arrow_pressed() -> void:
+	"""Обработчик нажатия левой стрелки (через EventBus)
+	
+	Запрашивает переход камеры в область слева от текущей.
+	"""
 	_request_camera_target_area("left")
 
-func _on_right_arrow_pressed():
-	"""Обработчик нажатия правой стрелки (через EventBus)"""
+func _on_right_arrow_pressed() -> void:
+	"""Обработчик нажатия правой стрелки (через EventBus)
+	
+	Запрашивает переход камеры в область справа от текущей.
+	"""
 	_request_camera_target_area("right")
 
-func _on_up_arrow_pressed():
-	"""Обработчик нажатия стрелки вверх (через EventBus)"""
+func _on_up_arrow_pressed() -> void:
+	"""Обработчик нажатия стрелки вверх (через EventBus)
+	
+	Запрашивает переход камеры в область выше текущей.
+	"""
 	_request_camera_target_area("up")
 
-func _on_down_arrow_pressed():
-	"""Обработчик нажатия стрелки вниз (через EventBus)"""
+func _on_down_arrow_pressed() -> void:
+	"""Обработчик нажатия стрелки вниз (через EventBus)
+	
+	Запрашивает переход камеры в область ниже текущей.
+	"""
 	_request_camera_target_area("down")
 
 func _request_camera_target_area(direction: String) -> void:
@@ -1793,8 +1830,14 @@ func _initialize_chance_card_navigation() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 # Обработчики переключения режимов сбора и оплаты ставок
 
-func _on_collect_mode_toggled(enabled: bool):
-	"""Обработчик toggle кнопки 'Забрать'"""
+func _on_collect_mode_toggled(enabled: bool) -> void:
+	"""Обработчик toggle кнопки 'Забрать'
+	
+	Args:
+		enabled: Включен ли режим сбора ставок
+	
+	Устанавливает режим сбора в BetCollectionPhaseManager.
+	"""
 	if bet_collection_manager:
 		if enabled:
 			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
@@ -1803,8 +1846,15 @@ func _on_collect_mode_toggled(enabled: bool):
 			if bet_collection_manager.is_collect_mode():
 				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
 
-func _on_pay_mode_toggled(enabled: bool):
-	"""Обработчик toggle кнопки 'Оплатить'"""
+func _on_pay_mode_toggled(enabled: bool) -> void:
+	"""Обработчик toggle кнопки 'Оплатить'
+	
+	Args:
+		enabled: Включен ли режим оплаты ставок
+	
+	Устанавливает режим оплаты в BetCollectionPhaseManager.
+	В режиме 2 (независимый) после оплаты НЕ переключает режим обратно на COLLECT.
+	"""
 	if bet_collection_manager:
 		if enabled:
 			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
@@ -1826,8 +1876,14 @@ func _on_pay_mode_toggled(enabled: bool):
 # ═══════════════════════════════════════════════════════════════════════════
 # Обработчики кликов на фишки (делегировано в ChipClickHandler)
 
-func _on_chip_clicked(bet_type: String):
-	"""Обработчик клика на фишку (старый интерфейс, для обратной совместимости)"""
+func _on_chip_clicked(bet_type: String) -> void:
+	"""Обработчик клика на фишку (старый интерфейс, для обратной совместимости)
+	
+	Args:
+		bet_type: Тип ставки (например, "Player", "Banker", "Tie")
+	
+	Вызывает новый обработчик с position_index = 0 для обратной совместимости.
+	"""
 	# Вызываем новый обработчик с position_index = 0
 	_on_chip_instance_clicked(bet_type, 0)
 
@@ -1842,15 +1898,26 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 		push_error("❌ ChipClickHandler не инициализирован!")
 
 
-func _show_payout_overlay_instance(bet_type: String, position_index: int, stake: float, payout: float):
-	"""Показать PayoutOverlay для конкретной фишки - делегировано в PayoutOverlayCoordinator"""
+func _show_payout_overlay_instance(bet_type: String, position_index: int, stake: float, payout: float) -> void:
+	"""Показать PayoutOverlay для конкретной фишки - делегировано в PayoutOverlayCoordinator
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции ставки
+		stake: Размер ставки
+		payout: Размер выплаты
+	"""
 	if payout_overlay_coordinator:
 		payout_overlay_coordinator.show_payout_overlay_instance(bet_type, position_index, stake, payout)
 	else:
 		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
 
-func _open_payout_scene(bet_type: String):
-	"""Открыть PayoutScene для конкретной ставки - делегировано в PayoutOverlayCoordinator"""
+func _open_payout_scene(bet_type: String) -> void:
+	"""Открыть PayoutScene для конкретной ставки - делегировано в PayoutOverlayCoordinator
+	
+	Args:
+		bet_type: Тип ставки
+	"""
 	if payout_overlay_coordinator:
 		payout_overlay_coordinator.open_payout_scene(bet_type)
 	else:
