@@ -457,6 +457,11 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Определяем, стартуем ли мы с Cards View (in или cards)
 	var from_is_cards = (from_zoom_type == "in" or from_zoom_type == "cards")
 	
+	# Отладочная информация
+	print("📷 CameraManager: _animate_to: from=%s, to=%s, _was_on_cards_before_out=%s, is_navigation=%s" % [
+		from_zoom_type, zoom_type, _was_on_cards_before_out, is_navigation
+	])
+	
 	# Если камера переходит на "out", сохраняем информацию о том, была ли она на картах
 	if zoom_type == "out":
 		_was_on_cards_before_out = from_is_cards
