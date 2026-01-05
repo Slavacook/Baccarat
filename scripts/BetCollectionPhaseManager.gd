@@ -39,19 +39,24 @@ var collected_losing_bets: Array[String] = []
 # Словарь собранных ставок с position_index: {"Player_0": true, "Banker_2": true}
 var collected_bets_by_id: Dictionary = {}
 
-# Отсортированные последовательности ставок для проверки порядка
-var collection_sequence: Dictionary = {}  # {"main": [...], "tie": [...], "pairs": [...]}
-var payment_sequence: Dictionary = {}     # {"main": [...], "tie": [...], "pairs": [...]}
-
-# Прогресс сбора и оплаты (индекс следующей ставки в последовательности)
-var collection_progress: Dictionary = {"main": 0, "tie": 0, "pairs": 0}
-var payment_progress: Dictionary = {"main": 0, "tie": 0, "pairs": 0}
-
 # Калькулятор номеров позиций в линиях
 var position_calculator: LinePositionCalculator = LinePositionCalculator.new()
 
 # Сортировщик ставок
 var bet_sorter: BetSorter = BetSorter.new(position_calculator)
+
+# Менеджер последовательностей (управляет collection_sequence, payment_sequence, progress)
+var sequence_manager: SequenceManager = SequenceManager.new(bet_sorter, position_calculator)
+
+# Свойства для обратной совместимости (делегируют в sequence_manager)
+var collection_sequence: Dictionary:
+	get: return sequence_manager.collection_sequence
+var payment_sequence: Dictionary:
+	get: return sequence_manager.payment_sequence
+var collection_progress: Dictionary:
+	get: return sequence_manager.collection_progress
+var payment_progress: Dictionary:
+	get: return sequence_manager.payment_progress
 
 # Флаг блокировки для защиты от параллельных операций
 var is_processing: bool = false
@@ -104,8 +109,8 @@ func initialize_sequences() -> void:
 		DebugLogger.log_error("initialize_sequences() вызван без payout_queue_manager!")
 		return
 	
-	_initialize_collection_sequence()
-	_initialize_payment_sequence()
+	sequence_manager.initialize_collection_sequence(payout_queue_manager, actual_winner, _get_position_coordinates)
+	sequence_manager.initialize_payment_sequence(payout_queue_manager, actual_winner, _get_position_coordinates)
 
 func reset() -> void:
 	"""Сбросить состояние менеджера"""
@@ -113,10 +118,7 @@ func reset() -> void:
 	actual_winner = ""
 	collected_losing_bets.clear()
 	collected_bets_by_id.clear()
-	collection_sequence.clear()
-	payment_sequence.clear()
-	collection_progress = {"main": 0, "tie": 0, "pairs": 0}
-	payment_progress = {"main": 0, "tie": 0, "pairs": 0}
+	sequence_manager.reset()  # Сбрасываем последовательности и прогресс
 	position_calculator.clear_cache()  # Очищаем кэш номеров позиций
 	is_processing = false  # Сбрасываем флаг блокировки
 	# Валидатор НЕ сбрасываем - он может быть переиспользован
@@ -347,7 +349,8 @@ func _initialize_collection_sequence() -> void:
 			var pos = _get_position_coordinates(bet_type, pos_idx)
 			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
 
-func _initialize_payment_sequence() -> void:
+# Удалено - делегировано в SequenceManager
+# func _initialize_payment_sequence() -> void:
 	"""Инициализировать последовательности для оплаты выигрышных ставок"""
 	payment_sequence.clear()
 	payment_progress = {"main": 0, "tie": 0, "pairs": 0}
@@ -693,16 +696,16 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 		collected_losing_bets.append(bet_type)
 	
 	# Обновляем прогресс сбора
-	if not group.is_empty() and collection_progress.has(group):
-		collection_progress[group] += 1
+	if not group.is_empty():
+		sequence_manager.increment_progress(group, true)
 	
 	# Проверяем согласованность состояния после обновления
 	if not _check_state_consistency(bet, bet_id):
 		# Rollback при ошибке
 		bet.set_collected(old_collected_state)
 		collected_bets_by_id.erase(bet_id)
-		if not group.is_empty() and collection_progress.has(group):
-			collection_progress[group] = old_progress
+		if not group.is_empty():
+			sequence_manager.collection_progress[group] = old_progress
 		DebugLogger.log_error("Рассинхронизация состояния при сборе ставки %s[%d], выполнен rollback" % [bet_type, position_index])
 		is_processing = false
 		return false
@@ -785,15 +788,16 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 		return false
 	
 	# Обновляем прогресс оплаты с проверкой последовательности
-	if not group.is_empty() and payment_progress.has(group) and old_progress < sequence.size():
+	if not group.is_empty() and old_progress < sequence.size():
 		var expected = sequence[old_progress]
 		if expected.get_bet_type() == bet_type and expected.get_position_index() == position_index:
-			payment_progress[group] += 1
-			DebugLogger.log("💰 BetCollectionPhaseManager: ставка %s[%d] оплачена, группа '%s': progress %d -> %d" % [bet_type, position_index, group, old_progress, payment_progress[group]])
+			sequence_manager.increment_progress(group, false)
+			var new_progress = sequence_manager.payment_progress[group]
+			DebugLogger.log("💰 BetCollectionPhaseManager: ставка %s[%d] оплачена, группа '%s': progress %d -> %d" % [bet_type, position_index, group, old_progress, new_progress])
 			
 			# Показываем следующую ожидаемую ставку
-			if payment_progress[group] < sequence.size():
-				var next_expected = sequence[payment_progress[group]]
+			if new_progress < sequence.size():
+				var next_expected = sequence[new_progress]
 				DebugLogger.log("  📍 Следующая ожидаемая ставка: %s[%d]" % [next_expected.get_bet_type(), next_expected.get_position_index()])
 			else:
 				DebugLogger.log("  ✅ Все ставки в группе '%s' оплачены" % group)
@@ -802,7 +806,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 			DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Оплачивается ставка %s[%d], но ожидалась %s[%d]!" % [bet_type, position_index, expected.get_bet_type(), expected.get_position_index()])
 			# Rollback
 			bet.set_paid(old_paid_state)
-			payment_progress[group] = old_progress
+			sequence_manager.payment_progress[group] = old_progress
 			is_processing = false
 			return false
 	elif not group.is_empty() and old_progress >= sequence.size():
@@ -817,7 +821,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 		# Rollback при ошибке
 		bet.set_paid(old_paid_state)
 		if not group.is_empty() and payment_progress.has(group):
-			payment_progress[group] = old_progress
+			sequence_manager.payment_progress[group] = old_progress
 		DebugLogger.log_error("Рассинхронизация состояния при оплате ставки %s[%d], выполнен rollback" % [bet_type, position_index])
 		is_processing = false
 		return false
