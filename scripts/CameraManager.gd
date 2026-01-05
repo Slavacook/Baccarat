@@ -481,17 +481,12 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	if from_zoom_type == "out" and to_is_mode2 and _was_on_cards_before_out:
 		should_use_fast_animation = true
 		print("📷 CameraManager: Исключение 1 сработало (out → %s, _was_on_cards_before_out=true)" % zoom_type)
-		# НЕ сбрасываем флаг сразу - он может понадобиться для следующего перехода
-		# Сбросим его только когда перейдем на mode2_left или mode2_right (не на "out")
-		if zoom_type != "out":
-			_was_on_cards_before_out = false  # Сбрасываем флаг только после перехода на mode2_left/mode2_right
-			print("📷 CameraManager: флаг _was_on_cards_before_out сброшен (переход на %s)" % zoom_type)
-		elif zoom_type == "out":
-			# Если камера уже на "out" и переходит на "out" снова, но только что приехала с Cards View,
-			# то это быстрая анимация (или вообще не должно быть анимации, но если есть, то быстрая)
-			# Сбрасываем флаг, так как это уже второй вызов на "out"
-			_was_on_cards_before_out = false
+		# Сбрасываем флаг после использования (всегда, независимо от zoom_type)
+		_was_on_cards_before_out = false
+		if zoom_type == "out":
 			print("📷 CameraManager: флаг _was_on_cards_before_out сброшен (повторный вызов на out)")
+		else:
+			print("📷 CameraManager: флаг _was_on_cards_before_out сброшен (переход на %s)" % zoom_type)
 	
 	# Исключение 2: камера стартует с Cards View и переходит на режим 2 - ВСЕГДА быстрая анимация
 	# Это переопределяет параметр is_navigation, переданный извне (например, от ChipNavigationManager)
