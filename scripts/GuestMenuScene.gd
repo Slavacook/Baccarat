@@ -81,7 +81,18 @@ var last_selected_guest_id: int = 0
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _ready():
+func _ready() -> void:
+	"""Инициализация GuestMenuScene
+	
+	Инициализирует все компоненты меню:
+	- Узлы гостей
+	- Состояние меню
+	- Клавиатурный навигатор
+	- UI рендерер
+	- Обновление текстов
+	- Рендерер балансов
+	- Подключение сигналов
+	"""
 	# Скрываем при старте
 	hide()
 	
@@ -120,8 +131,11 @@ func _ready():
 # ИНИЦИАЛИЗАЦИЯ СОСТОЯНИЯ МЕНЮ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _initialize_menu_state():
-	"""Инициализировать состояние меню"""
+func _initialize_menu_state() -> void:
+	"""Инициализировать состояние меню
+	
+	Создает экземпляр GuestMenuState и устанавливает callback для обновления видимости.
+	"""
 	menu_state = GuestMenuState.new()
 	menu_state.state_changed_callback = _update_all_guests_visibility
 
@@ -146,6 +160,14 @@ func _initialize_keyboard_navigator():
 	keyboard_navigator.activate_ok_button_callback = _on_navigator_activate_ok_button
 
 func _is_guest_enabled_for_navigator(guest_id: int) -> bool:
+	"""Проверить, включён ли гость для навигатора
+	
+	Args:
+		guest_id: ID гостя (1-6)
+		
+	Returns:
+		true если гость включён, false иначе
+	"""
 	"""Проверка для навигатора - включён ли гость"""
 	return GuestSettingsManager.is_guest_enabled(guest_id)
 
@@ -167,24 +189,42 @@ func _initialize_ui_renderer():
 		wealth_option
 	)
 
-func _initialize_text_updater():
-	"""Инициализировать обновление текстов"""
+func _initialize_text_updater() -> void:
+	"""Инициализировать обновление текстов
+	
+	Создает экземпляр GuestMenuTextUpdater с UI элементами.
+	"""
 	text_updater = GuestMenuTextUpdater.new(
 		ok_button,
 		character_option,
 		wealth_option
 	)
 
-func _initialize_balance_renderer():
-	"""Инициализировать рендерер балансов"""
+func _initialize_balance_renderer() -> void:
+	"""Инициализировать рендерер балансов
+	
+	Создает экземпляр GuestMenuBalanceRenderer с labels балансов.
+	"""
 	balance_renderer = GuestMenuBalanceRenderer.new(balance_labels, change_labels)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ УЗЛОВ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _initialize_guest_nodes():
-	"""Инициализировать массивы узлов для всех 6 гостей"""
+func _initialize_guest_nodes() -> void:
+	"""Инициализировать массивы узлов для всех 6 гостей
+	
+	Находит и сохраняет ссылки на все узлы гостей:
+	- Призраки (ghost_textures)
+	- Материальные гости (guest_textures)
+	- Свечения hover (hover_glow_textures)
+	- Досье (dossier_textures)
+	- Labels баланса (balance_labels, change_labels)
+	- Кнопки +/- (balance_plus_buttons, balance_minus_buttons)
+	- Кликабельные зоны (guest_slots)
+	
+	Создает динамические элементы (change_labels, кнопки +/-) если их нет.
+	"""
 	ghost_textures.clear()
 	guest_textures.clear()
 	hover_glow_textures.clear()
@@ -361,8 +401,12 @@ func _connect_signals():
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func open_menu():
-	"""Открыть меню настроек гостей"""
+func open_menu() -> void:
+	"""Открыть меню настроек гостей
+	
+	Устанавливает контекст ввода, сбрасывает состояние меню и навигатора,
+	обновляет видимость всех элементов и показывает меню.
+	"""
 	# Если меню уже видимо, не сбрасываем состояние (чтобы не потерять выбранного гостя)
 	if visible:
 		return
@@ -430,8 +474,12 @@ func close_menu():
 # УПРАВЛЕНИЕ ВИДИМОСТЬЮ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _update_all_guests_visibility():
-	"""Обновить видимость всех гостей на основе их состояния"""
+func _update_all_guests_visibility() -> void:
+	"""Обновить видимость всех гостей на основе их состояния
+	
+	Вычисляет визуальное состояние для всех 6 гостей и обновляет их видимость
+	через ui_renderer. Также обновляет видимость общих кнопок.
+	"""
 	if not ui_renderer or not menu_state:
 		return
 	
@@ -449,8 +497,12 @@ func _update_all_guests_visibility():
 	# Обновляем видимость общих кнопок
 	_update_common_buttons_visibility()
 
-func _update_guest_visibility(guest_id: int):
-	"""Обновить видимость одного гостя (guest_id: 1-6)"""
+func _update_guest_visibility(guest_id: int) -> void:
+	"""Обновить видимость одного гостя
+	
+	Args:
+		guest_id: ID гостя (1-6)
+	"""
 	if not ui_renderer:
 		return
 	
@@ -458,7 +510,14 @@ func _update_guest_visibility(guest_id: int):
 	ui_renderer.update_guest_visibility(guest_id, visual_state)
 
 func _calculate_guest_visual_state(guest_id: int) -> GuestUIVisualState:
-	"""Вычислить визуальное состояние гостя на основе данных из меню состояния и настроек"""
+	"""Вычислить визуальное состояние гостя на основе данных из меню состояния и настроек
+	
+	Args:
+		guest_id: ID гостя (1-6)
+		
+	Returns:
+		GuestUIVisualState с информацией о состоянии гостя (enabled, selected, hovered, keyboard_focus)
+	"""
 	if not menu_state:
 		return GuestUIVisualState.new()
 	
