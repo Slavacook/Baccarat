@@ -47,14 +47,12 @@ class ChipInstance:
 		return "%s_%d" % [bet_type, position_index]
 
 # ═══════════════════════════════════════════════════════════════════════════
-# КОНСТАНТЫ - ВЕРОЯТНОСТИ ДЛЯ REALISTIC РЕЖИМА
+# КОНСТАНТЫ - ВЕРОЯТНОСТИ ДЛЯ REALISTIC РЕЖИМА (делегировано в RealisticChipGenerator)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Веса вероятностей (сумма = 100%)
-const PROBABILITY_WEIGHTS = [70.0, 20.2, 7.0, 2.0, 0.6, 0.2]
-
-# Диапазоны количества для типов с 6 позициями (Player, Banker, Tie, Pairs)
-const RANGES_6 = [[0, 0], [1, 1], [2, 2], [3, 3], [4, 5], [6, 6]]
+# Для обратной совместимости
+const PROBABILITY_WEIGHTS = RealisticChipGenerator.PROBABILITY_WEIGHTS
+const RANGES_6 = RealisticChipGenerator.RANGES_6
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -71,6 +69,9 @@ var position_manager: ChipPositionManager = ChipPositionManager.new()
 
 # Менеджер меток суммы ставки
 var stake_label_manager: StakeLabelManager = StakeLabelManager.new()
+
+# Генератор реалистичных фишек
+var realistic_generator: RealisticChipGenerator = RealisticChipGenerator.new()
 
 # Свойство для обратной совместимости (делегирует в texture_manager)
 var current_textures: Dictionary:
@@ -638,60 +639,27 @@ func _on_extra_chip_pressed(bet_type: String, position_index: int = 0) -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _get_ranges_for_bet_type(_bet_type: String) -> Array:
-	"""Получить диапазоны количества для типа ставки"""
-	# Все типы ставок теперь имеют 6 позиций
-	return RANGES_6
+	"""Получить диапазоны количества для типа ставки
+	
+	Делегирует в RealisticChipGenerator.
+	"""
+	return realistic_generator.get_ranges_for_bet_type(_bet_type)
 
 
 func _generate_random_count(bet_type: String) -> int:
-	"""Генерировать случайное количество ставок с весовым распределением"""
-	var ranges = _get_ranges_for_bet_type(bet_type)
+	"""Генерировать случайное количество ставок с весовым распределением
 	
-	# Выбираем диапазон по весам
-	var roll = randf() * 100.0  # 0-100
-	var cumulative = 0.0
-	var selected_range_idx = 0
-	
-	for i in range(PROBABILITY_WEIGHTS.size()):
-		cumulative += PROBABILITY_WEIGHTS[i]
-		if roll < cumulative:
-			selected_range_idx = i
-			break
-	
-	# Получаем диапазон
-	var selected_range = ranges[selected_range_idx]
-	var min_count = selected_range[0]
-	var max_count = selected_range[1]
-	
-	# Ограничиваем максимальным количеством позиций
-	var positions_count = position_manager.get_positions_count(bet_type)
-	max_count = mini(max_count, positions_count)
-	min_count = mini(min_count, max_count)
-	
-	# Случайное число в диапазоне
-	if min_count == max_count:
-		return min_count
-	return randi_range(min_count, max_count)
+	Делегирует в RealisticChipGenerator.
+	"""
+	return realistic_generator.generate_random_count(bet_type, position_manager)
 
 
 func _select_random_positions(bet_type: String, count: int) -> Array[int]:
-	"""Выбрать случайные позиции для ставок"""
-	var positions = position_manager.get_alternative_positions(bet_type)
-	if count <= 0 or positions.size() == 0:
-		return []
+	"""Выбрать случайные позиции для ставок
 	
-	# Создаём список всех индексов и перемешиваем
-	var indices: Array[int] = []
-	for i in range(positions.size()):
-		indices.append(i)
-	indices.shuffle()
-	
-	# Берём первые count индексов
-	var selected: Array[int] = []
-	for i in range(mini(count, indices.size())):
-		selected.append(indices[i])
-	
-	return selected
+	Делегирует в RealisticChipGenerator.
+	"""
+	return realistic_generator.select_random_positions(bet_type, count, position_manager)
 
 
 func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[ChipInstance]:
