@@ -349,47 +349,14 @@ func _initialize_collection_sequence() -> void:
 			var pos = _get_position_coordinates(bet_type, pos_idx)
 			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
 
-# Удалено - делегировано в SequenceManager
-# func _initialize_payment_sequence() -> void:
-	"""Инициализировать последовательности для оплаты выигрышных ставок"""
-	payment_sequence.clear()
-	payment_progress = {"main": 0, "tie": 0, "pairs": 0}
-	
-	payment_sequence["main"] = _get_sorted_main_bets(true)
-	payment_sequence["tie"] = _get_sorted_tie_bets(true)
-	payment_sequence["pairs"] = _get_sorted_pair_bets(true)
-	
-	DebugLogger.log("📋 Последовательности оплаты инициализированы:")
-	DebugLogger.log("  Основные: %d, Tie: %d, Пары: %d" % [
-		payment_sequence["main"].size(),
-		payment_sequence["tie"].size(),
-		payment_sequence["pairs"].size()
-	])
-	
-	# Выводим порядок основных ставок для отладки
-	if payment_sequence["main"].size() > 0:
-		DebugLogger.log("  📍 Порядок основных ставок (справа налево):")
-		for i in range(payment_sequence["main"].size()):
-			var bet = payment_sequence["main"][i]
-			var bet_type = bet.get_bet_type()
-			var pos_idx = bet.get_position_index()
-			var pos_num = get_line_position_number(bet_type, pos_idx)
-			var pos = _get_position_coordinates(bet_type, pos_idx)
-			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
-	
-	# Отладочный вывод порядка пар (если есть)
-	if payment_sequence["pairs"].size() > 0:
-		DebugLogger.log("  📍 Порядок пар (справа налево):")
-		for i in range(payment_sequence["pairs"].size()):
-			var bet = payment_sequence["pairs"][i]
-			var bet_type = bet.get_bet_type()
-			var pos_idx = bet.get_position_index()
-			var pos_num = get_line_position_number(bet_type, pos_idx)
-			var pos = _get_position_coordinates(bet_type, pos_idx)
-			DebugLogger.log("    %d. %s[%d] номер=%d позиция=(%.0f, %.0f)" % [i, bet_type, pos_idx, pos_num, pos.x, pos.y])
+# ═══════════════════════════════════════════════════════════════════════════
+# ИНИЦИАЛИЗАЦИЯ ПОСЛЕДОВАТЕЛЬНОСТЕЙ (делегировано в SequenceManager)
+# ═══════════════════════════════════════════════════════════════════════════
 
 func _get_expected_next_bet(group: String, is_collecting: bool):
 	"""Получить следующую ожидаемую ставку в группе
+	
+	Делегирует в SequenceManager.
 	
 	Args:
 		group: Группа ставок ("main", "tie", "pairs")
@@ -398,20 +365,7 @@ func _get_expected_next_bet(group: String, is_collecting: bool):
 	Returns:
 		Bet следующей ожидаемой ставки или null если все собраны/оплачены
 	"""
-	var sequence = collection_sequence[group] if is_collecting else payment_sequence[group]
-	var progress = collection_progress[group] if is_collecting else payment_progress[group]
-	
-	if not sequence:
-		DebugLogger.log_warning("Последовательность для группы '%s' не найдена" % group)
-		return null
-	
-	if progress >= sequence.size():
-		DebugLogger.log("  ✅ Все ставки в группе '%s' обработаны (progress=%d, size=%d)" % [group, progress, sequence.size()])
-		return null
-	
-	var expected = sequence[progress]
-	DebugLogger.log("  📍 Ожидаемая ставка в группе '%s' (progress=%d/%d): %s[%d]" % [group, progress, sequence.size(), expected.get_bet_type(), expected.get_position_index()])
-	return expected
+	return sequence_manager.get_expected_next_bet(group, is_collecting)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ВАЛИДАЦИЯ ДЕЙСТВИЙ
