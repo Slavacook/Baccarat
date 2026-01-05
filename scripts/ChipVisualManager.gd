@@ -5,36 +5,11 @@ class_name ChipVisualManager
 extends RefCounted
 
 # ═══════════════════════════════════════════════════════════════════════════
-# КОНСТАНТЫ - ТЕКСТУРЫ ФИШЕК
+# КОНСТАНТЫ - ТЕКСТУРЫ ФИШЕК (делегировано в ChipTextureManager)
 # ═══════════════════════════════════════════════════════════════════════════
 
-const CHIP_TEXTURES = {
-	"Player": [
-		"res://assets/chips/chip_500.png",
-		"res://assets/chips/chip_1000.png",
-		"res://assets/chips/chip_5000.png"
-	],
-	"Banker": [
-		"res://assets/chips/chip_500.png",
-		"res://assets/chips/chip_1000.png",
-		"res://assets/chips/chip_5000.png"
-	],
-	"Tie": [
-		"res://assets/chips/chip_25.png",
-		"res://assets/chips/chip_100.png",
-		"res://assets/chips/chip_500.png"
-	],
-	"PairPlayer": [
-		"res://assets/chips/chip_100.png",
-		"res://assets/chips/chip_500.png",
-		"res://assets/chips/chip_1000.png"
-	],
-	"PairBanker": [
-		"res://assets/chips/chip_100.png",
-		"res://assets/chips/chip_500.png",
-		"res://assets/chips/chip_1000.png"
-	]
-}
+# Для обратной совместимости
+const CHIP_TEXTURES = ChipTextureManager.CHIP_TEXTURES
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТАНТЫ - АЛЬТЕРНАТИВНЫЕ ПОЗИЦИИ ФИШЕК
@@ -130,8 +105,8 @@ const RANGES_6 = [[0, 0], [1, 1], [2, 2], [3, 3], [4, 5], [6, 6]]
 # Словарь узлов фишек: {"Player": TextureButton, "Banker": TextureButton, ...}
 var chip_nodes: Dictionary = {}
 
-# Текущие выбранные текстуры для каждой фишки
-var current_textures: Dictionary = {}
+# Менеджер текстур фишек
+var texture_manager: ChipTextureManager = ChipTextureManager.new()
 
 # Основные позиции фишек (сохраняются при setup из сцены)
 var default_positions: Dictionary = {}
@@ -241,7 +216,7 @@ func show_chip(bet_type: String) -> void:
 	var chip = chip_nodes[bet_type]
 	
 	# Случайная текстура
-	var texture_path = _get_random_texture(bet_type)
+	var texture_path = texture_manager.get_random_texture(bet_type)
 	if texture_path.is_empty():
 		push_error("ChipVisualManager: нет текстур для типа '%s'" % bet_type)
 		return
@@ -254,7 +229,7 @@ func show_chip(bet_type: String) -> void:
 
 	# Устанавливаем текстуру (нужна для создания копий)
 	chip.texture_normal = texture
-	current_textures[bet_type] = texture_path
+	texture_manager.set_current_texture(bet_type, texture_path)
 
 	# В режиме GUEST: НЕ показываем оригинальную фишку на дефолтной позиции
 	# Фишки гостей создаются через _show_guest_bets() на правильных позициях
@@ -290,7 +265,7 @@ func set_chip_texture(bet_type: String, texture_path: String) -> void:
 
 	chip.texture_normal = texture
 	chip.visible = true
-	current_textures[bet_type] = texture_path
+	texture_manager.set_current_texture(bet_type, texture_path)
 
 	print("💰 ChipVisualManager: установлена текстура фишки %s (%s)" % [bet_type, texture_path.get_file()])
 
@@ -422,19 +397,14 @@ func _on_chip_pressed(bet_type: String) -> void:
 # ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _get_random_texture(bet_type: String) -> String:
-	"""Получить случайную текстуру для типа ставки"""
-	if not CHIP_TEXTURES.has(bet_type):
-		push_error("ChipVisualManager: нет текстур для типа '%s'" % bet_type)
-		return ""
-
-	var textures = CHIP_TEXTURES[bet_type]
-	var random_index = randi() % textures.size()
-	return textures[random_index]
-
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ ТЕКСТУРАМИ (делегировано в ChipTextureManager)
+# ═══════════════════════════════════════════════════════════════════════════
 
 func get_random_texture(bet_type: String) -> String:
 	"""Публичный метод для получения случайной текстуры БЕЗ показа фишки
+	
+	Делегирует в ChipTextureManager.
 	
 	Args:
 		bet_type: Тип ставки
@@ -442,11 +412,12 @@ func get_random_texture(bet_type: String) -> String:
 	Returns:
 		Путь к случайной текстуре или пустая строка если текстуры не найдены
 	"""
-	return _get_random_texture(bet_type)
-
+	return texture_manager.get_random_texture(bet_type)
 
 func get_current_texture(bet_type: String) -> String:
 	"""Получить текущую текстуру фишки
+	
+	Делегирует в ChipTextureManager.
 	
 	Args:
 		bet_type: Тип ставки
@@ -454,19 +425,19 @@ func get_current_texture(bet_type: String) -> String:
 	Returns:
 		Путь к текущей текстуре или пустая строка если текстура не установлена
 	"""
-	return current_textures.get(bet_type, "")
-
+	return texture_manager.get_current_texture(bet_type)
 
 func set_current_texture(bet_type: String, texture_path: String) -> void:
 	"""Установить текущую текстуру фишки (без показа фишки)
 	
+	Делегирует в ChipTextureManager.
 	Сохраняет путь к текстуре, но не применяет её к узлу фишки.
 	
 	Args:
 		bet_type: Тип ставки
 		texture_path: Путь к текстуре
 	"""
-	current_textures[bet_type] = texture_path
+	texture_manager.set_current_texture(bet_type, texture_path)
 
 
 func get_visible_chips() -> Array:
@@ -784,7 +755,7 @@ func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[
 	
 	# Создаём фишки
 	var created_chips: Array[ChipInstance] = []
-	var texture_path = _get_random_texture(bet_type)
+	var texture_path = texture_manager.get_random_texture(bet_type)
 	var texture = load(texture_path)
 	
 	for i in range(selected_positions.size()):
