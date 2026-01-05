@@ -622,34 +622,63 @@ func _initialize_payout_overlay_coordinator() -> void:
 # Методы управления отображением карт (делегировано в CardController)
 # Все методы являются обертками для обратной совместимости
 
-func set_flip_cards(cards):
-	"""Установить массив анимаций переворота карт (для обратной совместимости)"""
+func set_flip_cards(cards: Array) -> void:
+	"""Установить массив анимаций переворота карт (для обратной совместимости)
+	
+	Args:
+		cards: Массив FlipCard узлов для анимаций
+	
+	Делегирует установку в CardController для единообразия.
+	"""
 	flip_cards = cards
 	if card_controller:
 		card_controller.set_flip_cards(cards)
 
-func show_all_backs(back_texture: Texture2D):
-	"""Показать рубашки всех карт (делегировано в CardController)"""
+func show_all_backs(back_texture: Texture2D) -> void:
+	"""Показать рубашки всех карт (делегировано в CardController)
+	
+	Args:
+		back_texture: Текстура рубашки карты
+	"""
 	if card_controller:
 		card_controller.show_all_backs(back_texture)
 
-func open_all_cards(face_textures: Array, delay: float = 0.3):
-	"""Открыть все карты с задержкой (делегировано в CardController)"""
+func open_all_cards(face_textures: Array, delay: float = GameConstants.FLIP_CARD_DELAY):
+	"""Открыть все карты с задержкой (делегировано в CardController)
+	
+	Args:
+		face_textures: Массив текстур карт для отображения
+		delay: Задержка между открытием карт (по умолчанию из GameConstants)
+	"""
 	if card_controller:
 		await card_controller.open_all_cards(face_textures, delay)
 
-func open_all_cards_with_flip(face_textures: Array, delay: float = 0.3):
-	"""Открыть все карты с flip-анимацией (делегировано в CardController)"""
+func open_all_cards_with_flip(face_textures: Array, delay: float = GameConstants.FLIP_CARD_DELAY):
+	"""Открыть все карты с flip-анимацией (делегировано в CardController)
+	
+	Args:
+		face_textures: Массив текстур карт для отображения
+		delay: Задержка между картами (по умолчанию из GameConstants)
+	"""
 	if card_controller:
 		await card_controller.open_all_cards_with_flip(face_textures, delay)
 
-func open_two_third_cards(texture1: Texture2D, texture2: Texture2D):
-	"""Открыть две третьи карты (делегировано в CardController)"""
+func open_two_third_cards(texture1: Texture2D, texture2: Texture2D) -> void:
+	"""Открыть две третьи карты (делегировано в CardController)
+	
+	Args:
+		texture1: Текстура первой третьей карты (Player)
+		texture2: Текстура второй третьей карты (Banker)
+	"""
 	if card_controller:
 		card_controller.open_two_third_cards(texture1, texture2)
 
-func reset_cards(back_texture: Texture2D):
-	"""Сбросить все карты (делегировано в CardController)"""
+func reset_cards(back_texture: Texture2D) -> void:
+	"""Сбросить все карты (делегировано в CardController)
+	
+	Args:
+		back_texture: Текстура рубашки карты
+	"""
 	if card_controller:
 		card_controller.reset_cards(back_texture)
 
@@ -678,6 +707,11 @@ func _process_payout_queue_or_reset() -> void:
 
 
 func _format_result() -> String:
+	"""Форматирование результата раздачи для отображения
+	
+	Returns:
+		Строка с результатом (например, "Натуральная 9 против 8" или "7 против 5")
+	"""
 	var p0 = BaccaratRules.hand_value([hand_manager.get_player_hand_ref()[0], hand_manager.get_player_hand_ref()[1]])
 	var b0 = BaccaratRules.hand_value([hand_manager.get_banker_hand_ref()[0], hand_manager.get_banker_hand_ref()[1]])
 	if p0 >= 8 or b0 >= 8:
@@ -1400,20 +1434,35 @@ func _handle_payout_queue() -> void:
 # Методы для управления камерой (зум, навигация по областям)
 # Все запросы идут через EventBus для слабой связанности
 
-func camera_zoom_in():
-	"""Плавный зум на область карт (через EventBus)"""
+func camera_zoom_in() -> void:
+	"""Плавный зум на область карт (через EventBus)
+	
+	Использует EventBus для запроса зума, обеспечивая слабую связанность.
+	"""
 	EventBus.camera_zoom_requested.emit("in", false)
 
-func camera_zoom_out():
-	"""Возврат к общему плану (через EventBus)"""
+func camera_zoom_out() -> void:
+	"""Возврат к общему плану (через EventBus)
+	
+	Использует EventBus для запроса зума, обеспечивая слабую связанность.
+	"""
 	EventBus.camera_zoom_requested.emit("out", false)
 
-func camera_zoom_cards():
-	"""Плавный зум на область карт (через EventBus)"""
+func camera_zoom_cards() -> void:
+	"""Плавный зум на область карт (через EventBus)
+	
+	Использует EventBus для запроса зума, обеспечивая слабую связанность.
+	"""
 	EventBus.camera_zoom_requested.emit("cards", false)
 
-func camera_zoom_area(area_index: int):
-	"""Плавный зум на область ставок (через EventBus)"""
+func camera_zoom_area(area_index: int) -> void:
+	"""Плавный зум на область ставок (через EventBus)
+	
+	Args:
+		area_index: Индекс области (1-3)
+	
+	Использует EventBus для запроса зума, обеспечивая слабую связанность.
+	"""
 	EventBus.camera_zoom_requested.emit("area_%d" % area_index, false)
 
 # ═══════════════════════════════════════════════════════════════════════════
