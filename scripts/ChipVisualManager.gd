@@ -527,7 +527,7 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 		push_warning("ChipVisualManager: scene_root не задан, не могу создать копии")
 		return
 	
-	if not ALTERNATIVE_POSITIONS.has(bet_type):
+	if not position_manager.has_positions(bet_type):
 		return
 	
 	# Удаляем старые ChipInstance этого типа из active_chips
@@ -543,7 +543,7 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 	# Удаляем старые копии из extra_chips
 	_remove_extra_chips(bet_type)
 	
-	var positions = ALTERNATIVE_POSITIONS[bet_type]
+	var positions = position_manager.get_alternative_positions(bet_type)
 	var original_chip = chip_nodes[bet_type]
 	
 	# Подключаем оригинальную фишку к правильному обработчику с position_index = 0
