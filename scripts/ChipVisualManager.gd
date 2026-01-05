@@ -12,53 +12,11 @@ extends RefCounted
 const CHIP_TEXTURES = ChipTextureManager.CHIP_TEXTURES
 
 # ═══════════════════════════════════════════════════════════════════════════
-# КОНСТАНТЫ - АЛЬТЕРНАТИВНЫЕ ПОЗИЦИИ ФИШЕК
-# Позиции определены относительно игрового поля
-# Каждая ставка имеет несколько возможных позиций
+# КОНСТАНТЫ - АЛЬТЕРНАТИВНЫЕ ПОЗИЦИИ ФИШЕК (делегировано в ChipPositionManager)
 # ═══════════════════════════════════════════════════════════════════════════
 
-const ALTERNATIVE_POSITIONS = {
-	"Player": [
-		Vector2(795, -35),    # Гость 4 (сектор 4, основная позиция из сцены)
-		Vector2(1450, 5),   # Гость 5 (сектор 5)
-		Vector2(480, -38),    # Гость 3 (сектор 3)
-		Vector2(-370, 5),    # Гость 2 (сектор 2)
-		Vector2(-670, 200),   # Гость 1 (сектор 1)
-		Vector2(1715, 150),   # Гость 6 (сектор 6)
-	],
-	"Banker": [
-		Vector2(754, 47),      # Гость 4 (сектор 4, основная позиция из сцены)
-		Vector2(-520, 180),   # Гость 1 (сектор 1)
-		Vector2(-270, 55),     # Гость 2 (сектор 2)
-		Vector2(350, 40),     # Гость 3 (сектор 3)
-		Vector2(1500, 105),   # Гость 5 (сектор 5)
-		Vector2(1660, 220),   # Гость 6 (сектор 6)
-	],
-	"Tie": [
-		Vector2(897, 129),    # Гость 4 (сектор 4, основная позиция из сцены)
-		Vector2(-480, 260),   # Гость 1 (сектор 1)
-		Vector2(-200, 130),   # Гость 2 (сектор 2)
-		Vector2(350, 125),    # Гость 3 (сектор 3)
-		Vector2(1350, 130),   # Гость 5 (сектор 5)
-		Vector2(1540, 230),   # Гость 6 (сектор 6)
-	],
-	"PairPlayer": [
-		Vector2(817, 208),    # Гость 4 (сектор 4, основная позиция из сцены)
-		Vector2(-390, 300),   # Гость 1 (сектор 1)
-		Vector2(80, 208),     # Гость 2 (сектор 2)
-		Vector2(480, 208),    # Гость 3 (сектор 3)
-		Vector2(1250, 208),   # Гость 5 (сектор 5)
-		Vector2(1565, 440),   # Гость 6 (сектор 6)
-	],
-	"PairBanker": [
-		Vector2(656, 207),    # Гость 4 (сектор 4, основная позиция из сцены)
-		Vector2(-480, 440),   # Гость 1 (сектор 1)
-		Vector2(-160, 208),   # Гость 2 (сектор 2)
-		Vector2(300, 208),    # Гость 3 (сектор 3)
-		Vector2(1030, 208),   # Гость 5 (сектор 5)
-		Vector2(1455, 285),   # Гость 6 (сектор 6)
-	]
-}
+# Для обратной совместимости (используется в других классах)
+const ALTERNATIVE_POSITIONS = ChipPositionManager.ALTERNATIVE_POSITIONS
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КЛАСС CHIPINSTANCE - ДАННЫЕ ОБ ИНДИВИДУАЛЬНОЙ ФИШКЕ
@@ -107,6 +65,9 @@ var chip_nodes: Dictionary = {}
 
 # Менеджер текстур фишек
 var texture_manager: ChipTextureManager = ChipTextureManager.new()
+
+# Менеджер позиций фишек
+var position_manager: ChipPositionManager = ChipPositionManager.new()
 
 # Свойство для обратной совместимости (делегирует в texture_manager)
 var current_textures: Dictionary:
@@ -482,20 +443,19 @@ func set_position_mode(_mode: PositionMode) -> void:
 
 
 func _apply_random_position(bet_type: String) -> void:
-	"""Применить случайную позицию для фишки из списка альтернатив"""
+	"""Применить случайную позицию для фишки из списка альтернатив
+	
+	Делегирует в ChipPositionManager.
+	"""
 	if not chip_nodes.has(bet_type):
 		return
 	
-	if not ALTERNATIVE_POSITIONS.has(bet_type):
-		push_warning("ChipVisualManager: нет альтернативных позиций для '%s'" % bet_type)
+	var new_position = position_manager.get_random_position(bet_type)
+	if new_position == Vector2.ZERO:
 		return
 	
-	var positions = ALTERNATIVE_POSITIONS[bet_type]
-	var random_index = randi() % positions.size()
-	var new_position = positions[random_index]
-	
 	chip_nodes[bet_type].position = new_position
-	print("📍 Фишка %s перемещена в позицию %d: %s" % [bet_type, random_index, new_position])
+	print("📍 Фишка %s перемещена в случайную позицию: %s" % [bet_type, new_position])
 
 
 func _reset_to_default_position(bet_type: String) -> void:
@@ -528,15 +488,15 @@ func randomize_all_positions() -> void:
 func get_alternative_positions(bet_type: String) -> Array:
 	"""Получить список альтернативных позиций для типа ставки
 	
+	Делегирует в ChipPositionManager.
+	
 	Args:
 		bet_type: Тип ставки
 		
 	Returns:
 		Массив Vector2 с альтернативными позициями или пустой массив если позиции не найдены
 	"""
-	if ALTERNATIVE_POSITIONS.has(bet_type):
-		return ALTERNATIVE_POSITIONS[bet_type]
-	return []
+	return position_manager.get_alternative_positions(bet_type)
 
 
 func is_random_mode_enabled() -> bool:
@@ -701,7 +661,7 @@ func _generate_random_count(bet_type: String) -> int:
 	var max_count = selected_range[1]
 	
 	# Ограничиваем максимальным количеством позиций
-	var positions_count = ALTERNATIVE_POSITIONS.get(bet_type, []).size()
+	var positions_count = position_manager.get_positions_count(bet_type)
 	max_count = mini(max_count, positions_count)
 	min_count = mini(min_count, max_count)
 	
@@ -713,7 +673,7 @@ func _generate_random_count(bet_type: String) -> int:
 
 func _select_random_positions(bet_type: String, count: int) -> Array[int]:
 	"""Выбрать случайные позиции для ставок"""
-	var positions = ALTERNATIVE_POSITIONS.get(bet_type, [])
+	var positions = position_manager.get_alternative_positions(bet_type)
 	if count <= 0 or positions.size() == 0:
 		return []
 	
@@ -772,7 +732,7 @@ func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[
 			# Первая фишка - используем основную из сцены
 			var original_chip = chip_nodes[bet_type]
 			original_chip.texture_normal = texture
-			original_chip.position = ALTERNATIVE_POSITIONS[bet_type][pos_idx]
+			original_chip.position = position_manager.get_position_at_index(bet_type, pos_idx)
 			original_chip.visible = true
 			original_chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 			
@@ -815,7 +775,7 @@ func _create_chip_copy(bet_type: String, position_index: int, texture: Texture2D
 		return null
 	
 	var original_chip = chip_nodes[bet_type]
-	var positions = ALTERNATIVE_POSITIONS.get(bet_type, [])
+	var positions = position_manager.get_alternative_positions(bet_type)
 	
 	if position_index >= positions.size():
 		push_error("ChipVisualManager: индекс позиции %d вне диапазона для %s" % [position_index, bet_type])
