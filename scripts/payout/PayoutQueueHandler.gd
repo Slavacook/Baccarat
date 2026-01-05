@@ -186,7 +186,9 @@ func finalize_payouts_manual(actual_winner: String) -> void:
 	var pair_banker_pressed = PayoutSettingsManager.banker_pair_payout_enabled
 
 	# Получаем текущие текстуры фишек
-	var chip_textures = chip_visual_manager.current_textures if chip_visual_manager else {}
+	var chip_textures = {}
+	if chip_visual_manager and chip_visual_manager.texture_manager:
+		chip_textures = chip_visual_manager.texture_manager.current_textures
 
 	# Запрашиваем настройки камеры через EventBus
 	var camera_data = {"position": Vector2.ZERO, "zoom": Vector2.ONE, "received": false}

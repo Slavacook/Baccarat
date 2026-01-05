@@ -108,6 +108,10 @@ var chip_nodes: Dictionary = {}
 # Менеджер текстур фишек
 var texture_manager: ChipTextureManager = ChipTextureManager.new()
 
+# Свойство для обратной совместимости (делегирует в texture_manager)
+var current_textures: Dictionary:
+	get: return texture_manager.current_textures
+
 # Основные позиции фишек (сохраняются при setup из сцены)
 var default_positions: Dictionary = {}
 
