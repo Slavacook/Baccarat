@@ -648,11 +648,11 @@
 
 ## 🎯 Общий прогресс
 
-**Выполнено**: 26 из ~26 шагов (100%)  
-**Время**: ~9.5 часов  
+**Выполнено**: 27 из ~27 шагов (100%)  
+**Время**: ~10 часов  
 **Риск**: Минимальный-Средний ✅
 
-**Коммитов**: 33
+**Коммитов**: 34
 
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
@@ -682,6 +682,7 @@
 - Извлечение ChipTextureManager из ChipVisualManager
 - Извлечение ChipPositionManager из ChipVisualManager
 - Извлечение StakeLabelManager из ChipVisualManager
+- Извлечение RealisticChipGenerator из ChipVisualManager
 
 ---
 
@@ -930,7 +931,41 @@
 
 ---
 
-**ФАЗА 6: ЗАВЕРШЕНА ✅** (7 из 7 шагов)
+#### ✅ Шаг 6.8: Извлечь RealisticChipGenerator из ChipVisualManager
+
+**Дата**: Сегодня  
+**Коммиты**: 1
+
+**Что сделано:**
+
+- ✅ Создан новый класс `RealisticChipGenerator` в `scripts/utils/`
+- ✅ Извлечены константы и методы генерации реалистичных фишек:
+  - `PROBABILITY_WEIGHTS` - веса вероятностей
+  - `RANGES_6` - диапазоны количества
+  - `get_ranges_for_bet_type()` - получение диапазонов
+  - `generate_random_count()` - генерация случайного количества
+  - `select_random_positions()` - выбор случайных позиций
+- ✅ Обновлен `ChipVisualManager` для использования экземпляра `RealisticChipGenerator`
+- ✅ Сохранена обратная совместимость (константы остались доступными)
+- ✅ Обновлены методы `_get_ranges_for_bet_type()`, `_generate_random_count()`, `_select_random_positions()`
+
+**Результаты:**
+
+- ✅ Уменьшен размер `ChipVisualManager` на ~50 строк
+- ✅ Логика генерации реалистичных фишек изолирована в отдельный класс
+- ✅ Улучшена читаемость и поддерживаемость
+- ✅ Нет ошибок компиляции
+- ✅ Сохранена обратная совместимость
+
+**Статистика:**
+
+- Созданных классов: 8 (`LinePositionCalculator`, `BetSorter`, `SequenceManager`, `StateConsistencyChecker`, `ChipTextureManager`, `ChipPositionManager`, `StakeLabelManager`, `RealisticChipGenerator`)
+- Уменьшение размера: ~650 строк (всего)
+- Риск: Низкий ✅
+
+---
+
+**ФАЗА 6: ЗАВЕРШЕНА ✅** (8 из 8 шагов)
 
 ---
 
