@@ -160,12 +160,30 @@ func toggle_pay_mode() -> void:
 		set_mode(CollectionMode.PAY)
 
 func is_collect_mode() -> bool:
+	"""Проверить, активен ли режим сбора
+	
+	Returns:
+		true если режим COLLECT активен, false иначе
+	"""
 	return current_mode == CollectionMode.COLLECT
 
 func is_pay_mode() -> bool:
+	"""Проверить, активен ли режим оплаты
+	
+	Returns:
+		true если режим PAY активен, false иначе
+	"""
 	return current_mode == CollectionMode.PAY
 
 static func get_mode_name(mode: CollectionMode) -> String:
+	"""Получить строковое представление режима
+	
+	Args:
+		mode: Режим CollectionMode
+		
+	Returns:
+		Строковое представление режима ("NONE", "COLLECT", "PAY", "UNKNOWN")
+	"""
 	match mode:
 		CollectionMode.NONE:
 			return "NONE"
