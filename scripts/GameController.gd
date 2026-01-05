@@ -1402,19 +1402,16 @@ func _restore_automatic_mode_state() -> void:
 
 
 func _check_and_handle_game_over() -> bool:
-	"""Проверка Game Over в режиме выживания
+	"""Проверка Game Over в режиме выживания - делегировано в GameStateController
 	
 	Returns:
 		true если Game Over произошёл, false если игра продолжается
 	"""
-	var is_active = survival_state.is_active_mode() if survival_state else false
-	var lives = survival_state.get_lives() if survival_state else 7
-	if is_active and lives <= 0:
-		DebugLogger.log_game_flow("GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
-		_on_survival_game_over(survival_rounds_completed)
-		GameDataManager.clear()
-		return true
-	
+	if game_state_controller:
+		var result = game_state_controller.check_and_handle_game_over(survival_rounds_completed)
+		if result:
+			GameDataManager.clear()  # Очищаем данные после Game Over
+		return result
 	return false
 
 

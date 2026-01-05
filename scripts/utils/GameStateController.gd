@@ -145,3 +145,25 @@ func set_is_game_over(value: bool) -> void:
 	else:
 		EventBus.is_game_active = true
 
+func check_and_handle_game_over(survival_rounds_completed: int) -> bool:
+	"""Проверить Game Over в режиме выживания и обработать, если нужно
+	
+	Args:
+		survival_rounds_completed: Количество пройденных раундов
+	
+	Returns:
+		true если Game Over произошёл, false если игра продолжается
+	"""
+	if is_game_over:
+		return true  # Уже в Game Over
+	
+	var is_active = survival_state.is_active_mode() if survival_state else false
+	var lives = survival_state.get_lives() if survival_state else 7
+	
+	if is_active and lives <= 0:
+		DebugLogger.log_game_flow("GAME OVER! Закончились жизни (проверка после возврата из PayoutScene)")
+		handle_game_over(survival_rounds_completed)
+		return true
+	
+	return false
+
