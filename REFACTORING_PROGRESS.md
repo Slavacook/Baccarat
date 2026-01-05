@@ -602,6 +602,7 @@
 - Улучшение документации ChipVisualManager
 
 #### ✅ Шаг 5.5: Анализ GuestMenuScene
+
 **Дата**: Сегодня  
 **Коммиты**: 1
 
@@ -620,19 +621,20 @@
 - ✅ Определены безопасные улучшения
 
 #### ✅ Шаг 5.6: Улучшить документацию GuestMenuScene
+
 **Дата**: Сегодня  
 **Коммиты**: 1
 
 **Что сделано:**
 
 - ✅ Добавлены docstrings к методам:
-  - _ready, _initialize_menu_state, _initialize_keyboard_navigator
-  - _is_guest_enabled_for_navigator, _initialize_ui_renderer
-  - _initialize_text_updater, _initialize_balance_renderer
-  - _initialize_guest_nodes
+  - \_ready, \_initialize_menu_state, \_initialize_keyboard_navigator
+  - \_is_guest_enabled_for_navigator, \_initialize_ui_renderer
+  - \_initialize_text_updater, \_initialize_balance_renderer
+  - \_initialize_guest_nodes
   - open_menu, close_menu
-  - _update_all_guests_visibility, _update_guest_visibility
-  - _calculate_guest_visual_state
+  - \_update_all_guests_visibility, \_update_guest_visibility
+  - \_calculate_guest_visual_state
 - ✅ Улучшены аннотации типов возврата (-> void)
 - ✅ Улучшена документация параметров и возвращаемых значений
 
@@ -651,6 +653,7 @@
 **Риск**: Минимальный ✅
 
 **Коммитов**: 21
+
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
 - Улучшение документации методов

@@ -16,3 +16,4 @@ res://scripts/utils/CardController.gd
 res://scripts/utils/GameStateController.gd
 res://scripts/BetCollectionPhaseManager.gd
 res://scripts/ChipVisualManager.gd
+res://scripts/GuestMenuScene.gd
