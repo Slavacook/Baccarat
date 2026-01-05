@@ -80,7 +80,8 @@ func validate_all_state(payout_queue_manager, collected_bets_by_id: Dictionary, 
 		return {"is_consistent": false, "issues": issues}
 	
 	# Проверяем каждую ставку
-	for bet in payout_queue_manager.bets:
+	var bets = payout_queue_manager.get_all_bets() if payout_queue_manager.has_method("get_all_bets") else payout_queue_manager.bets
+	for bet in bets:
 		var bet_id = "%s_%d" % [bet.get_bet_type(), bet.get_position_index()]
 		var in_cache = collected_bets_by_id.has(bet_id)
 		var in_bet = bet.is_collected()

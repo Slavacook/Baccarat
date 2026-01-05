@@ -917,84 +917,21 @@ func can_complete_round() -> Dictionary:
 # ПРОВЕРКА СОГЛАСОВАННОСТИ СОСТОЯНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _check_state_consistency(bet, bet_id: String) -> bool:
-	"""Проверить согласованность состояния для собранной ставки
-	
-	Args:
-		bet: Объект ставки
-		bet_id: Идентификатор ставки (для кэша)
-	
-	Returns:
-		true если состояние согласовано, false если есть рассинхронизация
-	"""
-	if not bet:
-		return false
-	
-	var in_cache = collected_bets_by_id.has(bet_id)
-	var in_bet = bet.is_collected()
-	
-	if in_cache != in_bet:
-		# Рассинхронизация обнаружена
-		DebugLogger.log_warning("Рассинхронизация для %s: кэш=%s, bet.is_collected=%s" % [bet_id, in_cache, in_bet])
-		# Автоматическое исправление
-		if in_bet:
-			collected_bets_by_id[bet_id] = true
-		else:
-			collected_bets_by_id.erase(bet_id)
-		return false
-	
-	return true
-
-func _check_payment_state_consistency(bet) -> bool:
-	"""Проверить согласованность состояния для оплаченной ставки
-	
-	Args:
-		bet: Объект ставки
-	
-	Returns:
-		true если состояние согласовано
-	"""
-	if not bet:
-		return false
-	
-	# Для оплаченных ставок проверяем что они действительно выиграли
-	if bet.is_paid() and not bet.is_won():
-		DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Ставка %s[%d] помечена как оплаченная, но не выиграла!" % [bet.get_bet_type(), bet.get_position_index()])
-		return false
-	
-	return true
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРОВЕРКА СОГЛАСОВАННОСТИ СОСТОЯНИЯ (делегировано в StateConsistencyChecker)
+# ═══════════════════════════════════════════════════════════════════════════
 
 func validate_all_state() -> Dictionary:
 	"""Проверить согласованность всего состояния (для отладки)
+	
+	Делегирует в StateConsistencyChecker.
 	
 	Returns:
 		Dictionary с результатами проверки:
 		- is_consistent: bool - согласовано ли состояние
 		- issues: Array[String] - список проблем
 	"""
-	var issues: Array[String] = []
-	
-	if not payout_queue_manager:
-		return {"is_consistent": false, "issues": ["payout_queue_manager не установлен"]}
-	
-	# Проверяем все ставки
-	for bet in payout_queue_manager.get_all_bets():
-		var bet_id = "%s_%d" % [bet.get_bet_type(), bet.get_position_index()]
-		
-		# Проверка для собранных ставок
-		if bet.is_collected():
-			var in_cache = collected_bets_by_id.has(bet_id)
-			if not in_cache:
-				issues.append("Ставка %s собрана (bet.is_collected=true), но отсутствует в кэше" % bet_id)
-		
-		# Проверка для оплаченных ставок
-		if bet.is_paid() and not bet.is_won():
-			issues.append("Ставка %s оплачена, но не выиграла (won=false)" % bet_id)
-	
-	return {
-		"is_consistent": issues.is_empty(),
-		"issues": issues
-	}
+	return state_checker.validate_all_state(payout_queue_manager, collected_bets_by_id, is_tie_push_bet)
 
 func print_status() -> void:
 	"""Вывести статус для отладки"""
