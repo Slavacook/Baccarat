@@ -49,12 +49,12 @@ func show_all_backs(back_texture: Texture2D) -> void:
 		if card and card.has_method("show_back"):
 			card.show_back(back_texture)
 
-func open_all_cards(face_textures: Array, delay: float = 0.3) -> void:
+func open_all_cards(face_textures: Array, delay: float = GameConstants.FLIP_CARD_DELAY) -> void:
 	"""Открыть все карты с задержкой
 	
 	Args:
 		face_textures: Массив текстур карт для отображения
-		delay: Задержка между открытием карт (секунды)
+		delay: Задержка между открытием карт (по умолчанию из GameConstants)
 	"""
 	if not scene_tree:
 		print("⚠️  CardController: scene_tree не установлен, нельзя использовать await")
@@ -65,12 +65,12 @@ func open_all_cards(face_textures: Array, delay: float = 0.3) -> void:
 		if flip_cards[i] and flip_cards[i].has_method("open_card"):
 			flip_cards[i].open_card(face_textures[i])
 
-func open_all_cards_with_flip(face_textures: Array, delay: float = 0.3) -> void:
+func open_all_cards_with_flip(face_textures: Array, delay: float = GameConstants.FLIP_CARD_DELAY) -> void:
 	"""Открыть все карты с flip-анимацией
 	
 	Args:
 		face_textures: Массив текстур карт для отображения
-		delay: Задержка между картами (секунды)
+		delay: Задержка между картами (по умолчанию из GameConstants)
 	"""
 	if not scene_tree:
 		print("⚠️  CardController: scene_tree не установлен, нельзя использовать await")

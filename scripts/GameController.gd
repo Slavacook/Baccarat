@@ -628,9 +628,11 @@ func set_flip_cards(cards: Array) -> void:
 	Args:
 		cards: Массив FlipCard узлов для анимаций
 	
-	Делегирует установку в CardController для единообразия.
+	Делегирует установку в CardController. flip_cards хранится только в CardController.
 	"""
+	# Обновляем локальную переменную для обратной совместимости (если где-то используется напрямую)
 	flip_cards = cards
+	# Делегируем в CardController (основное хранилище)
 	if card_controller:
 		card_controller.set_flip_cards(cards)
 
