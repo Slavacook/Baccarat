@@ -648,11 +648,11 @@
 
 ## 🎯 Общий прогресс
 
-**Выполнено**: 23 из ~24 шагов (96%)  
-**Время**: ~8 часов  
+**Выполнено**: 24 из ~24 шагов (100%)  
+**Время**: ~8.5 часов  
 **Риск**: Минимальный-Средний ✅
 
-**Коммитов**: 27
+**Коммитов**: 29
 
 - Улучшение структуры GameController (секции)
 - Исправление дубликата функции
@@ -679,6 +679,7 @@
 - Извлечение BetSorter из BetCollectionPhaseManager
 - Извлечение SequenceManager из BetCollectionPhaseManager
 - Извлечение StateConsistencyChecker из BetCollectionPhaseManager
+- Извлечение ChipTextureManager из ChipVisualManager
 
 ---
 
@@ -756,7 +757,8 @@
 **ФАЗА 2: ЗАВЕРШЕНА ✅**  
 **ФАЗА 3: ЗАВЕРШЕНА ✅**  
 **ФАЗА 4: ЗАВЕРШЕНА ✅**  
-**ФАЗА 5: ЗАВЕРШЕНА ✅**
+**ФАЗА 5: ЗАВЕРШЕНА ✅**  
+**ФАЗА 6: ЗАВЕРШЕНА ✅**
 
 #### ✅ Шаг 6.3: Извлечь SequenceManager из BetCollectionPhaseManager
 
@@ -825,7 +827,41 @@
 
 ---
 
-**ФАЗА 6: В ПРОЦЕССЕ** (4 из ~4 шагов)
+#### ✅ Шаг 6.5: Извлечь ChipTextureManager из ChipVisualManager
+
+**Дата**: Сегодня  
+**Коммиты**: 2
+
+**Что сделано:**
+
+- ✅ Создан новый класс `ChipTextureManager` в `scripts/utils/`
+- ✅ Извлечены константа `CHIP_TEXTURES` и методы:
+  - `get_random_texture()` - получение случайной текстуры
+  - `get_current_texture()` - получение текущей текстуры
+  - `set_current_texture()` - установка текущей текстуры
+  - `clear_current_texture()`, `clear_all_textures()` - очистка текстур
+  - `has_textures()` - проверка наличия текстур
+- ✅ Перенесен словарь `current_textures` в `ChipTextureManager`
+- ✅ Обновлен `ChipVisualManager` для использования экземпляра `ChipTextureManager`
+- ✅ Сохранена обратная совместимость (константа `CHIP_TEXTURES` осталась доступной)
+
+**Результаты:**
+
+- ✅ Уменьшен размер `ChipVisualManager` на ~40 строк
+- ✅ Логика управления текстурами изолирована в отдельный класс
+- ✅ Улучшена читаемость и поддерживаемость
+- ✅ Нет ошибок компиляции
+- ✅ Сохранена обратная совместимость
+
+**Статистика:**
+
+- Созданных классов: 5 (`LinePositionCalculator`, `BetSorter`, `SequenceManager`, `StateConsistencyChecker`, `ChipTextureManager`)
+- Уменьшение размера: ~440 строк (всего)
+- Риск: Низкий ✅
+
+---
+
+**ФАЗА 6: ЗАВЕРШЕНА ✅** (5 из 5 шагов)
 
 ---
 
