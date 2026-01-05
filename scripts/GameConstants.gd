@@ -92,3 +92,26 @@ const PAYOUT_TOGGLE_DISABLED_ALPHA: float = 0.4                        # Про�
 
 const MIN_LIVES_FOR_HINT: int = 2        # Минимум жизней для использования подсказки (survival mode)
 const HINT_COST_SCORE: int = 5           # Стоимость подсказки в очках (normal mode)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ИМЕНА ГРУПП И СВОЙСТВ
+# ═══════════════════════════════════════════════════════════════════════════
+
+const GROUP_GAME_CONTROLLER: String = "game_controller"  # Имя группы для GameController
+const PROPERTY_HEART_BAR: String = "heart_bar"           # Имя свойства heart_bar в survival_ui
+const BET_GROUP_PAIRS: String = "pairs"                 # Группа ставок "pairs"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМЫ ИГРЫ
+# ═══════════════════════════════════════════════════════════════════════════
+
+const MODE_JUNKET: String = "junket"     # Режим игры Junket
+const MODE_CLASSIC: String = "classic"   # Режим игры Classic
+const MODE_EMPTY: String = ""            # Пустая строка (нет отложенной смены режима)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ЯЗЫКИ
+# ═══════════════════════════════════════════════════════════════════════════
+
+const LANG_RU: String = "ru"            # Русский язык
+const LANG_EN: String = "en"            # Английский язык

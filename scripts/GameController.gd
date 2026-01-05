@@ -111,7 +111,7 @@ var is_table_prepared_for_new_game: bool = false
 var is_payout_processing: bool = false  # Флаг обработки выплаты (защита от спама Space)
 
 # Переменная для отложенной смены режима (аналогично pending_filter_changes)
-var pending_mode_change: String = ""  # "junket" или "classic", пустая = нет отложенной смены
+var pending_mode_change: String = GameConstants.MODE_EMPTY  # "junket" или "classic", пустая = нет отложенной смены
 
 # Контроллер состояния игры (Extract Class)
 var game_state_controller: GameStateController
@@ -153,7 +153,7 @@ func _ready():
 	Стало: Делегирование в GameInitializer.initialize()
 	"""
 	# Добавляем в группу для доступа из других скриптов
-	add_to_group("game_controller")
+	add_to_group(GameConstants.GROUP_GAME_CONTROLLER)
 	
 	# Инициализация через GameInitializer (все ~200 строк вынесены в отдельный класс)
 	var initialized: Dictionary = GameInitializer.initialize(self)
@@ -283,7 +283,7 @@ func _ready():
 
 ## Инициализировать HeartBar из survival_ui
 func _initialize_heart_bar() -> void:
-	if survival_ui and "heart_bar" in survival_ui and survival_ui.heart_bar != null:
+	if survival_ui and GameConstants.PROPERTY_HEART_BAR in survival_ui and survival_ui.heart_bar != null:
 		heart_bar = survival_ui.heart_bar
 		print("✅ HeartBar инициализирован в GameController")
 	else:
@@ -796,7 +796,7 @@ func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -
 	var payout_calculator = PayoutCalculator.new()
 	
 	# Для пар используем специальную логику
-	if bet_type_obj.get_group() == "pairs" and pair_betting_manager:
+	if bet_type_obj.get_group() == GameConstants.BET_GROUP_PAIRS and pair_betting_manager:
 		return payout_calculator.calculate_pair_payout(bet_type_obj, stake, pair_betting_manager)
 	
 	# Для остальных используем стандартный расчет
@@ -846,7 +846,7 @@ func _on_help_button_pressed():
 		push_warning("CribSheetScene: шпаргалка не инициализирована")
 
 func _on_lang_button_pressed():
-	var new_lang = "en" if Localization.get_lang() == "ru" else "ru"
+	var new_lang = GameConstants.LANG_EN if Localization.get_lang() == GameConstants.LANG_RU else GameConstants.LANG_RU
 	Localization.set_lang(new_lang)
 	ui_manager.update_lang_button()
 	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
