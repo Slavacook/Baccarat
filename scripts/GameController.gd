@@ -758,6 +758,12 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 func _generate_stake_for_bet_type(bet_type: String) -> float:
 	"""Генерация размера ставки для типа
 	
+	Args:
+		bet_type: Тип ставки (например, "Player", "Banker", "Tie")
+	
+	Returns:
+		Размер ставки для данного типа (с учетом лимитов стола)
+	
 	Рефакторено: использует IBetType вместо match (OCP)
 	"""
 	var bet_type_obj = BetTypeFactory.create(bet_type)
@@ -768,6 +774,14 @@ func _generate_stake_for_bet_type(bet_type: String) -> float:
 
 func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -> float:
 	"""Расчёт выплаты для типа ставки
+	
+	Args:
+		bet_type: Тип ставки (например, "Player", "Banker", "Tie", "PlayerPair")
+		stake: Размер ставки
+		won: Выиграла ли ставка
+	
+	Returns:
+		Размер выплаты (0.0 если ставка проиграла)
 	
 	Рефакторено: использует PayoutCalculator вместо match (OCP, SRP)
 	"""
