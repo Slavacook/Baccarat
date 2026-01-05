@@ -798,7 +798,7 @@ func show_chips_realistic(bet_type: String, stakes: Array[float] = []) -> Array[
 		active_chips.append(chip_instance)
 		created_chips.append(chip_instance)
 	
-	current_textures[bet_type] = texture_path
+	texture_manager.set_current_texture(bet_type, texture_path)
 	print("📍 REALISTIC: создано %d фишек %s на позициях %s" % [created_chips.size(), bet_type, selected_positions])
 	
 	return created_chips
@@ -1068,7 +1068,9 @@ func print_status() -> void:
 	for bet_type in chip_nodes.keys():
 		var chip = chip_nodes[bet_type]
 		var status = "✅ Видна" if chip.visible else "❌ Скрыта"
-		var texture = current_textures.get(bet_type, "нет")
+		var texture = texture_manager.get_current_texture(bet_type)
+		if texture.is_empty():
+			texture = "нет"
 		var active_count = get_active_chips_count_by_type(bet_type)
 		print("  %s: %s | Текстура: %s | Активных: %d" % [bet_type, status, texture, active_count])
 	print("═══════════════════════════════")
