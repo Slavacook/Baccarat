@@ -206,6 +206,8 @@ func update_arrows_for_area(current_area: int) -> void:
 	}
 	
 	# Создаем обработчик ответов, который использует метод класса вместо lambda
+	# bind() добавляет параметры в начало, сигнал передает (area, direction, target_area)
+	# После bind(current_area) метод получит (current_area, area, direction, target_area)
 	_arrows_response_handler = _on_arrows_area_response.bind(current_area)
 	EventBus.camera_target_area_from_received.connect(_arrows_response_handler)
 	
@@ -215,14 +217,14 @@ func update_arrows_for_area(current_area: int) -> void:
 	EventBus.camera_target_area_from_requested.emit(current_area, "up")
 	EventBus.camera_target_area_from_requested.emit(current_area, "down")
 
-func _on_arrows_area_response(requested_area: int, area: int, direction: String, target_area: int) -> void:
+func _on_arrows_area_response(area: int, direction: String, target_area: int, requested_area: int = -1) -> void:
 	"""Обработчик ответов для обновления стрелок (метод класса вместо lambda)
 	
 	Args:
-		requested_area: Область, для которой был сделан запрос (захватывается через bind)
 		area: Область из ответа (первый параметр сигнала)
 		direction: Направление из ответа (второй параметр сигнала)
 		target_area: Целевая область из ответа (третий параметр сигнала)
+		requested_area: Область, для которой был сделан запрос (захватывается через bind, добавляется в конец)
 	"""
 	# Проверяем, что owner_node все еще валиден
 	if not is_instance_valid(owner_node):
