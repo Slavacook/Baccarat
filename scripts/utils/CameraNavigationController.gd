@@ -135,6 +135,10 @@ func on_arrows_visibility_changed(_should_show: bool) -> void:
 	но сигнал используется для активации/деактивации навигации по полю.
 	Параметр _should_show не используется, так как стрелки всегда скрыты.
 	"""
+	# Проверяем, что owner_node не освобожден
+	if not is_instance_valid(owner_node):
+		return
+	
 	var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
 	var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
@@ -176,6 +180,10 @@ func update_arrows_for_area(current_area: int) -> void:
 	Args:
 		current_area: Текущая область (0 = карты, 1-3 = области ставок)
 	"""
+	# Проверяем, что owner_node не освобожден
+	if not is_instance_valid(owner_node):
+		return
+	
 	var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
 	var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
 	var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")

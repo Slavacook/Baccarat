@@ -1017,19 +1017,19 @@ func _on_restart_game():
 
 func _input(event: InputEvent) -> void:
 	"""Обработка ввода (клавиатура и геймпад) - делегировано в InputHandler"""
-	if input_handler:
+	# Проверяем инициализацию и валидность input_handler
+	if input_handler and is_instance_valid(input_handler):
 		if input_handler.handle_input(event):
 			get_viewport().set_input_as_handled()
-	else:
-		push_error("❌ InputHandler не инициализирован!")
+	# Не выводим ошибку, если input_handler еще не инициализирован (может быть вызвано до _ready)
 
 func _unhandled_input(event: InputEvent) -> void:
 	"""Обработка необработанного ввода - делегировано в InputHandler"""
-	if input_handler:
+	# Проверяем инициализацию и валидность input_handler
+	if input_handler and is_instance_valid(input_handler):
 		if input_handler.handle_unhandled_input(event):
 			get_viewport().set_input_as_handled()
-	else:
-		push_error("❌ InputHandler не инициализирован!")
+	# Не выводим ошибку, если input_handler еще не инициализирован (может быть вызвано до _ready)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ
