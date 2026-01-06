@@ -260,9 +260,8 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 		return 0
 
 func predict_target_area(zoom_type: String) -> int:
-	"""Предсказать целевую область (1-6) по zoom_type, 0 — если карты/общий план
+	"""Предсказать целевую область (1-6) по zoom_type, 0 — если карты/общий план - делегировано в CameraAreaNavigator
 	
-	Использует _get_target_area_by_direction() для единообразия логики.
 	Публичный метод для GameController (используется для подсветки областей).
 	
 	Args:
@@ -271,29 +270,11 @@ func predict_target_area(zoom_type: String) -> int:
 	Returns:
 		Целевая область (1-6), 0 для карт/общего плана, -1 для общего плана
 	"""
-	match zoom_type:
-		"area_1":
-			return 1
-		"area_2":
-			return 2
-		"area_3":
-			return 3
-		"area_4":
-			return 4
-		"area_5":
-			return 5
-		"area_6":
-			return 6
-		"next_area":
-			return _get_target_area_by_direction("right")
-		"prev_area":
-			return _get_target_area_by_direction("left")
-		"up":
-			return _get_target_area_by_direction("up")
-		"down":
-			return _get_target_area_by_direction("down")
-		_:
-			return 0  # любые in/out/cards — без подсветки
+	if _area_navigator:
+		return _area_navigator.predict_target_area(zoom_type, current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
+		return 0
 
 func is_on_cards() -> bool:
 	"""Проверка, находится ли камера на картах
