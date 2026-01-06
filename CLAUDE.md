@@ -10,6 +10,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - CardUIManager, ToggleUIManager, ButtonUIManager, MarkerUIManager, PayoutToggleManager
    - UIManager теперь фасад-агрегатор с Dependency Injection
 
+2. **✅ Phase 8-9 Refactoring ЗАВЕРШЁН** - GameController уменьшен с ~2006 до 1603 строк:
+   - Извлечено 10 новых классов в `scripts/utils/`:
+     - **Phase 8**: CameraNavigationController, ChipNavigationCoordinator, CollectionModeHandler, KeyboardFocusHandler, GamepadMonitor, RoundsCounterUpdater
+     - **Phase 9**: PayoutReturnHandler, PayoutPreparationHandler, UIEventHandler, InputHandler
+   - GameController теперь более модульный и легче поддерживать
+   - Все классы покрыты unit-тестами (231 тест, все проходят)
+
 2. **👥 Guest System (Система гостей)** - полноценная система генерации ставок:
    - 6 гостей с уникальными характерами (Джентльмен, Осторожный, Азартный)
    - 3 уровня обеспеченности (Бедный, Средний, Богатый)
@@ -168,7 +175,11 @@ godot --export-release "Windows Desktop" build/Baccarat.exe
 
 ### Главный контроллер: GameController
 
-`scripts/GameController.gd` - точка входа, координирует все подсистемы:
+`scripts/GameController.gd` (1603 строки, было ~2006) - точка входа, координирует все подсистемы:
+
+**Рефакторинг Phase 8-9**: Извлечено 10 классов в `scripts/utils/` для уменьшения размера и улучшения модульности:
+- **Phase 8**: CameraNavigationController, ChipNavigationCoordinator, CollectionModeHandler, KeyboardFocusHandler, GamepadMonitor, RoundsCounterUpdater
+- **Phase 9**: PayoutReturnHandler, PayoutPreparationHandler, UIEventHandler, InputHandler
 
 ```gdscript
 # Основные компоненты
@@ -188,14 +199,25 @@ godot --export-release "Windows Desktop" build/Baccarat.exe
 ```
 
 **Обязанности GameController**:
-- Инициализация всех менеджеров при старте
+- Инициализация всех менеджеров при старте (через GameInitializer)
 - Подписка на сигналы UIManager
 - Делегирование действий в GamePhaseManager
-- Управление камерой (зум при раздаче/выборе победителя)
-- Координация режима выживания (жизни, game over)
+- Координация между извлеченными обработчиками (Phase 8-9)
 - Оркестрация выплат через PayoutQueueManager
 
-**Важно**: GameController НЕ содержит игровую логику - он только координирует менеджеры!
+**Извлеченные обработчики (Phase 8-9)**:
+- **PayoutReturnHandler** - обработка возврата из PayoutScene
+- **PayoutPreparationHandler** - подготовка и расчет выплат
+- **UIEventHandler** - обработка UI событий (кнопки, переключатели)
+- **InputHandler** - обработка ввода (клавиатура/геймпад)
+- **CameraNavigationController** - навигация камеры и стрелки
+- **ChipNavigationCoordinator** - координация навигации по ставкам
+- **CollectionModeHandler** - режимы сбора/оплаты ставок
+- **KeyboardFocusHandler** - клавиатурный фокус
+- **GamepadMonitor** - мониторинг геймпадов
+- **RoundsCounterUpdater** - обновление счетчика раундов
+
+**Важно**: GameController НЕ содержит игровую логику - он только координирует менеджеры и обработчики!
 
 ### Поток данных и жизненный цикл раунда
 

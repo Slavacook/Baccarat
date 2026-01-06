@@ -38,10 +38,23 @@ graph TB
         EventBus[EventBus<br/>38+ сигналов]
     end
     
+    subgraph "Утилиты (Phase 8-9)"
+        PayoutReturnHandler[PayoutReturnHandler]
+        PayoutPreparationHandler[PayoutPreparationHandler]
+        UIEventHandler[UIEventHandler]
+        InputHandler[InputHandler]
+        CameraNavigationController[CameraNavigationController]
+    end
+    
     GameController --> GamePhaseManager
     GameController --> UIManager
     GameController --> PayoutQueueManager
     GameController --> ChipVisualManager
+    GameController --> PayoutReturnHandler
+    GameController --> PayoutPreparationHandler
+    GameController --> UIEventHandler
+    GameController --> InputHandler
+    GameController --> CameraNavigationController
     
     GamePhaseManager --> BaccaratRules
     GamePhaseManager --> HandManager

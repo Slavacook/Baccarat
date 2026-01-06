@@ -30,7 +30,7 @@
 
 | Класс | Файл | Строк | Ответственность | Зависимости |
 |-------|------|-------|-----------------|-------------|
-| **GameController** | `scripts/GameController.gd` | 2024 | Главный оркестратор всех систем | Все менеджеры |
+| **GameController** | `scripts/GameController.gd` | 1603 | Главный оркестратор всех систем | Все менеджеры |
 | **GamePhaseManager** | `scripts/GamePhaseManager.gd` | 604 | Управление фазами игры, валидация | Deck, BaccaratRules, EventBus |
 | **GameInitializer** | `scripts/GameInitializer.gd` | ~200 | Инициализация GameController | GameController |
 | **GameStateUpdater** | `scripts/GameStateUpdater.gd` | ? | Обновление состояния игры | GameStateManager |
@@ -395,6 +395,56 @@
 
 ## 🔧 Утилиты
 
+### Обработчики GameController (Phase 8-9)
+
+| Класс | Файл | Строк | Ответственность | Зависимости |
+|-------|------|-------|-----------------|-------------|
+| **PayoutReturnHandler** | `scripts/utils/PayoutReturnHandler.gd` | ~377 | Обработка возврата из PayoutScene | StateRestorer, PayoutOverlayCoordinator |
+| **PayoutPreparationHandler** | `scripts/utils/PayoutPreparationHandler.gd` | ~150 | Подготовка и расчет выплат | HandManager, LimitsManager |
+| **UIEventHandler** | `scripts/utils/UIEventHandler.gd` | ~250 | Обработка UI событий | UIManager, PhaseManager |
+| **InputHandler** | `scripts/utils/InputHandler.gd` | ~200 | Обработка ввода (клавиатура/геймпад) | ChipNavigationManager, ChanceCardNavigator |
+| **CameraNavigationController** | `scripts/utils/CameraNavigationController.gd` | ~285 | Навигация камеры и стрелки | CameraManager, UIManager |
+| **ChipNavigationCoordinator** | `scripts/utils/ChipNavigationCoordinator.gd` | ~112 | Координация навигации по ставкам | ChipNavigationManager, BetCollectionPhaseManager |
+| **CollectionModeHandler** | `scripts/utils/CollectionModeHandler.gd` | ~79 | Режимы сбора/оплаты ставок | BetCollectionPhaseManager, UIManager |
+| **KeyboardFocusHandler** | `scripts/utils/KeyboardFocusHandler.gd` | ~85 | Клавиатурный фокус | GamePhaseManager, WinnerSelectionManager |
+| **GamepadMonitor** | `scripts/utils/GamepadMonitor.gd` | ~60 | Мониторинг геймпадов | Input |
+| **RoundsCounterUpdater** | `scripts/utils/RoundsCounterUpdater.gd` | ~50 | Обновление счетчика раундов | Label |
+
+### Обработчики GameController (Phase 1-3)
+
+| Класс | Файл | Ответственность | Зависимости |
+|-------|------|-----------------|-------------|
+| **CardController** | `scripts/utils/CardController.gd` | Управление отображением карт | FlipCard nodes |
+| **SurvivalStateProvider** | `scripts/utils/SurvivalStateProvider.gd` | Провайдер состояния выживания | SurvivalModeUI |
+| **GameStateController** | `scripts/utils/GameStateController.gd` | Управление состоянием игры | GameOverPopup, EventBus |
+| **PayoutResultHandler** | `scripts/utils/PayoutResultHandler.gd` | Обработка результатов выплат | EventBus |
+| **ChipClickHandler** | `scripts/utils/ChipClickHandler.gd` | Обработка кликов на фишки | ChipVisualManager, BetCollectionPhaseManager |
+| **SettingsEventHandler** | `scripts/ui/SettingsEventHandler.gd` | Обработка событий настроек | SettingsScene, EventBus |
+
+### Утилиты для BetCollectionPhaseManager (Phase 6)
+
+| Класс | Файл | Ответственность | Зависимости |
+|-------|------|-----------------|-------------|
+| **LinePositionCalculator** | `scripts/utils/LinePositionCalculator.gd` | Расчет позиций фишек на линиях | - |
+| **BetSorter** | `scripts/utils/BetSorter.gd` | Сортировка ставок | LinePositionCalculator |
+| **SequenceManager** | `scripts/utils/SequenceManager.gd` | Управление последовательностями сбора/оплаты | BetSorter, LinePositionCalculator |
+| **StateConsistencyChecker** | `scripts/utils/StateConsistencyChecker.gd` | Проверка согласованности состояния | PayoutQueueManager |
+
+### Утилиты для ChipVisualManager (Phase 6)
+
+| Класс | Файл | Ответственность | Зависимости |
+|-------|------|-----------------|-------------|
+| **ChipTextureManager** | `scripts/utils/ChipTextureManager.gd` | Управление текстурами фишек | - |
+| **ChipPositionManager** | `scripts/utils/ChipPositionManager.gd` | Управление позициями фишек | - |
+| **StakeLabelManager** | `scripts/utils/StakeLabelManager.gd` | Управление метками ставок | ChipVisualManager.ChipInstance |
+| **RealisticChipGenerator** | `scripts/utils/RealisticChipGenerator.gd` | Генерация реалистичных фишек | ChipPositionManager |
+
+### Утилиты для SettingsScene (Phase 7)
+
+| Класс | Файл | Ответственность | Зависимости |
+|-------|------|-----------------|-------------|
+| **SettingsKeyboardNavigator** | `scripts/ui/SettingsKeyboardNavigator.gd` | Навигация по настройкам (клавиатура/геймпад) | SettingsScene |
+
 ### Форматтеры
 
 | Класс | Файл | Ответственность |
@@ -439,12 +489,18 @@
 
 ## 📊 Статистика
 
-- **Всего классов**: ~170
+- **Всего классов**: ~190
 - **Autoload синглтонов**: 23
 - **UI менеджеров**: 5 (Phase 2)
 - **Координаторов**: 15+
 - **Валидаторов**: 5+
 - **Интерфейсов**: 3+
+- **Утилит (utils)**: 23 (Phase 1-9)
+  - Обработчики GameController: 10 классов
+  - Утилиты для BetCollectionPhaseManager: 4 класса
+  - Утилиты для ChipVisualManager: 4 класса
+  - Утилиты для SettingsScene: 1 класс
+  - Другие утилиты: 4 класса
 
 ---
 
