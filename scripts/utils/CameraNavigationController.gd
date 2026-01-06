@@ -215,14 +215,14 @@ func update_arrows_for_area(current_area: int) -> void:
 	EventBus.camera_target_area_from_requested.emit(current_area, "up")
 	EventBus.camera_target_area_from_requested.emit(current_area, "down")
 
-func _on_arrows_area_response(requested_area: int, area: int, dir: String, target: int) -> void:
+func _on_arrows_area_response(requested_area: int, area: int, direction: String, target_area: int) -> void:
 	"""Обработчик ответов для обновления стрелок (метод класса вместо lambda)
 	
 	Args:
 		requested_area: Область, для которой был сделан запрос (захватывается через bind)
-		area: Область из ответа
-		dir: Направление из ответа
-		target: Целевая область из ответа
+		area: Область из ответа (первый параметр сигнала)
+		direction: Направление из ответа (второй параметр сигнала)
+		target_area: Целевая область из ответа (третий параметр сигнала)
 	"""
 	# Проверяем, что owner_node все еще валиден
 	if not is_instance_valid(owner_node):
@@ -240,8 +240,8 @@ func _on_arrows_area_response(requested_area: int, area: int, dir: String, targe
 		return
 	
 	# Проверяем, что ответ относится к текущему запросу
-	if area == requested_area and dir in _arrows_update_state.responses and _arrows_update_state.responses[dir] == null:
-		_arrows_update_state.responses[dir] = target
+	if area == requested_area and direction in _arrows_update_state.responses and _arrows_update_state.responses[direction] == null:
+		_arrows_update_state.responses[direction] = target_area
 		_arrows_update_state.pending -= 1
 		if _arrows_update_state.pending == 0:
 			# Все ответы получены, обновляем стрелки
