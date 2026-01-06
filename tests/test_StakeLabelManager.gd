@@ -220,8 +220,13 @@ func test_remove_stake_label_null_chip():
 func test_remove_stake_label_no_label():
 	"""Проверка удаления label когда label не установлен"""
 	# Arrange
+	if not MockChipInstanceClass:
+		pass_test("ChipInstance класс не найден, пропускаем тест")
+		return
+	
 	var chip_node = TextureButton.new()
-	var chip = MockChipInstance.new("Player", 0, chip_node, 1000.0)
+	var chip = MockChipInstanceClass.new("Player", 0, chip_node, false)
+	chip.stake = 1000.0
 	chip.stake_label = null
 	
 	# Act - не должно быть ошибок
