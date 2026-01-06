@@ -65,7 +65,12 @@ var tween: Tween
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _ready():
+func _ready() -> void:
+	"""Инициализация сцены настроек
+	
+	Скрывает сцену при старте, подключает сигналы, настраивает локализацию
+	и клавиатурную навигацию.
+	"""
 	# Скрываем при старте
 	hide()
 
@@ -89,8 +94,12 @@ func _ready():
 	# Настраиваем навигацию с клавиатуры
 	_setup_keyboard_navigation()
 
-func _connect_signals():
-	"""Подключение всех сигналов UI элементов"""
+func _connect_signals() -> void:
+	"""Подключение всех сигналов UI элементов
+	
+	Подключает сигналы кнопок, переключателей и других UI элементов
+	к соответствующим обработчикам событий.
+	"""
 	# Режим игры
 	if junket_button:
 		junket_button.pressed.connect(_on_junket_pressed)
@@ -149,8 +158,12 @@ func _connect_signals():
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func open_settings():
-	"""Открыть окно настроек"""
+func open_settings() -> void:
+	"""Открыть окно настроек
+	
+	Загружает текущие значения в UI, устанавливает контекст меню,
+	показывает окно с анимацией и настраивает клавиатурную навигацию.
+	"""
 	# Загружаем значения в UI
 	_load_current_values()
 
@@ -193,8 +206,12 @@ func open_settings():
 	EventBus.settings_opened.emit()
 	print("⚙️  Окно настроек открыто")
 
-func close_settings():
-	"""Закрыть окно настроек"""
+func close_settings() -> void:
+	"""Закрыть окно настроек
+	
+	Возвращает контекст игры, скрывает окно с анимацией
+	и эмитит сигнал закрытия настроек.
+	"""
 	# Возвращаем контекст игры
 	InputContextManager.set_context(InputContextManager.InputContext.GAME)
 	
@@ -327,8 +344,18 @@ func _input(event: InputEvent) -> void:
 # ПРИВАТНЫЕ МЕТОДЫ - ЗАГРУЗКА
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _load_current_values():
-	"""Загрузить текущие значения из менеджеров в UI"""
+func _load_current_values() -> void:
+	"""Загрузить текущие значения из менеджеров в UI
+	
+	Синхронизирует все UI элементы с текущими значениями из менеджеров:
+	- Режим игры (Junket/Classic)
+	- Настройки ставок (Player, Banker, Tie, Pair)
+	- Размер ставок
+	- Чаевые
+	- Язык
+	- Рубашка карт
+	- Режим управления камерой
+	"""
 	# Режим игры - загружаем из GameModeManager
 	var current_mode = GameModeManager.get_mode_string()
 	_update_mode_buttons(current_mode)
@@ -371,8 +398,11 @@ func _load_current_values():
 # НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _navigate_focus(direction: String):
+func _navigate_focus(direction: String) -> void:
 	"""Навигация по меню с помощью стрелок/WASD/геймпада
+	
+	Использует встроенную систему focus_neighbor для навигации.
+	Если focus_neighbor не настроен, использует циклическую навигацию.
 	
 	Args:
 		direction: Направление ("left", "right", "up", "down")
@@ -412,8 +442,12 @@ func _navigate_focus(direction: String):
 		"right", "down":
 			_focus_next()
 
-func _focus_next():
-	"""Перейти к следующему элементу меню"""
+func _focus_next() -> void:
+	"""Перейти к следующему элементу меню
+	
+	Использует предопределенный порядок навигации для перехода
+	к следующему элементу с закольцовыванием.
+	"""
 	var current_focus = get_viewport().gui_get_focus_owner()
 	if not current_focus:
 		if junket_button:
@@ -453,8 +487,12 @@ func _focus_next():
 	if navigation_order[next_index]:
 		navigation_order[next_index].grab_focus()
 
-func _focus_previous():
-	"""Перейти к предыдущему элементу меню"""
+func _focus_previous() -> void:
+	"""Перейти к предыдущему элементу меню
+	
+	Использует предопределенный порядок навигации для перехода
+	к предыдущему элементу с закольцовыванием.
+	"""
 	var current_focus = get_viewport().gui_get_focus_owner()
 	if not current_focus:
 		if apply_button:
@@ -498,8 +536,15 @@ func _focus_previous():
 # НАСТРОЙКА НАВИГАЦИИ С КЛАВИАТУРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _setup_keyboard_navigation():
-	"""Настроить навигацию с клавиатуры между элементами меню"""
+func _setup_keyboard_navigation() -> void:
+	"""Настроить навигацию с клавиатуры между элементами меню
+	
+	Устанавливает focus_neighbor для всех элементов меню,
+	создавая сетку навигации с тремя колонками:
+	- Левая: Режим игры
+	- Средняя: Фильтр ставок
+	- Правая: Чаевые, Язык, Рубашка
+	"""
 	# ЛЕВАЯ КОЛОНКА: Режим игры
 	if junket_button and classic_button:
 		# Junket → Classic (вправо)
@@ -607,8 +652,17 @@ func _setup_keyboard_navigation():
 # ОБНОВЛЕНИЕ UI
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _update_texts():
-	"""Обновить все тексты на основе текущего языка"""
+func _update_texts() -> void:
+	"""Обновить все тексты на основе текущего языка
+	
+	Обновляет все текстовые элементы UI с использованием локализации:
+	- Заголовок
+	- Кнопка Apply
+	- Кнопки рубашки карт
+	- Опции размера ставок
+	- Секция чаевых
+	- Кнопка настроек гостей
+	"""
 	if title_label:
 		title_label.text = Localization.t("SETTINGS_TITLE")
 
@@ -634,8 +688,14 @@ func _update_texts():
 	if guest_settings_button:
 		guest_settings_button.text = Localization.t("GUEST_SETTINGS_BUTTON")
 
-func _update_mode_buttons(mode: String):
-	"""Обновить состояние кнопок режима игры"""
+func _update_mode_buttons(mode: String) -> void:
+	"""Обновить состояние кнопок режима игры
+	
+	Отключает активный режим и включает неактивный.
+	
+	Args:
+		mode: Режим игры ("junket" или "classic")
+	"""
 	if not junket_button or not classic_button:
 		return
 
@@ -646,8 +706,14 @@ func _update_mode_buttons(mode: String):
 		junket_button.disabled = false
 		classic_button.disabled = true
 
-func _update_mode_info(mode: String):
-	"""Обновить информацию о режиме игры"""
+func _update_mode_info(mode: String) -> void:
+	"""Обновить информацию о режиме игры
+	
+	Обновляет текст информационной метки с описанием режима.
+	
+	Args:
+		mode: Режим игры ("junket" или "classic")
+	"""
 	if not mode_info_label:
 		return
 
@@ -657,8 +723,11 @@ func _update_mode_info(mode: String):
 	else:  # classic
 		mode_info_label.text = Localization.t("MODE_INFO_CLASSIC")
 
-func _update_lang_buttons():
-	"""Обновить состояние кнопок языка"""
+func _update_lang_buttons() -> void:
+	"""Обновить состояние кнопок языка
+	
+	Отключает активный язык и включает неактивный.
+	"""
 	if not ru_button or not en_button:
 		return
 
@@ -666,8 +735,11 @@ func _update_lang_buttons():
 	ru_button.disabled = (current_lang == "ru")
 	en_button.disabled = (current_lang == "en")
 
-func _update_card_back_buttons():
-	"""Обновить состояние кнопок рубашки карт"""
+func _update_card_back_buttons() -> void:
+	"""Обновить состояние кнопок рубашки карт
+	
+	Отключает активную рубашку и включает неактивную.
+	"""
 	if not tiger_button or not leopard_button:
 		return
 
@@ -675,8 +747,11 @@ func _update_card_back_buttons():
 	tiger_button.disabled = (current_style == "tiger")
 	leopard_button.disabled = (current_style == "leopard")
 
-func _update_camera_control_buttons():
-	"""Обновить состояние кнопок режима управления камерой"""
+func _update_camera_control_buttons() -> void:
+	"""Обновить состояние кнопок режима управления камерой
+	
+	Отключает активный режим и включает неактивный.
+	"""
 	if not camera_linked_button or not camera_independent_button:
 		return
 
@@ -684,8 +759,12 @@ func _update_camera_control_buttons():
 	camera_linked_button.disabled = (current_mode == "linked")
 	camera_independent_button.disabled = (current_mode == "independent")
 
-func _setup_bet_size_options():
-	"""Настроить опции для OptionButton размера ставок"""
+func _setup_bet_size_options() -> void:
+	"""Настроить опции для OptionButton размера ставок
+	
+	Очищает и заполняет OptionButton опциями размера ставок
+	с использованием локализации.
+	"""
 	if not bet_size_option:
 		return
 
@@ -708,8 +787,14 @@ func _on_classic_pressed():
 	"""Обработка нажатия кнопки Classic"""
 	_switch_game_mode("classic")
 
-func _switch_game_mode(mode: String):
-	"""Переключить режим игры (Junket/Classic)"""
+func _switch_game_mode(mode: String) -> void:
+	"""Переключить режим игры (Junket/Classic)
+	
+	Обновляет UI и эмитит сигнал изменения режима.
+	
+	Args:
+		mode: Режим игры ("junket" или "classic")
+	"""
 	_update_mode_buttons(mode)
 	_update_mode_info(mode)
 	mode_changed.emit(mode)
