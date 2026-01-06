@@ -122,6 +122,9 @@ var rounds_counter_updater: RoundsCounterUpdater
 # Обработчик возврата из PayoutScene (Extract Class)
 var payout_return_handler: PayoutReturnHandler
 
+# Обработчик подготовки выплат (Extract Class)
+var payout_preparation_handler: PayoutPreparationHandler
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -265,6 +268,7 @@ func _ready():
 	_initialize_gamepad_monitor()
 	_initialize_rounds_counter_updater()
 	_initialize_payout_return_handler()
+	_initialize_payout_preparation_handler()
 	
 	# Проверка подключения геймпадов (после инициализации GamepadMonitor)
 	_check_gamepad_connection()
@@ -745,6 +749,16 @@ func _initialize_payout_return_handler() -> void:
 	)
 	print("✅ PayoutReturnHandler инициализирован")
 
+func _initialize_payout_preparation_handler() -> void:
+	"""Инициализировать обработчик подготовки выплат"""
+	payout_preparation_handler = PayoutPreparationHandler.new(
+		hand_manager,
+		limits_manager,
+		pair_betting_manager,
+		payout_queue_handler
+	)
+	print("✅ PayoutPreparationHandler инициализирован")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
 # ═══════════════════════════════════════════════════════════════════════════
@@ -844,31 +858,16 @@ func _process_payout_queue_or_reset() -> void:
 
 
 func _format_result() -> String:
-	"""Форматирование результата раздачи для отображения
-	
-	Returns:
-		Строка с результатом (например, "Натуральная 9 против 8" или "7 против 5")
-	"""
-	var p0 = BaccaratRules.hand_value([hand_manager.get_player_hand_ref()[0], hand_manager.get_player_hand_ref()[1]])
-	var b0 = BaccaratRules.hand_value([hand_manager.get_banker_hand_ref()[0], hand_manager.get_banker_hand_ref()[1]])
-	if p0 >= 8 or b0 >= 8:
-		return "Натуральная %d против %d" % [p0 if p0 >= 8 else b0, b0 if p0 >= 8 else p0]
-	return "%d против %d" % [BaccaratRules.hand_value(hand_manager.get_banker_hand_ref()), BaccaratRules.hand_value(hand_manager.get_player_hand_ref())]
+	"""Форматирование результата раздачи для отображения - делегировано в PayoutPreparationHandler"""
+	if payout_preparation_handler:
+		return payout_preparation_handler.format_result()
+	return ""
 
 func _format_victory_toast(winner: String) -> String:
-	"""Форматирование краткого тоста победы (например, 'Выигрывает Банкир: 7 vs 5')"""
-	var player_score = BaccaratRules.hand_value(hand_manager.get_player_hand_ref())
-	var banker_score = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-
-	match winner:
-		"Banker":
-			return Localization.t("VICTORY_BANKER", [banker_score, player_score])
-		"Player":
-			return Localization.t("VICTORY_PLAYER", [player_score, banker_score])
-		"Tie":
-			return Localization.t("VICTORY_TIE")  # Без параметров
-		_:
-			return "???"
+	"""Форматирование краткого тоста победы - делегировано в PayoutPreparationHandler"""
+	if payout_preparation_handler:
+		return payout_preparation_handler.format_victory_toast(winner)
+	return "???"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПОДГОТОВКА И РАСЧЕТ ВЫПЛАТ
@@ -876,14 +875,13 @@ func _format_victory_toast(winner: String) -> String:
 # Методы для подготовки и расчета выплат в ручном режиме
 
 func _prepare_payouts_manual(actual_winner: String) -> void:
-	"""Подготовка выплат в ручном режиме (без автоматического перехода к сцене) - делегировано в PayoutQueueHandler"""
-	if payout_queue_handler:
-		payout_queue_handler.prepare_payouts_manual(actual_winner)
-		# Обновляем ссылку на payout_queue_manager после создания нового
-		if payout_queue_handler.payout_queue_manager:
-			payout_queue_manager = payout_queue_handler.payout_queue_manager
+	"""Подготовка выплат в ручном режиме - делегировано в PayoutPreparationHandler"""
+	if payout_preparation_handler:
+		var updated_manager = payout_preparation_handler.prepare_payouts_manual(actual_winner)
+		if updated_manager:
+			payout_queue_manager = updated_manager
 	else:
-		push_error("❌ PayoutQueueHandler не инициализирован!")
+		push_error("❌ PayoutPreparationHandler не инициализирован!")
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -893,68 +891,23 @@ func _prepare_payouts_manual(actual_winner: String) -> void:
 
 
 func _generate_stake_for_bet_type(bet_type: String) -> float:
-	"""Генерация размера ставки для типа
-	
-	Args:
-		bet_type: Тип ставки (например, "Player", "Banker", "Tie")
-	
-	Returns:
-		Размер ставки для данного типа (с учетом лимитов стола)
-	
-	Рефакторено: использует IBetType вместо match (OCP)
-	"""
-	var bet_type_obj = BetTypeFactory.create(bet_type)
-	if not bet_type_obj:
-		return 0.0
-	return bet_type_obj.get_stake(limits_manager)
-
+	"""Генерация размера ставки для типа - делегировано в PayoutPreparationHandler"""
+	if payout_preparation_handler:
+		return payout_preparation_handler.generate_stake_for_bet_type(bet_type)
+	return 0.0
 
 func _calculate_payout_for_bet_type(bet_type: String, stake: float, won: bool) -> float:
-	"""Расчёт выплаты для типа ставки
-	
-	Args:
-		bet_type: Тип ставки (например, "Player", "Banker", "Tie", "PlayerPair")
-		stake: Размер ставки
-		won: Выиграла ли ставка
-	
-	Returns:
-		Размер выплаты (0.0 если ставка проиграла)
-	
-	Рефакторено: использует PayoutCalculator вместо match (OCP, SRP)
-	"""
-	if not won:
-		return 0.0
-	
-	var bet_type_obj = BetTypeFactory.create(bet_type)
-	if not bet_type_obj:
-		return 0.0
-	
-	var banker_value = BaccaratRules.hand_value(hand_manager.get_banker_hand_ref())
-	var payout_calculator = PayoutCalculator.new()
-	
-	# Для пар используем специальную логику
-	if bet_type_obj.get_group() == GameConstants.BET_GROUP_PAIRS and pair_betting_manager:
-		return payout_calculator.calculate_pair_payout(bet_type_obj, stake, pair_betting_manager)
-	
-	# Для остальных используем стандартный расчет
-	# actual_winner нужен для проверки is_winner, но здесь мы уже знаем что won=true
-	var actual_winner = "Player"  # Значение не важно, т.к. won уже проверен
-	return payout_calculator.calculate(
-		bet_type_obj,
-				stake, 
-		actual_winner,
-		pair_betting_manager.has_player_pair() if pair_betting_manager else false,
-		pair_betting_manager.has_banker_pair() if pair_betting_manager else false,
-		banker_value
-	)
-
+	"""Расчёт выплаты для типа ставки - делегировано в PayoutPreparationHandler"""
+	if payout_preparation_handler:
+		return payout_preparation_handler.calculate_payout_for_bet_type(bet_type, stake, won)
+	return 0.0
 
 func _finalize_payouts_manual(actual_winner: String) -> void:
-	"""Завершение подготовки выплат - обновление видимости и сохранение состояния - делегировано в PayoutQueueHandler"""
-	if payout_queue_handler:
-		payout_queue_handler.finalize_payouts_manual(actual_winner)
+	"""Завершение подготовки выплат - делегировано в PayoutPreparationHandler"""
+	if payout_preparation_handler:
+		payout_preparation_handler.finalize_payouts_manual(actual_winner)
 	else:
-		push_error("❌ PayoutQueueHandler не инициализирован!")
+		push_error("❌ PayoutPreparationHandler не инициализирован!")
 
 
 func _update_chip_visibility() -> void:
