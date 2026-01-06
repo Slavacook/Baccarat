@@ -126,6 +126,20 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	current_area = -1  # Общий план
 	last_zoom_type = "out"
 	
+	# Инициализируем обработчик зума
+	var animate_callback = func(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_nav: bool) -> void:
+		_animate_to(target_pos, target_zoom, target_rotation, zoom_type, is_nav)
+	_zoom_handler = CameraZoomHandler.new(_config, animate_callback)
+	
+	# Инициализируем навигатор областей
+	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
+		_zoom_handler.zoom_area(area_index, is_nav)
+	var zoom_in_cb = func(is_nav: bool) -> void:
+		_zoom_handler.zoom_in(is_nav)
+	var zoom_out_cb = func(is_nav: bool) -> void:
+		_zoom_handler.zoom_out(is_nav)
+	_area_navigator = CameraAreaNavigator.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
+	
 	# ═══════════════════════════════════════════════════════════════════
 	# ПОДПИСКА НА EVENTBUS - ВСЕ КОМАНДЫ И ЗАПРОСЫ
 	# ═══════════════════════════════════════════════════════════════════
@@ -198,140 +212,52 @@ func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _zoom_next_area() -> void:
-	"""Переключиться на следующую область (вправо)
-	
-	Использует циклическую навигацию: area_6 → area_1
-	"""
-	var target = _get_target_area_by_direction("right")
-	if target > 0 and target != current_area:
-		_zoom_area(target)
+	"""Переключиться на следующую область (вправо) - делегировано в CameraAreaNavigator"""
+	if _area_navigator:
+		_area_navigator.zoom_next_area(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 func _zoom_prev_area() -> void:
-	"""Переключиться на предыдущую область (влево)
-	
-	Использует циклическую навигацию: area_1 → area_6
-	"""
-	var target = _get_target_area_by_direction("left")
-	if target > 0 and target != current_area:
-		_zoom_area(target)
+	"""Переключиться на предыдущую область (влево) - делегировано в CameraAreaNavigator"""
+	if _area_navigator:
+		_area_navigator.zoom_prev_area(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 func _zoom_up() -> void:
-	"""Вертикальная навигация вверх
-	
-	Переходы:
-	- С карт → area_4 (центральная область)
-	- Из областей → общий план
-	"""
-	var target = _get_target_area_by_direction("up")
-	if target > 0 and target != current_area:
-		_zoom_area(target)
-	elif target == -1:
-		_zoom_out()
+	"""Вертикальная навигация вверх - делегировано в CameraAreaNavigator"""
+	if _area_navigator:
+		_area_navigator.zoom_up(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 func _zoom_down() -> void:
-	"""Вертикальная навигация вниз
-	
-	Переходы:
-	- Из областей → карты
-	- С карт → общий план
-	"""
-	var target = _get_target_area_by_direction("down")
-	if target == 0:
-		_zoom_in()
-	elif target == -1:
-		_zoom_out()
+	"""Вертикальная навигация вниз - делегировано в CameraAreaNavigator"""
+	if _area_navigator:
+		_area_navigator.zoom_down(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЙ (внутренняя логика)
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _get_target_area_by_direction(direction: String) -> int:
-	"""Определить целевую область по направлению из текущего состояния
-	
-	Единая точка истины для всех переходов камеры.
-	
-	Args:
-		direction: "left", "right", "up", "down"
-	
-	Returns:
-		Целевая область (1-6), 0 для карт, -1 для общего плана
-	"""
-	match direction:
-		"left":
-			match current_area:
-				0: return 1  # карты → area_1
-				1: return 6  # area_1 → area_6 (циклически)
-				2: return 1  # area_2 → area_1
-				3: return 2  # area_3 → area_2
-				4: return 3  # area_4 → area_3
-				5: return 4  # area_5 → area_4
-				6: return 5  # area_6 → area_5
-		"right":
-			match current_area:
-				0: return 6  # карты → area_6
-				1: return 2  # area_1 → area_2
-				2: return 3  # area_2 → area_3
-				3: return 4  # area_3 → area_4
-				4: return 5  # area_4 → area_5
-				5: return 6  # area_5 → area_6
-				6: return 1  # area_6 → area_1 (циклически)
-		"up":
-			match current_area:
-				0: return 4  # карты → area_4 (центральная)
-				1, 2, 3, 4, 5, 6: return -1  # из областей → общий план
-		"down":
-			match current_area:
-				-1: return 0  # общий план → карты
-				0: return -1  # карты → общий план
-				1, 2, 3, 4, 5, 6: return 0  # из областей → карты
-		_:
-			return 0
-	return 0
+	"""Определить целевую область по направлению из текущего состояния - делегировано в CameraAreaNavigator"""
+	if _area_navigator:
+		return _area_navigator.get_target_area_by_direction(current_area, direction)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
+		return 0
 
 func _get_target_area_by_direction_from(area: int, direction: String) -> int:
-	"""Определить целевую область по направлению из указанной области
-	
-	Аналогично get_target_area_by_direction(), но принимает область как параметр.
-	Используется для предсказания состояния стрелок на основе целевой области.
-	
-	Args:
-		area: Исходная область (0 = карты, 1-6 = области ставок, -1 = общий план)
-		direction: "left", "right", "up", "down"
-	
-	Returns:
-		Целевая область (1-6), 0 для карт, -1 для общего плана
-	"""
-	match direction:
-		"left":
-			match area:
-				0: return 1  # карты → area_1
-				1: return 6  # area_1 → area_6 (циклически)
-				2: return 1  # area_2 → area_1
-				3: return 2  # area_3 → area_2
-				4: return 3  # area_4 → area_3
-				5: return 4  # area_5 → area_4
-				6: return 5  # area_6 → area_5
-		"right":
-			match area:
-				0: return 6  # карты → area_6
-				1: return 2  # area_1 → area_2
-				2: return 3  # area_2 → area_3
-				3: return 4  # area_3 → area_4
-				4: return 5  # area_4 → area_5
-				5: return 6  # area_5 → area_6
-				6: return 1  # area_6 → area_1 (циклически)
-		"up":
-			match area:
-				0: return 4  # карты → area_4 (центральная)
-				1, 2, 3, 4, 5, 6: return -1  # из областей → общий план
-		"down":
-			match area:
-				-1: return 0  # общий план → карты
-				0: return -1  # карты → общий план
-				1, 2, 3, 4, 5, 6: return 0  # из областей → карты
-		_:
-			return 0
-	return 0
+	"""Определить целевую область по направлению из указанной области - делегировано в CameraAreaNavigator"""
+	if _area_navigator:
+		return _area_navigator.get_target_area_by_direction(area, direction)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
+		return 0
 
 func predict_target_area(zoom_type: String) -> int:
 	"""Предсказать целевую область (1-6) по zoom_type, 0 — если карты/общий план
@@ -812,5 +738,14 @@ func reload_config() -> void:
 	var animate_callback = func(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_nav: bool) -> void:
 		_animate_to(target_pos, target_zoom, target_rotation, zoom_type, is_nav)
 	_zoom_handler = CameraZoomHandler.new(_config, animate_callback)
+	
+	# Обновляем навигатор областей
+	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
+		_zoom_handler.zoom_area(area_index, is_nav)
+	var zoom_in_cb = func(is_nav: bool) -> void:
+		_zoom_handler.zoom_in(is_nav)
+	var zoom_out_cb = func(is_nav: bool) -> void:
+		_zoom_handler.zoom_out(is_nav)
+	_area_navigator = CameraAreaNavigator.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
 	
 	print("📷 CameraManager: конфигурация перезагружена из %s" % _config_path)
