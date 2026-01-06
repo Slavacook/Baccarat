@@ -2,3 +2,7 @@ res://scripts/CameraManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
+res://resources/CameraConfig.gd
+res://scripts/ui/ChipNavigationManager.gd
+res://scripts/utils/CameraAreaNavigator.gd
+res://scripts/utils/CameraZoomHandler.gd

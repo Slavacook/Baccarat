@@ -130,6 +130,18 @@ var mode2_left_rotation: float = 0.0
 var mode2_left_description: String = "Режим 2 (слева)"
 
 # ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): РЕЖИМ 2 (ЦЕНТР)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для РЕЖИМ 2 (ЦЕНТР)
+var mode2_center_position: Vector2 = Vector2(570, 120)
+# Масштаб камеры для режим 2 (центр)
+var mode2_center_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для режим 2 (центр) (в градусах)
+var mode2_center_rotation: float = 0.0
+var mode2_center_description: String = "Режим 2 (центр)"
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ОБЩИЕ НАСТРОЙКИ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -278,6 +290,15 @@ func get_mode2_left_settings() -> Dictionary:
 		"description": mode2_left_description
 	}
 
+func get_mode2_center_settings() -> Dictionary:
+	"""Получить настройки для режим 2 (центр)"""
+	return {
+		"position": mode2_center_position,
+		"zoom": mode2_center_zoom,
+		"rotation": mode2_center_rotation,
+		"description": mode2_center_description
+	}
+
 func get_area_settings(area_index: int) -> Dictionary:
 	"""Получить настройки для области по индексу (1-6)"""
 	match area_index:
@@ -320,6 +341,8 @@ func get_settings_by_type(zoom_type: String) -> Dictionary:
 			return get_mode2_right_settings()
 		"mode2_left":
 			return get_mode2_left_settings()
+		"mode2_center":
+			return get_mode2_center_settings()
 		_:
 			push_error("CameraConfig: неизвестный тип зума '%s'" % zoom_type)
 			return get_general_settings()

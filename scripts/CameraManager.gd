@@ -43,7 +43,6 @@ var is_first_deal: bool = true
 var current_area: int = -1  # Текущая активная область (-1 = общий план, 0 = карты, 1-3 = область)
 var last_zoom_type: String = "out"  # Последний тип зума (для вертикальной навигации)
 var current_tween: Tween = null  # Текущий активный tween (для предотвращения конфликтов)
-var _was_on_cards_before_out: bool = false  # Флаг: была ли камера на картах перед переходом на "out" (для правильной анимации)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -209,6 +208,13 @@ func _zoom_mode2_left(is_navigation: bool = false) -> void:
 	else:
 		push_error("❌ CameraZoomHandler не инициализирован!")
 
+func _zoom_mode2_center(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на режим 2 (центр) - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_mode2_center(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
 func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на указанную область (1-6) - делегировано в CameraZoomHandler"""
 	if _zoom_handler:
@@ -338,44 +344,27 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Сохраняем текущую позицию (откуда мы идем) ДО обновления current_area
 	var from_zoom_type = last_zoom_type  # Тип зума, откуда мы идем (стартовая точка)
 	
-	# Если камера переходит на "out", сохраняем информацию о том, была ли она на картах
-	if zoom_type == "out":
-		_was_on_cards_before_out = (from_zoom_type == "in" or from_zoom_type == "cards")
+	# Простая логика: медленная анимация ТОЛЬКО при переходах между режимами 2
+	# Режимы 2: mode2_right, mode2_left, mode2_center
+	var mode2_modes = ["mode2_right", "mode2_left", "mode2_center"]
+	var from_is_mode2 = from_zoom_type in mode2_modes
+	var to_is_mode2 = zoom_type in mode2_modes
 	
-	# Определяем, является ли СТАРТОВАЯ позиция одним из режимов 2 (out, mode2_right, mode2_left)
-	var from_is_mode2 = (from_zoom_type == "out" or from_zoom_type == "mode2_right" or from_zoom_type == "mode2_left")
-	
-	# Определяем, является ли ЦЕЛЕВАЯ позиция одним из режимов 2 (out, mode2_right, mode2_left)
-	var to_is_mode2 = (zoom_type == "out" or zoom_type == "mode2_right" or zoom_type == "mode2_left")
-	
-	# Автоматически определяем is_navigation: медленная анимация ТОЛЬКО если камера УЖЕ на одной из точек режима 2
-	# И переходит на другую точку режима 2 (обе точки должны быть в списке)
-	# ИСКЛЮЧЕНИЕ: если камера была на картах перед переходом на "out", то переход с "out" на mode2_right/mode2_left тоже быстрый
-	var should_use_fast_animation = false
-	if from_zoom_type == "out" and to_is_mode2 and _was_on_cards_before_out:
-		# Камера была на картах → перешла на "out" → теперь переходит на mode2_right/mode2_left
-		# Это должно быть быстро, так как визуально это один переход с карт
-		should_use_fast_animation = true
-		_was_on_cards_before_out = false  # Сбрасываем флаг после использования
-	
-	if from_is_mode2 and to_is_mode2 and not should_use_fast_animation:
+	# Медленная анимация только при переходах между режимами 2
+	if from_is_mode2 and to_is_mode2:
 		is_navigation = true
 		print("📷 CameraManager: медленная анимация (режим 2: %s → %s)" % [from_zoom_type, zoom_type])
 	else:
 		is_navigation = false
-		if should_use_fast_animation:
-			print("📷 CameraManager: быстрая анимация (%s → %s) [камера была на картах]" % [from_zoom_type, zoom_type])
-		else:
-			print("📷 CameraManager: быстрая анимация (%s → %s)" % [from_zoom_type, zoom_type])
+		print("📷 CameraManager: быстрая анимация (%s → %s)" % [from_zoom_type, zoom_type])
 	
 	# Обновляем current_area на основе zoom_type
 	match zoom_type:
 		"in", "cards":
 			current_area = 0  # Карты
-			_was_on_cards_before_out = false  # Сбрасываем флаг при переходе на карты
 		"out":
 			current_area = -1  # Общий план
-		"mode2_right", "mode2_left":
+		"mode2_right", "mode2_left", "mode2_center":
 			current_area = -1  # Остаёмся на общем плане для режима 2
 		_:
 			if zoom_type.begins_with("area_"):
@@ -384,7 +373,6 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 				var area_num = area_str.to_int()
 				if area_num >= 1 and area_num <= 6:
 					current_area = area_num
-			_was_on_cards_before_out = false  # Сбрасываем флаг при переходе на другие позиции
 	
 	last_zoom_type = zoom_type
 	zoom_started.emit(zoom_type)
@@ -461,6 +449,8 @@ func _on_zoom_requested(zoom_type: String, is_navigation: bool = false) -> void:
 			_zoom_mode2_right(is_navigation)
 		"mode2_left":
 			_zoom_mode2_left(is_navigation)
+		"mode2_center":
+			_zoom_mode2_center(is_navigation)
 		"next_area":
 			_zoom_next_area()
 		"prev_area":

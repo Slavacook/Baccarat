@@ -72,6 +72,15 @@ func zoom_mode2_left(is_navigation: bool = false) -> void:
 	var settings = config.get_mode2_left_settings()
 	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left", is_navigation)
 
+func zoom_mode2_center(is_navigation: bool = false) -> void:
+	"""Зум на режим 2 (центр)
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
+	var settings = config.get_mode2_center_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_center", is_navigation)
+
 func zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Зум на указанную область (1-6)
 	
