@@ -1914,9 +1914,19 @@ func _on_manual_payout_requested(winner: String):
 
 # Методы навигации по ставкам перенесены в ChipNavigationCoordinator
 # _on_chip_navigation_activation_requested -> chip_navigation_coordinator.on_chip_navigation_activation_requested
-# _activate_chip_navigation_deferred -> chip_navigation_coordinator.activate_chip_navigation_deferred
 # _has_bets_to_process -> chip_navigation_coordinator.has_bets_to_process
 # _on_auto_switch_to_pay_mode_requested -> chip_navigation_coordinator.on_auto_switch_to_pay_mode_requested
+
+func _activate_chip_navigation_deferred_internal(camera_linked: bool) -> void:
+	"""Внутренний метод для отложенной активации chip navigation (через call_deferred)
+	
+	Args:
+		camera_linked: Привязана ли навигация к камере
+	"""
+	if chip_navigation_coordinator:
+		chip_navigation_coordinator.activate_chip_navigation_deferred(camera_linked)
+	else:
+		push_error("❌ ChipNavigationCoordinator не инициализирован!")
 
 func _on_table_prepared():
 	"""Обработка подготовки стола к новой игре"""
