@@ -55,13 +55,14 @@ func prepare_payouts_manual(actual_winner: String) -> PayoutQueueManager:
 		actual_winner: Реальный победитель раздачи
 		
 	Returns:
-		Обновленный payout_queue_manager
+		Обновленный payout_queue_manager или null если ошибка
 	"""
 	if payout_queue_handler:
 		payout_queue_handler.prepare_payouts_manual(actual_winner)
 		# Возвращаем обновленный менеджер
 		if payout_queue_handler.payout_queue_manager:
 			return payout_queue_handler.payout_queue_manager
+		return null  # Если менеджер не был создан
 	else:
 		push_error("❌ PayoutQueueHandler не инициализирован!")
 		return null

@@ -149,11 +149,11 @@ func restore_table_state() -> void:
 	
 	state_restorer.restore_table_state()
 
-func restore_survival_and_queue(survival_rounds_completed_ref: int, payout_queue_manager_ref: PayoutQueueManager) -> Dictionary:
+func restore_survival_and_queue(_survival_rounds_completed_ref: int, payout_queue_manager_ref: PayoutQueueManager) -> Dictionary:
 	"""Восстановление маркера победителя, survival режима и очереди выплат
 	
 	Args:
-		survival_rounds_completed_ref: Текущее значение survival_rounds_completed
+		_survival_rounds_completed_ref: Текущее значение survival_rounds_completed (не используется, берется из TableStateManager)
 		payout_queue_manager_ref: Текущий payout_queue_manager
 		
 	Returns:
@@ -262,11 +262,11 @@ func handle_automatic_mode_payout_return(survival_rounds_completed_ref: int) -> 
 		"should_reset": should_reset
 	}
 
-func restore_automatic_mode_state(survival_rounds_completed_ref: int) -> int:
+func restore_automatic_mode_state(_survival_rounds_completed_ref: int) -> int:
 	"""Восстановление состояния игры, камеры и UI
 	
 	Args:
-		survival_rounds_completed_ref: Текущее значение survival_rounds_completed
+		_survival_rounds_completed_ref: Текущее значение survival_rounds_completed (не используется, берется из GameDataManager)
 		
 	Returns:
 		Обновленное значение survival_rounds_completed
