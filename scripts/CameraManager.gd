@@ -30,8 +30,8 @@ var _config: CameraConfig = null
 var _camera: Camera2D = null
 var _scene: Node = null  # Родительская сцена для создания tween
 var _process_node: Node = null  # Node для обработки _process (экспоненциальное сглаживание)
-var _zoom_handler: CameraZoomHandler = null  # Обработчик зума (Extract Class)
-var _area_navigator: CameraAreaNavigator = null  # Навигатор областей (Extract Class)
+var _zoom_handler: RefCounted = null  # Обработчик зума (Extract Class) - CameraZoomHandler
+var _area_navigator: RefCounted = null  # Навигатор областей (Extract Class) - CameraAreaNavigator
 
 # Целевые значения для экспоненциального сглаживания
 var _target_position: Vector2 = Vector2.ZERO
