@@ -1,5 +1,5 @@
 72322a848ab928aa5c89f0cb78209805
-::res://::1767667578
+::res://::1767687853
 AI_CONTEXT.md::TextFile::-1::1767616885::0::1::::<><><>0<>0<><>::
 CLASS_INDEX.md::TextFile::-1::1767616885::0::1::::<><><>0<>0<><>::
 CLAUDE.md::TextFile::-1::1765937705::0::1::::<><><>0<>0<><>::
@@ -7,7 +7,7 @@ CLEANUP_REPORT.md::TextFile::-1::1765878385::0::1::::<><><>0<>0<><>::
 CODE_EXAMPLES.md::TextFile::-1::1767617228::0::1::::<><><>0<>0<><>::
 DEPENDENCY_GRAPH.md::TextFile::-1::1767616885::0::1::::<><><>0<>0<><>::
 DOCS_INDEX.md::TextFile::-1::1767617228::0::1::::<><><>0<>0<><>::
-export_presets.cfg::TextFile::-1::1767666342::0::1::::<><><>0<>0<><>::
+export_presets.cfg::TextFile::-1::1767669731::0::1::::<><><>0<>0<><>::
 grog.txt::TextFile::-1::1765877564::0::1::::<><><>0<>0<><>::
 GUT_INSTALLATION.md::TextFile::-1::1767661788::0::1::::<><><>0<>0<><>::
 icon.svg::CompressedTexture2D::5997841514287046917::1765877564::1765877564::1::::<><><>0<>0<>97e4bc25c7e5c7f5fa689f4f6662d88d<>res://.godot/imported/icon.svg-218a8f2b3041327d8a5756f3a245f83b.ctex::
@@ -21,6 +21,7 @@ REFACTORING_FINAL_REPORT.md::TextFile::-1::1767661189::0::1::::<><><>0<>0<><>::
 REFACTORING_PLAN_GameController.md::TextFile::-1::1766800476::0::1::::<><><>0<>0<><>::
 REFACTORING_PLAN_PHASE7.md::TextFile::-1::1767628140::0::1::::<><><>0<>0<><>::
 REFACTORING_PLAN_PHASE8.md::TextFile::-1::1767664332::0::1::::<><><>0<>0<><>::
+REFACTORING_PLAN_PHASE9.md::TextFile::-1::1767686817::0::1::::<><><>0<>0<><>::
 REFACTORING_PROGRESS.md::TextFile::-1::1767661200::0::1::::<><><>0<>0<><>::
 REFACTORING_README.md::TextFile::-1::1767617479::0::1::::<><><>0<>0<><>::
 REFACTORING_SAFETY_IMPROVEMENTS.md::TextFile::-1::1765884161::0::1::::<><><>0<>0<><>::
@@ -514,7 +515,7 @@ FirstFourDealCoordinator.gd::GDScript::4706552728192853869::1766474011::0::1::::
 FlipCard.gd::GDScript::1979425046039752148::1765877564::0::1::::FlipCard<>Node2D<><>0<>0<><>::
 GameCompletionCoordinator.gd::GDScript::6955625309893872892::1766533760::0::1::::GameCompletionCoordinator<>RefCounted<><>0<>0<><>::
 GameConstants.gd::GDScript::5908386211620384816::1767618676::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
-GameController.gd::GDScript::5622432768509677956::1767667556::0::1::::<>Node2D<><>0<>0<><>::
+GameController.gd::GDScript::5622432768509677956::1767687775::0::1::::<>Node2D<><>0<>0<><>::
 GameDataManager.gd::GDScript::3173968144031983268::1766128355::0::1::::<>Node<><>0<>0<><>::
 GameInitializer.gd::GDScript::7528074775368441392::1767667175::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
 GameModeManager.gd::GDScript::5355736345804787176::1765878366::0::1::::<>Node<><>0<>0<><>::
@@ -641,12 +642,13 @@ GuestSettingsPopup.gd::GDScript::7199385394601919679::1765932122::0::1::::<>Popu
 TestCardsPopup.gd::GDScript::4182776438846630872::1766274101::0::1::::<>CanvasLayer<><>0<>0<><>::
 ::res://scripts/providers/::1765878366
 PayoutSettingsProvider.gd::GDScript::8947357632970668512::1765878366::0::1::::PayoutSettingsProvider<>IPayoutSettingsProvider<><>0<>0<><>::
-::res://scripts/refactoring/::1767660004
+::res://scripts/refactoring/::1767686759
 BETCOLLECTIONPHASEMANAGER_ANALYSIS.md::TextFile::-1::1767624483::0::1::::<><><>0<>0<><>::
 CAMERAMANAGER_ANALYSIS.md::TextFile::-1::1767660177::0::1::::<><><>0<>0<><>::
 CHIPVISUALMANAGER_ANALYSIS.md::TextFile::-1::1767624659::0::1::::<><><>0<>0<><>::
 FINAL_SUMMARY.md::TextFile::-1::1765878366::0::1::::<><><>0<>0<><>::
 GAMECONTROLLER_ANALYSIS.md::TextFile::-1::1766980481::0::1::::<><><>0<>0<><>::
+GAMECONTROLLER_PHASE9_ANALYSIS.md::TextFile::-1::1767686759::0::1::::<><><>0<>0<><>::
 GAMEPHASEMANAGER_ANALYSIS.md::TextFile::-1::1767623004::0::1::::<><><>0<>0<><>::
 GUESTMENUSCENE_ANALYSIS.md::TextFile::-1::1767625303::0::1::::<><><>0<>0<><>::
 PAYOUT_OVERLAY_CLEANUP_SUMMARY.md::TextFile::-1::1766980481::0::1::::<><><>0<>0<><>::
@@ -697,7 +699,7 @@ SettingsEventHandler.gd::GDScript::1952365129322877820::1767003713::0::1::::Sett
 SettingsKeyboardNavigator.gd::GDScript::3289900286824277146::1767660405::0::1::::SettingsKeyboardNavigator<>RefCounted<><>0<>0<><>::
 ToggleUIManager.gd::GDScript::6934597452681620777::1765878366::0::1::::ToggleUIManager<>RefCounted<><>0<>0<><>::
 WinnerSelectionHandler.gd::GDScript::6004156994455110227::1767002228::0::1::::WinnerSelectionHandler<>RefCounted<><>0<>0<><>::
-::res://scripts/utils/::1767667259
+::res://scripts/utils/::1767687818
 BetSorter.gd::GDScript::7730765070579279737::1767625736::0::1::::BetSorter<>RefCounted<><>0<>0<><>::
 CameraNavigationController.gd::GDScript::6073048886591610155::1767664543::0::1::::CameraNavigationController<>RefCounted<><>0<>0<><>::
 CardController.gd::GDScript::5325664900379928223::1767618883::0::1::::CardController<>RefCounted<><>0<>0<><>::
@@ -710,13 +712,16 @@ GamepadMonitor.gd::GDScript::4591038875860643635::1767667259::0::1::::GamepadMon
 GameStateController.gd::GDScript::1846333371857691305::1767618920::0::1::::GameStateController<>RefCounted<><>0<>0<><>::
 KeyboardFocusHandler.gd::GDScript::3407239430178186263::1767664893::0::1::::KeyboardFocusHandler<>RefCounted<><>0<>0<><>::
 LinePositionCalculator.gd::GDScript::1633218745718249287::1767625559::0::1::::LinePositionCalculator<>RefCounted<><>0<>0<><>::
+PayoutPreparationHandler.gd::GDScript::4475382153672514224::1767687289::0::1::::PayoutPreparationHandler<>RefCounted<><>0<>0<><>::
 PayoutResultHandler.gd::GDScript::7376801664129900027::1766989114::0::1::::PayoutResultHandler<>RefCounted<><>0<>0<><>::
+PayoutReturnHandler.gd::GDScript::6212596182654741844::1767687180::0::1::::PayoutReturnHandler<>RefCounted<><>0<>0<><>::
 RealisticChipGenerator.gd::GDScript::2831737639018208858::1767627842::0::1::::RealisticChipGenerator<>RefCounted<><>0<>0<><>::
 RoundsCounterUpdater.gd::GDScript::7145942985439012519::1767664917::0::1::::RoundsCounterUpdater<>RefCounted<><>0<>0<><>::
 SequenceManager.gd::GDScript::4310326685642844366::1767665405::0::1::::SequenceManager<>RefCounted<><>0<>0<><>::
 StakeLabelManager.gd::GDScript::1660242496626340475::1767627625::0::1::::StakeLabelManager<>RefCounted<><>0<>0<><>::
 StateConsistencyChecker.gd::GDScript::1544690365092654479::1767626578::0::1::::StateConsistencyChecker<>RefCounted<><>0<>0<><>::
 SurvivalStateProvider.gd::GDScript::8633708169050426295::1766803964::0::1::::SurvivalStateProvider<>RefCounted<><>0<>0<><>::
+UIEventHandler.gd::GDScript::7331335993983257488::1767687774::0::1::::UIEventHandler<>RefCounted<><>0<>0<><>::
 ::res://scripts/validators/::1765884210
 DefaultBetCollectionValidator.gd::GDScript::3455400197945027953::1766125241::0::1::::DefaultBetCollectionValidator<>IBetCollectionValidator<><>0<>0<><>::
 ::res://tests/::1767666042

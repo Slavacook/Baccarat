@@ -379,4 +379,3 @@ func handle_payout_queue() -> bool:
 			phase_manager.reset()
 		
 		return true  # Сбрасываем раунд
-

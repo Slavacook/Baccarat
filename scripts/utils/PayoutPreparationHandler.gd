@@ -166,4 +166,3 @@ func format_victory_toast(winner: String) -> String:
 			return Localization.t("VICTORY_TIE")  # Без параметров
 		_:
 			return "???"
-
