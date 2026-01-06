@@ -53,7 +53,8 @@ func test_get_random_texture_invalid_type():
 	var invalid_type = "InvalidType"
 	
 	# Act - ожидаем ошибку (push_error), но продолжаем тест
-	# Ошибка будет в логе, но тест должен пройти
+	# Используем expect_error для подавления ошибки в логе
+	expect_error("ChipTextureManager: нет текстур для типа 'InvalidType'")
 	var texture = texture_manager.get_random_texture(invalid_type)
 	
 	# Assert

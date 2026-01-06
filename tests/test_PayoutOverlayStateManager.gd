@@ -98,6 +98,8 @@ func test_update_score_display_with_survival_info():
 
 func test_update_score_display_without_survival_info():
 	"""Проверка: обновление отображения без survival_info"""
+	# Ожидаем ошибку, так как метод проверяет null
+	expect_error("survival_info == null!")
 	state_manager.survival_info = null
 	# Метод должен обработать null и не упасть
 	state_manager.update_score_display()
@@ -118,4 +120,3 @@ func test_handle_life_lost_zero():
 	state_manager.set_survival_state(true, 7)
 	state_manager.handle_life_lost(0)
 	assert_eq(state_manager.current_lives, 0, "Жизни должны быть 0")
-
