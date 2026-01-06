@@ -104,6 +104,21 @@ var chance_card_navigator: ChanceCardNavigator = null
 # Контроллер навигации камеры (Extract Class)
 var camera_navigation_controller: CameraNavigationController
 
+# Координатор навигации по ставкам (Extract Class)
+var chip_navigation_coordinator: ChipNavigationCoordinator
+
+# Обработчик режимов сбора и оплаты (Extract Class)
+var collection_mode_handler: CollectionModeHandler
+
+# Обработчик клавиатурного фокуса (Extract Class)
+var keyboard_focus_handler: KeyboardFocusHandler
+
+# Монитор геймпадов (Extract Class)
+var gamepad_monitor: GamepadMonitor
+
+# Обновлятель счетчика раундов (Extract Class)
+var rounds_counter_updater: RoundsCounterUpdater
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
