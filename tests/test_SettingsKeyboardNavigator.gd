@@ -133,11 +133,12 @@ func test_navigate_focus_with_focus_neighbor():
 	var button2 = Button.new()
 	button2.name = "Button2"
 	
-	# Настраиваем focus_neighbor
-	button1.focus_neighbor_right = button2.get_path()
-	
+	# Сначала добавляем в дерево, потом настраиваем focus_neighbor
 	mock_settings_scene.add_child(button1)
 	mock_settings_scene.add_child(button2)
+	
+	# Теперь можно получить путь (кнопки в дереве)
+	button1.focus_neighbor_right = button2.get_path()
 	
 	button1.grab_focus()
 	

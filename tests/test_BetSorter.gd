@@ -135,9 +135,12 @@ func test_get_sorted_tie_bets_collect_left_to_right():
 	
 	# Assert
 	assert_eq(result.size(), 3, "Должно быть 3 Tie ставки")
-	# При сборе: слева направо (больший position_index = левее = идёт первым)
-	assert_true(result[0].get_position_index() >= result[1].get_position_index(), "Сортировка слева направо при сборе")
-	assert_true(result[1].get_position_index() >= result[2].get_position_index(), "Сортировка слева направо при сборе")
+	# При сборе: слева направо (больший номер позиции = левее = идёт первым)
+	var num0 = position_calculator.get_line_position_number(result[0].get_bet_type(), result[0].get_position_index())
+	var num1 = position_calculator.get_line_position_number(result[1].get_bet_type(), result[1].get_position_index())
+	var num2 = position_calculator.get_line_position_number(result[2].get_bet_type(), result[2].get_position_index())
+	assert_true(num0 >= num1, "Сортировка слева направо при сборе (номер позиции)")
+	assert_true(num1 >= num2, "Сортировка слева направо при сборе (номер позиции)")
 
 func test_get_sorted_tie_bets_pay_right_to_left():
 	"""Проверка: оплата Tie ставок справа налево (прямой порядок)"""
@@ -154,9 +157,12 @@ func test_get_sorted_tie_bets_pay_right_to_left():
 	
 	# Assert
 	assert_eq(result.size(), 3, "Должно быть 3 Tie ставки")
-	# При оплате: справа налево (меньший position_index = правее = идёт первым)
-	assert_true(result[0].get_position_index() <= result[1].get_position_index(), "Сортировка справа налево при оплате")
-	assert_true(result[1].get_position_index() <= result[2].get_position_index(), "Сортировка справа налево при оплате")
+	# При оплате: справа налево (меньший номер позиции = правее = идёт первым)
+	var num0 = position_calculator.get_line_position_number(result[0].get_bet_type(), result[0].get_position_index())
+	var num1 = position_calculator.get_line_position_number(result[1].get_bet_type(), result[1].get_position_index())
+	var num2 = position_calculator.get_line_position_number(result[2].get_bet_type(), result[2].get_position_index())
+	assert_true(num0 <= num1, "Сортировка справа налево при оплате (номер позиции)")
+	assert_true(num1 <= num2, "Сортировка справа налево при оплате (номер позиции)")
 
 func test_get_sorted_tie_bets_filters_by_won():
 	"""Проверка: фильтрация по is_won"""
@@ -213,9 +219,9 @@ func test_get_sorted_pair_bets_right_to_left():
 	"""Проверка: сортировка пар справа налево"""
 	# Arrange
 	var bets = [
-		MockBet.new("PairPlayer", 2, false),  # position_index 2 (левее)
-		MockBet.new("PairPlayer", 0, false),  # position_index 0 (правее)
-		MockBet.new("PairPlayer", 1, false),  # position_index 1 (середина)
+		MockBet.new("PairPlayer", 2, false),  # position_index 2
+		MockBet.new("PairPlayer", 0, false),  # position_index 0
+		MockBet.new("PairPlayer", 1, false),  # position_index 1
 	]
 	var manager = MockPayoutQueueManager.new(bets)
 	
@@ -224,10 +230,12 @@ func test_get_sorted_pair_bets_right_to_left():
 	
 	# Assert
 	assert_eq(result.size(), 3, "Должно быть 3 пары ставки")
-	# Сортировка справа налево (меньший position_index = правее = идёт первым)
-	assert_eq(result[0].get_position_index(), 0, "Первая ставка должна быть с position_index 0")
-	assert_eq(result[1].get_position_index(), 1, "Вторая ставка должна быть с position_index 1")
-	assert_eq(result[2].get_position_index(), 2, "Третья ставка должна быть с position_index 2")
+	# Сортировка справа налево (меньший номер позиции = правее = идёт первым)
+	var num0 = position_calculator.get_line_position_number(result[0].get_bet_type(), result[0].get_position_index())
+	var num1 = position_calculator.get_line_position_number(result[1].get_bet_type(), result[1].get_position_index())
+	var num2 = position_calculator.get_line_position_number(result[2].get_bet_type(), result[2].get_position_index())
+	assert_true(num0 <= num1, "Сортировка справа налево (номер позиции)")
+	assert_true(num1 <= num2, "Сортировка справа налево (номер позиции)")
 
 func test_get_sorted_pair_bets_filters_by_won():
 	"""Проверка: фильтрация пар по is_won"""
