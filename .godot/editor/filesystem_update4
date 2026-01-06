@@ -1,0 +1,3 @@
+res://scenes/SettingsScene.tscn
+res://scripts/SettingsScene.gd
+res://scripts/CameraManager.gd
