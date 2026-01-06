@@ -6,8 +6,9 @@
 class_name CameraManager
 extends RefCounted
 
-# Предзагрузка CameraAnimationHelper для статических методов
+# Предзагрузка классов для статических методов и типов
 const CameraAnimationHelper = preload("res://scripts/utils/CameraAnimationHelper.gd")
+const CameraConfig = preload("res://resources/CameraConfig.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
@@ -789,7 +790,7 @@ func restore_to_general() -> void:
 	Публичный метод для восстановления состояния камеры без анимации.
 	Используется только в StateRestorer для восстановления состояния стола.
 	"""
-	if _camera and _config:
+	if _camera != null and _config != null:
 		var general_settings = _config.get_general_settings()
 		_camera.position = general_settings.position
 		_camera.zoom = general_settings.zoom
