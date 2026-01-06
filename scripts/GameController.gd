@@ -610,6 +610,20 @@ func _initialize_payout_overlay_coordinator() -> void:
 	
 	print("✅ PayoutOverlayCoordinator инициализирован")
 
+func _initialize_camera_navigation_controller() -> void:
+	"""Инициализировать контроллер навигации камеры"""
+	if camera_manager:
+		camera_navigation_controller = CameraNavigationController.new(camera_manager, self)
+		
+		# Подключаем сигналы EventBus
+		if EventBus:
+			EventBus.camera_zoom_requested.connect(camera_navigation_controller.on_camera_zoom_requested)
+			EventBus.arrows_visibility_changed.connect(camera_navigation_controller.on_arrows_visibility_changed)
+		
+		print("✅ CameraNavigationController инициализирован")
+	else:
+		push_error("❌ CameraManager не инициализирован для CameraNavigationController!")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
 # ═══════════════════════════════════════════════════════════════════════════
