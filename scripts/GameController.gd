@@ -637,7 +637,7 @@ func _initialize_camera_navigation_controller() -> void:
 		# Подключаем сигналы EventBus
 		if EventBus:
 			EventBus.camera_zoom_requested.connect(camera_navigation_controller.on_camera_zoom_requested)
-			EventBus.arrows_visibility_changed.connect(camera_navigation_controller.on_arrows_visibility_changed)
+			EventBus.navigation_arrows_visibility_changed.connect(camera_navigation_controller.on_arrows_visibility_changed)
 		
 		print("✅ CameraNavigationController инициализирован")
 	else:

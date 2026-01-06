@@ -36,7 +36,7 @@ func check_connection() -> void:
 	last_check_time = Time.get_ticks_msec()
 	last_connected_count = connected_joypads.size()
 
-func process(delta: float) -> void:
+func process(_delta: float) -> void:
 	"""Проверка изменения подключения геймпадов (только при изменении)
 	
 	Args:

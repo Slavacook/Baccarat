@@ -466,10 +466,10 @@ static func _setup_navigation_arrows(controller: Node2D) -> void:
 	if down_arrow and down_arrow.has_signal("pressed"):
 		down_arrow.pressed.connect(controller._on_down_arrow_pressed)
 
-	# Подписываемся на EventBus для управления видимостью стрелок
+	# Подписка на EventBus для управления видимостью стрелок будет выполнена
+	# в _initialize_camera_navigation_controller() после инициализации контроллера
+	# Скрываем стрелки при старте - они появятся только после выбора победителя
 	if EventBus:
-		EventBus.navigation_arrows_visibility_changed.connect(controller._on_arrows_visibility_changed)
-		# Скрываем стрелки при старте - они появятся только после выбора победителя
 		EventBus.navigation_arrows_visibility_changed.emit(false)
 
 	DebugLogger.log_init("Стрелки навигации инициализированы")
