@@ -116,4 +116,3 @@ func has_textures(bet_type: String) -> bool:
 		true если текстуры есть, false иначе
 	"""
 	return CHIP_TEXTURES.has(bet_type) and not CHIP_TEXTURES[bet_type].is_empty()
-

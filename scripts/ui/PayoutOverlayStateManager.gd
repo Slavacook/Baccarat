@@ -108,4 +108,3 @@ func handle_life_lost(remaining_lives: int) -> void:
 	"""
 	# Обновляем количество жизней
 	update_lives(remaining_lives)
-

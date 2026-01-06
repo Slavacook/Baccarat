@@ -135,4 +135,3 @@ func get_positions_count(bet_type: String) -> int:
 	if not ALTERNATIVE_POSITIONS.has(bet_type):
 		return 0
 	return ALTERNATIVE_POSITIONS[bet_type].size()
-
