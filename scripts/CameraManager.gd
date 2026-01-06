@@ -67,10 +67,13 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	var config_script = load(_config_path) as GDScript
 	if config_script:
 		_config = config_script.new() as CameraConfig
+		if _config == null:
+			# Если приведение типа не сработало, создаём напрямую
+			_config = CameraConfigClass.new() as CameraConfig
 	else:
 		push_error("❌ CameraManager: не удалось загрузить конфигурацию из %s. Используются значения по умолчанию." % _config_path)
 		# Создаём конфигурацию по умолчанию
-		_config = CameraConfig.new()
+		_config = CameraConfigClass.new() as CameraConfig
 	
 	# Создаём камеру
 	_camera = Camera2D.new()
@@ -805,7 +808,10 @@ func reload_config() -> void:
 	var config_script = load(_config_path) as GDScript
 	if config_script:
 		_config = config_script.new() as CameraConfig
+		if _config == null:
+			# Если приведение типа не сработало, создаём напрямую
+			_config = CameraConfigClass.new() as CameraConfig
 	else:
 		push_error("❌ CameraManager: не удалось перезагрузить конфигурацию из %s" % _config_path)
-		_config = CameraConfig.new()
+		_config = CameraConfigClass.new() as CameraConfig
 	print("📷 CameraManager: конфигурация перезагружена из %s" % _config_path)

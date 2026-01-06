@@ -3,6 +3,7 @@
 # Заменяет старый SettingsPopup
 
 extends CanvasLayer
+class_name SettingsScene
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (для совместимости с GameController)
