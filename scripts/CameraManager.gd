@@ -563,11 +563,14 @@ func reload_config() -> void:
 	
 	# Обновляем навигатор областей
 	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
-		_zoom_handler.zoom_area(area_index, is_nav)
+		if _zoom_handler and is_instance_valid(_zoom_handler):
+			_zoom_handler.zoom_area(area_index, is_nav)
 	var zoom_in_cb = func(is_nav: bool) -> void:
-		_zoom_handler.zoom_in(is_nav)
+		if _zoom_handler and is_instance_valid(_zoom_handler):
+			_zoom_handler.zoom_in(is_nav)
 	var zoom_out_cb = func(is_nav: bool) -> void:
-		_zoom_handler.zoom_out(is_nav)
+		if _zoom_handler and is_instance_valid(_zoom_handler):
+			_zoom_handler.zoom_out(is_nav)
 	_area_navigator = CameraAreaNavigatorClass.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
 	
 	# Обновляем обработчик интерполяции с новой конфигурацией
