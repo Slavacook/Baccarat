@@ -7,7 +7,8 @@ class_name CameraManager
 extends RefCounted
 
 # Предзагрузка классов для статических методов и типов
-const CameraAnimationHelper = preload("res://scripts/utils/CameraAnimationHelper.gd")
+# Используем прямые вызовы class_name классов (не нужен preload для статических методов)
+# const CameraAnimationHelper = preload("res://scripts/utils/CameraAnimationHelper.gd")  # Не нужен - класс уже глобальный
 const CameraConfigClass = preload("res://resources/CameraConfig.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
