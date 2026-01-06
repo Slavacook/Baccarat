@@ -268,6 +268,8 @@ func test_get_expected_next_bet_invalid_group():
 	# Assert
 	assert_null(result, "Должен вернуться null для несуществующей группы")
 	
+	# Примечание: push_warning не обрабатывается GUT как ошибка, поэтому не нужно помечать его как обработанный
+	
 	# Помечаем push_warning как обработанный, чтобы GUT не считал его "Unexpected Warning"
 	var warnings = gut.warning_tracker.get_warnings_for_test()
 	for warn in warnings:
