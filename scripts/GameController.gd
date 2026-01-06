@@ -190,22 +190,22 @@ func _ready():
 	# camera_manager.zoom_completed.connect(_on_camera_zoom_completed) - перенесено
 	# _update_area_highlights(0) - будет вызвано в CameraNavigationController
 	# EventBus.camera_zoom_requested.connect(_on_camera_zoom_requested) - перенесено
-		
-		# Heart Bet: скрытие/показ ставок гостей
-		# Сигналы guest_bets_hide_requested и guest_bets_show_requested
-		# перенесены в GuestEventHandler (подключаются в _connect_guest_signals())
-		# Сигналы heart_bet_show_ui, heart_bet_declined, heart_bet_round_complete
-		# перенесены в HeartBetController (подключаются в _connect_heart_bet_signals())
-		
-		# Настройки: скрываем/показываем UI элементы
-		EventBus.settings_opened.connect(_on_settings_opened)
-		EventBus.settings_closed.connect(_on_settings_closed)
-		
-		# Начало новой раздачи: увеличиваем счетчик раздач
-		EventBus.round_started.connect(_on_round_started)
-		
-		# Heart Bet: триггеры обрабатываются через ChanceCardManager
-		# Старые сигналы оставлены для обратной совместимости
+	
+	# Heart Bet: скрытие/показ ставок гостей
+	# Сигналы guest_bets_hide_requested и guest_bets_show_requested
+	# перенесены в GuestEventHandler (подключаются в _connect_guest_signals())
+	# Сигналы heart_bet_show_ui, heart_bet_declined, heart_bet_round_complete
+	# перенесены в HeartBetController (подключаются в _connect_heart_bet_signals())
+	
+	# Настройки: скрываем/показываем UI элементы
+	EventBus.settings_opened.connect(_on_settings_opened)
+	EventBus.settings_closed.connect(_on_settings_closed)
+	
+	# Начало новой раздачи: увеличиваем счетчик раздач
+	EventBus.round_started.connect(_on_round_started)
+	
+	# Heart Bet: триггеры обрабатываются через ChanceCardManager
+	# Старые сигналы оставлены для обратной совместимости
 	
 	# Подписка на изменение настроек гостей перенесена в GuestEventHandler
 	# (подключается в _initialize_guest_event_handler())
