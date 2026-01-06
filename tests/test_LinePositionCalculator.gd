@@ -66,7 +66,7 @@ func test_standard_line_numbering_returns_valid():
 	
 	# Assert
 	assert_gt(result, 0, "Номер позиции должен быть больше 0")
-	assert_le(result, 6, "Номер позиции не должен превышать количество позиций")
+	assert_true(result <= 6, "Номер позиции не должен превышать количество позиций")
 
 func test_standard_line_numbering_consistency():
 	"""Проверка согласованности нумерации для разных индексов"""
@@ -160,5 +160,5 @@ func test_all_bet_types():
 	for bet_type in bet_types:
 		var result = calculator.get_line_position_number(bet_type, position_index)
 		# Для валидных типов результат должен быть > 0 или 0 (если позиция не найдена)
-		assert_ge(result, 0, "Тип %s должен возвращать валидный результат" % bet_type)
+		assert_true(result >= 0, "Тип %s должен возвращать валидный результат" % bet_type)
 

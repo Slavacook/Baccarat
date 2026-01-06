@@ -65,8 +65,8 @@ func test_generate_random_count_valid():
 	var count = generator.generate_random_count(bet_type, position_manager)
 	
 	# Assert
-	assert_ge(count, 0, "Количество должно быть >= 0")
-	assert_le(count, 6, "Количество не должно превышать количество позиций")
+	assert_true(count >= 0, "Количество должно быть >= 0")
+	assert_true(count <= 6, "Количество не должно превышать количество позиций")
 
 func test_generate_random_count_all_types():
 	"""Проверка генерации для всех типов ставок"""
@@ -76,8 +76,8 @@ func test_generate_random_count_all_types():
 	# Act & Assert
 	for bet_type in bet_types:
 		var count = generator.generate_random_count(bet_type, position_manager)
-		assert_ge(count, 0, "Тип %s должен генерировать валидное количество" % bet_type)
-		assert_le(count, 6, "Тип %s не должен превышать количество позиций" % bet_type)
+		assert_true(count >= 0, "Тип %s должен генерировать валидное количество" % bet_type)
+		assert_true(count <= 6, "Тип %s не должен превышать количество позиций" % bet_type)
 
 func test_generate_random_count_in_range():
 	"""Проверка что сгенерированное количество находится в допустимом диапазоне"""
@@ -96,8 +96,8 @@ func test_generate_random_count_in_range():
 	var max_range = ranges[ranges.size() - 1][1]
 	
 	for count in counts:
-		assert_ge(count, min_range, "Количество должно быть >= минимального диапазона")
-		assert_le(count, max_range, "Количество должно быть <= максимального диапазона")
+		assert_true(count >= min_range, "Количество должно быть >= минимального диапазона")
+		assert_true(count <= max_range, "Количество должно быть <= максимального диапазона")
 
 func test_generate_random_count_respects_positions_limit():
 	"""Проверка что количество не превышает количество позиций"""
@@ -109,7 +109,7 @@ func test_generate_random_count_respects_positions_limit():
 	for i in range(50):
 		var count = generator.generate_random_count(bet_type, position_manager)
 		# Assert
-		assert_le(count, positions_count, "Количество не должно превышать количество позиций")
+		assert_true(count <= positions_count, "Количество не должно превышать количество позиций")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ: Выбор случайных позиций
@@ -180,7 +180,7 @@ func test_select_random_positions_in_range():
 	
 	# Assert
 	for pos in positions:
-		assert_ge(pos, 0, "Индекс позиции должен быть >= 0")
+		assert_true(pos >= 0, "Индекс позиции должен быть >= 0")
 		assert_lt(pos, positions_count, "Индекс позиции должен быть < количества позиций")
 
 func test_select_random_positions_max_count():
@@ -194,7 +194,7 @@ func test_select_random_positions_max_count():
 	var positions = generator.select_random_positions(bet_type, count, position_manager)
 	
 	# Assert
-	assert_le(positions.size(), positions_count, "Количество выбранных позиций не должно превышать доступное")
+	assert_true(positions.size() <= positions_count, "Количество выбранных позиций не должно превышать доступное")
 
 func test_select_random_positions_all_types():
 	"""Проверка выбора позиций для всех типов ставок"""
