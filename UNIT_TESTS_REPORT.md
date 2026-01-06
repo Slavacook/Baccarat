@@ -124,22 +124,41 @@
 
 | Метрика | Значение |
 |---------|----------|
-| **Создано тестов** | 6 файлов |
-| **Всего тест-методов** | ~80+ |
-| **Покрытие классов** | 6 из 9 (67%) |
-| **Строк кода тестов** | ~1200+ |
+| **Создано тестов** | 20 файлов |
+| **Всего тест-методов** | 192 |
+| **Прошедших тестов** | 192 (100%) |
+| **Покрытие классов** | 6 из 9 новых классов (67%) |
+| **Assertions** | 1097 |
+| **Время выполнения** | ~0.7 секунды |
+| **Строк кода тестов** | ~2000+ |
 
 ---
 
 ## 🎯 Покрытие классов
 
 ### ✅ Полностью покрыто тестами (6 классов)
-1. ✅ `LinePositionCalculator` - 12 тестов
-2. ✅ `ChipTextureManager` - 12 тестов
-3. ✅ `ChipPositionManager` - 15 тестов
+1. ✅ `LinePositionCalculator` - 9 тестов
+2. ✅ `ChipTextureManager` - 10 тестов
+3. ✅ `ChipPositionManager` - 14 тестов
 4. ✅ `StateConsistencyChecker` - 10 тестов
-5. ✅ `RealisticChipGenerator` - 12 тестов
-6. ✅ `StakeLabelManager` - 12 тестов
+5. ✅ `RealisticChipGenerator` - 13 тестов
+6. ✅ `StakeLabelManager` - 14 тестов
+
+### ✅ Дополнительные тесты (существующие классы)
+- `BetFilterManager` - 10 тестов
+- `CardDealer` - 12 тестов
+- `ChanceCardTriggerChecker` - 10 тестов
+- `GameStateResetCoordinator` - 4 теста
+- `GuestBetDisplayCoordinator` - 4 теста
+- `PayoutOverlayStateManager` - 9 тестов
+- `PayoutOverlayStyleManager` - 3 теста
+- `PayoutOverlayUIBuilder` - 14 тестов
+- `PhaseActionResolver` - 9 тестов
+- `RoundCompletionCoordinator` - 7 тестов
+- `ThirdCardActionValidator` - 19 тестов
+- `ValidationErrorFormatter` - 6 тестов
+- `VictoryMessageFormatter` - 5 тестов
+- `WinnerSelectionValidator` - 10 тестов
 
 ### ⏳ Требуют тестов (3 класса)
 1. ⏳ `BetSorter` - требует моки для `PayoutQueueManager` и `Bet`
