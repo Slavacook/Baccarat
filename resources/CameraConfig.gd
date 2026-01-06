@@ -106,40 +106,76 @@ var area_6_rotation: float = 8.0
 var area_6_description: String = "Область ставок 6"
 
 # ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): РЕЖИМ 2 (СПРАВА)
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 1 РЕЖИМ 2
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Позиция камеры для РЕЖИМ 2 (СПРАВА)
-var mode2_right_position: Vector2 = Vector2(970, 120)
-# Масштаб камеры для режим 2 (справа)
-var mode2_right_zoom: Vector2 = Vector2(0.45, 0.45)
-# Поворот камеры для режим 2 (справа) (в градусах)
-var mode2_right_rotation: float = 0.0
-var mode2_right_description: String = "Режим 2 (справа)"
+# Позиция камеры для ГОСТЬ 1 РЕЖИМ 2
+var guest_1_mode2_position: Vector2 = Vector2(170, 120)
+# Масштаб камеры для гость 1 режим 2
+var guest_1_mode2_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для гость 1 режим 2 (в градусах)
+var guest_1_mode2_rotation: float = 0.0
+var guest_1_mode2_description: String = "Гость 1 режим 2"
 
 # ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): РЕЖИМ 2 (СЛЕВА)
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 2 РЕЖИМ 2
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Позиция камеры для РЕЖИМ 2 (СЛЕВА)
-var mode2_left_position: Vector2 = Vector2(170, 120)
-# Масштаб камеры для режим 2 (слева)
-var mode2_left_zoom: Vector2 = Vector2(0.45, 0.45)
-# Поворот камеры для режим 2 (слева) (в градусах)
-var mode2_left_rotation: float = 0.0
-var mode2_left_description: String = "Режим 2 (слева)"
+# Позиция камеры для ГОСТЬ 2 РЕЖИМ 2
+var guest_2_mode2_position: Vector2 = Vector2(330, 120)
+# Масштаб камеры для гость 2 режим 2
+var guest_2_mode2_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для гость 2 режим 2 (в градусах)
+var guest_2_mode2_rotation: float = 0.0
+var guest_2_mode2_description: String = "Гость 2 режим 2"
 
 # ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): РЕЖИМ 2 (ЦЕНТР)
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 3 РЕЖИМ 2
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Позиция камеры для РЕЖИМ 2 (ЦЕНТР)
-var mode2_center_position: Vector2 = Vector2(570, 120)
-# Масштаб камеры для режим 2 (центр)
-var mode2_center_zoom: Vector2 = Vector2(0.45, 0.45)
-# Поворот камеры для режим 2 (центр) (в градусах)
-var mode2_center_rotation: float = 0.0
-var mode2_center_description: String = "Режим 2 (центр)"
+# Позиция камеры для ГОСТЬ 3 РЕЖИМ 2
+var guest_3_mode2_position: Vector2 = Vector2(490, 120)
+# Масштаб камеры для гость 3 режим 2
+var guest_3_mode2_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для гость 3 режим 2 (в градусах)
+var guest_3_mode2_rotation: float = 0.0
+var guest_3_mode2_description: String = "Гость 3 режим 2"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 4 РЕЖИМ 2
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для ГОСТЬ 4 РЕЖИМ 2
+var guest_4_mode2_position: Vector2 = Vector2(650, 120)
+# Масштаб камеры для гость 4 режим 2
+var guest_4_mode2_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для гость 4 режим 2 (в градусах)
+var guest_4_mode2_rotation: float = 0.0
+var guest_4_mode2_description: String = "Гость 4 режим 2"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 5 РЕЖИМ 2
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для ГОСТЬ 5 РЕЖИМ 2
+var guest_5_mode2_position: Vector2 = Vector2(810, 120)
+# Масштаб камеры для гость 5 режим 2
+var guest_5_mode2_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для гость 5 режим 2 (в градусах)
+var guest_5_mode2_rotation: float = 0.0
+var guest_5_mode2_description: String = "Гость 5 режим 2"
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 6 РЕЖИМ 2
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для ГОСТЬ 6 РЕЖИМ 2
+var guest_6_mode2_position: Vector2 = Vector2(970, 120)
+# Масштаб камеры для гость 6 режим 2
+var guest_6_mode2_zoom: Vector2 = Vector2(0.45, 0.45)
+# Поворот камеры для гость 6 режим 2 (в градусах)
+var guest_6_mode2_rotation: float = 0.0
+var guest_6_mode2_description: String = "Гость 6 режим 2"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБЩИЕ НАСТРОЙКИ
@@ -272,31 +308,58 @@ func get_area_6_settings() -> Dictionary:
 		"description": area_6_description
 	}
 
-func get_mode2_right_settings() -> Dictionary:
-	"""Получить настройки для режим 2 (справа)"""
+func get_guest_1_mode2_settings() -> Dictionary:
+	"""Получить настройки для гость 1 режим 2"""
 	return {
-		"position": mode2_right_position,
-		"zoom": mode2_right_zoom,
-		"rotation": mode2_right_rotation,
-		"description": mode2_right_description
+		"position": guest_1_mode2_position,
+		"zoom": guest_1_mode2_zoom,
+		"rotation": guest_1_mode2_rotation,
+		"description": guest_1_mode2_description
 	}
 
-func get_mode2_left_settings() -> Dictionary:
-	"""Получить настройки для режим 2 (слева)"""
+func get_guest_2_mode2_settings() -> Dictionary:
+	"""Получить настройки для гость 2 режим 2"""
 	return {
-		"position": mode2_left_position,
-		"zoom": mode2_left_zoom,
-		"rotation": mode2_left_rotation,
-		"description": mode2_left_description
+		"position": guest_2_mode2_position,
+		"zoom": guest_2_mode2_zoom,
+		"rotation": guest_2_mode2_rotation,
+		"description": guest_2_mode2_description
 	}
 
-func get_mode2_center_settings() -> Dictionary:
-	"""Получить настройки для режим 2 (центр)"""
+func get_guest_3_mode2_settings() -> Dictionary:
+	"""Получить настройки для гость 3 режим 2"""
 	return {
-		"position": mode2_center_position,
-		"zoom": mode2_center_zoom,
-		"rotation": mode2_center_rotation,
-		"description": mode2_center_description
+		"position": guest_3_mode2_position,
+		"zoom": guest_3_mode2_zoom,
+		"rotation": guest_3_mode2_rotation,
+		"description": guest_3_mode2_description
+	}
+
+func get_guest_4_mode2_settings() -> Dictionary:
+	"""Получить настройки для гость 4 режим 2"""
+	return {
+		"position": guest_4_mode2_position,
+		"zoom": guest_4_mode2_zoom,
+		"rotation": guest_4_mode2_rotation,
+		"description": guest_4_mode2_description
+	}
+
+func get_guest_5_mode2_settings() -> Dictionary:
+	"""Получить настройки для гость 5 режим 2"""
+	return {
+		"position": guest_5_mode2_position,
+		"zoom": guest_5_mode2_zoom,
+		"rotation": guest_5_mode2_rotation,
+		"description": guest_5_mode2_description
+	}
+
+func get_guest_6_mode2_settings() -> Dictionary:
+	"""Получить настройки для гость 6 режим 2"""
+	return {
+		"position": guest_6_mode2_position,
+		"zoom": guest_6_mode2_zoom,
+		"rotation": guest_6_mode2_rotation,
+		"description": guest_6_mode2_description
 	}
 
 func get_area_settings(area_index: int) -> Dictionary:
@@ -337,12 +400,18 @@ func get_settings_by_type(zoom_type: String) -> Dictionary:
 			return get_area_5_settings()
 		"area_6":
 			return get_area_6_settings()
-		"mode2_right":
-			return get_mode2_right_settings()
-		"mode2_left":
-			return get_mode2_left_settings()
-		"mode2_center":
-			return get_mode2_center_settings()
+		"guest_1_mode2":
+			return get_guest_1_mode2_settings()
+		"guest_2_mode2":
+			return get_guest_2_mode2_settings()
+		"guest_3_mode2":
+			return get_guest_3_mode2_settings()
+		"guest_4_mode2":
+			return get_guest_4_mode2_settings()
+		"guest_5_mode2":
+			return get_guest_5_mode2_settings()
+		"guest_6_mode2":
+			return get_guest_6_mode2_settings()
 		_:
 			push_error("CameraConfig: неизвестный тип зума '%s'" % zoom_type)
 			return get_general_settings()

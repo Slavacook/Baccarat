@@ -176,8 +176,7 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 # Методы зума перенесены в CameraZoomHandler
 # _zoom_in -> _zoom_handler.zoom_in
 # _zoom_out -> _zoom_handler.zoom_out
-# _zoom_mode2_right -> _zoom_handler.zoom_mode2_right
-# _zoom_mode2_left -> _zoom_handler.zoom_mode2_left
+# _zoom_guest_X_mode2 -> _zoom_handler.zoom_guest_X_mode2
 # _zoom_area -> _zoom_handler.zoom_area
 
 func _zoom_in(is_navigation: bool = false) -> void:
@@ -194,24 +193,45 @@ func _zoom_out(is_navigation: bool = false) -> void:
 	else:
 		push_error("❌ CameraZoomHandler не инициализирован!")
 
-func _zoom_mode2_right(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (справа) - делегировано в CameraZoomHandler"""
+func _zoom_guest_1_mode2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 1 режим 2 - делегировано в CameraZoomHandler"""
 	if _zoom_handler:
-		_zoom_handler.zoom_mode2_right(is_navigation)
+		_zoom_handler.zoom_guest_1_mode2(is_navigation)
 	else:
 		push_error("❌ CameraZoomHandler не инициализирован!")
 
-func _zoom_mode2_left(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (слева) - делегировано в CameraZoomHandler"""
+func _zoom_guest_2_mode2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 2 режим 2 - делегировано в CameraZoomHandler"""
 	if _zoom_handler:
-		_zoom_handler.zoom_mode2_left(is_navigation)
+		_zoom_handler.zoom_guest_2_mode2(is_navigation)
 	else:
 		push_error("❌ CameraZoomHandler не инициализирован!")
 
-func _zoom_mode2_center(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (центр) - делегировано в CameraZoomHandler"""
+func _zoom_guest_3_mode2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 3 режим 2 - делегировано в CameraZoomHandler"""
 	if _zoom_handler:
-		_zoom_handler.zoom_mode2_center(is_navigation)
+		_zoom_handler.zoom_guest_3_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_4_mode2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 4 режим 2 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_4_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_5_mode2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 5 режим 2 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_5_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_6_mode2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 6 режим 2 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_6_mode2(is_navigation)
 	else:
 		push_error("❌ CameraZoomHandler не инициализирован!")
 
@@ -345,8 +365,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	var from_zoom_type = last_zoom_type  # Тип зума, откуда мы идем (стартовая точка)
 	
 	# Простая логика: медленная анимация ТОЛЬКО при переходах между режимами 2
-	# Режимы 2: mode2_right, mode2_left, mode2_center
-	var mode2_modes = ["mode2_right", "mode2_left", "mode2_center"]
+	# Режимы 2: guest_1_mode2 - guest_6_mode2 (6 позиций для гостей)
+	var mode2_modes = ["guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2"]
 	var from_is_mode2 = from_zoom_type in mode2_modes
 	var to_is_mode2 = zoom_type in mode2_modes
 	
@@ -364,7 +384,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 			current_area = 0  # Карты
 		"out":
 			current_area = -1  # Общий план
-		"mode2_right", "mode2_left", "mode2_center":
+		"guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2":
 			current_area = -1  # Остаёмся на общем плане для режима 2
 		_:
 			if zoom_type.begins_with("area_"):
@@ -445,12 +465,18 @@ func _on_zoom_requested(zoom_type: String, is_navigation: bool = false) -> void:
 			_zoom_area(5, is_navigation)
 		"area_6":
 			_zoom_area(6, is_navigation)
-		"mode2_right":
-			_zoom_mode2_right(is_navigation)
-		"mode2_left":
-			_zoom_mode2_left(is_navigation)
-		"mode2_center":
-			_zoom_mode2_center(is_navigation)
+		"guest_1_mode2":
+			_zoom_guest_1_mode2(is_navigation)
+		"guest_2_mode2":
+			_zoom_guest_2_mode2(is_navigation)
+		"guest_3_mode2":
+			_zoom_guest_3_mode2(is_navigation)
+		"guest_4_mode2":
+			_zoom_guest_4_mode2(is_navigation)
+		"guest_5_mode2":
+			_zoom_guest_5_mode2(is_navigation)
+		"guest_6_mode2":
+			_zoom_guest_6_mode2(is_navigation)
 		"next_area":
 			_zoom_next_area()
 		"prev_area":

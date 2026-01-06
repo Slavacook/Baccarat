@@ -54,32 +54,59 @@ func zoom_out(is_navigation: bool = false) -> void:
 	var settings = config.get_general_settings()
 	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "out", is_navigation)
 
-func zoom_mode2_right(is_navigation: bool = false) -> void:
-	"""Зум на режим 2 (справа)
+func zoom_guest_1_mode2(is_navigation: bool = false) -> void:
+	"""Зум на гость 1 режим 2
 	
 	Args:
 		is_navigation: true если запрос от навигатора (используются медленные настройки)
 	"""
-	var settings = config.get_mode2_right_settings()
-	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_right", is_navigation)
+	var settings = config.get_guest_1_mode2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_1_mode2", is_navigation)
 
-func zoom_mode2_left(is_navigation: bool = false) -> void:
-	"""Зум на режим 2 (слева)
+func zoom_guest_2_mode2(is_navigation: bool = false) -> void:
+	"""Зум на гость 2 режим 2
 	
 	Args:
 		is_navigation: true если запрос от навигатора (используются медленные настройки)
 	"""
-	var settings = config.get_mode2_left_settings()
-	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left", is_navigation)
+	var settings = config.get_guest_2_mode2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_2_mode2", is_navigation)
 
-func zoom_mode2_center(is_navigation: bool = false) -> void:
-	"""Зум на режим 2 (центр)
+func zoom_guest_3_mode2(is_navigation: bool = false) -> void:
+	"""Зум на гость 3 режим 2
 	
 	Args:
 		is_navigation: true если запрос от навигатора (используются медленные настройки)
 	"""
-	var settings = config.get_mode2_center_settings()
-	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_center", is_navigation)
+	var settings = config.get_guest_3_mode2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_3_mode2", is_navigation)
+
+func zoom_guest_4_mode2(is_navigation: bool = false) -> void:
+	"""Зум на гость 4 режим 2
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
+	var settings = config.get_guest_4_mode2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_4_mode2", is_navigation)
+
+func zoom_guest_5_mode2(is_navigation: bool = false) -> void:
+	"""Зум на гость 5 режим 2
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
+	var settings = config.get_guest_5_mode2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_5_mode2", is_navigation)
+
+func zoom_guest_6_mode2(is_navigation: bool = false) -> void:
+	"""Зум на гость 6 режим 2
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
+	var settings = config.get_guest_6_mode2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_6_mode2", is_navigation)
 
 func zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Зум на указанную область (1-6)

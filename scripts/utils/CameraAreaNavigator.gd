@@ -186,7 +186,7 @@ func predict_target_area(zoom_type: String, current_area: int) -> int:
 			return 0  # карты
 		"out":
 			return -1  # общий план
-		"mode2_right", "mode2_left", "mode2_center":
+		"guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2":
 			return -1  # режимы 2 (обрабатываются как общий план для навигации)
 		_:
 			return 0
