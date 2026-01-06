@@ -119,6 +119,9 @@ var gamepad_monitor: GamepadMonitor
 # Обновлятель счетчика раундов (Extract Class)
 var rounds_counter_updater: RoundsCounterUpdater
 
+# Обработчик возврата из PayoutScene (Extract Class)
+var payout_return_handler: PayoutReturnHandler
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -261,6 +264,7 @@ func _ready():
 	_initialize_keyboard_focus_handler()
 	_initialize_gamepad_monitor()
 	_initialize_rounds_counter_updater()
+	_initialize_payout_return_handler()
 	
 	# Проверка подключения геймпадов (после инициализации GamepadMonitor)
 	_check_gamepad_connection()
@@ -698,6 +702,48 @@ func _initialize_rounds_counter_updater() -> void:
 		print("✅ RoundsCounterUpdater инициализирован")
 	else:
 		push_warning("⚠️ rounds_counter_label не найден для RoundsCounterUpdater")
+
+func _initialize_payout_return_handler() -> void:
+	"""Инициализировать обработчик возврата из PayoutScene"""
+	# Создаем StateRestorer если его еще нет
+	if not state_restorer:
+		state_restorer = StateRestorer.new(
+			hand_manager,
+			winner_selection_manager,
+			survival_ui,
+			camera_manager,
+			ui_manager,
+			card_manager
+		)
+	
+	# Callbacks для обновления состояния
+	var update_rounds_callback = func() -> void:
+		_update_rounds_counter()
+	
+	var update_chips_callback = func() -> void:
+		_update_chip_visibility()
+	
+	var get_tree_callback = func() -> SceneTree:
+		return get_tree()
+	
+	payout_return_handler = PayoutReturnHandler.new(
+		state_restorer,
+		payout_overlay_coordinator,
+		payout_queue_handler,
+		phase_manager,
+		survival_state,
+		camera_manager,
+		game_state_controller,
+		hand_manager,
+		winner_selection_manager,
+		survival_ui,
+		ui_manager,
+		card_manager,
+		update_rounds_callback,
+		update_chips_callback,
+		get_tree_callback
+	)
+	print("✅ PayoutReturnHandler инициализирован")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
@@ -1332,109 +1378,22 @@ func _load_survival_mode_setting():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _handle_manual_mode_payout_return(context: Dictionary) -> void:
-	"""Обработка возврата из PayoutScene в ручном режиме"""
-	DebugLogger.log_restore("⏮ Возврат из PayoutScene (ручной режим)")
-	
-	# Guard: проверка сохранённого состояния
-	if not TableStateManager.has_saved_state():
-		push_error("❌ TableStateManager не содержит сохраненного состояния!")
-		PayoutContextManager.clear_context()
-		GameDataManager.clear()
-		return
-	
-	# 1-3. Восстановление карт, UI и GameStateManager
-	_restore_table_state()
-	
-	# 4-6. Восстановление survival режима и очереди выплат
-	_restore_survival_and_queue()
-	
-	# 7. Обработка результата текущей выплаты
-	_process_manual_payout_result(context)
-	
-	# 8. Восстановление камеры и очистка контекстов
-	_restore_camera_and_cleanup()
-
-
-func _restore_table_state() -> void:
-	"""Восстановление карт, UI карт и GameStateManager
-	
-	Рефакторено: использует StateRestorer (SRP)
-	"""
-	if not state_restorer:
-		state_restorer = StateRestorer.new(
-			hand_manager,
-			winner_selection_manager,
-			survival_ui,
-			camera_manager,
-			ui_manager,
-			card_manager
-		)
-	
-	state_restorer.restore_table_state()
-
-
-func _restore_survival_and_queue() -> void:
-	"""Восстановление маркера победителя, survival режима и очереди выплат
-	
-	Рефакторено: использует StateRestorer (SRP)
-	"""
-	if not state_restorer:
-		state_restorer = StateRestorer.new(
-			hand_manager,
-			winner_selection_manager,
-			survival_ui,
-			camera_manager,
-			ui_manager,
-			card_manager
-		)
-	
-	# Восстанавливаем survival режим
-	survival_rounds_completed = TableStateManager.get_survival_rounds()
-	_update_rounds_counter()
-	
-	# Восстанавливаем очередь выплат через StateRestorer
-	payout_queue_manager = state_restorer.restore_survival_and_queue(
-		payout_queue_manager,
-		survival_rounds_completed
-	)
-	
-	# КРИТИЧНО: Обновляем ссылку в phase_manager после восстановления!
-	phase_manager.payout_queue_manager = payout_queue_manager
-	DebugLogger.log_restore("⏮ Ссылка phase_manager.payout_queue_manager обновлена")
-	
-	# Обновляем видимость фишек (показываем неоплаченные выигрыши)
-	_update_chip_visibility()
-
-
-func _process_manual_payout_result(context: Dictionary) -> void:
-	"""Обработка результата текущей выплаты в ручном режиме - делегировано в PayoutOverlayCoordinator"""
-	if payout_overlay_coordinator:
-		payout_overlay_coordinator.process_manual_payout_result(context)
+	"""Обработка возврата из PayoutScene в ручном режиме - делегировано в PayoutReturnHandler"""
+	if payout_return_handler:
+		var result = payout_return_handler.handle_manual_mode_payout_return(context, survival_rounds_completed, payout_queue_manager)
+		survival_rounds_completed = result["survival_rounds_completed"]
+		payout_queue_manager = result["payout_queue_manager"]
+		# Обновляем ссылку в phase_manager (уже сделано в restore_survival_and_queue, но на всякий случай)
+		phase_manager.payout_queue_manager = payout_queue_manager
 	else:
-		push_error("❌ PayoutOverlayCoordinator не инициализирован!")
+		push_error("❌ PayoutReturnHandler не инициализирован!")
 
 
-func _restore_camera_and_cleanup() -> void:
-	"""Восстановление камеры и очистка контекстов
-	
-	Рефакторено: использует StateRestorer (SRP)
-	"""
-	if not state_restorer:
-		state_restorer = StateRestorer.new(
-			hand_manager,
-			winner_selection_manager,
-			survival_ui,
-			camera_manager,
-			ui_manager,
-			card_manager
-		)
-	
-	state_restorer.restore_camera()
-	
-	# Очищаем контексты
-	PayoutContextManager.clear_context()
-	PayoutContextManager.clear_saved_state()
-	GameDataManager.clear()
+# Методы восстановления состояния перенесены в PayoutReturnHandler
+# _restore_table_state -> payout_return_handler.restore_table_state
+# _restore_survival_and_queue -> payout_return_handler.restore_survival_and_queue
+# _process_manual_payout_result -> payout_return_handler.process_manual_payout_result
+# _restore_camera_and_cleanup -> payout_return_handler.restore_camera_and_cleanup
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -1442,116 +1401,19 @@ func _restore_camera_and_cleanup() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _handle_automatic_mode_payout_return() -> void:
-	"""Обработка возврата из PayoutScene в автоматическом режиме"""
-	# 1. Восстанавливаем состояние игры и камеру
-	_restore_automatic_mode_state()
-	
-	# 2. Проверка Game Over
-	if _check_and_handle_game_over():
-		return  # Game Over произошёл, выходим
-	
-	# 3. Обрабатываем результат выплаты
-	_process_automatic_payout_result()
-	
-	# 4. Обрабатываем очередь выплат
-	_handle_payout_queue()
-
-
-func _restore_automatic_mode_state() -> void:
-	"""Восстановление состояния игры, камеры и UI"""
-	# Восстанавливаем состояние survival режима
-	survival_rounds_completed = GameDataManager.get_survival_rounds()
-	_update_rounds_counter()
-	if survival_state:
-		survival_state.set_lives(GameDataManager.get_survival_lives())
-		if GameDataManager.is_survival_active():
-			survival_state.activate()
-		else:
-			survival_state.deactivate()
-	
-	# Восстанавливаем камеру на общий план (без анимации)
-	if camera_manager:
-		camera_manager.restore_to_general()
-		DebugLogger.log("📷 Камера восстановлена: общий план")
-	
-	# Показываем кнопки областей
-	EventBus.area_buttons_visibility_changed.emit(true)
-	
-	# Обновляем визуальное отображение сердечек
-	var is_active = survival_state.is_active_mode() if survival_state else false
-	var lives = survival_state.get_lives() if survival_state else 7
-	if is_active:
-		survival_state.show()
+	"""Обработка возврата из PayoutScene в автоматическом режиме - делегировано в PayoutReturnHandler"""
+	if payout_return_handler:
+		var result = payout_return_handler.handle_automatic_mode_payout_return(survival_rounds_completed)
+		survival_rounds_completed = result["survival_rounds_completed"]
+		# should_reset уже обработан в PayoutReturnHandler
 	else:
-		survival_state.hide()
+		push_error("❌ PayoutReturnHandler не инициализирован!")
 
-	DebugLogger.log("♻️  Состояние игры восстановлено: rounds=%d, lives=%d, active=%s" % [
-		survival_rounds_completed, lives, is_active
-	])
-
-
-func _check_and_handle_game_over() -> bool:
-	"""Проверка Game Over в режиме выживания - делегировано в GameStateController
-	
-	Returns:
-		true если Game Over произошёл, false если игра продолжается
-	"""
-	if game_state_controller:
-		var result = game_state_controller.check_and_handle_game_over(survival_rounds_completed)
-		if result:
-			GameDataManager.clear()  # Очищаем данные после Game Over
-		return result
-	return false
-
-
-func _process_automatic_payout_result() -> void:
-	"""Обработка результата выплаты в автоматическом режиме"""
-	var is_correct = GameDataManager.get_payout_is_correct()
-	var collected = GameDataManager.get_payout_collected()
-	var expected = GameDataManager.get_payout_expected()
-	
-	if is_correct:
-		# Для автоматического режима нет информации о bet_type/position_index
-		# Передаем пустые значения - StatsManager пропустит такие случаи
-		EventBus.payout_correct.emit(collected, expected, "", -1)
-		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
-		# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
-	else:
-		# Для старого метода нет информации о bet_type/position_index
-		EventBus.payout_wrong.emit(collected, expected, "", -1)
-		DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
-
-
-func _handle_payout_queue() -> void:
-	"""Обработка очереди выплат (переход к следующей или сброс раунда)"""
-	if GameDataManager.has_more_payouts():
-		# Есть ещё выплаты в очереди → берём следующую
-		var next_payout = GameDataManager.get_next_payout()
-		
-		DebugLogger.log("🔄 Следующая выплата: %s (осталось %d)" % [
-			next_payout.get_bet_type(), GameDataManager.get_queue_size()
-		])
-		
-		# Сохраняем данные для PayoutScene
-		GameDataManager.set_payout_data(
-			next_payout.get_bet_type(),
-			next_payout.get_stake(),
-			next_payout.get_payout(),
-			next_payout.get_player_score(),
-			next_payout.get_banker_score()
-		)
-		
-		# Переходим в PayoutScene для следующей выплаты
-		get_tree().change_scene_to_file("res://scenes/PayoutScene.tscn")
-	else:
-		# Очередь пуста → сбрасываем раунд
-		DebugLogger.log_init("Все выплаты обработаны, сброс раунда")
-		GameDataManager.clear()
-		
-		# Сброс раунда только если последняя выплата была правильной
-		var is_correct = GameDataManager.get_payout_is_correct()
-		if is_correct:
-			phase_manager.reset()
+# Методы автоматического режима перенесены в PayoutReturnHandler
+# _restore_automatic_mode_state -> payout_return_handler.restore_automatic_mode_state
+# _check_and_handle_game_over -> payout_return_handler.check_and_handle_game_over
+# _process_automatic_payout_result -> payout_return_handler.process_automatic_payout_result
+# _handle_payout_queue -> payout_return_handler.handle_payout_queue
 
 
 
