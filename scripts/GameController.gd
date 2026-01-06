@@ -245,6 +245,7 @@ func _ready():
 	_initialize_payout_overlay_coordinator()
 	_initialize_camera_navigation_controller()
 	_initialize_chip_navigation_coordinator()
+	_initialize_collection_mode_handler()
 	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
@@ -646,6 +647,14 @@ func _initialize_chip_navigation_coordinator() -> void:
 		print("✅ ChipNavigationCoordinator инициализирован")
 	else:
 		push_error("❌ Не все зависимости инициализированы для ChipNavigationCoordinator!")
+
+func _initialize_collection_mode_handler() -> void:
+	"""Инициализировать обработчик режимов сбора и оплаты"""
+	if bet_collection_manager:
+		collection_mode_handler = CollectionModeHandler.new(bet_collection_manager)
+		print("✅ CollectionModeHandler инициализирован")
+	else:
+		push_error("❌ BetCollectionPhaseManager не инициализирован для CollectionModeHandler!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
@@ -1703,45 +1712,26 @@ func _initialize_chance_card_navigation() -> void:
 # Обработчики переключения режимов сбора и оплаты ставок
 
 func _on_collect_mode_toggled(enabled: bool) -> void:
-	"""Обработчик toggle кнопки 'Забрать'
+	"""Обработчик toggle кнопки 'Забрать' - делегировано в CollectionModeHandler
 	
 	Args:
 		enabled: Включен ли режим сбора ставок
-	
-	Устанавливает режим сбора в BetCollectionPhaseManager.
 	"""
-	if bet_collection_manager:
-		if enabled:
-			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
-		else:
-			# Если режим сбора был активен, отключаем
-			if bet_collection_manager.is_collect_mode():
-				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
+	if collection_mode_handler:
+		collection_mode_handler.on_collect_mode_toggled(enabled)
+	else:
+		push_error("❌ CollectionModeHandler не инициализирован!")
 
 func _on_pay_mode_toggled(enabled: bool) -> void:
-	"""Обработчик toggle кнопки 'Оплатить'
+	"""Обработчик toggle кнопки 'Оплатить' - делегировано в CollectionModeHandler
 	
 	Args:
 		enabled: Включен ли режим оплаты ставок
-	
-	Устанавливает режим оплаты в BetCollectionPhaseManager.
-	В режиме 2 (независимый) после оплаты НЕ переключает режим обратно на COLLECT.
 	"""
-	if bet_collection_manager:
-		if enabled:
-			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
-		else:
-			# В режиме 2 (независимый) после оплаты НЕ переключаем режим обратно на COLLECT
-			# Пользователь должен продолжать оплачивать
-			var camera_mode = SaveManager.instance.load_camera_control_mode()
-			if camera_mode == "independent":
-				# В режиме 2 не переключаем режим - остаёмся в PAY
-				DebugLogger.log("🔄 GameController: режим 2 - остаёмся в PAY после оплаты")
-				return
-			
-			# Если режим оплаты был активен, отключаем (только в режиме 1)
-			if bet_collection_manager.is_pay_mode():
-				bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
+	if collection_mode_handler:
+		collection_mode_handler.on_pay_mode_toggled(enabled)
+	else:
+		push_error("❌ CollectionModeHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА КЛИКОВ НА ФИШКИ
