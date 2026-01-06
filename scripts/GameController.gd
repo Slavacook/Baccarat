@@ -262,6 +262,9 @@ func _ready():
 	_initialize_gamepad_monitor()
 	_initialize_rounds_counter_updater()
 	
+	# Проверка подключения геймпадов (после инициализации GamepadMonitor)
+	_check_gamepad_connection()
+	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
 		survival_state.activate()
