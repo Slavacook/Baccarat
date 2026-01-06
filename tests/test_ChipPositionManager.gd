@@ -87,11 +87,7 @@ func test_get_random_position_invalid():
 	# Assert
 	assert_eq(position, Vector2.ZERO, "Невалидный тип должен возвращать Vector2.ZERO")
 	
-	# Помечаем push_warning как обработанный, чтобы GUT не считал его "Unexpected Warning"
-	var warnings = gut.warning_tracker.get_warnings_for_test()
-	for warn in warnings:
-		if warn.is_push_warning() and warn.contains_text("нет альтернативных позиций"):
-			warn.handled = true
+	# Примечание: push_warning не обрабатывается GUT как ошибка, поэтому не нужно помечать его как обработанный
 
 func test_get_random_position_in_range():
 	"""Проверка что случайная позиция находится в списке альтернативных"""
