@@ -338,11 +338,7 @@ func _get_target_area_by_direction(direction: String) -> int:
 	# Используем _target_area если анимация идет, иначе current_area
 	# Это гарантирует, что запросы во время анимации используют правильное состояние
 	var area = _target_area if _is_animating else current_area
-	var target = _area_navigator.get_target_area_by_direction(area, direction)
-	print("📷 CameraManager: направление '%s' из area=%d (is_animating=%s, current=%d, target=%d) → %d" % [
-		direction, area, _is_animating, current_area, _target_area, target
-	])
-	return target
+	return _area_navigator.get_target_area_by_direction(area, direction)
 
 func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 	"""Определить целевую область по направлению из указанной области - делегировано в CameraAreaNavigator"""
@@ -527,7 +523,6 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# с предыдущей целевой областью (куда камера ДОЛЖНА была прийти)
 	if was_animating:
 		current_area = previous_target_area
-		print("📷 CameraManager: прерывание анимации - синхронизация current_area = %d (было %d)" % [current_area, previous_target_area])
 	
 	# Если используется экспоненциальное сглаживание с адаптивной скоростью
 	if _config.use_adaptive_interpolation and _interpolation_handler:
@@ -700,10 +695,6 @@ func restore_to_general() -> void:
 	
 	КРИТИЧЕСКИ ВАЖНО: Этот метод полностью сбрасывает состояние навигации!
 	"""
-	print("📷 CameraManager: restore_to_general - ДО сброса: current_area=%d, _target_area=%d, _is_animating=%s, last_zoom_type=%s" % [
-		current_area, _target_area, _is_animating, last_zoom_type
-	])
-	
 	if _camera != null and _config != null:
 		var general_settings = _config.get_general_settings()
 		# Мгновенно устанавливаем позицию камеры (без анимации)
@@ -717,10 +708,6 @@ func restore_to_general() -> void:
 		_target_area = -1  # Также сбрасываем целевую область
 		_is_animating = false  # Сбрасываем флаг анимации
 		last_zoom_type = "out"
-		
-		print("📷 CameraManager: камера восстановлена к общему плану (ПОСЛЕ сброса: current_area=%d, _target_area=%d)" % [
-			current_area, _target_area
-		])
 
 func reload_config() -> void:
 	"""Перезагрузить конфигурацию из файла (для отладки)"""
