@@ -133,7 +133,7 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	# Инициализируем обработчик зума
 	var animate_callback = func(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_nav: bool) -> void:
 		_animate_to(target_pos, target_zoom, target_rotation, zoom_type, is_nav)
-	_zoom_handler = CameraZoomHandler.new(_config, animate_callback)
+	_zoom_handler = CameraZoomHandlerClass.new(_config, animate_callback)
 	
 	# Инициализируем навигатор областей
 	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
@@ -142,7 +142,7 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 		_zoom_handler.zoom_in(is_nav)
 	var zoom_out_cb = func(is_nav: bool) -> void:
 		_zoom_handler.zoom_out(is_nav)
-	_area_navigator = CameraAreaNavigator.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
+	_area_navigator = CameraAreaNavigatorClass.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ПОДПИСКА НА EVENTBUS - ВСЕ КОМАНДЫ И ЗАПРОСЫ
@@ -722,7 +722,7 @@ func reload_config() -> void:
 	# Обновляем обработчик зума с новой конфигурацией
 	var animate_callback = func(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_nav: bool) -> void:
 		_animate_to(target_pos, target_zoom, target_rotation, zoom_type, is_nav)
-	_zoom_handler = CameraZoomHandler.new(_config, animate_callback)
+	_zoom_handler = CameraZoomHandlerClass.new(_config, animate_callback)
 	
 	# Обновляем навигатор областей
 	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
@@ -731,6 +731,6 @@ func reload_config() -> void:
 		_zoom_handler.zoom_in(is_nav)
 	var zoom_out_cb = func(is_nav: bool) -> void:
 		_zoom_handler.zoom_out(is_nav)
-	_area_navigator = CameraAreaNavigator.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
+	_area_navigator = CameraAreaNavigatorClass.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
 	
 	print("📷 CameraManager: конфигурация перезагружена из %s" % _config_path)
