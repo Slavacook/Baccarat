@@ -31,27 +31,27 @@ func test_format_victory_message_tie():
 func test_format_victory_message_player():
 	"""Проверка: форматирование победы Player"""
 	var message = formatter.format_victory_message("Player", 9, 7)
-	assert_has(message, "Выиграл", "Сообщение должно содержать 'Выиграл'")
-	assert_has(message, "9", "Сообщение должно содержать очки игрока")
-	assert_has(message, "7", "Сообщение должно содержать очки банкира")
+	assert_true(message.contains("Выиграл"), "Сообщение должно содержать 'Выиграл'")
+	assert_true(message.contains("9"), "Сообщение должно содержать очки игрока")
+	assert_true(message.contains("7"), "Сообщение должно содержать очки банкира")
 
 func test_format_victory_message_banker():
 	"""Проверка: форматирование победы Banker"""
 	var message = formatter.format_victory_message("Banker", 5, 8)
-	assert_has(message, "Выиграл", "Сообщение должно содержать 'Выиграл'")
-	assert_has(message, "8", "Сообщение должно содержать очки банкира")
-	assert_has(message, "5", "Сообщение должно содержать очки игрока")
+	assert_true(message.contains("Выиграл"), "Сообщение должно содержать 'Выиграл'")
+	assert_true(message.contains("8"), "Сообщение должно содержать очки банкира")
+	assert_true(message.contains("5"), "Сообщение должно содержать очки игрока")
 
 func test_format_victory_message_player_zero():
 	"""Проверка: форматирование с нулевыми очками"""
 	var message = formatter.format_victory_message("Player", 0, 0)
-	assert_has(message, "Выиграл", "Сообщение должно содержать 'Выиграл'")
-	assert_has(message, "0", "Сообщение должно содержать нулевые очки")
+	assert_true(message.contains("Выиграл"), "Сообщение должно содержать 'Выиграл'")
+	assert_true(message.contains("0"), "Сообщение должно содержать нулевые очки")
 
 func test_format_victory_message_banker_natural():
 	"""Проверка: форматирование натуральной победы Banker"""
 	var message = formatter.format_victory_message("Banker", 3, 9)
-	assert_has(message, "Выиграл", "Сообщение должно содержать 'Выиграл'")
-	assert_has(message, "9", "Сообщение должно содержать очки банкира (9)")
-	assert_has(message, "3", "Сообщение должно содержать очки игрока (3)")
+	assert_true(message.contains("Выиграл"), "Сообщение должно содержать 'Выиграл'")
+	assert_true(message.contains("9"), "Сообщение должно содержать очки банкира (9)")
+	assert_true(message.contains("3"), "Сообщение должно содержать очки игрока (3)")
 
