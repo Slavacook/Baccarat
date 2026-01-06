@@ -246,6 +246,9 @@ func _ready():
 	_initialize_camera_navigation_controller()
 	_initialize_chip_navigation_coordinator()
 	_initialize_collection_mode_handler()
+	_initialize_keyboard_focus_handler()
+	_initialize_gamepad_monitor()
+	_initialize_rounds_counter_updater()
 	
 	# Активируем режим выживания (всегда активен)
 	if survival_state:
@@ -655,6 +658,31 @@ func _initialize_collection_mode_handler() -> void:
 		print("✅ CollectionModeHandler инициализирован")
 	else:
 		push_error("❌ BetCollectionPhaseManager не инициализирован для CollectionModeHandler!")
+
+func _initialize_keyboard_focus_handler() -> void:
+	"""Инициализировать обработчик клавиатурного фокуса"""
+	if phase_manager and winner_selection_manager:
+		keyboard_focus_handler = KeyboardFocusHandler.new(phase_manager, winner_selection_manager)
+		print("✅ KeyboardFocusHandler инициализирован")
+	else:
+		push_error("❌ Не все зависимости инициализированы для KeyboardFocusHandler!")
+
+func _initialize_gamepad_monitor() -> void:
+	"""Инициализировать монитор геймпадов"""
+	gamepad_monitor = GamepadMonitor.new()
+	gamepad_monitor.check_connection()  # Первоначальная проверка
+	print("✅ GamepadMonitor инициализирован")
+
+func _initialize_rounds_counter_updater() -> void:
+	"""Инициализировать обновлятель счетчика раундов"""
+	var rounds_callback = func() -> int:
+		return survival_rounds_completed
+	
+	if rounds_counter_label:
+		rounds_counter_updater = RoundsCounterUpdater.new(rounds_counter_label, rounds_callback)
+		print("✅ RoundsCounterUpdater инициализирован")
+	else:
+		push_warning("⚠️ rounds_counter_label не найден для RoundsCounterUpdater")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
@@ -1909,104 +1937,44 @@ func _on_table_prepared():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_focus_activated(target: String) -> void:
-	"""Обработчик активации элемента через клавиатурный фокус
-	
-	Вызывается когда пользователь дважды нажал клавишу для активации элемента.
+	"""Обработчик активации элемента через клавиатурный фокус - делегировано в KeyboardFocusHandler
 	
 	Args:
-		target: Имя активированного элемента:
-			- "BankerThird" - третья карта банкиру
-			- "PlayerThird" - третья карта игроку
-			- "BankerMarker" - маркер банкира
-			- "PlayerMarker" - маркер игрока  
-			- "TieMarker" - маркер ничьи
+		target: Имя активированного элемента
 	"""
-	match target:
-		"BankerThird":
-			# Активируем toggle третьей карты банкира
-			if phase_manager:
-				phase_manager.on_banker_third_toggled(true)
-				DebugLogger.log("⌨️ Активирован BankerThird через клавиатуру")
-		
-		"PlayerThird":
-			# Активируем toggle третьей карты игрока
-			if phase_manager:
-				phase_manager.on_player_third_toggled(true)
-				DebugLogger.log("⌨️ Активирован PlayerThird через клавиатуру")
-		
-		"BankerMarker":
-			# Активируем маркер банкира
-			if winner_selection_manager:
-				winner_selection_manager.toggle_winner("Banker")
-				DebugLogger.log("⌨️ Активирован BankerMarker через клавиатуру")
-		
-		"PlayerMarker":
-			# Активируем маркер игрока
-			if winner_selection_manager:
-				winner_selection_manager.toggle_winner("Player")
-				DebugLogger.log("⌨️ Активирован PlayerMarker через клавиатуру")
-		
-		"TieMarker":
-			# Активируем маркер Tie (toggle как и другие маркеры)
-			if winner_selection_manager:
-				winner_selection_manager.toggle_winner("Tie")
-				DebugLogger.log("⌨️ Активирован TieMarker через клавиатуру")
-		
-		_:
-			DebugLogger.log_warning("⚠️ Неизвестная цель фокуса: %s" % target)
+	if keyboard_focus_handler:
+		keyboard_focus_handler.on_focus_activated(target)
+	else:
+		push_error("❌ KeyboardFocusHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРОВЕРКА ГЕЙМПАДА
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _check_gamepad_connection() -> void:
-	"""Проверить подключение геймпадов и вывести информацию"""
-	var connected_joypads = Input.get_connected_joypads()
-	
-	if connected_joypads.size() > 0:
-		DebugLogger.log("🎮 Подключено геймпадов: %d" % connected_joypads.size())
-		for device_id in connected_joypads:
-			var joypad_name = Input.get_joy_name(device_id)
-			DebugLogger.log("🎮 Геймпад %d: %s" % [device_id, joypad_name])
+	"""Проверить подключение геймпадов - делегировано в GamepadMonitor"""
+	if gamepad_monitor:
+		gamepad_monitor.check_connection()
+	else:
+		push_error("❌ GamepadMonitor не инициализирован!")
 
 func _process(_delta: float) -> void:
-	"""Проверка изменения подключения геймпадов (только при изменении)"""
-	# Проверяем подключение геймпадов периодически (раз в 5 секунд)
-	if not has_meta("last_gamepad_check"):
-		set_meta("last_gamepad_check", Time.get_ticks_msec())
-		set_meta("last_connected_count", Input.get_connected_joypads().size())
-		return
-	
-	var last_check = get_meta("last_gamepad_check", 0) as int
-	var current_time = Time.get_ticks_msec()
-	var last_connected_count = get_meta("last_connected_count", 0) as int
-	
-	if current_time - last_check > 5000:  # Раз в 5 секунд
-		set_meta("last_gamepad_check", current_time)
-		
-		var connected = Input.get_connected_joypads()
-		
-		# Логируем только при изменении количества подключенных геймпадов
-		if connected.size() != last_connected_count:
-			set_meta("last_connected_count", connected.size())
-			DebugLogger.log("🎮 Изменение подключения геймпадов: найдено устройств = %d (было %d)" % [connected.size(), last_connected_count])
-			
-			if connected.size() > 0:
-				for device_id in connected:
-					var joypad_name = Input.get_joy_name(device_id)
-					DebugLogger.log("🎮 Геймпад подключен: device_id=%d, name=%s" % [device_id, joypad_name])
+	"""Проверка изменения подключения геймпадов - делегировано в GamepadMonitor"""
+	if gamepad_monitor:
+		gamepad_monitor.process(_delta)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI - СЧЕТЧИК РАУНДОВ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_round_started() -> void:
-	"""Обработчик начала новой раздачи (открыты первые 4 карты)"""
+	"""Обработчик начала новой раздачи - делегировано в RoundsCounterUpdater"""
 	survival_rounds_completed += 1
-	_update_rounds_counter()
+	if rounds_counter_updater:
+		rounds_counter_updater.on_round_started()
 	DebugLogger.log("🎮 Началась раздача #%d" % survival_rounds_completed)
 
 func _update_rounds_counter() -> void:
-	"""Обновить отображение счетчика раздач"""
-	if rounds_counter_label:
-		rounds_counter_label.text = "Раздача: %d" % survival_rounds_completed
+	"""Обновить отображение счетчика раздач - делегировано в RoundsCounterUpdater"""
+	if rounds_counter_updater:
+		rounds_counter_updater.update_counter()
