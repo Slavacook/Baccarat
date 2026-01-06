@@ -319,258 +319,39 @@ func _load_current_values() -> void:
 	_update_camera_control_buttons()
 
 # ═══════════════════════════════════════════════════════════════════════════
-# НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА
+# НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА (делегировано в SettingsKeyboardNavigator)
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _navigate_focus(direction: String) -> void:
 	"""Навигация по меню с помощью стрелок/WASD/геймпада
 	
-	Использует встроенную систему focus_neighbor для навигации.
-	Если focus_neighbor не настроен, использует циклическую навигацию.
+	Делегирует в SettingsKeyboardNavigator.
 	
 	Args:
 		direction: Направление ("left", "right", "up", "down")
 	"""
-	var current_focus = get_viewport().gui_get_focus_owner()
-	if not current_focus:
-		# Если нет фокуса, устанавливаем на первую кнопку
-		if junket_button:
-			junket_button.grab_focus()
-		return
-	
-	# Используем встроенную систему focus_neighbor для навигации
-	# Получаем соседний элемент через focus_neighbor
-	var neighbor_path: NodePath = NodePath("")
-	
-	match direction:
-		"left":
-			neighbor_path = current_focus.focus_neighbor_left
-		"right":
-			neighbor_path = current_focus.focus_neighbor_right
-		"up":
-			neighbor_path = current_focus.focus_neighbor_top
-		"down":
-			neighbor_path = current_focus.focus_neighbor_bottom
-	
-	# Если нашли соседа через focus_neighbor - переходим к нему
-	if neighbor_path and not neighbor_path.is_empty():
-		var next_focus = get_node_or_null(neighbor_path) as Control
-		if next_focus:
-			next_focus.grab_focus()
-			return
-	
-	# Fallback: если focus_neighbor не настроен, используем циклическую навигацию
-	match direction:
-		"left", "up":
-			_focus_previous()
-		"right", "down":
-			_focus_next()
+	keyboard_navigator.navigate_focus(direction, self)
 
 func _focus_next() -> void:
 	"""Перейти к следующему элементу меню
 	
-	Использует предопределенный порядок навигации для перехода
-	к следующему элементу с закольцовыванием.
+	Делегирует в SettingsKeyboardNavigator.
 	"""
-	var current_focus = get_viewport().gui_get_focus_owner()
-	if not current_focus:
-		if junket_button:
-			junket_button.grab_focus()
-		return
-	
-	# Список всех элементов в порядке навигации
-	var navigation_order = [
-		junket_button,
-		classic_button,
-		bet_player_button,
-		bet_banker_button,
-		bet_tie_button,
-		bet_pair_button,
-		guest_settings_button,
-		tip_percentage_spinbox,
-		ru_button,
-		en_button,
-		tiger_button,
-		leopard_button,
-		test_cards_button,
-		apply_button
-	]
-	
-	# Убираем null элементы
-	navigation_order = navigation_order.filter(func(item): return item != null)
-	
-	# Находим текущий индекс
-	var current_index = -1
-	for i in range(navigation_order.size()):
-		if navigation_order[i] == current_focus:
-			current_index = i
-			break
-	
-	# Переходим к следующему элементу (с закольцовыванием)
-	var next_index = (current_index + 1) % navigation_order.size()
-	if navigation_order[next_index]:
-		navigation_order[next_index].grab_focus()
+	keyboard_navigator.focus_next(self)
 
 func _focus_previous() -> void:
 	"""Перейти к предыдущему элементу меню
 	
-	Использует предопределенный порядок навигации для перехода
-	к предыдущему элементу с закольцовыванием.
+	Делегирует в SettingsKeyboardNavigator.
 	"""
-	var current_focus = get_viewport().gui_get_focus_owner()
-	if not current_focus:
-		if apply_button:
-			apply_button.grab_focus()
-		return
-	
-	# Список всех элементов в порядке навигации
-	var navigation_order = [
-		junket_button,
-		classic_button,
-		bet_player_button,
-		bet_banker_button,
-		bet_tie_button,
-		bet_pair_button,
-		guest_settings_button,
-		tip_percentage_spinbox,
-		ru_button,
-		en_button,
-		tiger_button,
-		leopard_button,
-		test_cards_button,
-		apply_button
-	]
-	
-	# Убираем null элементы
-	navigation_order = navigation_order.filter(func(item): return item != null)
-	
-	# Находим текущий индекс
-	var current_index = -1
-	for i in range(navigation_order.size()):
-		if navigation_order[i] == current_focus:
-			current_index = i
-			break
-	
-	# Переходим к предыдущему элементу (с закольцовыванием)
-	var prev_index = (current_index - 1 + navigation_order.size()) % navigation_order.size()
-	if navigation_order[prev_index]:
-		navigation_order[prev_index].grab_focus()
-
-# ═══════════════════════════════════════════════════════════════════════════
-# НАСТРОЙКА НАВИГАЦИИ С КЛАВИАТУРЫ
-# ═══════════════════════════════════════════════════════════════════════════
+	keyboard_navigator.focus_previous(self)
 
 func _setup_keyboard_navigation() -> void:
 	"""Настроить навигацию с клавиатуры между элементами меню
 	
-	Устанавливает focus_neighbor для всех элементов меню,
-	создавая сетку навигации с тремя колонками:
-	- Левая: Режим игры
-	- Средняя: Фильтр ставок
-	- Правая: Чаевые, Язык, Рубашка
+	Делегирует в SettingsKeyboardNavigator.
 	"""
-	# ЛЕВАЯ КОЛОНКА: Режим игры
-	if junket_button and classic_button:
-		# Junket → Classic (вправо)
-		junket_button.focus_neighbor_right = classic_button.get_path()
-		# Classic → Junket (влево)
-		classic_button.focus_neighbor_left = junket_button.get_path()
-		# Junket → BetPlayer (вниз)
-		junket_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else NodePath("")
-		# Classic → BetPlayer (вниз)
-		classic_button.focus_neighbor_bottom = bet_player_button.get_path() if bet_player_button else NodePath("")
-	
-	# СРЕДНЯЯ КОЛОНКА: Фильтр ставок
-	if bet_player_button:
-		# BetPlayer → Junket (вверх)
-		bet_player_button.focus_neighbor_top = junket_button.get_path() if junket_button else NodePath("")
-		# BetPlayer → BetBanker (вниз)
-		bet_player_button.focus_neighbor_bottom = bet_banker_button.get_path() if bet_banker_button else NodePath("")
-		# BetPlayer → TipPercentageSpinBox (вправо)
-		bet_player_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
-	
-	if bet_banker_button:
-		# BetBanker → BetPlayer (вверх)
-		bet_banker_button.focus_neighbor_top = bet_player_button.get_path() if bet_player_button else NodePath("")
-		# BetBanker → BetTie (вниз)
-		bet_banker_button.focus_neighbor_bottom = bet_tie_button.get_path() if bet_tie_button else NodePath("")
-		# BetBanker → TipPercentageSpinBox (вправо)
-		bet_banker_button.focus_neighbor_right = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
-	
-	if bet_tie_button:
-		# BetTie → BetBanker (вверх)
-		bet_tie_button.focus_neighbor_top = bet_banker_button.get_path() if bet_banker_button else NodePath("")
-		# BetTie → BetPair (вниз)
-		bet_tie_button.focus_neighbor_bottom = bet_pair_button.get_path() if bet_pair_button else NodePath("")
-		# BetTie → RuButton (вправо)
-		bet_tie_button.focus_neighbor_right = ru_button.get_path() if ru_button else NodePath("")
-	
-	if bet_pair_button:
-		# BetPair → BetTie (вверх)
-		bet_pair_button.focus_neighbor_top = bet_tie_button.get_path() if bet_tie_button else NodePath("")
-		# BetPair → GuestSettingsButton (вниз)
-		bet_pair_button.focus_neighbor_bottom = guest_settings_button.get_path() if guest_settings_button else NodePath("")
-		# BetPair → RuButton (вправо)
-		bet_pair_button.focus_neighbor_right = ru_button.get_path() if ru_button else NodePath("")
-	
-	if guest_settings_button:
-		# GuestSettingsButton → BetPair (вверх)
-		guest_settings_button.focus_neighbor_top = bet_pair_button.get_path() if bet_pair_button else NodePath("")
-		# GuestSettingsButton → ApplyButton (вниз)
-		guest_settings_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else NodePath("")
-		# GuestSettingsButton → TigerButton (вправо)
-		guest_settings_button.focus_neighbor_right = tiger_button.get_path() if tiger_button else NodePath("")
-	
-	# ПРАВАЯ КОЛОНКА: Чаевые, Язык, Рубашка
-	if tip_percentage_spinbox:
-		# TipPercentageSpinBox → BetPlayer (влево)
-		tip_percentage_spinbox.focus_neighbor_left = bet_player_button.get_path() if bet_player_button else NodePath("")
-		# TipPercentageSpinBox → RuButton (вниз)
-		tip_percentage_spinbox.focus_neighbor_bottom = ru_button.get_path() if ru_button else NodePath("")
-	
-	if ru_button and en_button:
-		# RuButton → EnButton (вправо)
-		ru_button.focus_neighbor_right = en_button.get_path()
-		# EnButton → RuButton (влево)
-		en_button.focus_neighbor_left = ru_button.get_path()
-		# RuButton → TipPercentageSpinBox (вверх)
-		ru_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
-		# EnButton → TipPercentageSpinBox (вверх)
-		en_button.focus_neighbor_top = tip_percentage_spinbox.get_path() if tip_percentage_spinbox else NodePath("")
-		# RuButton → TigerButton (вниз)
-		ru_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else NodePath("")
-		# EnButton → TigerButton (вниз)
-		en_button.focus_neighbor_bottom = tiger_button.get_path() if tiger_button else NodePath("")
-	
-	if tiger_button and leopard_button:
-		# TigerButton → LeopardButton (вправо)
-		tiger_button.focus_neighbor_right = leopard_button.get_path()
-		# LeopardButton → TigerButton (влево)
-		leopard_button.focus_neighbor_left = tiger_button.get_path()
-		# TigerButton → RuButton (вверх)
-		tiger_button.focus_neighbor_top = ru_button.get_path() if ru_button else NodePath("")
-		# LeopardButton → RuButton (вверх)
-		leopard_button.focus_neighbor_top = ru_button.get_path() if ru_button else NodePath("")
-		# TigerButton → TestCardsButton (вниз)
-		tiger_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else NodePath("")
-		# LeopardButton → TestCardsButton (вниз)
-		leopard_button.focus_neighbor_bottom = test_cards_button.get_path() if test_cards_button else NodePath("")
-	
-	if test_cards_button:
-		# TestCardsButton → TigerButton (вверх)
-		test_cards_button.focus_neighbor_top = tiger_button.get_path() if tiger_button else NodePath("")
-		# TestCardsButton → ApplyButton (вниз)
-		test_cards_button.focus_neighbor_bottom = apply_button.get_path() if apply_button else NodePath("")
-	
-	# КНОПКА ПРИМЕНЕНИЯ
-	if apply_button:
-		# ApplyButton → GuestSettingsButton (вверх)
-		apply_button.focus_neighbor_top = guest_settings_button.get_path() if guest_settings_button else NodePath("")
-		# ApplyButton → TestCardsButton (вверх, альтернативный путь)
-		if apply_button.focus_neighbor_top.is_empty():
-			apply_button.focus_neighbor_top = test_cards_button.get_path() if test_cards_button else NodePath("")
-		# ApplyButton → JunketButton (закольцовывание вверх)
-		# Это позволит Tab циклически переходить по меню
+	keyboard_navigator.setup_keyboard_navigation(self)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI
