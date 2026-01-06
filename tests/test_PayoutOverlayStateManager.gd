@@ -19,13 +19,15 @@ func before_each():
 	# Не добавляем в дерево, так как GutTest не является Node
 	
 	# Создаём мок для PayoutSurvivalInfo
-	# Используем partial_double для создания объекта с нужным типом
-	var survival_info_script = load("res://scripts/ui/PayoutSurvivalInfo.gd")
+	# PayoutSurvivalInfo extends HBoxContainer, но для тестов достаточно Control
+	# Используем double для создания мока
+	var survival_info_script = load("res://scripts/PayoutSurvivalInfo.gd")
 	if survival_info_script:
-		mock_survival_info = partial_double(survival_info_script).new()
+		var doubled_class = double(survival_info_script)
+		mock_survival_info = doubled_class.new()
 	else:
-		# Если скрипт не найден, создаем простой Control
-		mock_survival_info = Control.new()
+		# Если скрипт не найден, создаем простой HBoxContainer
+		mock_survival_info = HBoxContainer.new()
 	
 	state_manager = PayoutOverlayStateManager.new(mock_owner_node, mock_survival_info)
 
