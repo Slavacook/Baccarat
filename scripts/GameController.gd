@@ -176,9 +176,6 @@ func _ready():
 	# Инициализация через GameInitializer (все ~200 строк вынесены в отдельный класс)
 	var initialized: Dictionary = GameInitializer.initialize(self)
 	
-	# Проверка подключения геймпадов (после инициализации, чтобы DebugLogger был готов)
-	_check_gamepad_connection()
-
 	# Распаковка результатов в member variables
 	deck = initialized["deck"]
 	config = initialized["config"]
