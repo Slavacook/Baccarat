@@ -201,8 +201,14 @@ func update_arrows_for_area(current_area: int) -> void:
 		}
 	}
 	
-	# Обработчик ответов (не отписываемся вручную - просто игнорируем после завершения)
+	# Обработчик ответов - сохраняем ссылку для отписки
 	var response_handler = func(area: int, dir: String, target: int):
+		# Проверяем, что owner_node и стрелки все еще валидны
+		if not is_instance_valid(owner_node):
+			# Отписываемся, если owner_node освобожден
+			if EventBus and EventBus.camera_target_area_from_received.is_connected(response_handler):
+				EventBus.camera_target_area_from_received.disconnect(response_handler)
+			return
 		# Игнорируем, если уже завершено
 		if state.completed:
 			return
@@ -213,8 +219,12 @@ func update_arrows_for_area(current_area: int) -> void:
 			if state.pending == 0:
 				# Все ответы получены, обновляем стрелки
 				state.completed = true
-				apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, current_area, state.responses)
-				# Не отписываемся - обработчик просто будет игнорировать дальнейшие вызовы
+				# Проверяем валидность стрелок перед применением состояния
+				if is_instance_valid(left_arrow) and is_instance_valid(right_arrow) and is_instance_valid(up_arrow) and is_instance_valid(down_arrow):
+					apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, current_area, state.responses)
+				# Отписываемся после получения всех ответов
+				if EventBus and EventBus.camera_target_area_from_received.is_connected(response_handler):
+					EventBus.camera_target_area_from_received.disconnect(response_handler)
 	
 	EventBus.camera_target_area_from_received.connect(response_handler)
 	
@@ -301,4 +311,3 @@ func update_area_highlights(area_idx: int) -> void:
 			var active = (i == area_idx)
 			hl.visible = active
 			hl.modulate.a = 1.0 if active else 0.0
-
