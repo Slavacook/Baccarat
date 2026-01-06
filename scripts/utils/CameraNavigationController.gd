@@ -290,6 +290,10 @@ func update_area_highlights(area_idx: int) -> void:
 	Args:
 		area_idx: Индекс области (1-3) или 0 для скрытия всех
 	"""
+	# Проверяем, что owner_node не освобожден
+	if not is_instance_valid(owner_node):
+		return
+	
 	for i in range(1, 4):
 		var node_path = "AreaHighlight%d" % i
 		var hl = owner_node.get_node_or_null(node_path)
