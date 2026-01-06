@@ -1225,7 +1225,13 @@ func get_point() -> int:
 
 ## Система камеры: CameraManager
 
-`scripts/CameraManager.gd` - управляет Camera2D с плавными переходами через EventBus:
+`scripts/CameraManager.gd` (582 строки, после Phase 10 рефакторинга) - управляет Camera2D с плавными переходами через EventBus.
+
+**Архитектура (Phase 10)**:
+- `CameraAnimationHelper` - утилиты анимации (transition, ease, zoom names)
+- `CameraZoomHandler` - обработка действий зума (in, out, mode2, area)
+- `CameraAreaNavigator` - навигация по областям (next, prev, up, down)
+- `CameraInterpolationHandler` - интерполяция и анимация камеры
 
 **Режимы зума** (через EventBus.camera_zoom_requested):
 - **"in"** - зум на карты (CAMERA_ZOOM_CARDS = Vector2(1.3, 1.3))

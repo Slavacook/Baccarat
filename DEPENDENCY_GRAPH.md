@@ -235,9 +235,16 @@ graph TB
 ```mermaid
 graph TB
     subgraph "Камера"
-        CameraManager[CameraManager]
+        CameraManager[CameraManager<br/>582 строки]
         CameraConfig[CameraConfig]
         CameraInterpolation[CameraInterpolationNode]
+    end
+    
+    subgraph "Обработчики камеры (Phase 10)"
+        CameraAnimationHelper[CameraAnimationHelper<br/>~105 строк]
+        CameraZoomHandler[CameraZoomHandler<br/>~89 строк]
+        CameraAreaNavigator[CameraAreaNavigator<br/>~191 строк]
+        CameraInterpolationHandler[CameraInterpolationHandler<br/>~293 строк]
     end
     
     subgraph "Навигация"
@@ -253,6 +260,14 @@ graph TB
     
     CameraManager --> CameraConfig
     CameraManager --> CameraInterpolation
+    CameraManager --> CameraAnimationHelper
+    CameraManager --> CameraZoomHandler
+    CameraManager --> CameraAreaNavigator
+    CameraManager --> CameraInterpolationHandler
+    CameraInterpolation --> CameraInterpolationHandler
+    CameraAreaNavigator --> CameraZoomHandler
+    CameraZoomHandler --> CameraConfig
+    CameraInterpolationHandler --> CameraConfig
     KeyboardNav --> CameraManager
     SwipeNav --> CameraManager
     ChipNav --> CameraManager
