@@ -10,6 +10,9 @@ extends RefCounted
 # Используем прямые вызовы class_name классов (не нужен preload для статических методов)
 # const CameraAnimationHelper = preload("res://scripts/utils/CameraAnimationHelper.gd")  # Не нужен - класс уже глобальный
 const CameraConfigClass = preload("res://resources/CameraConfig.gd")
+# Preload для новых классов (нужны для типизации переменных)
+const CameraZoomHandlerClass = preload("res://scripts/utils/CameraZoomHandler.gd")
+const CameraAreaNavigatorClass = preload("res://scripts/utils/CameraAreaNavigator.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
@@ -28,6 +31,7 @@ var _camera: Camera2D = null
 var _scene: Node = null  # Родительская сцена для создания tween
 var _process_node: Node = null  # Node для обработки _process (экспоненциальное сглаживание)
 var _zoom_handler: CameraZoomHandler = null  # Обработчик зума (Extract Class)
+var _area_navigator: CameraAreaNavigator = null  # Навигатор областей (Extract Class)
 
 # Целевые значения для экспоненциального сглаживания
 var _target_position: Vector2 = Vector2.ZERO
