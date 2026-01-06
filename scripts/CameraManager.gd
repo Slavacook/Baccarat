@@ -8,7 +8,7 @@ extends RefCounted
 
 # Предзагрузка классов для статических методов и типов
 const CameraAnimationHelper = preload("res://scripts/utils/CameraAnimationHelper.gd")
-const CameraConfig = preload("res://resources/CameraConfig.gd")
+const CameraConfigClass = preload("res://resources/CameraConfig.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
