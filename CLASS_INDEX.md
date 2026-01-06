@@ -252,11 +252,20 @@
 
 ### Камера
 
-| Класс | Файл | Ответственность |
-|-------|------|-----------------|
-| **CameraManager** | `scripts/CameraManager.gd` | Управление камерой (зум, переходы) |
-| **CameraInterpolationNode** | `scripts/CameraInterpolationNode.gd` | Интерполяция камеры |
-| **CameraConfig** | `resources/CameraConfig.gd` | Конфигурация камеры |
+| Класс | Файл | Строк | Ответственность | Зависимости |
+|-------|------|-------|-----------------|-------------|
+| **CameraManager** | `scripts/CameraManager.gd` | 582 | Управление камерой (зум, переходы) | CameraConfig, EventBus |
+| **CameraInterpolationNode** | `scripts/CameraInterpolationNode.gd` | ~15 | Интерполяция камеры (_process) | CameraInterpolationHandler |
+| **CameraConfig** | `resources/CameraConfig.gd` | ? | Конфигурация камеры | - |
+
+### Обработчики камеры (Phase 10)
+
+| Класс | Файл | Строк | Ответственность | Зависимости |
+|-------|------|-------|-----------------|-------------|
+| **CameraAnimationHelper** | `scripts/utils/CameraAnimationHelper.gd` | ~105 | Утилиты анимации (transition, ease, zoom names) | - |
+| **CameraZoomHandler** | `scripts/utils/CameraZoomHandler.gd` | ~89 | Обработка действий зума (in, out, mode2, area) | CameraConfig |
+| **CameraAreaNavigator** | `scripts/utils/CameraAreaNavigator.gd` | ~191 | Навигация по областям (next, prev, up, down) | CameraConfig, CameraZoomHandler |
+| **CameraInterpolationHandler** | `scripts/utils/CameraInterpolationHandler.gd` | ~293 | Интерполяция и анимация камеры | CameraConfig, Camera2D |
 
 ### Навигация
 

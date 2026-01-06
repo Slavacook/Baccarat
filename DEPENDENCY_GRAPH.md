@@ -38,12 +38,17 @@ graph TB
         EventBus[EventBus<br/>38+ сигналов]
     end
     
-    subgraph "Утилиты (Phase 8-9)"
+    subgraph "Утилиты (Phase 8-10)"
         PayoutReturnHandler[PayoutReturnHandler]
         PayoutPreparationHandler[PayoutPreparationHandler]
         UIEventHandler[UIEventHandler]
         InputHandler[InputHandler]
         CameraNavigationController[CameraNavigationController]
+        ChipNavigationCoordinator[ChipNavigationCoordinator]
+        CollectionModeHandler[CollectionModeHandler]
+        KeyboardFocusHandler[KeyboardFocusHandler]
+        GamepadMonitor[GamepadMonitor]
+        RoundsCounterUpdater[RoundsCounterUpdater]
     end
     
     GameController --> GamePhaseManager

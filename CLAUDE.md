@@ -10,11 +10,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
    - CardUIManager, ToggleUIManager, ButtonUIManager, MarkerUIManager, PayoutToggleManager
    - UIManager теперь фасад-агрегатор с Dependency Injection
 
-2. **✅ Phase 8-9 Refactoring ЗАВЕРШЁН** - GameController уменьшен с ~2006 до 1603 строк:
-   - Извлечено 10 новых классов в `scripts/utils/`:
-     - **Phase 8**: CameraNavigationController, ChipNavigationCoordinator, CollectionModeHandler, KeyboardFocusHandler, GamepadMonitor, RoundsCounterUpdater
-     - **Phase 9**: PayoutReturnHandler, PayoutPreparationHandler, UIEventHandler, InputHandler
-   - GameController теперь более модульный и легче поддерживать
+2. **✅ Phase 8-10 Refactoring ЗАВЕРШЁН**:
+   - **GameController**: уменьшен с ~2006 до 1603 строк (-27%)
+     - Извлечено 10 новых классов в `scripts/utils/`:
+       - **Phase 8**: CameraNavigationController, ChipNavigationCoordinator, CollectionModeHandler, KeyboardFocusHandler, GamepadMonitor, RoundsCounterUpdater
+       - **Phase 9**: PayoutReturnHandler, PayoutPreparationHandler, UIEventHandler, InputHandler
+   - **CameraManager**: уменьшен с 891 до 582 строк (-35%)
+     - Извлечено 4 новых класса в `scripts/utils/`:
+       - **Phase 10**: CameraAnimationHelper, CameraZoomHandler, CameraAreaNavigator, CameraInterpolationHandler
    - Все классы покрыты unit-тестами (231 тест, все проходят)
 
 2. **👥 Guest System (Система гостей)** - полноценная система генерации ставок:
