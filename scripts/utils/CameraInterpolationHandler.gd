@@ -77,19 +77,27 @@ func process_interpolation(_delta: float) -> void:
 	var position_distance = _camera.position.distance_to(_target_position)
 	
 	# Выбираем настройки в зависимости от типа анимации (обычная или навигация)
+	# 
+	# _is_navigation_mode = true  → МЕДЛЕННАЯ анимация (переходы между режимами 2)
+	# _is_navigation_mode = false → БЫСТРАЯ анимация (все остальные переходы)
+	# 
+	# Настройки находятся в CameraConfig.gd:
+	#   - БЫСТРАЯ: min_interpolation_speed, max_interpolation_speed, distance_threshold, rotation_threshold
+	#   - МЕДЛЕННАЯ: navigation_min_interpolation_speed, navigation_max_interpolation_speed, 
+	#                navigation_distance_threshold, navigation_rotation_threshold
 	var min_speed: float
 	var max_speed: float
 	var distance_thresh: float
 	var rotation_thresh: float
 	
 	if _is_navigation_mode:
-		# Используем медленные настройки для навигации
+		# 🟢 МЕДЛЕННАЯ анимация (навигация между режимами 2: guest_1_mode2 - guest_6_mode2)
 		min_speed = _config.navigation_min_interpolation_speed
 		max_speed = _config.navigation_max_interpolation_speed
 		distance_thresh = _config.navigation_distance_threshold
 		rotation_thresh = _config.navigation_rotation_threshold
 	else:
-		# Обычные настройки
+		# 🔵 БЫСТРАЯ анимация (обычные переходы: карты, области, общий план)
 		min_speed = _config.min_interpolation_speed
 		max_speed = _config.max_interpolation_speed
 		distance_thresh = _config.distance_threshold
@@ -149,13 +157,16 @@ func process_interpolation(_delta: float) -> void:
 		_camera.rotation_degrees = _target_rotation
 		_camera.zoom = _target_zoom
 		
+		# Сохраняем тип зума ДО остановки (stop_interpolation сбрасывает _current_zoom_type)
+		var completed_zoom_type = _current_zoom_type
+		
 		# Останавливаем интерполяцию
 		stop_interpolation()
 		
-		# Эмитим сигнал завершения
+		# Эмитим сигнал завершения (используем сохраненный тип)
 		if _on_interpolation_completed.is_valid():
-			_on_interpolation_completed.call(_current_zoom_type)
-		print("📷 CameraInterpolationHandler: камера достигла цели через экспоненциальное сглаживание")
+			_on_interpolation_completed.call(completed_zoom_type)
+		print("📷 CameraInterpolationHandler: камера достигла цели через экспоненциальное сглаживание (%s)" % completed_zoom_type)
 
 func start_interpolation(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_navigation: bool) -> void:
 	"""Запустить экспоненциальное сглаживание
@@ -193,8 +204,10 @@ func start_interpolation(target_pos: Vector2, target_zoom: Vector2, target_rotat
 	])
 
 func stop_interpolation() -> void:
-	"""Остановить экспоненциальное сглаживание"""
+	"""Остановить экспоненциальное сглаживание и полностью сбросить состояние"""
 	_is_interpolating = false
+	_is_navigation_mode = false  # Сбрасываем режим навигации
+	_current_zoom_type = ""  # Сбрасываем тип зума
 	if _process_node and _process_node.has_method("set_process"):
 		_process_node.set_process(false)
 

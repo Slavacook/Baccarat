@@ -34,6 +34,8 @@ var _process_node: Node = null  # Node для обработки _process (эк�
 var _zoom_handler: RefCounted = null  # Обработчик зума (Extract Class) - CameraZoomHandler
 var _area_navigator: RefCounted = null  # Навигатор областей (Extract Class) - CameraAreaNavigator
 var _interpolation_handler: RefCounted = null  # Обработчик интерполяции (Extract Class) - CameraInterpolationHandler
+var _target_area: int = -1  # Целевая область во время анимации (обновляется только после завершения)
+var _is_animating: bool = false  # Флаг активной анимации
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ ПЕРЕМЕННЫЕ (для внутреннего использования)
@@ -45,8 +47,52 @@ var last_zoom_type: String = "out"  # Последний тип зума (для
 var current_tween: Tween = null  # Текущий активный tween (для предотвращения конфликтов)
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ИНИЦИАЛИЗАЦИЯ
+# ИНИЦИАЛИЗАЦИЯ И ОЧИСТКА
 # ═══════════════════════════════════════════════════════════════════════════
+
+func cleanup() -> void:
+	"""Очистить ресурсы и отписаться от EventBus
+	
+	КРИТИЧЕСКИ ВАЖНО: Вызвать перед созданием нового CameraManager или при удалении!
+	Без этого старый экземпляр продолжит получать события из EventBus.
+	"""
+	print("📷 CameraManager: cleanup - отписка от EventBus")
+	
+	# Отписываемся от всех сигналов EventBus
+	if EventBus:
+		if EventBus.camera_zoom_requested.is_connected(_on_zoom_requested):
+			EventBus.camera_zoom_requested.disconnect(_on_zoom_requested)
+		if EventBus.first_deal_completed.is_connected(_on_first_deal_completed):
+			EventBus.first_deal_completed.disconnect(_on_first_deal_completed)
+		if EventBus.camera_current_area_requested.is_connected(_on_current_area_requested):
+			EventBus.camera_current_area_requested.disconnect(_on_current_area_requested)
+		if EventBus.camera_target_area_requested.is_connected(_on_target_area_requested):
+			EventBus.camera_target_area_requested.disconnect(_on_target_area_requested)
+		if EventBus.camera_target_area_from_requested.is_connected(_on_target_area_from_requested):
+			EventBus.camera_target_area_from_requested.disconnect(_on_target_area_from_requested)
+		if EventBus.camera_settings_requested.is_connected(_on_settings_requested):
+			EventBus.camera_settings_requested.disconnect(_on_settings_requested)
+		if EventBus.camera_first_deal_set_requested.is_connected(_on_first_deal_set_requested):
+			EventBus.camera_first_deal_set_requested.disconnect(_on_first_deal_set_requested)
+		if EventBus.game_restarted.is_connected(_on_game_restarted):
+			EventBus.game_restarted.disconnect(_on_game_restarted)
+	
+	# Останавливаем анимации
+	if _interpolation_handler:
+		_interpolation_handler.stop_interpolation()
+	if current_tween and current_tween.is_valid():
+		current_tween.kill()
+		current_tween = null
+	
+	# Удаляем созданные ноды
+	if _camera and is_instance_valid(_camera):
+		_camera.queue_free()
+		_camera = null
+	if _process_node and is_instance_valid(_process_node):
+		_process_node.queue_free()
+		_process_node = null
+	
+	print("📷 CameraManager: cleanup завершён")
 
 func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	"""Создать и настроить камеру
@@ -121,6 +167,9 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	
 	# Инициализируем обработчик интерполяции
 	var on_interpolation_completed = func(zoom_type: String) -> void:
+		# Обновляем current_area только после завершения анимации
+		current_area = _target_area
+		_is_animating = false
 		zoom_completed.emit(zoom_type)
 	_interpolation_handler = CameraInterpolationHandlerClass.new(
 		_config, 
@@ -141,14 +190,11 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	
 	# Инициализируем навигатор областей
 	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
-		if _zoom_handler and is_instance_valid(_zoom_handler):
-			_zoom_handler.zoom_area(area_index, is_nav)
+		_zoom_handler.zoom_area(area_index, is_nav)
 	var zoom_in_cb = func(is_nav: bool) -> void:
-		if _zoom_handler and is_instance_valid(_zoom_handler):
-			_zoom_handler.zoom_in(is_nav)
+		_zoom_handler.zoom_in(is_nav)
 	var zoom_out_cb = func(is_nav: bool) -> void:
-		if _zoom_handler and is_instance_valid(_zoom_handler):
-			_zoom_handler.zoom_out(is_nav)
+		_zoom_handler.zoom_out(is_nav)
 	_area_navigator = CameraAreaNavigatorClass.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
 	
 	# ═══════════════════════════════════════════════════════════════════
@@ -165,6 +211,9 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 		EventBus.camera_target_area_from_requested.connect(_on_target_area_from_requested)
 		EventBus.camera_settings_requested.connect(_on_settings_requested)
 		EventBus.camera_first_deal_set_requested.connect(_on_first_deal_set_requested)
+		
+		# События игры
+		EventBus.game_restarted.connect(_on_game_restarted)
 	
 	print("📷 CameraManager: камера создана и полностью инкапсулирована (zoom %.1f, конфиг: %s)" % [general_settings.zoom.x, _config_path])
 
@@ -184,48 +233,66 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 
 func _zoom_in(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на область карт - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_in(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_out(is_navigation: bool = false) -> void:
 	"""Внутренний метод возврата к общему плану - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_out(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_guest_1_mode2(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на гость 1 режим 2 - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_guest_1_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_guest_2_mode2(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на гость 2 режим 2 - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_guest_2_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_guest_3_mode2(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на гость 3 режим 2 - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_guest_3_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_guest_4_mode2(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на гость 4 режим 2 - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_guest_4_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_guest_5_mode2(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на гость 5 режим 2 - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_guest_5_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_guest_6_mode2(is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на гость 6 режим 2 - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_guest_6_mode2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на указанную область (1-6) - делегировано в CameraZoomHandler"""
-	if _zoom_handler and is_instance_valid(_zoom_handler):
+	if _zoom_handler:
 		_zoom_handler.zoom_area(area_index, is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ НАВИГАЦИИ (внутренняя логика)
@@ -233,23 +300,31 @@ func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 
 func _zoom_next_area() -> void:
 	"""Переключиться на следующую область (вправо) - делегировано в CameraAreaNavigator"""
-	if _area_navigator and is_instance_valid(_area_navigator):
+	if _area_navigator:
 		_area_navigator.zoom_next_area(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 func _zoom_prev_area() -> void:
 	"""Переключиться на предыдущую область (влево) - делегировано в CameraAreaNavigator"""
-	if _area_navigator and is_instance_valid(_area_navigator):
+	if _area_navigator:
 		_area_navigator.zoom_prev_area(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 func _zoom_up() -> void:
 	"""Вертикальная навигация вверх - делегировано в CameraAreaNavigator"""
-	if _area_navigator and is_instance_valid(_area_navigator):
+	if _area_navigator:
 		_area_navigator.zoom_up(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 func _zoom_down() -> void:
 	"""Вертикальная навигация вниз - делегировано в CameraAreaNavigator"""
-	if _area_navigator and is_instance_valid(_area_navigator):
+	if _area_navigator:
 		_area_navigator.zoom_down(current_area)
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ ОПРЕДЕЛЕНИЯ НАПРАВЛЕНИЙ (внутренняя логика)
@@ -257,15 +332,25 @@ func _zoom_down() -> void:
 
 func _get_target_area_by_direction(direction: String) -> int:
 	"""Определить целевую область по направлению из текущего состояния - делегировано в CameraAreaNavigator"""
-	if _area_navigator and is_instance_valid(_area_navigator):
-		return _area_navigator.get_target_area_by_direction(current_area, direction)
-	return -1
+	if not _area_navigator:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
+		return 0
+	# Используем _target_area если анимация идет, иначе current_area
+	# Это гарантирует, что запросы во время анимации используют правильное состояние
+	var area = _target_area if _is_animating else current_area
+	var target = _area_navigator.get_target_area_by_direction(area, direction)
+	print("📷 CameraManager: направление '%s' из area=%d (is_animating=%s, current=%d, target=%d) → %d" % [
+		direction, area, _is_animating, current_area, _target_area, target
+	])
+	return target
 
 func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 	"""Определить целевую область по направлению из указанной области - делегировано в CameraAreaNavigator"""
-	if _area_navigator and is_instance_valid(_area_navigator):
+	if _area_navigator:
 		return _area_navigator.get_target_area_by_direction(area, direction)
-	return -1
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
+		return 0
 
 func predict_target_area(zoom_type: String) -> int:
 	"""Предсказать целевую область (1-6) по zoom_type, 0 — если карты/общий план - делегировано в CameraAreaNavigator
@@ -278,9 +363,11 @@ func predict_target_area(zoom_type: String) -> int:
 	Returns:
 		Целевая область (1-6), 0 для карт/общего плана, -1 для общего плана
 	"""
-	if _area_navigator and is_instance_valid(_area_navigator):
+	if _area_navigator:
 		return _area_navigator.predict_target_area(zoom_type, current_area)
-	return -1
+	else:
+		push_error("❌ CameraAreaNavigator не инициализирован!")
+		return 0
 
 func is_on_cards() -> bool:
 	"""Проверка, находится ли камера на картах
@@ -316,8 +403,45 @@ func _process_interpolation(_delta: float) -> void:
 	Args:
 		_delta: Время с последнего кадра (не используется, но требуется для _process)
 	"""
-	if _interpolation_handler and is_instance_valid(_interpolation_handler):
+	if _interpolation_handler:
 		_interpolation_handler.process_interpolation(_delta)
+
+func _determine_animation_type(from_zoom_type: String, to_zoom_type: String) -> bool:
+	"""Определить тип анимации на основе правил
+	
+	Правило: Медленная анимация ТОЛЬКО при переходах между режимами 2
+	Все остальные переходы используют быструю анимацию
+	
+	Режимы 2 (все используют медленную анимацию при переходах между ними):
+	  - guest_1_mode2, guest_2_mode2, guest_3_mode2
+	  - guest_4_mode2, guest_5_mode2, guest_6_mode2
+	
+	Примеры:
+	  - guest_1_mode2 → guest_2_mode2 = МЕДЛЕННАЯ ✅
+	  - guest_2_mode2 → guest_3_mode2 = МЕДЛЕННАЯ ✅
+	  - guest_6_mode2 → guest_1_mode2 = МЕДЛЕННАЯ ✅
+	  - guest_1_mode2 → карты = БЫСТРАЯ ✅
+	  - карты → область = БЫСТРАЯ ✅
+	  - общий план → guest_3_mode2 = БЫСТРАЯ ✅
+	
+	Args:
+		from_zoom_type: Тип зума, откуда переходим
+		to_zoom_type: Тип зума, куда переходим
+		
+	Returns:
+		true если медленная анимация (навигация), false если быстрая
+	"""
+	var mode2_modes = ["guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2"]
+	var from_is_mode2 = from_zoom_type in mode2_modes
+	var to_is_mode2 = to_zoom_type in mode2_modes
+	
+	# Медленная анимация только при переходах между режимами 2
+	if from_is_mode2 and to_is_mode2:
+		print("📷 CameraManager: медленная анимация (режим 2: %s → %s)" % [from_zoom_type, to_zoom_type])
+		return true
+	else:
+		print("📷 CameraManager: быстрая анимация (%s → %s)" % [from_zoom_type, to_zoom_type])
+		return false
 
 func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_navigation: bool = false) -> void:
 	"""Анимировать камеру к заданной позиции, зуму и повороту
@@ -328,6 +452,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		target_rotation: Целевой поворот камеры (в градусах)
 		zoom_type: Тип зума (для логирования)
 		is_navigation: true если запрос от навигатора (используются медленные настройки)
+		              Если false, тип анимации определяется автоматически на основе правил
 	"""
 	if not _camera or not _scene or not _config:
 		return
@@ -336,45 +461,60 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	var from_zoom_type = last_zoom_type  # Тип зума, откуда мы идем (стартовая точка)
 	
 	# ═══════════════════════════════════════════════════════════════════════
+	# КРИТИЧЕСКИ ВАЖНО: Сохраняем состояние ПЕРЕД любыми изменениями!
+	# 
+	# previous_target_area должен содержать ПРЕДЫДУЩУЮ целевую область,
+	# чтобы при прерывании анимации мы могли корректно синхронизировать current_area
+	# ═══════════════════════════════════════════════════════════════════════
+	var was_animating = _is_animating
+	var previous_target_area = _target_area  # Сохраняем СТАРОЕ значение ДО обновления!
+	
+	# ═══════════════════════════════════════════════════════════════════════
 	# ОПРЕДЕЛЕНИЕ ТИПА АНИМАЦИИ (БЫСТРАЯ / МЕДЛЕННАЯ)
 	# 
-	# Правило: Медленная анимация ТОЛЬКО при переходах между режимами 2
-	# Режимы 2 берутся из CameraConfig.MODE2_ZOOM_TYPES
-	# Все остальные переходы используют быструю анимацию
+	# Если is_navigation явно передан как true, используем его (вызывающий код знает что делает)
+	# Если is_navigation = false, определяем автоматически на основе правил
+	# 
+	# Настройки анимации находятся в CameraConfig.gd:
+	#   - БЫСТРАЯ: min_interpolation_speed, max_interpolation_speed
+	#   - МЕДЛЕННАЯ: navigation_min_interpolation_speed, navigation_max_interpolation_speed
 	# ═══════════════════════════════════════════════════════════════════════
 	
-	var mode2_modes = _config.get_mode2_zoom_types()  # Получаем список режимов 2 из конфига
-	var from_is_mode2 = from_zoom_type in mode2_modes
-	var to_is_mode2 = zoom_type in mode2_modes
+	# Автоматическое определение типа анимации, если не указано явно
+	if not is_navigation:
+		is_navigation = _determine_animation_type(from_zoom_type, zoom_type)
 	
-	# Медленная анимация только при переходах между режимами 2
-	if from_is_mode2 and to_is_mode2:
-		is_navigation = true  # МЕДЛЕННАЯ анимация (навигация между режимами 2)
-		print("📷 CameraManager: медленная анимация (режим 2: %s → %s)" % [from_zoom_type, zoom_type])
-	else:
-		is_navigation = false  # БЫСТРАЯ анимация (обычные переходы)
-		print("📷 CameraManager: быстрая анимация (%s → %s)" % [from_zoom_type, zoom_type])
-	
-	# Обновляем current_area на основе zoom_type
+	# Сохраняем целевую область, но НЕ обновляем current_area сразу
+	# current_area будет обновлен только после завершения анимации
 	match zoom_type:
 		"in", "cards":
-			current_area = 0  # Карты
+			_target_area = 0  # Карты
 		"out":
-			current_area = -1  # Общий план
+			_target_area = -1  # Общий план
 		"guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2":
-			current_area = -1  # Остаёмся на общем плане для режима 2
+			_target_area = -1  # Остаёмся на общем плане для режима 2
 		_:
 			if zoom_type.begins_with("area_"):
 				# Извлекаем номер области из строки "area_X" (где X от 1 до 6)
 				var area_str = zoom_type.substr(5)  # Получаем "1", "2", и т.д.
 				var area_num = area_str.to_int()
 				if area_num >= 1 and area_num <= 6:
-					current_area = area_num
+					_target_area = area_num
 	
+	# Устанавливаем флаг новой анимации
+	_is_animating = true
 	last_zoom_type = zoom_type
 	zoom_started.emit(zoom_type)
 	
-	# Останавливаем предыдущую анимацию если она ещё идёт (защита от быстрых нажатий)
+	# ═══════════════════════════════════════════════════════════════════════
+	# ПРЕРЫВАНИЕ ПРЕДЫДУЩЕЙ АНИМАЦИИ (защита от быстрых нажатий)
+	# 
+	# При прерывании:
+	# 1. Останавливаем Tween и интерполяцию
+	# 2. Синхронизируем current_area с предыдущей целью (previous_target_area)
+	# ═══════════════════════════════════════════════════════════════════════
+	
+	# Останавливаем Tween если он активен
 	if current_tween and current_tween.is_valid():
 		current_tween.kill()
 		current_tween = null
@@ -383,10 +523,11 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	if _interpolation_handler:
 		_interpolation_handler.stop_interpolation()
 	
-	# Останавливаем предыдущий Tween если он активен
-	if current_tween and current_tween.is_valid():
-		current_tween.kill()
-		current_tween = null
+	# Если прерываем предыдущую анимацию, синхронизируем current_area
+	# с предыдущей целевой областью (куда камера ДОЛЖНА была прийти)
+	if was_animating:
+		current_area = previous_target_area
+		print("📷 CameraManager: прерывание анимации - синхронизация current_area = %d (было %d)" % [current_area, previous_target_area])
 	
 	# Если используется экспоненциальное сглаживание с адаптивной скоростью
 	if _config.use_adaptive_interpolation and _interpolation_handler:
@@ -396,6 +537,9 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# Если используется Tween анимация (встроенное сглаживание или обычный Tween)
 	if _interpolation_handler:
 		var on_tween_completed = func(completed_zoom_type: String) -> void:
+			# Обновляем current_area только после завершения анимации
+			current_area = _target_area
+			_is_animating = false
 			current_tween = null  # Очищаем ссылку после завершения
 			zoom_completed.emit(completed_zoom_type)
 		
@@ -474,6 +618,26 @@ func _on_first_deal_completed() -> void:
 	is_first_deal = false
 	print("📷 CameraManager: первая раздача завершена")
 
+func _on_game_restarted() -> void:
+	"""Обработка рестарта игры - сброс состояния камеры
+	
+	Вызывается при рестарте игры через EventBus.game_restarted.
+	Полностью сбрасывает состояние камеры к начальному состоянию.
+	"""
+	# Останавливаем активную интерполяцию (полный сброс состояния)
+	if _interpolation_handler:
+		_interpolation_handler.stop_interpolation()
+	
+	# Останавливаем активный Tween
+	if current_tween and current_tween.is_valid():
+		current_tween.kill()
+		current_tween = null
+	
+	# Восстанавливаем камеру к общему плану (используем существующий метод)
+	restore_to_general()
+	
+	print("📷 CameraManager: состояние камеры сброшено при рестарте игры")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ EVENTBUS - ЗАПРОСЫ СОСТОЯНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -529,20 +693,34 @@ func set_is_first_deal(value: bool) -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func restore_to_general() -> void:
-	"""Восстановить камеру к общему плану (для StateRestorer)
+	"""Восстановить камеру к общему плану (для StateRestorer и рестарта игры)
 	
-	Публичный метод для восстановления состояния камеры без анимации.
-	Используется только в StateRestorer для восстановления состояния стола.
+	Публичный метод для МГНОВЕННОГО восстановления состояния камеры без анимации.
+	Используется в StateRestorer и при game_restarted для сброса камеры.
+	
+	КРИТИЧЕСКИ ВАЖНО: Этот метод полностью сбрасывает состояние навигации!
 	"""
+	print("📷 CameraManager: restore_to_general - ДО сброса: current_area=%d, _target_area=%d, _is_animating=%s, last_zoom_type=%s" % [
+		current_area, _target_area, _is_animating, last_zoom_type
+	])
+	
 	if _camera != null and _config != null:
 		var general_settings = _config.get_general_settings()
+		# Мгновенно устанавливаем позицию камеры (без анимации)
 		_camera.position = general_settings.position
 		_camera.zoom = general_settings.zoom
 		_camera.rotation_degrees = general_settings.get("rotation", 0.0)
+		
+		# Полный сброс состояния навигации
 		is_first_deal = false
 		current_area = -1  # Общий план
+		_target_area = -1  # Также сбрасываем целевую область
+		_is_animating = false  # Сбрасываем флаг анимации
 		last_zoom_type = "out"
-		print("📷 CameraManager: камера восстановлена к общему плану")
+		
+		print("📷 CameraManager: камера восстановлена к общему плану (ПОСЛЕ сброса: current_area=%d, _target_area=%d)" % [
+			current_area, _target_area
+		])
 
 func reload_config() -> void:
 	"""Перезагрузить конфигурацию из файла (для отладки)"""
@@ -563,19 +741,19 @@ func reload_config() -> void:
 	
 	# Обновляем навигатор областей
 	var zoom_area_cb = func(area_index: int, is_nav: bool) -> void:
-		if _zoom_handler and is_instance_valid(_zoom_handler):
-			_zoom_handler.zoom_area(area_index, is_nav)
+		_zoom_handler.zoom_area(area_index, is_nav)
 	var zoom_in_cb = func(is_nav: bool) -> void:
-		if _zoom_handler and is_instance_valid(_zoom_handler):
-			_zoom_handler.zoom_in(is_nav)
+		_zoom_handler.zoom_in(is_nav)
 	var zoom_out_cb = func(is_nav: bool) -> void:
-		if _zoom_handler and is_instance_valid(_zoom_handler):
-			_zoom_handler.zoom_out(is_nav)
+		_zoom_handler.zoom_out(is_nav)
 	_area_navigator = CameraAreaNavigatorClass.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
 	
 	# Обновляем обработчик интерполяции с новой конфигурацией
 	if _camera and _scene and _process_node:
 		var on_interpolation_completed = func(zoom_type: String) -> void:
+			# Обновляем current_area после завершения анимации (как в setup)
+			current_area = _target_area
+			_is_animating = false
 			zoom_completed.emit(zoom_type)
 		_interpolation_handler = CameraInterpolationHandlerClass.new(
 			_config, 

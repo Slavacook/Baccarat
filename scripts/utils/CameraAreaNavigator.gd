@@ -119,6 +119,7 @@ func get_target_area_by_direction(area: int, direction: String) -> int:
 	match direction:
 		"left":
 			match area:
+				-1: return 1  # общий план → area_1 (левая область)
 				0: return 1  # карты → area_1
 				1: return 6  # area_1 → area_6 (циклически)
 				2: return 1  # area_2 → area_1
@@ -128,6 +129,7 @@ func get_target_area_by_direction(area: int, direction: String) -> int:
 				6: return 5  # area_6 → area_5
 		"right":
 			match area:
+				-1: return 6  # общий план → area_6 (правая область)
 				0: return 6  # карты → area_6
 				1: return 2  # area_1 → area_2
 				2: return 3  # area_2 → area_3
@@ -137,6 +139,7 @@ func get_target_area_by_direction(area: int, direction: String) -> int:
 				6: return 1  # area_6 → area_1 (циклически)
 		"up":
 			match area:
+				-1: return 4  # общий план → area_4 (центральная область)
 				0: return 4  # карты → area_4 (центральная)
 				1, 2, 3, 4, 5, 6: return -1  # из областей → общий план
 		"down":

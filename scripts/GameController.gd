@@ -311,6 +311,17 @@ func _ready():
 		PatienceTimerManager.reset_all_timers()
 	DebugLogger.log("🔄 Данные сброшены при инициализации сцены (чаевые, терпение, таймеры)")
 
+func _exit_tree() -> void:
+	"""Очистка при удалении сцены (важно при change_scene!)
+	
+	КРИТИЧЕСКИ ВАЖНО: Отписываем CameraManager от EventBus,
+	иначе старый экземпляр продолжит получать события после рестарта.
+	"""
+	print("🧹 GameController._exit_tree: очистка CameraManager")
+	if camera_manager:
+		camera_manager.cleanup()
+		camera_manager = null
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ КОМПОНЕНТОВ
 # ═══════════════════════════════════════════════════════════════════════════
