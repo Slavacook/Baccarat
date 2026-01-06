@@ -206,8 +206,8 @@ func update_arrows_for_area(current_area: int) -> void:
 	}
 	
 	# Создаем обработчик ответов, который использует метод класса вместо lambda
-	# bind() добавляет параметры в начало, сигнал передает (area, direction, target_area)
-	# После bind(current_area) метод получит (current_area, area, direction, target_area)
+	# bind() добавляет параметры в конец, сигнал передает (area, direction, target_area)
+	# После bind(current_area) метод получит (area, direction, target_area, current_area)
 	_arrows_response_handler = _on_arrows_area_response.bind(current_area)
 	EventBus.camera_target_area_from_received.connect(_arrows_response_handler)
 	
