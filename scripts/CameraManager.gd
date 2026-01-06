@@ -593,7 +593,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 				_process_node.set_process_mode(Node.PROCESS_MODE_ALWAYS)
 		
 		print("📷 CameraManager: %s (экспоненциальное сглаживание: pos %s, zoom %.1f, rotation %.1f°)" % [
-			_get_zoom_name(zoom_type),
+			CameraAnimationHelper.get_zoom_name(zoom_type),
 			target_pos,
 			target_zoom.x,
 			target_rotation
@@ -609,8 +609,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		tween.set_parallel(false)
 		
 		# Используем настройки из конфигурации
-		var transition_type = _get_transition_type(_config.transition_type)
-		var ease_type = _get_ease_type(_config.ease_type)
+		var transition_type = CameraAnimationHelper.get_transition_type(_config.transition_type)
+		var ease_type = CameraAnimationHelper.get_ease_type(_config.ease_type)
 		tween.set_trans(transition_type)
 		tween.set_ease(ease_type)
 		
@@ -628,7 +628,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		)
 		
 		print("📷 CameraManager: %s (zoom %.1f через Tween, pos %s, rotation %.1f° через сглаживание)" % [
-			_get_zoom_name(zoom_type), 
+			CameraAnimationHelper.get_zoom_name(zoom_type), 
 			target_zoom.x,
 			target_pos,
 			target_rotation
@@ -640,8 +640,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		tween.set_parallel(true)  # Позиция, зум и поворот меняются одновременно
 		
 		# Используем настройки из конфигурации
-		var transition_type = _get_transition_type(_config.transition_type)
-		var ease_type = _get_ease_type(_config.ease_type)
+		var transition_type = CameraAnimationHelper.get_transition_type(_config.transition_type)
+		var ease_type = CameraAnimationHelper.get_ease_type(_config.ease_type)
 		tween.set_trans(transition_type)
 		tween.set_ease(ease_type)
 		
@@ -662,7 +662,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		
 		var _settings = _config.get_settings_by_type(zoom_type)
 		print("📷 CameraManager: %s (zoom %.1f, pos %s, rotation %.1f°)" % [
-			_get_zoom_name(zoom_type), 
+			CameraAnimationHelper.get_zoom_name(zoom_type), 
 			target_zoom.x,
 			target_pos,
 			target_rotation
