@@ -6,6 +6,9 @@
 class_name CameraManager
 extends RefCounted
 
+# Предзагрузка CameraAnimationHelper для статических методов
+const CameraAnimationHelper = preload("res://scripts/utils/CameraAnimationHelper.gd")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════════════════
