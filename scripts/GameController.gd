@@ -125,6 +125,9 @@ var payout_return_handler: PayoutReturnHandler
 # Обработчик подготовки выплат (Extract Class)
 var payout_preparation_handler: PayoutPreparationHandler
 
+# Обработчик UI событий (Extract Class)
+var ui_event_handler: UIEventHandler
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -269,6 +272,7 @@ func _ready():
 	_initialize_rounds_counter_updater()
 	_initialize_payout_return_handler()
 	_initialize_payout_preparation_handler()
+	_initialize_ui_event_handler()
 	
 	# Проверка подключения геймпадов (после инициализации GamepadMonitor)
 	_check_gamepad_connection()
@@ -759,6 +763,17 @@ func _initialize_payout_preparation_handler() -> void:
 	)
 	print("✅ PayoutPreparationHandler инициализирован")
 
+func _initialize_ui_event_handler() -> void:
+	"""Инициализировать обработчик UI событий"""
+	ui_event_handler = UIEventHandler.new(
+		ui_manager,
+		phase_manager,
+		crib_sheet_scene,
+		survival_state,
+		self  # owner_node для доступа к дочерним элементам
+	)
+	print("✅ UIEventHandler инициализирован")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
 # ═══════════════════════════════════════════════════════════════════════════
@@ -923,67 +938,25 @@ func _update_chip_visibility() -> void:
 # Обработчики событий от UI элементов (кнопки, переключатели)
 
 func _on_help_button_pressed() -> void:
-	"""Обработчик нажатия кнопки помощи - открывает шпаргалку
-	
-	Открывает CribSheetScene для отображения правил игры.
-	Сбрасывает фокус с кнопки, чтобы пробел не активировал её повторно.
-	"""
-	# Открываем шпаргалку вместо старого help_popup
-	if crib_sheet_scene:
-		# Сбрасываем фокус с кнопки, чтобы пробел не активировал её
-		if ui_manager.help_button:
-			ui_manager.help_button.release_focus()
-		# Также сбрасываем фокус со всего viewport
-		if get_viewport():
-			get_viewport().gui_release_focus()
-		crib_sheet_scene.show_cribsheet()
+	"""Обработчик нажатия кнопки помощи - делегировано в UIEventHandler"""
+	if ui_event_handler:
+		ui_event_handler.on_help_button_pressed()
 	else:
-		push_warning("CribSheetScene: шпаргалка не инициализирована")
+		push_error("❌ UIEventHandler не инициализирован!")
 
 func _on_lang_button_pressed() -> void:
-	"""Обработчик нажатия кнопки переключения языка
-	
-	Переключает язык между русским и английским.
-	Обновляет все UI элементы, включая кнопки и toggles третьих карт.
-	"""
-	var new_lang = GameConstants.LANG_EN if Localization.get_lang() == GameConstants.LANG_RU else GameConstants.LANG_RU
-	Localization.set_lang(new_lang)
-	ui_manager.update_lang_button()
-	ui_manager.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
-	# Обновление toggles третьих карт (если видимы)
-	if ui_manager.player_third_toggle.visible:
-		var state = "!" if phase_manager.player_third_selected else "?"
-		ui_manager.update_player_third_card_ui(state)
-	if ui_manager.banker_third_toggle.visible:
-		var state = "!" if phase_manager.banker_third_selected else "?"
-		ui_manager.update_banker_third_card_ui(state)
-	# Обновление текста кнопок collect/pay
-	ui_manager.button_ui.update_collect_pay_buttons_text()
+	"""Обработчик нажатия кнопки переключения языка - делегировано в UIEventHandler"""
+	if ui_event_handler:
+		ui_event_handler.on_lang_button_pressed()
+	else:
+		push_error("❌ UIEventHandler не инициализирован!")
 
 func _on_payout_confirmed(is_correct: bool, collected: float, expected: float) -> void:
-	"""Обработчик подтверждения выплаты (старый метод, для обратной совместимости)
-	
-	Args:
-		is_correct: Правильно ли рассчитана выплата
-		collected: Собранная сумма
-		expected: Ожидаемая сумма
-	
-	Примечание: Для старого метода нет информации о bet_type/position_index.
-	Передаются пустые значения - StatsManager пропустит такие случаи.
-	"""
-	if is_correct:
-		# Для старого метода нет информации о bet_type/position_index
-		# Передаем пустые значения - StatsManager пропустит такие случаи
-		EventBus.payout_correct.emit(collected, expected, "", -1)
-		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
-		# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
+	"""Обработчик подтверждения выплаты - делегировано в UIEventHandler"""
+	if ui_event_handler:
+		ui_event_handler.on_payout_confirmed(is_correct, collected, expected)
 	else:
-		# Для старого метода нет информации о bet_type/position_index
-		EventBus.payout_wrong.emit(collected, expected, "", -1)
-		DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
-		# ← Жизни отнимаются в PayoutScene, здесь ничего не делаем
-	if is_correct:
-		phase_manager.reset()
+		push_error("❌ UIEventHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # GAME OVER И РЕСТАРТ
@@ -1172,7 +1145,10 @@ func _on_settings_opened():
 		DebugLogger.log("⚙️ Кнопка 'Карты' отключена (настройки открыты)")
 	
 	# Скрываем UI элементы игры
-	_hide_game_ui_elements()
+	if ui_event_handler:
+		ui_event_handler.hide_game_ui_elements()
+	else:
+		push_error("❌ UIEventHandler не инициализирован!")
 
 func _on_settings_closed():
 	"""Обработчик закрытия настроек — включаем кнопку 'Карты' обратно"""
@@ -1182,129 +1158,14 @@ func _on_settings_closed():
 		DebugLogger.log("⚙️ Настройки закрыты → кнопка 'Карты' включена")
 	
 	# Включаем обратно все UI элементы
-	_show_game_ui_elements()
+	if ui_event_handler:
+		ui_event_handler.show_game_ui_elements()
+	else:
+		push_error("❌ UIEventHandler не инициализирован!")
 
-func _hide_game_ui_elements():
-	"""Скрыть UI элементы игры при открытии настроек"""
-	DebugLogger.log("⚙️ Начинаем скрытие UI элементов...")
-	
-	# Кнопка действия (начать/подтвердить/завершить)
-	if ui_manager and ui_manager.button_ui:
-		if ui_manager.button_ui.action_button:
-			ui_manager.button_ui.action_button.visible = false
-			DebugLogger.log("  ✅ action_button скрыта")
-		if ui_manager.button_ui.action_button_broken:
-			ui_manager.button_ui.action_button_broken.visible = false
-			DebugLogger.log("  ✅ action_button_broken скрыта")
-	
-	# Кнопка подсказки - проверяем в TopUI и в корне
-	var help_button = get_node_or_null("TopUI/HelpButton")
-	if not help_button:
-		help_button = get_node_or_null("HelpButton")
-	if help_button:
-		help_button.visible = false
-		DebugLogger.log("  ✅ help_button скрыта")
-	elif ui_manager and ui_manager.button_ui and ui_manager.button_ui.help_button:
-		ui_manager.button_ui.help_button.visible = false
-		DebugLogger.log("  ✅ help_button (из ui_manager) скрыта")
-	
-	# Сердца (SurvivalModeUI) - находится в TopUI
-	var survival = get_node_or_null("TopUI/SurvivalModeUI")
-	if survival:
-		survival.visible = false
-		DebugLogger.log("  ✅ SurvivalModeUI скрыта")
-	elif survival_state:
-		survival_state.hide()
-		DebugLogger.log("  ✅ survival_ui скрыта через SurvivalStateProvider")
-	
-	# Инвентарь с картами шансов
-	var chance_storage = get_node_or_null("TopUI/ChanceCardStorage")
-	if chance_storage:
-		chance_storage.visible = false
-		DebugLogger.log("  ✅ ChanceCardStorage скрыт")
-	
-	# Счетчик раздач - проверяем в TopUI и в корне
-	var rounds_label = get_node_or_null("TopUI/RoundsCounterLabel")
-	if not rounds_label:
-		rounds_label = rounds_counter_label
-	if rounds_label:
-		rounds_label.visible = false
-		DebugLogger.log("  ✅ rounds_counter_label скрыт")
-	
-	# Счетчик чаевых - проверяем в TopUI и в корне
-	var stats_label = get_node_or_null("TopUI/StatsLabel")
-	if not stats_label:
-		stats_label = ui_manager.stats_label if ui_manager else null
-	if stats_label:
-		stats_label.visible = false
-		DebugLogger.log("  ✅ stats_label скрыт")
-	
-	DebugLogger.log("⚙️ UI элементы игры скрыты (настройки открыты)")
-
-func _show_game_ui_elements():
-	"""Показать UI элементы игры при закрытии настроек"""
-	DebugLogger.log("⚙️ Начинаем показ UI элементов...")
-	
-	# Кнопка действия (начать/подтвердить/завершить)
-	if ui_manager and ui_manager.button_ui:
-		if ui_manager.button_ui.action_button:
-			# Показываем action_button, если он не disabled
-			# Если disabled, то broken версия будет показана через disable_action_button
-			if not ui_manager.button_ui.action_button.disabled:
-				ui_manager.button_ui.action_button.visible = true
-				if ui_manager.button_ui.action_button_broken:
-					ui_manager.button_ui.action_button_broken.visible = false
-				DebugLogger.log("  ✅ action_button показана")
-			else:
-				# Если disabled, то broken версия должна быть видна
-				ui_manager.button_ui.action_button.visible = false
-				if ui_manager.button_ui.action_button_broken:
-					ui_manager.button_ui.action_button_broken.visible = true
-				DebugLogger.log("  ✅ action_button_broken показана (action_button disabled)")
-	
-	# Кнопка подсказки - проверяем в TopUI и в корне
-	var help_button = get_node_or_null("TopUI/HelpButton")
-	if not help_button:
-		help_button = get_node_or_null("HelpButton")
-	if help_button:
-		help_button.visible = true
-		DebugLogger.log("  ✅ help_button показана")
-	elif ui_manager and ui_manager.button_ui and ui_manager.button_ui.help_button:
-		ui_manager.button_ui.help_button.visible = true
-		DebugLogger.log("  ✅ help_button (из ui_manager) показана")
-	
-	# Сердца (SurvivalModeUI) - находится в TopUI
-	var survival = get_node_or_null("TopUI/SurvivalModeUI")
-	if survival:
-		survival.visible = true
-		DebugLogger.log("  ✅ SurvivalModeUI показана")
-	elif survival_state:
-		survival_state.show()
-		DebugLogger.log("  ✅ survival_ui показана через SurvivalStateProvider")
-	
-	# Инвентарь с картами шансов
-	var chance_storage = get_node_or_null("TopUI/ChanceCardStorage")
-	if chance_storage:
-		chance_storage.visible = true
-		DebugLogger.log("  ✅ ChanceCardStorage показан")
-	
-	# Счетчик раздач - проверяем в TopUI и в корне
-	var rounds_label = get_node_or_null("TopUI/RoundsCounterLabel")
-	if not rounds_label:
-		rounds_label = rounds_counter_label
-	if rounds_label:
-		rounds_label.visible = true
-		DebugLogger.log("  ✅ rounds_counter_label показан")
-	
-	# Счетчик чаевых - проверяем в TopUI и в корне
-	var stats_label = get_node_or_null("TopUI/StatsLabel")
-	if not stats_label:
-		stats_label = ui_manager.stats_label if ui_manager else null
-	if stats_label:
-		stats_label.visible = true
-		DebugLogger.log("  ✅ stats_label показан")
-	
-	DebugLogger.log("⚙️ UI элементы игры показаны (настройки закрыты)")
+# Методы управления видимостью UI элементов перенесены в UIEventHandler
+# _hide_game_ui_elements -> ui_event_handler.hide_game_ui_elements
+# _show_game_ui_elements -> ui_event_handler.show_game_ui_elements
 
 
 # Методы обработки настроек перенесены в SettingsEventHandler
