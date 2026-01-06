@@ -94,16 +94,21 @@ func test_update_score_display_with_survival_info():
 	state_manager.set_survival_state(true, 7)
 	# Метод должен выполниться без ошибок
 	state_manager.update_score_display()
-	# Если нет ошибок - тест пройден
+	# Проверяем что состояние не изменилось (метод не упал)
+	assert_true(state_manager.is_survival_mode, "Режим выживания должен остаться true")
+	assert_eq(state_manager.current_lives, 7, "Жизни должны остаться 7")
 
 func test_update_score_display_without_survival_info():
 	"""Проверка: обновление отображения без survival_info"""
 	# Ожидаем ошибку (push_error), но продолжаем тест
-	# Ошибка будет в логе, но это нормально для теста null значения
+	# GUT будет показывать ошибку как "Unexpected Error", но тест должен пройти
+	# Ошибка в логе - это нормально для теста null значения
 	state_manager.survival_info = null
 	# Метод должен обработать null и не упасть
 	state_manager.update_score_display()
-	# Если нет ошибок - тест пройден
+	# Проверяем что состояние не изменилось (метод не упал)
+	assert_true(state_manager.is_survival_mode, "Режим выживания должен остаться")
+	# Тест проходит, даже если есть push_error в логе
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ: handle_life_lost

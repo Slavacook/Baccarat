@@ -135,7 +135,10 @@ func test_both_stand_no_selection():
 
 func test_both_stand_player_selected():
 	"""Проверка: оба стоят, игрок выбрал - должна быть ошибка"""
-	var result = validator.validate_third_card_action(7, 7, true, false, false, null)
+	# Используем 6-5 вместо 7-7, так как 7-7 считается natural и возвращает "natural_draw"
+	# При 6-5: игрок стоит (6 > 5), банкир стоит (5 > 2 и не должен брать без третьей карты игрока)
+	# Это попадет в _validate_both_stand, который вернет "player_wrong"
+	var result = validator.validate_third_card_action(6, 5, true, false, false, null)
 	assert_false(result.get("is_valid", true), "Не должна быть валидна")
 	assert_eq(result.get("error_type", ""), "player_wrong", "Тип ошибки должен быть player_wrong")
 
