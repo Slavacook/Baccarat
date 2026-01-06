@@ -184,12 +184,8 @@ func update_arrows_for_area(current_area: int) -> void:
 	if not is_instance_valid(owner_node):
 		return
 	
-	var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
-	var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
-	var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
-	var down_arrow = owner_node.get_node_or_null("TopUI/DownArrowButton")
-	
 	# Счётчик ожидаемых ответов и словарь ответов (используем словарь для изменяемых значений)
+	# НЕ захватываем ссылки на узлы стрелок - получаем их заново при каждом вызове
 	var state = {
 		"pending": 4,
 		"completed": false,
@@ -198,12 +194,14 @@ func update_arrows_for_area(current_area: int) -> void:
 			"right": null,
 			"up": null,
 			"down": null
-		}
+		},
+		"area": current_area  # Сохраняем area в state для проверки
 	}
 	
 	# Обработчик ответов - сохраняем ссылку для отписки
+	# НЕ захватываем узлы стрелок - получаем их заново при применении состояния
 	var response_handler = func(area: int, dir: String, target: int):
-		# Проверяем, что owner_node и стрелки все еще валидны
+		# Проверяем, что owner_node все еще валиден
 		if not is_instance_valid(owner_node):
 			# Отписываемся, если owner_node освобожден
 			if EventBus and EventBus.camera_target_area_from_received.is_connected(response_handler):
@@ -213,15 +211,20 @@ func update_arrows_for_area(current_area: int) -> void:
 		if state.completed:
 			return
 		# Проверяем, что ответ относится к текущему запросу
-		if area == current_area and dir in state.responses and state.responses[dir] == null:
+		if area == state.area and dir in state.responses and state.responses[dir] == null:
 			state.responses[dir] = target
 			state.pending -= 1
 			if state.pending == 0:
 				# Все ответы получены, обновляем стрелки
 				state.completed = true
+				# Получаем узлы стрелок заново (не захватываем их в lambda)
+				var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
+				var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
+				var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
+				var down_arrow = owner_node.get_node_or_null("TopUI/DownArrowButton")
 				# Проверяем валидность стрелок перед применением состояния
 				if is_instance_valid(left_arrow) and is_instance_valid(right_arrow) and is_instance_valid(up_arrow) and is_instance_valid(down_arrow):
-					apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, current_area, state.responses)
+					apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, state.area, state.responses)
 				# Отписываемся после получения всех ответов
 				if EventBus and EventBus.camera_target_area_from_received.is_connected(response_handler):
 					EventBus.camera_target_area_from_received.disconnect(response_handler)
