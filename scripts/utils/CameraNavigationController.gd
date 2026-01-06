@@ -174,6 +174,10 @@ func update_arrows_state(target_area: int = -1) -> void:
 		EventBus.camera_current_area_received.connect(response_handler, CONNECT_ONE_SHOT)
 		EventBus.camera_current_area_requested.emit()
 
+# Состояние для обработки ответов (хранится в классе, а не в lambda)
+var _arrows_update_state: Dictionary = {}
+var _arrows_response_handler: Callable = Callable()
+
 func update_arrows_for_area(current_area: int) -> void:
 	"""Обновить состояние стрелок для указанной области
 	
@@ -184,9 +188,12 @@ func update_arrows_for_area(current_area: int) -> void:
 	if not is_instance_valid(owner_node):
 		return
 	
-	# Счётчик ожидаемых ответов и словарь ответов (используем словарь для изменяемых значений)
-	# НЕ захватываем ссылки на узлы стрелок - получаем их заново при каждом вызове
-	var state = {
+	# Отписываемся от предыдущего обработчика, если он был
+	if _arrows_response_handler.is_valid() and EventBus and EventBus.camera_target_area_from_received.is_connected(_arrows_response_handler):
+		EventBus.camera_target_area_from_received.disconnect(_arrows_response_handler)
+	
+	# Инициализируем состояние для нового запроса
+	_arrows_update_state = {
 		"pending": 4,
 		"completed": false,
 		"responses": {
@@ -195,47 +202,61 @@ func update_arrows_for_area(current_area: int) -> void:
 			"up": null,
 			"down": null
 		},
-		"area": current_area  # Сохраняем area в state для проверки
+		"area": current_area
 	}
 	
-	# Обработчик ответов - сохраняем ссылку для отписки
-	# НЕ захватываем узлы стрелок - получаем их заново при применении состояния
-	var response_handler = func(area: int, dir: String, target: int):
-		# Проверяем, что owner_node все еще валиден
-		if not is_instance_valid(owner_node):
-			# Отписываемся, если owner_node освобожден
-			if EventBus and EventBus.camera_target_area_from_received.is_connected(response_handler):
-				EventBus.camera_target_area_from_received.disconnect(response_handler)
-			return
-		# Игнорируем, если уже завершено
-		if state.completed:
-			return
-		# Проверяем, что ответ относится к текущему запросу
-		if area == state.area and dir in state.responses and state.responses[dir] == null:
-			state.responses[dir] = target
-			state.pending -= 1
-			if state.pending == 0:
-				# Все ответы получены, обновляем стрелки
-				state.completed = true
-				# Получаем узлы стрелок заново (не захватываем их в lambda)
-				var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
-				var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
-				var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
-				var down_arrow = owner_node.get_node_or_null("TopUI/DownArrowButton")
-				# Проверяем валидность стрелок перед применением состояния
-				if is_instance_valid(left_arrow) and is_instance_valid(right_arrow) and is_instance_valid(up_arrow) and is_instance_valid(down_arrow):
-					apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, state.area, state.responses)
-				# Отписываемся после получения всех ответов
-				if EventBus and EventBus.camera_target_area_from_received.is_connected(response_handler):
-					EventBus.camera_target_area_from_received.disconnect(response_handler)
-	
-	EventBus.camera_target_area_from_received.connect(response_handler)
+	# Создаем обработчик ответов, который использует метод класса вместо lambda
+	_arrows_response_handler = _on_arrows_area_response.bind(current_area)
+	EventBus.camera_target_area_from_received.connect(_arrows_response_handler)
 	
 	# Запрашиваем целевые области для всех направлений
 	EventBus.camera_target_area_from_requested.emit(current_area, "left")
 	EventBus.camera_target_area_from_requested.emit(current_area, "right")
 	EventBus.camera_target_area_from_requested.emit(current_area, "up")
 	EventBus.camera_target_area_from_requested.emit(current_area, "down")
+
+func _on_arrows_area_response(requested_area: int, area: int, dir: String, target: int) -> void:
+	"""Обработчик ответов для обновления стрелок (метод класса вместо lambda)
+	
+	Args:
+		requested_area: Область, для которой был сделан запрос (захватывается через bind)
+		area: Область из ответа
+		dir: Направление из ответа
+		target: Целевая область из ответа
+	"""
+	# Проверяем, что owner_node все еще валиден
+	if not is_instance_valid(owner_node):
+		# Отписываемся, если owner_node освобожден
+		if _arrows_response_handler.is_valid() and EventBus and EventBus.camera_target_area_from_received.is_connected(_arrows_response_handler):
+			EventBus.camera_target_area_from_received.disconnect(_arrows_response_handler)
+		return
+	
+	# Проверяем, что состояние инициализировано
+	if _arrows_update_state.is_empty():
+		return
+	
+	# Игнорируем, если уже завершено
+	if _arrows_update_state.get("completed", false):
+		return
+	
+	# Проверяем, что ответ относится к текущему запросу
+	if area == requested_area and dir in _arrows_update_state.responses and _arrows_update_state.responses[dir] == null:
+		_arrows_update_state.responses[dir] = target
+		_arrows_update_state.pending -= 1
+		if _arrows_update_state.pending == 0:
+			# Все ответы получены, обновляем стрелки
+			_arrows_update_state.completed = true
+			# Получаем узлы стрелок заново
+			var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
+			var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
+			var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
+			var down_arrow = owner_node.get_node_or_null("TopUI/DownArrowButton")
+			# Проверяем валидность стрелок перед применением состояния
+			if is_instance_valid(left_arrow) and is_instance_valid(right_arrow) and is_instance_valid(up_arrow) and is_instance_valid(down_arrow):
+				apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, requested_area, _arrows_update_state.responses)
+			# Отписываемся после получения всех ответов
+			if _arrows_response_handler.is_valid() and EventBus and EventBus.camera_target_area_from_received.is_connected(_arrows_response_handler):
+				EventBus.camera_target_area_from_received.disconnect(_arrows_response_handler)
 
 func apply_arrows_state(left_arrow: Node, right_arrow: Node, up_arrow: Node, down_arrow: Node, current_area: int, responses: Dictionary) -> void:
 	"""Применить состояние стрелок на основе ответов
