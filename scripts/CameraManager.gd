@@ -143,27 +143,48 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _zoom_in(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на область карт"""
+	"""Внутренний метод зума на область карт
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
 	var settings = _config.get_cards_settings()
 	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "in", is_navigation)
 
 func _zoom_out(is_navigation: bool = false) -> void:
-	"""Внутренний метод возврата к общему плану"""
+	"""Внутренний метод возврата к общему плану
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
 	var settings = _config.get_general_settings()
 	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out", is_navigation)
 
 func _zoom_mode2_right(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (справа)"""
+	"""Внутренний метод зума на режим 2 (справа)
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
 	var settings = _config.get_mode2_right_settings()
 	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_right", is_navigation)
 
 func _zoom_mode2_left(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (слева)"""
+	"""Внутренний метод зума на режим 2 (слева)
+	
+	Args:
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
 	var settings = _config.get_mode2_left_settings()
 	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left", is_navigation)
 
 func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на указанную область (1-6)"""
+	"""Внутренний метод зума на указанную область (1-6)
+	
+	Args:
+		area_index: Индекс области (1-6)
+		is_navigation: true если запрос от навигатора (используются медленные настройки)
+	"""
 	if area_index < 1 or area_index > 6:
 		push_error("CameraManager: неверный индекс области %d" % area_index)
 		return
@@ -177,19 +198,30 @@ func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _zoom_next_area() -> void:
-	"""Переключиться на следующую область (вправо)"""
+	"""Переключиться на следующую область (вправо)
+	
+	Использует циклическую навигацию: area_6 → area_1
+	"""
 	var target = _get_target_area_by_direction("right")
 	if target > 0 and target != current_area:
 		_zoom_area(target)
 
 func _zoom_prev_area() -> void:
-	"""Переключиться на предыдущую область (влево)"""
+	"""Переключиться на предыдущую область (влево)
+	
+	Использует циклическую навигацию: area_1 → area_6
+	"""
 	var target = _get_target_area_by_direction("left")
 	if target > 0 and target != current_area:
 		_zoom_area(target)
 
 func _zoom_up() -> void:
-	"""Вертикальная навигация вверх: с карт → area_2, из областей → общий план"""
+	"""Вертикальная навигация вверх
+	
+	Переходы:
+	- С карт → area_4 (центральная область)
+	- Из областей → общий план
+	"""
 	var target = _get_target_area_by_direction("up")
 	if target > 0 and target != current_area:
 		_zoom_area(target)
@@ -197,7 +229,12 @@ func _zoom_up() -> void:
 		_zoom_out()
 
 func _zoom_down() -> void:
-	"""Вертикальная навигация вниз: из областей → карты, с карт → общий план"""
+	"""Вертикальная навигация вниз
+	
+	Переходы:
+	- Из областей → карты
+	- С карт → общий план
+	"""
 	var target = _get_target_area_by_direction("down")
 	if target == 0:
 		_zoom_in()
@@ -301,6 +338,12 @@ func predict_target_area(zoom_type: String) -> int:
 	
 	Использует _get_target_area_by_direction() для единообразия логики.
 	Публичный метод для GameController (используется для подсветки областей).
+	
+	Args:
+		zoom_type: Тип зума (например, "area_1", "next_area", "up", и т.д.)
+		
+	Returns:
+		Целевая область (1-6), 0 для карт/общего плана, -1 для общего плана
 	"""
 	match zoom_type:
 		"area_1":
@@ -327,15 +370,27 @@ func predict_target_area(zoom_type: String) -> int:
 			return 0  # любые in/out/cards — без подсветки
 
 func is_on_cards() -> bool:
-	"""Проверка, находится ли камера на картах"""
+	"""Проверка, находится ли камера на картах
+	
+	Returns:
+		true если камера находится на картах, false иначе
+	"""
 	return last_zoom_type == "in" or last_zoom_type == "cards"
 
 func is_on_area() -> bool:
-	"""Проверка, находится ли камера на области ставок"""
+	"""Проверка, находится ли камера на области ставок
+	
+	Returns:
+		true если камера находится на области ставок (1-6), false иначе
+	"""
 	return current_area >= 1 and current_area <= 6
 
 func get_last_zoom_type() -> String:
-	"""Получить последний тип зума"""
+	"""Получить последний тип зума
+	
+	Returns:
+		Последний тип зума (например, "in", "out", "area_1", и т.д.)
+	"""
 	return last_zoom_type
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -343,7 +398,14 @@ func get_last_zoom_type() -> String:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _process_interpolation(_delta: float) -> void:
-	"""Обработка экспоненциального сглаживания камеры в _process"""
+	"""Обработка экспоненциального сглаживания камеры в _process
+	
+	Использует адаптивную скорость интерполяции на основе расстояния до цели.
+	Применяет плавное ускорение и замедление для естественного движения камеры.
+	
+	Args:
+		_delta: Время с последнего кадра (не используется, но требуется для _process)
+	"""
 	if not _is_interpolating or not _camera:
 		return
 	
@@ -607,7 +669,14 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		])
 
 func _get_transition_type(type_name: String) -> Tween.TransitionType:
-	"""Преобразует строковое название типа анимации в Tween.TransitionType"""
+	"""Преобразует строковое название типа анимации в Tween.TransitionType
+	
+	Args:
+		type_name: Название типа (например, "back", "quint", "sine")
+		
+	Returns:
+		Tween.TransitionType соответствующий названию, или TRANS_QUINT по умолчанию
+	"""
 	match type_name.to_lower():
 		"linear":
 			return Tween.TRANS_LINEAR
@@ -635,7 +704,14 @@ func _get_transition_type(type_name: String) -> Tween.TransitionType:
 			return Tween.TRANS_QUINT  # По умолчанию
 
 func _get_ease_type(type_name: String) -> Tween.EaseType:
-	"""Преобразует строковое название типа плавности в Tween.EaseType"""
+	"""Преобразует строковое название типа плавности в Tween.EaseType
+	
+	Args:
+		type_name: Название типа (например, "in", "out", "in_out")
+		
+	Returns:
+		Tween.EaseType соответствующий названию, или EASE_OUT по умолчанию
+	"""
 	match type_name.to_lower():
 		"in":
 			return Tween.EASE_IN
@@ -649,7 +725,14 @@ func _get_ease_type(type_name: String) -> Tween.EaseType:
 			return Tween.EASE_OUT  # По умолчанию
 
 func _get_zoom_name(zoom_type: String) -> String:
-	"""Получить человекочитаемое название зума"""
+	"""Получить человекочитаемое название зума
+	
+	Args:
+		zoom_type: Тип зума (например, "in", "out", "area_1")
+		
+	Returns:
+		Человекочитаемое название зума на русском языке
+	"""
 	match zoom_type:
 		"in", "cards":
 			return "Зум на карты"
@@ -758,9 +841,19 @@ func _on_settings_requested() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func get_is_first_deal() -> bool:
+	"""Получить флаг первой раздачи
+	
+	Returns:
+		true если это первая раздача, false иначе
+	"""
 	return is_first_deal
 
 func set_is_first_deal(value: bool) -> void:
+	"""Установить флаг первой раздачи
+	
+	Args:
+		value: true если это первая раздача, false иначе
+	"""
 	is_first_deal = value
 
 # ═══════════════════════════════════════════════════════════════════════════
