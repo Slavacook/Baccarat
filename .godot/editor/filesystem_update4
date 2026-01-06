@@ -1,5 +1,4 @@
-res://scripts/utils/PayoutPreparationHandler.gd
-res://scripts/utils/PayoutReturnHandler.gd
+res://scripts/CameraManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
