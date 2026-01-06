@@ -387,8 +387,6 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 			_was_on_cards_before_out = false  # Сбрасываем флаг при переходе на другие позиции
 	
 	last_zoom_type = zoom_type
-	_current_zoom_type = zoom_type
-	_is_navigation_mode = is_navigation
 	zoom_started.emit(zoom_type)
 	
 	# Останавливаем предыдущую анимацию если она ещё идёт (защита от быстрых нажатий)
