@@ -264,4 +264,3 @@ func test_remove_all_stake_labels_for_type():
 	chip_node1.queue_free()
 	chip_node2.queue_free()
 	chip_node3.queue_free()
-
