@@ -27,6 +27,7 @@ var _config: CameraConfig = null
 var _camera: Camera2D = null
 var _scene: Node = null  # Родительская сцена для создания tween
 var _process_node: Node = null  # Node для обработки _process (экспоненциальное сглаживание)
+var _zoom_handler: CameraZoomHandler = null  # Обработчик зума (Extract Class)
 
 # Целевые значения для экспоненциального сглаживания
 var _target_position: Vector2 = Vector2.ZERO
@@ -150,56 +151,47 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 # ПРИВАТНЫЕ МЕТОДЫ ЗУМА (внутренняя логика)
 # ═══════════════════════════════════════════════════════════════════════════
 
+# Методы зума перенесены в CameraZoomHandler
+# _zoom_in -> _zoom_handler.zoom_in
+# _zoom_out -> _zoom_handler.zoom_out
+# _zoom_mode2_right -> _zoom_handler.zoom_mode2_right
+# _zoom_mode2_left -> _zoom_handler.zoom_mode2_left
+# _zoom_area -> _zoom_handler.zoom_area
+
 func _zoom_in(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на область карт
-	
-	Args:
-		is_navigation: true если запрос от навигатора (используются медленные настройки)
-	"""
-	var settings = _config.get_cards_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "in", is_navigation)
+	"""Внутренний метод зума на область карт - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_in(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_out(is_navigation: bool = false) -> void:
-	"""Внутренний метод возврата к общему плану
-	
-	Args:
-		is_navigation: true если запрос от навигатора (используются медленные настройки)
-	"""
-	var settings = _config.get_general_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "out", is_navigation)
+	"""Внутренний метод возврата к общему плану - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_out(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_mode2_right(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (справа)
-	
-	Args:
-		is_navigation: true если запрос от навигатора (используются медленные настройки)
-	"""
-	var settings = _config.get_mode2_right_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_right", is_navigation)
+	"""Внутренний метод зума на режим 2 (справа) - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_mode2_right(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_mode2_left(is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на режим 2 (слева)
-	
-	Args:
-		is_navigation: true если запрос от навигатора (используются медленные настройки)
-	"""
-	var settings = _config.get_mode2_left_settings()
-	_animate_to(settings.position, settings.zoom, settings.get("rotation", 0.0), "mode2_left", is_navigation)
+	"""Внутренний метод зума на режим 2 (слева) - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_mode2_left(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
-	"""Внутренний метод зума на указанную область (1-6)
-	
-	Args:
-		area_index: Индекс области (1-6)
-		is_navigation: true если запрос от навигатора (используются медленные настройки)
-	"""
-	if area_index < 1 or area_index > 6:
-		push_error("CameraManager: неверный индекс области %d" % area_index)
-		return
-	var settings = _config.get_area_settings(area_index)
-	var rotation_value = settings.get("rotation", 0.0)
-	print("📷 CameraManager: _zoom_area(%d) - rotation из конфига: %.1f°" % [area_index, rotation_value])
-	_animate_to(settings.position, settings.zoom, rotation_value, "area_%d" % area_index, is_navigation)
+	"""Внутренний метод зума на указанную область (1-6) - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_area(area_index, is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ НАВИГАЦИИ (внутренняя логика)
@@ -815,4 +807,10 @@ func reload_config() -> void:
 	else:
 		push_error("❌ CameraManager: не удалось перезагрузить конфигурацию из %s" % _config_path)
 		_config = CameraConfigClass.new() as CameraConfig
+	
+	# Обновляем обработчик зума с новой конфигурацией
+	var animate_callback = func(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_nav: bool) -> void:
+		_animate_to(target_pos, target_zoom, target_rotation, zoom_type, is_nav)
+	_zoom_handler = CameraZoomHandler.new(_config, animate_callback)
+	
 	print("📷 CameraManager: конфигурация перезагружена из %s" % _config_path)
