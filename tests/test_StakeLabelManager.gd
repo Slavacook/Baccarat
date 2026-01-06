@@ -245,15 +245,16 @@ func test_remove_all_stake_labels_for_type():
 		pass_test("ChipInstance класс не найден, пропускаем тест")
 		return
 	
-	var active_chips: Array = []
+	# Типизированный массив для совместимости с методом
+	var active_chips: Array[ChipVisualManager.ChipInstance] = []
 	var chip_node1 = TextureButton.new()
-	var chip1 = MockChipInstanceClass.new("Player", 0, chip_node1, false)
+	var chip1 = MockChipInstanceClass.new("Player", 0, chip_node1, false) as ChipVisualManager.ChipInstance
 	chip1.stake = 1000.0
 	var chip_node2 = TextureButton.new()
-	var chip2 = MockChipInstanceClass.new("Player", 1, chip_node2, false)
+	var chip2 = MockChipInstanceClass.new("Player", 1, chip_node2, false) as ChipVisualManager.ChipInstance
 	chip2.stake = 2000.0
 	var chip_node3 = TextureButton.new()
-	var chip3 = MockChipInstanceClass.new("Banker", 0, chip_node3, false)
+	var chip3 = MockChipInstanceClass.new("Banker", 0, chip_node3, false) as ChipVisualManager.ChipInstance
 	chip3.stake = 3000.0
 	active_chips.append(chip1)
 	active_chips.append(chip2)
