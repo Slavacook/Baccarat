@@ -17,9 +17,9 @@ signal guest_left(guest_id: int)
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Начальные балансы по статусу богатства
-const POOR_BALANCE: float = 300000.0    # Бедный
-const MEDIUM_BALANCE: float = 700000.0   # Средний
-const RICH_BALANCE: float = 1500000.0    # Богатый
+const POOR_BALANCE: float = 20000.0    # Бедный
+const MEDIUM_BALANCE: float = 40000.0   # Средний
+const RICH_BALANCE: float = 120000.0    # Богатый
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ

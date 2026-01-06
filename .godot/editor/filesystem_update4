@@ -1,0 +1,6 @@
+res://scripts/CameraManager.gd
+res://scripts/GameController.gd
+res://scripts/autoload/GuestStatsManager.gd
+res://scenes/SettingsScene.tscn
+res://addons/gut/gui/editor_globals.gd
+res://addons/gut/gui/EditorRadioButton.tres
