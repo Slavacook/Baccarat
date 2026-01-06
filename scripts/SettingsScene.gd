@@ -61,6 +61,9 @@ signal language_changed(lang: String)  # "ru" или "en"
 @onready var panel_container: PanelContainer = find_child("PanelContainer", true, false)
 var tween: Tween
 
+# === НАВИГАТОР КЛАВИАТУРЫ ===
+var keyboard_navigator: SettingsKeyboardNavigator = SettingsKeyboardNavigator.new()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -199,7 +202,7 @@ func open_settings() -> void:
 		tween.set_trans(Tween.TRANS_BACK)
 		
 		# Настраиваем навигацию и устанавливаем начальный focus
-		_setup_keyboard_navigation()
+		keyboard_navigator.setup_keyboard_navigation(self)
 		if junket_button:
 			junket_button.grab_focus()
 	
@@ -244,101 +247,22 @@ func close_settings() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _unhandled_input(event: InputEvent) -> void:
-	"""Обработка ввода (клавиатура и геймпад) - используем _unhandled_input для навигации"""
-	# Обрабатываем только когда меню видимо
-	if not visible:
-		return
+	"""Обработка ввода (клавиатура и геймпад) - используем _unhandled_input для навигации
 	
-	# Проверяем блокировки через InputContextManager
-	if InputContextManager.is_blocked():
-		return
-	
-	# Проверяем контекст
-	if not InputContextManager.can_handle(InputContextManager.InputContext.MENU_SETTINGS):
-		return
-	
-	# Escape/Exit в меню → закрыть меню (работает для клавиатуры и геймпада)
-	if event.is_action_pressed("exit"):
-		close_settings()
-		get_viewport().set_input_as_handled()
-		return
-	
-	# Навигация стрелками/WASD/геймпадом
-	# Используем focus_neighbor для автоматической навигации
-	if event.is_action_pressed("left"):
-		_navigate_focus("left")
-		get_viewport().set_input_as_handled()
-		return
-	elif event.is_action_pressed("right"):
-		_navigate_focus("right")
-		get_viewport().set_input_as_handled()
-		return
-	elif event.is_action_pressed("up"):
-		_navigate_focus("up")
-		get_viewport().set_input_as_handled()
-		return
-	elif event.is_action_pressed("down"):
-		_navigate_focus("down")
-		get_viewport().set_input_as_handled()
+	Делегирует в SettingsKeyboardNavigator.
+	"""
+	if keyboard_navigator.handle_unhandled_input(event, self):
 		return
 	
 	# Action обрабатывается в _input() для перехвата событий геймпада
 
 func _input(event: InputEvent) -> void:
-	"""Обработка ввода (используем _input для перехвата Escape и action даже если фокус на кнопке)"""
-	# Обрабатываем только когда меню видимо
-	if not visible:
+	"""Обработка ввода (используем _input для перехвата Escape и action даже если фокус на кнопке)
+	
+	Делегирует в SettingsKeyboardNavigator.
+	"""
+	if keyboard_navigator.handle_input(event, self, apply_button):
 		return
-	
-	# Проверяем контекст напрямую (не используем can_handle, так как оно проверяет блокировку)
-	# Настройки должны обрабатывать ввод независимо от блокировки
-	if InputContextManager.get_context() != InputContextManager.InputContext.MENU_SETTINGS:
-		return
-	
-	# Escape/Exit в меню → закрыть меню (работает для клавиатуры и геймпада, даже если фокус на кнопке)
-	if event.is_action_pressed("exit"):
-		close_settings()
-		get_viewport().set_input_as_handled()
-		return
-	
-	# Action (Space/Enter/геймпад кнопка 2) - обрабатываем в _input чтобы перехватить раньше
-	# Проверяем как через action, так и напрямую через событие геймпада
-	var is_action = event.is_action_pressed("action")
-	var is_gamepad_button_2 = false
-	
-	# Дополнительная проверка для геймпада (кнопка 2 = button_index 2 в project.godot)
-	if event is InputEventJoypadButton:
-		var joypad_event = event as InputEventJoypadButton
-		# В project.godot указан button_index=2 для action
-		if joypad_event.pressed and joypad_event.button_index == 2:
-			is_gamepad_button_2 = true
-	
-	if is_action or is_gamepad_button_2:
-		var focused = get_viewport().gui_get_focus_owner()
-		if focused:
-			# Если это кнопка Apply (ОК) - закрываем меню
-			if focused == apply_button:
-				close_settings()
-				get_viewport().set_input_as_handled()
-				return
-			
-			# Если это кнопка - нажимаем её
-			if focused is Button:
-				var button = focused as Button
-				# Для toggle кнопок - переключаем состояние
-				if button.toggle_mode:
-					button.button_pressed = !button.button_pressed
-					# Эмитим сигнал toggled для toggle кнопок
-					button.toggled.emit(button.button_pressed)
-				else:
-					# Для обычных кнопок - эмитим pressed
-					button.pressed.emit()
-			# Если это SpinBox - активируем его для редактирования
-			elif focused is SpinBox:
-				var spinbox = focused as SpinBox
-				spinbox.grab_focus()
-			get_viewport().set_input_as_handled()
-			return
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - ЗАГРУЗКА
