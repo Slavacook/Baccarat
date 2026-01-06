@@ -212,4 +212,3 @@ func reset() -> void:
 	payment_sequence.clear()
 	collection_progress = {"main": 0, "tie": 0, "pairs": 0}
 	payment_progress = {"main": 0, "tie": 0, "pairs": 0}
-

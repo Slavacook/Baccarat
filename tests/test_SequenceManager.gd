@@ -355,4 +355,3 @@ func test_reset_clears_all():
 	assert_eq(sequence_manager.payment_sequence.size(), 0, "Последовательности оплаты должны быть очищены")
 	assert_eq(sequence_manager.collection_progress["main"], 0, "Прогресс сбора должен быть сброшен")
 	assert_eq(sequence_manager.payment_progress["main"], 0, "Прогресс оплаты должен быть сброшен")
-

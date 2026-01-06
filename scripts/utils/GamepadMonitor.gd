@@ -58,4 +58,3 @@ func process(_delta: float) -> void:
 				for device_id in connected:
 					var joypad_name = Input.get_joy_name(device_id)
 					DebugLogger.log("🎮 Геймпад подключен: device_id=%d, name=%s" % [device_id, joypad_name])
-

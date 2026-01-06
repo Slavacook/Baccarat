@@ -1,12 +1,11 @@
 res://scenes/BetPopup.tscn::ffebf367fc371bc3a3eade3b30ab1e2a::1765878366::res://.godot/exported/133200997/export-34220b0db38a5323f1b23723248a36d8-BetPopup.scn
 res://scenes/flip_card.tscn::b02968e8c1dce58336a7b53fc4a7701b::1765877564::res://.godot/exported/133200997/export-53451cf5d78dad049dbd382e0692b7e2-flip_card.scn
-res://scenes/Game.tscn::2518278d5a58b882b65f8aa9c198495a::1766324730::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
+res://scenes/Game.tscn::9387f445f092edaab17da6cef36cd89d::1767501603::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
 res://scenes/HelpPopup.tscn::585bb39b407bcc240edbb0a1601c2710::1765877564::res://.godot/exported/133200997/export-1b2dd5d4a853313dc9fc779615d524ff-HelpPopup.scn
-res://scenes/SettingsPopup.tscn::d97b11a07cdbcc5ea6bdecfe8cf0d025::1765878366::res://.godot/exported/133200997/export-8c8d7254faa9d94ae14c06a1fd41f356-SettingsPopup.scn
 res://scenes/SurvivalModeUI.tscn::67c509831499711f66ccef400b5cb45c::1766041398::res://.godot/exported/133200997/export-45615fe3afa59d26b4203c7fbb0186a4-SurvivalModeUI.scn
 res://scenes/Toast.tscn::d0574c8d643a12045edc019854947f74::1765878366::res://.godot/exported/133200997/export-d67afd36343bf3ac929fd469be32f31a-Toast.scn
 res://scenes/OverlayNotification.tscn::a4e7e2d2b8bc1711fbda24b228d2fc42::1765877564::res://.godot/exported/133200997/export-675c578198c2449a017848c049fd5c2f-OverlayNotification.scn
-res://scenes/PayoutScene.tscn::cdd0f147f10d4b95bd03ddc92bd3c964::1765878366::res://.godot/exported/133200997/export-e2477eb6b22f910000322590cd82aa75-PayoutScene.scn
+res://scenes/PayoutScene.tscn::cdd0f147f10d4b95bd03ddc92bd3c964::1767335777::res://.godot/exported/133200997/export-e2477eb6b22f910000322590cd82aa75-PayoutScene.scn
 res://scenes/chance_cards/BaseChanceCardScene.tscn::92cc1705d2bc5ad023f1a78321f92974::1766288135::res://.godot/exported/133200997/export-387cdee920fcd20cfc62cf2fae57a4b0-BaseChanceCardScene.scn
 res://scenes/chance_cards/ChanceCardStorage.tscn::39fffc6d6a36635307c077f6dab7466d::1766301751::res://.godot/exported/133200997/export-27fdbf0e3c5e16e4012c2ce9223a9fff-ChanceCardStorage.scn
 res://scenes/heart_bet/HeartBetUI.tscn::f906b22bc00dbb010675ff988a6e4b83::1766026399::res://.godot/exported/133200997/export-954c4dfea173303e69759e892b4e4edc-HeartBetUI.scn
@@ -14,4 +13,4 @@ res://scenes/popups/GuestSettingsPopup.tscn::8259677b22f950caa6b5518f730de74c::1
 res://scenes/ChanceCardPopup.tscn::236c427b6a825d5b9f657bb1e9450a3f::1765977273::res://.godot/exported/133200997/export-650de99ace40fb7edfef4d36da561a34-ChanceCardPopup.scn
 res://scenes/ChanceCardUI.tscn::63b56216fa92e7bbecbb23320ab96bb9::1766038839::res://.godot/exported/133200997/export-2ec49b5d9618f6cfc9ee546d9441de35-ChanceCardUI.scn
 res://scenes/GameOverScene.tscn::b3d86ea472235312c79f4bbcbc6b8b89::1765878366::res://.godot/exported/133200997/export-ee65042387edb6388f29bb9fd921ecb4-GameOverScene.scn
-res://scenes/SettingsScene.tscn::93d712c771d77451b7fd0027a0c40391::1766274101::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn
+res://scenes/SettingsScene.tscn::575f2b81aeb15cf977a6fe2af0bd0bf0::1767665142::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn

@@ -270,4 +270,3 @@ func test_setup_keyboard_navigation_with_missing_elements():
 	# Assert
 	# Тест проходит если не было ошибок
 	pass_test("Метод должен обработать отсутствующие элементы без ошибок")
-
