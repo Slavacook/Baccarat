@@ -52,7 +52,8 @@ func test_get_random_texture_invalid_type():
 	# Arrange
 	var invalid_type = "InvalidType"
 	
-	# Act
+	# Act - ожидаем ошибку (push_error), но продолжаем тест
+	# Ошибка будет в логе, но тест должен пройти
 	var texture = texture_manager.get_random_texture(invalid_type)
 	
 	# Assert
@@ -159,4 +160,3 @@ func test_has_textures_invalid():
 	
 	# Assert
 	assert_false(has, "Невалидный тип не должен иметь текстур")
-

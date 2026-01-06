@@ -16,11 +16,16 @@ var mock_survival_info: Control  # PayoutSurvivalInfo - это Control
 func before_each():
 	"""Инициализация перед каждым тестом"""
 	mock_owner_node = Node.new()
-	add_child(mock_owner_node)
+	# Не добавляем в дерево, так как GutTest не является Node
 	
-	# Создаём мок для PayoutSurvivalInfo (это Control с методом update_display)
-	mock_survival_info = Control.new()
-	mock_survival_info.set_script(load("res://scripts/ui/PayoutSurvivalInfo.gd")) if ResourceLoader.exists("res://scripts/ui/PayoutSurvivalInfo.gd") else null
+	# Создаём мок для PayoutSurvivalInfo
+	# Используем partial_double для создания объекта с нужным типом
+	var survival_info_script = load("res://scripts/ui/PayoutSurvivalInfo.gd")
+	if survival_info_script:
+		mock_survival_info = partial_double(survival_info_script).new()
+	else:
+		# Если скрипт не найден, создаем простой Control
+		mock_survival_info = Control.new()
 	
 	state_manager = PayoutOverlayStateManager.new(mock_owner_node, mock_survival_info)
 

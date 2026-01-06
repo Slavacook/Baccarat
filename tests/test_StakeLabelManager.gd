@@ -116,7 +116,7 @@ func test_create_stake_label_null_chip():
 	# Arrange
 	var chip = null
 	var scene_root = Node.new()
-	add_child(scene_root)
+	# Не добавляем в дерево, так как GutTest не является Node
 	
 	# Act
 	var result = label_manager.create_stake_label(chip, scene_root)
@@ -125,7 +125,6 @@ func test_create_stake_label_null_chip():
 	assert_null(result, "Null фишка должна возвращать null")
 	
 	# Cleanup
-	remove_child(scene_root)
 	scene_root.queue_free()
 
 func test_create_stake_label_null_scene_root():
@@ -147,7 +146,7 @@ func test_create_stake_label_valid():
 	"""Проверка создания label для валидной фишки"""
 	# Arrange
 	var scene_root = Node.new()
-	add_child(scene_root)
+	# Не добавляем в дерево, так как GutTest не является Node
 	var chip_node = TextureButton.new()
 	chip_node.position = Vector2(100, 100)
 	scene_root.add_child(chip_node)
@@ -162,7 +161,8 @@ func test_create_stake_label_valid():
 	assert_true(is_instance_valid(result), "Label должен быть валидным узлом")
 	
 	# Cleanup
-	remove_child(scene_root)
+	if result:
+		result.queue_free()
 	scene_root.queue_free()
 
 # ═══════════════════════════════════════════════════════════════════════════

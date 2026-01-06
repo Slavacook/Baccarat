@@ -81,7 +81,7 @@ func test_get_random_position_invalid():
 	# Arrange
 	var invalid_type = "InvalidType"
 	
-	# Act
+	# Act - ожидаем предупреждение, но продолжаем тест
 	var position = position_manager.get_random_position(invalid_type)
 	
 	# Assert
