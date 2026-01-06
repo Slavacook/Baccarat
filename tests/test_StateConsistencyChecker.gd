@@ -141,12 +141,16 @@ func test_check_payment_state_consistency_invalid_paid_not_won():
 	bet.set_paid(true)  # Оплачена, но не выиграла - ошибка!
 	
 	# Act - ожидаем ошибку (push_error через DebugLogger), но продолжаем тест
-	# GUT будет показывать ошибку как "Unexpected Error", но тест должен пройти
 	var result = checker.check_payment_state_consistency(bet)
 	
 	# Assert
 	assert_false(result, "Оплаченная ставка без выигрыша должна возвращать false")
-	# Тест проходит, даже если есть push_error в логе
+	
+	# Помечаем push_error как обработанный, чтобы GUT не считал его "Unexpected Error"
+	var errors = gut.error_tracker.get_errors_for_test()
+	for err in errors:
+		if err.is_push_error() and err.contains_text("КРИТИЧЕСКАЯ ОШИБКА"):
+			err.handled = true
 
 func test_check_payment_state_consistency_not_paid():
 	"""Проверка состояния когда ставка не оплачена"""

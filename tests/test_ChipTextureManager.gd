@@ -53,13 +53,16 @@ func test_get_random_texture_invalid_type():
 	var invalid_type = "InvalidType"
 	
 	# Act - ожидаем ошибку (push_error), но продолжаем тест
-	# GUT будет показывать ошибку как "Unexpected Error", но тест должен пройти
-	# Ошибка в логе - это нормально для теста невалидных данных
 	var texture = texture_manager.get_random_texture(invalid_type)
 	
 	# Assert
 	assert_eq(texture, "", "Невалидный тип должен возвращать пустую строку")
-	# Тест проходит, даже если есть push_error в логе
+	
+	# Помечаем push_error как обработанный, чтобы GUT не считал его "Unexpected Error"
+	var errors = gut.error_tracker.get_errors_for_test()
+	for err in errors:
+		if err.is_push_error() and err.contains_text("нет текстур для типа"):
+			err.handled = true
 
 func test_get_random_texture_randomness():
 	"""Проверка что текстуры действительно случайные"""
