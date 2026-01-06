@@ -165,11 +165,23 @@ func get_expected_next_bet(group: String, is_collecting: bool):
 	Returns:
 		Bet следующей ожидаемой ставки или null если все собраны/оплачены
 	"""
-	var sequence = collection_sequence[group] if is_collecting else payment_sequence[group]
-	var progress = collection_progress[group] if is_collecting else payment_progress[group]
+	# Проверяем наличие группы в словаре
+	var sequence_dict = collection_sequence if is_collecting else payment_sequence
+	var progress_dict = collection_progress if is_collecting else payment_progress
+	
+	if not sequence_dict.has(group):
+		DebugLogger.log_warning("Последовательность для группы '%s' не найдена" % group)
+		return null
+	
+	if not progress_dict.has(group):
+		DebugLogger.log_warning("Прогресс для группы '%s' не найден" % group)
+		return null
+	
+	var sequence = sequence_dict[group]
+	var progress = progress_dict[group]
 	
 	if not sequence:
-		DebugLogger.log_warning("Последовательность для группы '%s' не найдена" % group)
+		DebugLogger.log_warning("Последовательность для группы '%s' пуста" % group)
 		return null
 	
 	if progress >= sequence.size():

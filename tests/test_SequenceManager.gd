@@ -267,6 +267,12 @@ func test_get_expected_next_bet_invalid_group():
 	
 	# Assert
 	assert_null(result, "Должен вернуться null для несуществующей группы")
+	
+	# Помечаем push_warning как обработанный, чтобы GUT не считал его "Unexpected Warning"
+	var warnings = gut.warning_tracker.get_warnings_for_test()
+	for warn in warnings:
+		if warn.is_push_warning() and warn.contains_text("Последовательность для группы"):
+			warn.handled = true
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ТЕСТЫ: increment_progress
