@@ -128,6 +128,9 @@ var payout_preparation_handler: PayoutPreparationHandler
 # Обработчик UI событий (Extract Class)
 var ui_event_handler: UIEventHandler
 
+# Обработчик ввода (Extract Class)
+var input_handler: InputHandler
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -273,6 +276,7 @@ func _ready():
 	_initialize_payout_return_handler()
 	_initialize_payout_preparation_handler()
 	_initialize_ui_event_handler()
+	_initialize_input_handler()
 	
 	# Проверка подключения геймпадов (после инициализации GamepadMonitor)
 	_check_gamepad_connection()
@@ -774,6 +778,26 @@ func _initialize_ui_event_handler() -> void:
 	)
 	print("✅ UIEventHandler инициализирован")
 
+func _initialize_input_handler() -> void:
+	"""Инициализировать обработчик ввода"""
+	var restart_callback = func() -> void:
+		_on_restart_game()
+	
+	var get_viewport_callback = func() -> Viewport:
+		return get_viewport()
+	
+	input_handler = InputHandler.new(
+		chance_card_navigator,
+		chip_navigation_manager,
+		game_state_controller,
+		ui_manager,
+		settings_scene,
+		self,  # owner_node
+		restart_callback,
+		get_viewport_callback
+	)
+	print("✅ InputHandler инициализирован")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
 # ═══════════════════════════════════════════════════════════════════════════
@@ -992,122 +1016,20 @@ func _on_restart_game():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _input(event: InputEvent) -> void:
-	"""Обработка ввода (клавиатура и геймпад) - используем _input для перехвата раньше"""
-	# Переключение режима навигации по картам (C/кнопка 4) - обрабатываем в _input для раннего перехвата
-	if event.is_action_pressed("chance_cards"):
-		# Проверяем блокировки
-		if InputContextManager.is_blocked():
-			return
-		# Проверяем контекст GAME или CHANCE_CARDS_NAV для переключения режима
-		var current_context = InputContextManager.get_context()
-		if current_context == InputContextManager.InputContext.GAME or \
-		   current_context == InputContextManager.InputContext.CHANCE_CARDS_NAV:
-			if chance_card_navigator:
-				if chance_card_navigator.is_active:
-					chance_card_navigator.deactivate()
-				else:
-					chance_card_navigator.activate()
-				get_viewport().set_input_as_handled()
-				return
-	
-	# Обработка навигации по картам - обрабатываем в _input для раннего перехвата
-	if chance_card_navigator and chance_card_navigator.is_active:
-		# Проверяем контекст для навигации по картам
-		if not InputContextManager.is_blocked():
-			var current_context = InputContextManager.get_context()
-			if current_context == InputContextManager.InputContext.CHANCE_CARDS_NAV:
-				if chance_card_navigator.handle_input(event):
-					get_viewport().set_input_as_handled()
-					return
-	
-	# Обрабатываем только toggle_navigation здесь, остальное в _unhandled_input
-	# В _input() используем event.is_action_pressed() для проверки конкретного события
-	if event.is_action_pressed("toggle_navigation"):
-		# Проверяем блокировки
-		if InputContextManager.is_blocked():
-			return
-		if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
-			return
-		
-		# toggle_navigation → включить/выключить навигацию по ставкам
-		if chip_navigation_manager:
-			if chip_navigation_manager.is_active:
-				chip_navigation_manager.deactivate()
-			else:
-				chip_navigation_manager.activate()
+	"""Обработка ввода (клавиатура и геймпад) - делегировано в InputHandler"""
+	if input_handler:
+		if input_handler.handle_input(event):
 			get_viewport().set_input_as_handled()
-			return
-		else:
-			DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
-			get_viewport().set_input_as_handled()
-			return
+	else:
+		push_error("❌ InputHandler не инициализирован!")
 
 func _unhandled_input(event: InputEvent) -> void:
-	"""Обработка ввода (клавиатура и геймпад)"""
-	# Проверяем блокировки через InputContextManager
-	if InputContextManager.is_blocked():
-		return
-	
-	# Обработка навигации по картам уже обработана в _input() для раннего перехвата
-	# Здесь не обрабатываем, чтобы избежать дублирования
-	
-	# Проверяем контекст (работаем только в контексте GAME для остальных действий)
-	if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
-		return
-	
-	# Space при Game Over → рестарт игры
-	if event.is_action_pressed("action"):
-		if game_state_controller and not game_state_controller.is_game_active():
-			# Game Over - рестарт игры
-			_on_restart_game()
-			# Скрываем Game Over overlay
-			if game_over_popup and game_over_popup.visible:
-				game_over_popup.hide()
+	"""Обработка необработанного ввода - делегировано в InputHandler"""
+	if input_handler:
+		if input_handler.handle_unhandled_input(event):
 			get_viewport().set_input_as_handled()
-			return
-	
-	# Если навигация по ставкам активна - обрабатываем ввод там
-	if chip_navigation_manager and chip_navigation_manager.is_active:
-		if chip_navigation_manager.handle_input(event):
-			get_viewport().set_input_as_handled()
-			return
-	
-	# Переключение режима сбора/выплаты ставок (геймпад или клавиатура)
-	if event.is_action_pressed("toggle_collect_pay_mode"):
-		# Проверяем, что кнопка PayButton видима (режим сбора/выплаты активен)
-		if ui_manager and ui_manager.button_ui:
-			var pay_button = ui_manager.button_ui.pay_button
-			if pay_button and pay_button.visible:
-				# Переключаем состояние PayButton
-				if pay_button.has_method("toggle_state"):
-					pay_button.toggle_state()
-				else:
-					# Fallback: вызываем напрямую _on_pressed, если метод не найден
-					pay_button._on_pressed()
-		get_viewport().set_input_as_handled()
-		return
-	
-	# Escape во время игры → открыть/закрыть меню
-	if event.is_action_pressed("exit"):
-		# Проверяем, не открыто ли меню гостей (приоритет выше)
-		var guest_menu = get_node_or_null("GuestMenuScene")
-		if guest_menu and guest_menu.visible:
-			# Если меню гостей открыто, закрываем его
-			guest_menu.close_menu()
-			get_viewport().set_input_as_handled()
-			return
-		
-		# Проверяем, не открыто ли меню настроек
-		if settings_scene and settings_scene.visible:
-			# Если меню открыто, закрываем его
-			settings_scene.close_settings()
-		else:
-			# Если меню закрыто, открываем его
-			if settings_scene:
-				settings_scene.open_settings()
-				# UI элементы будут скрыты через сигнал EventBus.settings_opened в _on_settings_opened()
-		get_viewport().set_input_as_handled()
-		return
+	else:
+		push_error("❌ InputHandler не инициализирован!")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ
