@@ -13,6 +13,7 @@ const CameraConfigClass = preload("res://resources/CameraConfig.gd")
 # Preload для новых классов (нужны для типизации переменных)
 const CameraZoomHandlerClass = preload("res://scripts/utils/CameraZoomHandler.gd")
 const CameraAreaNavigatorClass = preload("res://scripts/utils/CameraAreaNavigator.gd")
+const CameraInterpolationHandlerClass = preload("res://scripts/utils/CameraInterpolationHandler.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ
@@ -32,15 +33,7 @@ var _scene: Node = null  # Родительская сцена для созда
 var _process_node: Node = null  # Node для обработки _process (экспоненциальное сглаживание)
 var _zoom_handler: RefCounted = null  # Обработчик зума (Extract Class) - CameraZoomHandler
 var _area_navigator: RefCounted = null  # Навигатор областей (Extract Class) - CameraAreaNavigator
-
-# Целевые значения для экспоненциального сглаживания
-var _target_position: Vector2 = Vector2.ZERO
-var _target_zoom: Vector2 = Vector2.ONE
-var _target_rotation: float = 0.0
-var _is_interpolating: bool = false
-var _current_zoom_type: String = ""
-var _is_navigation_mode: bool = false  # Флаг режима навигации (для медленной анимации)
-var _initial_distance: float = 0.0  # Начальное расстояние для плавного старта
+var _interpolation_handler: RefCounted = null  # Обработчик интерполяции (Extract Class) - CameraInterpolationHandler
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ ПЕРЕМЕННЫЕ (для внутреннего использования)
@@ -124,11 +117,23 @@ func setup(parent_scene: Node, camera_config_path: String = "") -> void:
 	_camera.position = general_settings.position
 	_camera.zoom = general_settings.zoom
 	_camera.rotation_degrees = general_settings.get("rotation", 0.0)
-	_target_position = general_settings.position
-	_target_zoom = general_settings.zoom
-	_target_rotation = general_settings.get("rotation", 0.0)
 	current_area = -1  # Общий план
 	last_zoom_type = "out"
+	
+	# Инициализируем обработчик интерполяции
+	var on_interpolation_completed = func(zoom_type: String) -> void:
+		zoom_completed.emit(zoom_type)
+	_interpolation_handler = CameraInterpolationHandlerClass.new(
+		_config, 
+		_camera, 
+		_scene, 
+		_process_node,
+		on_interpolation_completed
+	)
+	
+	# Обновляем CameraInterpolationNode для использования обработчика интерполяции
+	if _process_node.has_method("setup_interpolation_handler"):
+		_process_node.setup_interpolation_handler(_interpolation_handler)
 	
 	# Инициализируем обработчик зума
 	var animate_callback = func(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_nav: bool) -> void:
@@ -309,101 +314,13 @@ func get_last_zoom_type() -> String:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _process_interpolation(_delta: float) -> void:
-	"""Обработка экспоненциального сглаживания камеры в _process
-	
-	Использует адаптивную скорость интерполяции на основе расстояния до цели.
-	Применяет плавное ускорение и замедление для естественного движения камеры.
+	"""Обработка экспоненциального сглаживания камеры в _process (делегирует в CameraInterpolationHandler)
 	
 	Args:
 		_delta: Время с последнего кадра (не используется, но требуется для _process)
 	"""
-	if not _is_interpolating or not _camera:
-		return
-	
-	# Вычисляем расстояние до цели (ДО интерполяции)
-	var position_distance = _camera.position.distance_to(_target_position)
-	
-	# Выбираем настройки в зависимости от типа анимации (обычная или навигация)
-	var min_speed: float
-	var max_speed: float
-	var distance_thresh: float
-	var rotation_thresh: float
-	
-	if _is_navigation_mode:
-		# Используем медленные настройки для навигации
-		min_speed = _config.navigation_min_interpolation_speed
-		max_speed = _config.navigation_max_interpolation_speed
-		distance_thresh = _config.navigation_distance_threshold
-		rotation_thresh = _config.navigation_rotation_threshold
-	else:
-		# Обычные настройки
-		min_speed = _config.min_interpolation_speed
-		max_speed = _config.max_interpolation_speed
-		distance_thresh = _config.distance_threshold
-		rotation_thresh = _config.rotation_threshold
-	
-	# Вычисляем адаптивный коэффициент интерполяции на основе расстояния
-	# Чем дальше, тем больше коэффициент (быстрее), чем ближе, тем меньше (медленнее)
-	var max_distance = 1000.0  # Максимальное ожидаемое расстояние для нормализации
-	var distance_factor = clamp(position_distance / max_distance, 0.0, 1.0)
-	
-	# Для плавного старта: применяем нелинейную функцию (степень для плавного ускорения)
-	# Это делает старт медленнее, а затем плавное ускорение
-	if _is_navigation_mode:
-		# Для навигации используем более плавное ускорение (степень 2.5)
-		distance_factor = pow(distance_factor, 2.5)
-	else:
-		# Для обычной анимации используем стандартное ускорение (степень 1.5)
-		distance_factor = pow(distance_factor, 1.5)
-	
-	var interpolation_speed = lerp(min_speed, max_speed, distance_factor)
-	
-	# Если камера очень близко к цели, используем минимальную скорость для плавного завершения
-	# Это предотвращает рывок в момент остановки
-	if position_distance < distance_thresh * 3.0:
-		# Когда очень близко, используем минимальную скорость для плавного подхода
-		# Чем ближе, тем медленнее
-		var close_factor = clamp(position_distance / (distance_thresh * 3.0), 0.0, 1.0)
-		interpolation_speed = lerp(min_speed * 0.2, min_speed, close_factor)
-	
-	# Интерполируем позицию
-	_camera.position = _camera.position.lerp(_target_position, interpolation_speed)
-	
-	# Интерполируем поворот (используем меньший коэффициент для более плавного поворота)
-	var rotation_speed = interpolation_speed * 0.7  # Поворот чуть медленнее
-	var current_rot = _camera.rotation_degrees
-	_camera.rotation_degrees = lerp(current_rot, _target_rotation, rotation_speed)
-	
-	# Zoom интерполируем отдельно (можно использовать тот же коэффициент или отдельный)
-	var zoom_speed = interpolation_speed
-	_camera.zoom = _camera.zoom.lerp(_target_zoom, zoom_speed)
-	
-	# Вычисляем новые расстояния ПОСЛЕ интерполяции для проверки достижения цели
-	var new_position_distance = _camera.position.distance_to(_target_position)
-	var new_rotation_distance = abs(_camera.rotation_degrees - _target_rotation)
-	var new_zoom_distance = _camera.zoom.distance_to(_target_zoom)
-	
-	# Используем очень строгие пороги для остановки (почти вплотную к цели)
-	# Это гарантирует, что камера действительно достигла цели без рывка
-	var position_reached = new_position_distance < 0.05  # Очень маленький порог
-	var rotation_reached = new_rotation_distance < rotation_thresh * 0.1  # Пропорционально порогу
-	var zoom_reached = new_zoom_distance < 0.001  # Очень маленький порог
-	
-	if position_reached and rotation_reached and zoom_reached:
-		# Камера действительно достигла цели - устанавливаем финальные значения
-		# На этом этапе камера уже очень близко, поэтому рывка не будет
-		_camera.position = _target_position
-		_camera.rotation_degrees = _target_rotation
-		_camera.zoom = _target_zoom
-		
-		# Останавливаем интерполяцию
-		_is_interpolating = false
-		if _process_node and _process_node.has_method("set_process"):
-			_process_node.set_process(false)
-		
-		# Эмитим сигнал завершения
-		zoom_completed.emit(_current_zoom_type)
-		print("📷 CameraManager: камера достигла цели через экспоненциальное сглаживание")
+	if _interpolation_handler:
+		_interpolation_handler.process_interpolation(_delta)
 
 func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_navigation: bool = false) -> void:
 	"""Анимировать камеру к заданной позиции, зуму и повороту
@@ -480,104 +397,33 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		current_tween = null
 	
 	# Останавливаем интерполяцию если она активна
-	if _is_interpolating and _process_node:
-		_is_interpolating = false
-		if _process_node.has_method("set_process"):
-			_process_node.set_process(false)
+	if _interpolation_handler:
+		_interpolation_handler.stop_interpolation()
+	
+	# Останавливаем предыдущий Tween если он активен
+	if current_tween and current_tween.is_valid():
+		current_tween.kill()
+		current_tween = null
 	
 	# Если используется экспоненциальное сглаживание с адаптивной скоростью
-	if _config.use_adaptive_interpolation:
-		# Устанавливаем целевые значения
-		_target_position = target_pos
-		_target_zoom = target_zoom
-		_target_rotation = target_rotation
-		
-		# Сохраняем начальное расстояние для плавного старта
-		_initial_distance = _camera.position.distance_to(target_pos)
-		
-		# Запускаем интерполяцию
-		_is_interpolating = true
-		if _process_node:
-			if _process_node.has_method("set_process"):
-				_process_node.set_process(true)
-			else:
-				_process_node.set_process_mode(Node.PROCESS_MODE_ALWAYS)
-		
-		print("📷 CameraManager: %s (экспоненциальное сглаживание: pos %s, zoom %.1f, rotation %.1f°)" % [
-			CameraAnimationHelper.get_zoom_name(zoom_type),
-			target_pos,
-			target_zoom.x,
-			target_rotation
-		])
+	if _config.use_adaptive_interpolation and _interpolation_handler:
+		_interpolation_handler.start_interpolation(target_pos, target_zoom, target_rotation, zoom_type, is_navigation)
 		return
 	
-	# Если используется встроенное сглаживание Camera2D
-	if _config.use_camera_smoothing:
-		
-		# Используем Tween только для zoom (так как Camera2D не имеет встроенного сглаживания для zoom)
-		var tween = _scene.create_tween()
-		current_tween = tween
-		tween.set_parallel(false)
-		
-		# Используем настройки из конфигурации
-		var transition_type = CameraAnimationHelper.get_transition_type(_config.transition_type)
-		var ease_type = CameraAnimationHelper.get_ease_type(_config.ease_type)
-		tween.set_trans(transition_type)
-		tween.set_ease(ease_type)
-		
-		# Анимируем только zoom через Tween
-		tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
-		
-		# Позицию и поворот устанавливаем напрямую - камера сама плавно движется к цели
-		_camera.position = target_pos
-		_camera.rotation_degrees = target_rotation
-		
-		# Сигнал завершения после окончания анимации zoom
-		tween.finished.connect(func(): 
+	# Если используется Tween анимация (встроенное сглаживание или обычный Tween)
+	if _interpolation_handler:
+		var on_tween_completed = func(completed_zoom_type: String) -> void:
 			current_tween = null  # Очищаем ссылку после завершения
-			zoom_completed.emit(zoom_type)
-		)
+			zoom_completed.emit(completed_zoom_type)
 		
-		print("📷 CameraManager: %s (zoom %.1f через Tween, pos %s, rotation %.1f° через сглаживание)" % [
-			CameraAnimationHelper.get_zoom_name(zoom_type), 
-			target_zoom.x,
+		current_tween = _interpolation_handler.create_tween_animation(
 			target_pos,
-			target_rotation
-		])
-	else:
-		# Старый способ: используем Tween для всего
-		var tween = _scene.create_tween()
-		current_tween = tween  # Сохраняем ссылку для возможности остановки
-		tween.set_parallel(true)  # Позиция, зум и поворот меняются одновременно
-		
-		# Используем настройки из конфигурации
-		var transition_type = CameraAnimationHelper.get_transition_type(_config.transition_type)
-		var ease_type = CameraAnimationHelper.get_ease_type(_config.ease_type)
-		tween.set_trans(transition_type)
-		tween.set_ease(ease_type)
-		
-		# Используем длительность из конфигурации
-		tween.tween_property(_camera, "position", target_pos, _config.transition_duration)
-		tween.tween_property(_camera, "zoom", target_zoom, _config.transition_duration)
-		# Устанавливаем rotation_degrees (может не работать визуально в Godot 4.5 Camera2D)
-		tween.tween_property(_camera, "rotation_degrees", target_rotation, _config.transition_duration)
-		print("📷 CameraManager: tween_property rotation_degrees установлен: %.1f°" % target_rotation)
-		
-		# Сигнал завершения после окончания анимации
-		tween.finished.connect(func(): 
-			var final_rotation_deg = _camera.rotation_degrees
-			print("📷 CameraManager: ПОСЛЕ анимации - rotation_degrees камеры: %.1f°, ожидалось: %.1f°" % [final_rotation_deg, target_rotation])
-			current_tween = null  # Очищаем ссылку после завершения
-			zoom_completed.emit(zoom_type)
+			target_zoom,
+			target_rotation,
+			zoom_type,
+			_config.use_camera_smoothing,
+			on_tween_completed
 		)
-		
-		var _settings = _config.get_settings_by_type(zoom_type)
-		print("📷 CameraManager: %s (zoom %.1f, pos %s, rotation %.1f°)" % [
-			CameraAnimationHelper.get_zoom_name(zoom_type), 
-			target_zoom.x,
-			target_pos,
-			target_rotation
-		])
 
 # Методы утилит анимации перенесены в CameraAnimationHelper
 # _get_transition_type -> CameraAnimationHelper.get_transition_type
@@ -732,5 +578,20 @@ func reload_config() -> void:
 	var zoom_out_cb = func(is_nav: bool) -> void:
 		_zoom_handler.zoom_out(is_nav)
 	_area_navigator = CameraAreaNavigatorClass.new(zoom_area_cb, zoom_in_cb, zoom_out_cb)
+	
+	# Обновляем обработчик интерполяции с новой конфигурацией
+	if _camera and _scene and _process_node:
+		var on_interpolation_completed = func(zoom_type: String) -> void:
+			zoom_completed.emit(zoom_type)
+		_interpolation_handler = CameraInterpolationHandlerClass.new(
+			_config, 
+			_camera, 
+			_scene, 
+			_process_node,
+			on_interpolation_completed
+		)
+		# Обновляем CameraInterpolationNode
+		if _process_node.has_method("setup_interpolation_handler"):
+			_process_node.setup_interpolation_handler(_interpolation_handler)
 	
 	print("📷 CameraManager: конфигурация перезагружена из %s" % _config_path)
