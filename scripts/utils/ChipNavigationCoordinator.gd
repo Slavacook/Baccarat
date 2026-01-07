@@ -47,43 +47,36 @@ func _init(
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func on_chip_navigation_activation_requested(camera_linked: bool) -> void:
+func on_chip_navigation_activation_requested(_camera_linked: bool) -> void:
 	"""Обработка запроса активации chip navigation через EventBus
 	
 	Args:
-		camera_linked: Привязана ли навигация к камере
+		_camera_linked: Устаревший параметр (оставлен для совместимости с EventBus)
 	"""
 	if not chip_navigation_manager:
 		DebugLogger.log_error("❌ chip_navigation_manager не инициализирован!")
 		return
 	
-	# Устанавливаем режим привязки камеры перед активацией
-	chip_navigation_manager.set_camera_linked(camera_linked)
 	# Откладываем активацию до следующего кадра, чтобы payout_queue_manager был готов
 	# Используем call_deferred через callback
 	if deferred_activation_callback.is_valid():
-		deferred_activation_callback.call(camera_linked)
+		deferred_activation_callback.call()
 	else:
 		# Fallback: активируем сразу
-		activate_chip_navigation_deferred(camera_linked)
+		activate_chip_navigation_deferred()
 
-func activate_chip_navigation_deferred(camera_linked: bool) -> void:
-	"""Отложенная активация chip navigation (после подготовки payout_queue_manager)
-	
-	Args:
-		camera_linked: Привязана ли навигация к камере
-	"""
+func activate_chip_navigation_deferred() -> void:
+	"""Отложенная активация chip navigation (после подготовки payout_queue_manager)"""
 	if not chip_navigation_manager:
 		return
 	
-	# Проверяем есть ли ставки для обработки (только в режиме 2 - независимом)
-	if not camera_linked:
-		if not has_bets_to_process():
-			DebugLogger.log("⌨️ ChipNavigationManager: навигация не активирована (нет ставок для обработки)")
-			return
+	# Проверяем есть ли ставки для обработки
+	if not has_bets_to_process():
+		DebugLogger.log("⌨️ ChipNavigationManager: навигация не активирована (нет ставок для обработки)")
+		return
 	
 	chip_navigation_manager.activate()
-	DebugLogger.log("⌨️ ChipNavigationManager: активирован через EventBus (camera_linked=%s)" % camera_linked)
+	DebugLogger.log("⌨️ ChipNavigationManager: активирован через EventBus")
 
 func has_bets_to_process() -> bool:
 	"""Проверить, есть ли ставки для обработки (проигрышные или выигрышные)

@@ -77,7 +77,7 @@ func load_settings() -> Dictionary:
 		"game_mode": "junket",
 		"survival_mode": true,
 		"language": "ru",  # По умолчанию русский
-		"camera_control_mode": "linked"  # По умолчанию режим 1 (привязанный)
+		"camera_control_mode": "independent"  # Режим 1 удалён, всегда используем режим 2 (независимый)
 	}
 
 func save_game_mode(mode: String):
@@ -109,17 +109,17 @@ func load_language() -> String:
 	var settings = load_settings()
 	return settings.get("language", "ru")
 
-# ← Настройки режима управления камерой
-func save_camera_control_mode(mode: String):
-	"""Сохранить режим управления камерой: "linked" (режим 1) или "independent" (режим 2)"""
-	var settings = load_settings()
-	settings["camera_control_mode"] = mode
-	save_settings(settings)
+# ← Настройки режима управления камерой (устарело - режим 1 удалён)
+func save_camera_control_mode(_mode: String):
+	"""Сохранить режим управления камерой (устарело - режим 1 удалён, всегда используем режим 2)"""
+	# Режим 1 удалён, всегда используем режим 2 (independent)
+	# Метод оставлен для совместимости, но не сохраняет значение
+	pass
 
 func load_camera_control_mode() -> String:
-	"""Загрузить режим управления камерой (по умолчанию "linked" - режим 1)"""
-	var settings = load_settings()
-	return settings.get("camera_control_mode", "linked")
+	"""Загрузить режим управления камерой (устарело - режим 1 удалён, всегда возвращает "independent")"""
+	# Режим 1 удалён, всегда возвращаем "independent" (режим 2)
+	return "independent"
 
 # ← Настройки рубашки карт
 func save_card_back_style(style: String):

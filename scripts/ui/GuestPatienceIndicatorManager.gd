@@ -92,14 +92,10 @@ func setup(p_parent_node: Node2D, p_camera_manager: CameraManager = null):
 	# Обновляем все индикаторы для начального отображения
 	refresh_all_indicators()
 	
-	# Инициализируем previous_area и скрываем карточки, если камера на общем плане (только в режиме 1)
+	# Инициализируем previous_area и показываем индикаторы
 	if camera_manager:
 		previous_area = camera_manager.current_area
-		var camera_mode = SaveManager.instance.load_camera_control_mode()
-		if camera_mode == "linked" and camera_manager.current_area == -1:
-			_hide_all_indicators_animated(false)  # Без анимации при инициализации (режим 1, общий план)
-		else:
-			_show_all_indicators_animated()  # В режиме 2 показываем сразу
+		_show_all_indicators_animated()  # Показываем индикаторы сразу
 	
 	print("✅ GuestPatienceIndicatorManager: создано %d индикаторов" % indicators.size())
 
@@ -268,14 +264,9 @@ func _create_indicator(guest_id: int):
 	indicators[guest_id] = indicator
 	
 	# Применяем настройки из конфига (положение, масштаб, поворот)
-	# Масштаб: в режиме 2 применяем дополнительный масштаб
-	var camera_mode = SaveManager.instance.load_camera_control_mode()
+	# Масштаб: увеличиваем в 1.5 раза
 	var base_scale = settings.get("scale", Vector2(1.0, 1.0))
-	if camera_mode == "independent":
-		# В режиме 2 увеличиваем масштаб в 1.5 раза
-		indicator.scale = base_scale * 1.5
-	else:
-		indicator.scale = base_scale
+	indicator.scale = base_scale * 1.5  # Увеличенный масштаб для лучшей видимости
 	
 	# Поворот
 	var rotation = settings.get("rotation", 0.0)
@@ -345,33 +336,9 @@ func _on_camera_zoom_completed(_zoom_type: String):
 	
 	var area = camera_manager.current_area
 	
-	# Проверяем режим камеры
-	var camera_mode = SaveManager.instance.load_camera_control_mode()
-	
-	if camera_mode == "independent":
-		# Режим 2: индикаторы всегда видны (если гость за столом)
-		# Показываем только если они еще не видны, чтобы избежать мигания
-		_show_all_indicators_if_hidden()
-		previous_area = area
-		return
-	
-	# Режим 1: показываем только на area_1-6 (не на общем плане и не на картах)
-	var is_areas_zone = (area >= 1 and area <= 6)  # Исправлено: было 1-3, стало 1-6
-	var was_areas_zone = (previous_area >= 1 and previous_area <= 6)  # Исправлено
-	
-	# Если переходим с области ставок на область ставок - ничего не делаем
-	if is_areas_zone and was_areas_zone:
-		previous_area = area
-		return
-	
-	# Если переходим на области ставок (с общего плана или карт) - показываем
-	if is_areas_zone and not was_areas_zone:
-		_show_all_indicators_animated()
-	# Если уходим с областей ставок (на общий план или карты) - скрываем
-	elif not is_areas_zone and was_areas_zone:
-		_hide_all_indicators_animated(true)  # С анимацией
-	
-	# Сохраняем текущую область как предыдущую
+	# Индикаторы всегда видны (если гость за столом)
+	# Показываем только если они еще не видны, чтобы избежать мигания
+	_show_all_indicators_if_hidden()
 	previous_area = area
 
 func _process(_delta: float):

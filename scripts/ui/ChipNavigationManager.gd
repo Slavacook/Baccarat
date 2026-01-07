@@ -16,9 +16,6 @@ var chip_click_handler: ChipClickHandler = null
 var navigation_frame: Control = null  # ChipNavigationFrame
 var camera_manager: CameraManager = null  # Для определения текущей области камеры
 
-# Флаг привязки камеры к навигации (true = камера движется вместе с фокусом, false = камера остается на общем плане)
-var camera_linked: bool = true
-
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ НАВИГАЦИИ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -76,11 +73,6 @@ func setup(
 	camera_manager = p_camera_manager
 	
 	DebugLogger.log("✅ ChipNavigationManager: настроен")
-
-func set_camera_linked(linked: bool) -> void:
-	"""Установить режим привязки камеры к навигации"""
-	camera_linked = linked
-	DebugLogger.log("📷 ChipNavigationManager: camera_linked = %s" % linked)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # УПРАВЛЕНИЕ АКТИВАЦИЕЙ
@@ -200,26 +192,13 @@ func _update_camera_for_position() -> void:
 	- Если камера НЕ на позиции гостя (guest_X_mode2) → быстро
 	- Если камера УЖЕ на позиции гостя → медленно (переключение между гостами)
 	"""
-	# Если камера не привязана к навигации - используем специальную логику для режима 2
-	if not camera_linked:
-		# Режим 2 (независимый): камера меняется в зависимости от сектора
-		var camera_mode = SaveManager.instance.load_camera_control_mode()
-		if camera_mode == "independent":
-			var target_zoom_type = _get_camera_zoom_for_sector_mode2(current_sector)
-			# Определяем скорость анимации на основе текущей позиции камеры
-			var is_slow_navigation = _should_use_slow_navigation(target_zoom_type)
-			EventBus.camera_zoom_requested.emit(target_zoom_type, is_slow_navigation)
-			var speed_name = "медленная" if is_slow_navigation else "быстрая"
-			DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, режим 2, %s анимация)" % [target_zoom_type, current_sector, speed_name])
-		return
-	
-	var area = _get_area_from_sector(current_sector)
-	
-	if area > 0:
-		var target_zoom_type = "area_%d" % area
-		# Для режима 1 (привязанный) всегда медленно при навигации
-		EventBus.camera_zoom_requested.emit(target_zoom_type, true)  # true = навигация (медленная анимация)
-		DebugLogger.log("📷 ChipNavigationManager: камера → area_%d (сектор %d, навигация)" % [area, current_sector])
+	# Камера меняется в зависимости от сектора (guest_X_mode2)
+	var target_zoom_type = _get_camera_zoom_for_sector_mode2(current_sector)
+	# Определяем скорость анимации на основе текущей позиции камеры
+	var is_slow_navigation = _should_use_slow_navigation(target_zoom_type)
+	EventBus.camera_zoom_requested.emit(target_zoom_type, is_slow_navigation)
+	var speed_name = "медленная" if is_slow_navigation else "быстрая"
+	DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, %s анимация)" % [target_zoom_type, current_sector, speed_name])
 
 func _get_camera_zoom_for_sector_mode2(sector: int) -> String:
 	"""Определить тип зума камеры для сектора в режиме 2 (независимый)
@@ -640,10 +619,9 @@ func _on_chip_collected(bet_type: String, position_index: int) -> void:
 		bet_type, position_index, current_bet_type, current_sector
 	])
 	
-	# В режиме 2 (независимый) проверяем, можно ли завершить раунд и переключить режим
-	if not camera_linked:
-		_check_and_switch_to_pay_if_needed()
-		_check_and_deactivate_if_complete()
+	# Проверяем, можно ли завершить раунд и переключить режим
+	_check_and_switch_to_pay_if_needed()
+	_check_and_deactivate_if_complete()
 
 func _on_chip_paid(bet_type: String, position_index: int) -> void:
 	"""Обработчик оплаты фишки - фокус остаётся на текущей позиции"""
@@ -657,9 +635,8 @@ func _on_chip_paid(bet_type: String, position_index: int) -> void:
 		bet_type, position_index, current_bet_type, current_sector
 	])
 	
-	# В режиме 2 (независимый) проверяем, можно ли завершить раунд
-	if not camera_linked:
-		_check_and_deactivate_if_complete()
+	# Проверяем, можно ли завершить раунд
+	_check_and_deactivate_if_complete()
 
 func _check_and_switch_to_pay_if_needed() -> void:
 	"""Проверить все ли проигрышные ставки собраны и переключить на режим оплаты в режиме 2"""

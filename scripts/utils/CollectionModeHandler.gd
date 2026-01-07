@@ -65,15 +65,8 @@ func on_pay_mode_toggled(enabled: bool) -> void:
 	if enabled:
 		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
 	else:
-		# В режиме 2 (независимый) после оплаты НЕ переключаем режим обратно на COLLECT
+		# После оплаты НЕ переключаем режим обратно на COLLECT
 		# Пользователь должен продолжать оплачивать
-		var camera_mode = SaveManager.instance.load_camera_control_mode()
-		if camera_mode == "independent":
-			# В режиме 2 не переключаем режим - остаёмся в PAY
-			DebugLogger.log("🔄 CollectionModeHandler: режим 2 - остаёмся в PAY после оплаты")
-			return
-		
-		# Если режим оплаты был активен, отключаем (только в режиме 1)
-		if bet_collection_manager.is_pay_mode():
-			bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.NONE)
+		DebugLogger.log("🔄 CollectionModeHandler: остаёмся в PAY после оплаты")
+		# Режим остаётся активным - не переключаем обратно
 

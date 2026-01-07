@@ -1550,70 +1550,25 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	var victory_msg = victory_message_formatter.format_victory_message(actual_winner, player_score, banker_score)
 	EventBus.show_toast_success.emit(victory_msg)
 
-	# Проверяем режим управления камерой
-	var camera_mode = SaveManager.instance.load_camera_control_mode()
+	# Навигатор сам подтянет камеру
+	# Проверяем есть ли ставки для обработки
+	if guest_bet_storage:
+		var guests_with_bets = guest_bet_storage.get_guests_with_bets()
+		if guests_with_bets.is_empty():
+			# Нет ставок - камера на общий план
+			EventBus.camera_zoom_requested.emit("out", false)
+			DebugLogger.log("📷 GamePhaseManager: нет ставок - камера на общий план")
+			EventBus.navigation_arrows_visibility_changed.emit(true)
+			return
 	
-	if camera_mode == "independent":
-		# Режим 2 (независимый): навигатор сам подтянет камеру
-		# Проверяем есть ли ставки для обработки
-		if guest_bet_storage:
-			var guests_with_bets = guest_bet_storage.get_guests_with_bets()
-			if guests_with_bets.is_empty():
-				# Нет ставок - камера на общий план
-				EventBus.camera_zoom_requested.emit("out", false)
-				DebugLogger.log("📷 GamePhaseManager: нет ставок - камера на общий план")
-				EventBus.navigation_arrows_visibility_changed.emit(true)
-				return
-		
-		# Есть ставки - активируем навигатор (он сам подтянет камеру)
-		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
-		EventBus.navigation_arrows_visibility_changed.emit(true)
-		# Запрашиваем активацию chip navigation с отключенной привязкой камеры
-		# Навигатор сам определит скорость анимации на основе позиции камеры
-		EventBus.chip_navigation_activation_requested.emit(false)
-	else:
-		# Режим 1 (привязанный): как обычно - зум на область
-		var target_area = _find_rightmost_area_with_bets()
-		EventBus.camera_zoom_requested.emit(target_area, false)
-		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
-		EventBus.navigation_arrows_visibility_changed.emit(true)
+	# Есть ставки - активируем навигатор (он сам подтянет камеру)
+	# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
+	EventBus.navigation_arrows_visibility_changed.emit(true)
+	# Запрашиваем активацию chip navigation (навигатор сам определит скорость анимации на основе позиции камеры)
+	EventBus.chip_navigation_activation_requested.emit(false)
 
 	# Вызываем метод формирования очереди выплат через EventBus
 	EventBus.manual_payout_requested.emit(actual_winner)
-
-func _find_rightmost_area_with_bets() -> String:
-	"""Найти самую правую зону со ставками
-	
-	Логика зон:
-	- area_1: гости 1 и 2 (левая зона)
-	- area_2: гости 3 и 4 (центральная зона)
-	- area_3: гости 5 и 6 (правая зона)
-	
-	Returns:
-		"area_3" (самая правая), "area_2", "area_1" или "out" (общий план, если ставок нет)
-	"""
-	if not guest_bet_storage:
-		return "out"
-	
-	# Сначала проверяем, есть ли вообще ставки (дополнительная проверка)
-	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
-	if guests_with_bets.is_empty():
-		return "out"
-	
-	# Проверяем с самой правой зоны (area_3: гости 5, 6)
-	if guest_bet_storage.has_guest_bets(5) or guest_bet_storage.has_guest_bets(6):
-		return "area_3"
-	
-	# Проверяем среднюю зону (area_2: гости 3, 4)
-	if guest_bet_storage.has_guest_bets(3) or guest_bet_storage.has_guest_bets(4):
-		return "area_2"
-	
-	# Проверяем левую зону (area_1: гости 1, 2)
-	if guest_bet_storage.has_guest_bets(1) or guest_bet_storage.has_guest_bets(2):
-		return "area_1"
-	
-	# Если ставок нет ни в одной зоне, возвращаем общий план
-	return "out"
 
 func _find_rightmost_sector_with_bets() -> int:
 	"""Найти самый правый сектор со ставками (для режима 2)

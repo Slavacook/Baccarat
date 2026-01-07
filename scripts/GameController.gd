@@ -674,8 +674,8 @@ func _initialize_chip_navigation_coordinator() -> void:
 	"""Инициализировать координатор навигации по ставкам"""
 	if chip_navigation_manager and bet_collection_manager and ui_manager:
 		# Создаем callback для call_deferred
-		var deferred_callback = func(camera_linked: bool):
-			call_deferred("_activate_chip_navigation_deferred_internal", camera_linked)
+		var deferred_callback = func():
+			call_deferred("_activate_chip_navigation_deferred_internal")
 		
 		chip_navigation_coordinator = ChipNavigationCoordinator.new(
 			chip_navigation_manager,
@@ -1526,14 +1526,10 @@ func _on_manual_payout_requested(winner: String):
 # _has_bets_to_process -> chip_navigation_coordinator.has_bets_to_process
 # _on_auto_switch_to_pay_mode_requested -> chip_navigation_coordinator.on_auto_switch_to_pay_mode_requested
 
-func _activate_chip_navigation_deferred_internal(camera_linked: bool) -> void:
-	"""Внутренний метод для отложенной активации chip navigation (через call_deferred)
-	
-	Args:
-		camera_linked: Привязана ли навигация к камере
-	"""
+func _activate_chip_navigation_deferred_internal() -> void:
+	"""Внутренний метод для отложенной активации chip navigation (через call_deferred)"""
 	if chip_navigation_coordinator:
-		chip_navigation_coordinator.activate_chip_navigation_deferred(camera_linked)
+		chip_navigation_coordinator.activate_chip_navigation_deferred()
 	else:
 		push_error("❌ ChipNavigationCoordinator не инициализирован!")
 

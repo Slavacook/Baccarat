@@ -6,3 +6,8 @@ res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/GamePhaseManager.gd
 res://scripts/ui/ChipNavigationManager.gd
+res://scripts/SaveManager.gd
+res://scripts/SettingsScene.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/utils/ChipNavigationCoordinator.gd
+res://scripts/utils/CollectionModeHandler.gd
