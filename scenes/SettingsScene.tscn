@@ -261,6 +261,22 @@ Tie: 100-900, шаг 25
 Комиссия банкира: 95%"
 autowrap_mode = 3
 
+[node name="TestCardsSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="TestCardsLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/TestCardsSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "НАСТРОЙКА РАЗДАЧИ"
+horizontal_alignment = 1
+
+[node name="TestCardsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/TestCardsSection"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "НАСТРОЙКА"
+
 [node name="MiddleColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
 layout_mode = 2
 size_flags_horizontal = 3
@@ -403,64 +419,6 @@ text = "ЛЕОПАРД"
 
 [node name="HSeparator6" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
-
-[node name="CameraControlSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="HBoxContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection/HBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "КАМЕРА:"
-
-[node name="CameraControlButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="CameraLinkedButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection/CameraControlButtons"]
-custom_minimum_size = Vector2(140, 45)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
-theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
-text = "Режим 1"
-
-[node name="CameraIndependentButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CameraControlSection/CameraControlButtons"]
-custom_minimum_size = Vector2(140, 45)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 14
-theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
-theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
-text = "Режим 2"
-
-[node name="HSeparator7" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-
-[node name="TestCardsSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="TestCardsLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TestCardsSection"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "НАСТРОЙКА РАЗДАЧИ"
-horizontal_alignment = 1
-
-[node name="TestCardsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TestCardsSection"]
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-text = "НАСТРОЙКА"
 
 [node name="HSeparator4" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
