@@ -4,3 +4,5 @@ res://scripts/autoload/GuestStatsManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
+res://scripts/GamePhaseManager.gd
+res://scripts/ui/ChipNavigationManager.gd

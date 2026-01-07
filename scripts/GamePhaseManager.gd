@@ -1554,11 +1554,22 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	var camera_mode = SaveManager.instance.load_camera_control_mode()
 	
 	if camera_mode == "independent":
-		# Режим 2 (независимый): общий план + автоматическая активация chip navigation
-		EventBus.camera_zoom_requested.emit("out", false)  # Общий план
+		# Режим 2 (независимый): навигатор сам подтянет камеру
+		# Проверяем есть ли ставки для обработки
+		if guest_bet_storage:
+			var guests_with_bets = guest_bet_storage.get_guests_with_bets()
+			if guests_with_bets.is_empty():
+				# Нет ставок - камера на общий план
+				EventBus.camera_zoom_requested.emit("out", false)
+				DebugLogger.log("📷 GamePhaseManager: нет ставок - камера на общий план")
+				EventBus.navigation_arrows_visibility_changed.emit(true)
+				return
+		
+		# Есть ставки - активируем навигатор (он сам подтянет камеру)
 		# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 		EventBus.navigation_arrows_visibility_changed.emit(true)
 		# Запрашиваем активацию chip navigation с отключенной привязкой камеры
+		# Навигатор сам определит скорость анимации на основе позиции камеры
 		EventBus.chip_navigation_activation_requested.emit(false)
 	else:
 		# Режим 1 (привязанный): как обычно - зум на область
@@ -1603,6 +1614,63 @@ func _find_rightmost_area_with_bets() -> String:
 	
 	# Если ставок нет ни в одной зоне, возвращаем общий план
 	return "out"
+
+func _find_rightmost_sector_with_bets() -> int:
+	"""Найти самый правый сектор со ставками (для режима 2)
+	
+	Секторы соответствуют гостям (1-6):
+	- Сектор 1 = Гость 1
+	- Сектор 2 = Гость 2
+	- ...
+	- Сектор 6 = Гость 6 (самый правый)
+	
+	Returns:
+		Номер сектора (1-6) с самой правой ставкой, или 6 по умолчанию
+	"""
+	if not guest_bet_storage:
+		return 6  # По умолчанию самый правый сектор
+	
+	# Сначала проверяем, есть ли вообще ставки
+	var guests_with_bets = guest_bet_storage.get_guests_with_bets()
+	if guests_with_bets.is_empty():
+		return 6  # По умолчанию самый правый сектор
+	
+	# Проверяем секторы справа налево (6, 5, 4, 3, 2, 1)
+	var sector_order = [6, 5, 4, 3, 2, 1]
+	for sector in sector_order:
+		# Сектор соответствует гостю с тем же номером
+		if guest_bet_storage.has_guest_bets(sector):
+			DebugLogger.log("📍 GamePhaseManager: найден самый правый сектор со ставками: сектор %d (гость %d)" % [sector, sector])
+			return sector
+	
+	# Не нашли ставок - возвращаем дефолтный сектор
+	return 6
+
+func _get_guest_mode2_zoom_for_sector(sector: int) -> String:
+	"""Получить тип зума guest_X_mode2 для сектора
+	
+	Args:
+		sector: Номер сектора (1-6)
+		
+	Returns:
+		Тип зума: "guest_X_mode2" где X соответствует номеру сектора (1-6)
+	"""
+	match sector:
+		1:
+			return "guest_1_mode2"
+		2:
+			return "guest_2_mode2"
+		3:
+			return "guest_3_mode2"
+		4:
+			return "guest_4_mode2"
+		5:
+			return "guest_5_mode2"
+		6:
+			return "guest_6_mode2"
+		_:
+			push_error("GamePhaseManager: неверный номер сектора %d, используется guest_6_mode2" % sector)
+			return "guest_6_mode2"
 
 # DEPRECATED: Используйте victory_message_formatter.format_victory_message()
 # ═══════════════════════════════════════════════════════════════════════════

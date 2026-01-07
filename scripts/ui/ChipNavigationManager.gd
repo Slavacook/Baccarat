@@ -194,21 +194,31 @@ func _is_chip_active(chip: ChipVisualManager.ChipInstance) -> bool:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _update_camera_for_position() -> void:
-	"""Обновить позицию камеры для текущей позиции"""
+	"""Обновить позицию камеры для текущей позиции
+	
+	Умное определение скорости анимации:
+	- Если камера НЕ на позиции гостя (guest_X_mode2) → быстро
+	- Если камера УЖЕ на позиции гостя → медленно (переключение между гостами)
+	"""
 	# Если камера не привязана к навигации - используем специальную логику для режима 2
 	if not camera_linked:
 		# Режим 2 (независимый): камера меняется в зависимости от сектора
 		var camera_mode = SaveManager.instance.load_camera_control_mode()
 		if camera_mode == "independent":
-			var zoom_type = _get_camera_zoom_for_sector_mode2(current_sector)
-			EventBus.camera_zoom_requested.emit(zoom_type, true)  # true = навигация (медленная анимация)
-			DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, режим 2, навигация)" % [zoom_type, current_sector])
+			var target_zoom_type = _get_camera_zoom_for_sector_mode2(current_sector)
+			# Определяем скорость анимации на основе текущей позиции камеры
+			var is_slow_navigation = _should_use_slow_navigation(target_zoom_type)
+			EventBus.camera_zoom_requested.emit(target_zoom_type, is_slow_navigation)
+			var speed_name = "медленная" if is_slow_navigation else "быстрая"
+			DebugLogger.log("📷 ChipNavigationManager: камера → %s (сектор %d, режим 2, %s анимация)" % [target_zoom_type, current_sector, speed_name])
 		return
 	
 	var area = _get_area_from_sector(current_sector)
 	
 	if area > 0:
-		EventBus.camera_zoom_requested.emit("area_%d" % area, true)  # true = навигация (медленная анимация)
+		var target_zoom_type = "area_%d" % area
+		# Для режима 1 (привязанный) всегда медленно при навигации
+		EventBus.camera_zoom_requested.emit(target_zoom_type, true)  # true = навигация (медленная анимация)
 		DebugLogger.log("📷 ChipNavigationManager: камера → area_%d (сектор %d, навигация)" % [area, current_sector])
 
 func _get_camera_zoom_for_sector_mode2(sector: int) -> String:
@@ -235,6 +245,52 @@ func _get_camera_zoom_for_sector_mode2(sector: int) -> String:
 			return "guest_6_mode2"
 		_:
 			return "guest_1_mode2"  # По умолчанию гость 1
+
+func _get_current_camera_zoom_type() -> String:
+	"""Получить текущую позицию камеры
+	
+	Returns:
+		Текущий тип зума камеры (например, "in", "out", "guest_1_mode2", "area_1", и т.д.)
+	"""
+	if camera_manager:
+		return camera_manager.get_last_zoom_type()
+	# Если нет доступа к camera_manager, возвращаем по умолчанию
+	return "out"
+
+func _should_use_slow_navigation(target_zoom_type: String) -> bool:
+	"""Определить использовать ли медленную анимацию при навигации
+	
+	Правило:
+	- Если камера НЕ на позиции гостя (guest_X_mode2) → быстро
+	- Если камера УЖЕ на позиции гостя → медленно (переключение между гостами)
+	
+	Это обеспечивает:
+	- Быстрое перемещение от карт/общего плана к позиции гостя (первое движение)
+	- Медленное переключение между позициями гостей (дальнейшие движения)
+	
+	Args:
+		target_zoom_type: Целевая позиция камеры (например, "guest_6_mode2")
+		
+	Returns:
+		true если использовать медленную анимацию, false если быструю
+	"""
+	var current_zoom_type = _get_current_camera_zoom_type()
+	
+	# Список режимов 2 (позиции гостей)
+	var mode2_modes = ["guest_1_mode2", "guest_2_mode2", "guest_3_mode2", 
+					   "guest_4_mode2", "guest_5_mode2", "guest_6_mode2"]
+	
+	var current_is_mode2 = current_zoom_type in mode2_modes
+	var target_is_mode2 = target_zoom_type in mode2_modes
+	
+	# Если оба на позициях гостей → медленно (переключение между гостами)
+	if current_is_mode2 and target_is_mode2:
+		DebugLogger.log("📍 ChipNavigationManager: медленная анимация (guest → guest: %s → %s)" % [current_zoom_type, target_zoom_type])
+		return true  # медленно
+	
+	# Иначе → быстро (переход от карт/общего плана к гостю)
+	DebugLogger.log("📍 ChipNavigationManager: быстрая анимация (не guest → guest: %s → %s)" % [current_zoom_type, target_zoom_type])
+	return false  # быстро
 
 func _get_area_from_sector(sector: int) -> int:
 	"""Определить область камеры по сектору

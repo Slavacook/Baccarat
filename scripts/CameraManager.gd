@@ -338,7 +338,11 @@ func _get_target_area_by_direction(direction: String) -> int:
 	# Используем _target_area если анимация идет, иначе current_area
 	# Это гарантирует, что запросы во время анимации используют правильное состояние
 	var area = _target_area if _is_animating else current_area
-	return _area_navigator.get_target_area_by_direction(area, direction)
+	var target = _area_navigator.get_target_area_by_direction(area, direction)
+	print("📷 CameraManager: направление '%s' из area=%d (is_animating=%s, current=%d, target=%d) → %d" % [
+		direction, area, _is_animating, current_area, _target_area, target
+	])
+	return target
 
 func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 	"""Определить целевую область по направлению из указанной области - делегировано в CameraAreaNavigator"""
@@ -402,43 +406,6 @@ func _process_interpolation(_delta: float) -> void:
 	if _interpolation_handler:
 		_interpolation_handler.process_interpolation(_delta)
 
-func _determine_animation_type(from_zoom_type: String, to_zoom_type: String) -> bool:
-	"""Определить тип анимации на основе правил
-	
-	Правило: Медленная анимация ТОЛЬКО при переходах между режимами 2
-	Все остальные переходы используют быструю анимацию
-	
-	Режимы 2 (все используют медленную анимацию при переходах между ними):
-	  - guest_1_mode2, guest_2_mode2, guest_3_mode2
-	  - guest_4_mode2, guest_5_mode2, guest_6_mode2
-	
-	Примеры:
-	  - guest_1_mode2 → guest_2_mode2 = МЕДЛЕННАЯ ✅
-	  - guest_2_mode2 → guest_3_mode2 = МЕДЛЕННАЯ ✅
-	  - guest_6_mode2 → guest_1_mode2 = МЕДЛЕННАЯ ✅
-	  - guest_1_mode2 → карты = БЫСТРАЯ ✅
-	  - карты → область = БЫСТРАЯ ✅
-	  - общий план → guest_3_mode2 = БЫСТРАЯ ✅
-	
-	Args:
-		from_zoom_type: Тип зума, откуда переходим
-		to_zoom_type: Тип зума, куда переходим
-		
-	Returns:
-		true если медленная анимация (навигация), false если быстрая
-	"""
-	var mode2_modes = ["guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2"]
-	var from_is_mode2 = from_zoom_type in mode2_modes
-	var to_is_mode2 = to_zoom_type in mode2_modes
-	
-	# Медленная анимация только при переходах между режимами 2
-	if from_is_mode2 and to_is_mode2:
-		print("📷 CameraManager: медленная анимация (режим 2: %s → %s)" % [from_zoom_type, to_zoom_type])
-		return true
-	else:
-		print("📷 CameraManager: быстрая анимация (%s → %s)" % [from_zoom_type, to_zoom_type])
-		return false
-
 func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: float, zoom_type: String, is_navigation: bool = false) -> void:
 	"""Анимировать камеру к заданной позиции, зуму и повороту
 	
@@ -453,9 +420,6 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	if not _camera or not _scene or not _config:
 		return
 	
-	# Сохраняем текущую позицию (откуда мы идем) ДО обновления current_area
-	var from_zoom_type = last_zoom_type  # Тип зума, откуда мы идем (стартовая точка)
-	
 	# ═══════════════════════════════════════════════════════════════════════
 	# КРИТИЧЕСКИ ВАЖНО: Сохраняем состояние ПЕРЕД любыми изменениями!
 	# 
@@ -468,17 +432,14 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# ═══════════════════════════════════════════════════════════════════════
 	# ОПРЕДЕЛЕНИЕ ТИПА АНИМАЦИИ (БЫСТРАЯ / МЕДЛЕННАЯ)
 	# 
-	# Если is_navigation явно передан как true, используем его (вызывающий код знает что делает)
-	# Если is_navigation = false, определяем автоматически на основе правил
+	# Упрощённая логика:
+	# - is_navigation = false → быстрая анимация (обычные переходы)
+	# - is_navigation = true  → медленная анимация (навигация по ставкам)
 	# 
 	# Настройки анимации находятся в CameraConfig.gd:
 	#   - БЫСТРАЯ: min_interpolation_speed, max_interpolation_speed
 	#   - МЕДЛЕННАЯ: navigation_min_interpolation_speed, navigation_max_interpolation_speed
 	# ═══════════════════════════════════════════════════════════════════════
-	
-	# Автоматическое определение типа анимации, если не указано явно
-	if not is_navigation:
-		is_navigation = _determine_animation_type(from_zoom_type, zoom_type)
 	
 	# Сохраняем целевую область, но НЕ обновляем current_area сразу
 	# current_area будет обновлен только после завершения анимации
@@ -523,6 +484,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# с предыдущей целевой областью (куда камера ДОЛЖНА была прийти)
 	if was_animating:
 		current_area = previous_target_area
+		print("📷 CameraManager: прерывание анимации - синхронизация current_area = %d (было %d)" % [current_area, previous_target_area])
 	
 	# Если используется экспоненциальное сглаживание с адаптивной скоростью
 	if _config.use_adaptive_interpolation and _interpolation_handler:
@@ -695,6 +657,10 @@ func restore_to_general() -> void:
 	
 	КРИТИЧЕСКИ ВАЖНО: Этот метод полностью сбрасывает состояние навигации!
 	"""
+	print("📷 CameraManager: restore_to_general - ДО сброса: current_area=%d, _target_area=%d, _is_animating=%s, last_zoom_type=%s" % [
+		current_area, _target_area, _is_animating, last_zoom_type
+	])
+	
 	if _camera != null and _config != null:
 		var general_settings = _config.get_general_settings()
 		# Мгновенно устанавливаем позицию камеры (без анимации)
@@ -708,6 +674,10 @@ func restore_to_general() -> void:
 		_target_area = -1  # Также сбрасываем целевую область
 		_is_animating = false  # Сбрасываем флаг анимации
 		last_zoom_type = "out"
+		
+		print("📷 CameraManager: камера восстановлена к общему плану (ПОСЛЕ сброса: current_area=%d, _target_area=%d)" % [
+			current_area, _target_area
+		])
 
 func reload_config() -> void:
 	"""Перезагрузить конфигурацию из файла (для отладки)"""

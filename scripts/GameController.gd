@@ -317,6 +317,7 @@ func _exit_tree() -> void:
 	КРИТИЧЕСКИ ВАЖНО: Отписываем CameraManager от EventBus,
 	иначе старый экземпляр продолжит получать события после рестарта.
 	"""
+	print("🧹 GameController._exit_tree: очистка CameraManager")
 	if camera_manager:
 		camera_manager.cleanup()
 		camera_manager = null
