@@ -9,6 +9,7 @@ static var instance: SoundManager
 # ═══════════════════════════════════════════════════════════════════════════
 
 const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_change (30% от оригинала)
+const MAX_SFX_PLAYERS: int = 5  # Максимум одновременно играющих звуков
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ЗВУКОВЫЕ ПОТОКИ
@@ -35,7 +36,7 @@ var heart_sound: AudioStream  # Сердце (heart bet)
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
-var sfx_player: AudioStreamPlayer  # Для всех остальных звуков
+var sfx_players: Array[AudioStreamPlayer] = []  # Пул игроков для параллельного воспроизведения звуков
 
 # Настройки громкости
 var master_volume: float = 1.0
@@ -52,11 +53,16 @@ func _init():
 		queue_free()
 
 func _ready():
-	# Создаём AudioStreamPlayer узлы
+	# Создаём AudioStreamPlayer для звуков переворота карт
 	flip_player = AudioStreamPlayer.new()
-	sfx_player = AudioStreamPlayer.new()
 	add_child(flip_player)
-	add_child(sfx_player)
+	
+	# Создаём пул AudioStreamPlayer для параллельного воспроизведения звуков
+	for i in range(MAX_SFX_PLAYERS):
+		var player = AudioStreamPlayer.new()
+		player.name = "SFXPlayer_%d" % i
+		add_child(player)
+		sfx_players.append(player)
 	
 	# Загружаем звуки
 	_load_sounds()
@@ -355,18 +361,38 @@ func play_flip_sound():
 	flip_player.play()
 
 func play_sound(sound: AudioStream, volume: float = 1.0):
-	"""Универсальный метод для воспроизведения любого звука"""
+	"""Универсальный метод для воспроизведения любого звука
+	
+	Использует пул AudioStreamPlayer для параллельного воспроизведения звуков.
+	Если все игроки заняты, использует первый (прервёт текущий звук).
+	"""
 	if not sound:
 		# Звук не загружен (файл не существует или не импортирован) - это нормально
 		return
 	
-	# Проверяем, что AudioStreamPlayer готов
-	if not sfx_player:
+	# Ищем свободный AudioStreamPlayer
+	var player = _get_free_player()
+	if not player:
+		# Все заняты - используем первый (прервёт текущий звук)
+		player = sfx_players[0] if sfx_players.size() > 0 else null
+	
+	if not player:
 		return
 	
-	sfx_player.stream = sound
-	sfx_player.volume_db = linear_to_db(volume * sfx_volume * master_volume)
-	sfx_player.play()
+	player.stream = sound
+	player.volume_db = linear_to_db(volume * sfx_volume * master_volume)
+	player.play()
+
+func _get_free_player() -> AudioStreamPlayer:
+	"""Найти свободный AudioStreamPlayer (не играющий)
+	
+	Returns:
+		Свободный AudioStreamPlayer или null, если все заняты
+	"""
+	for player in sfx_players:
+		if not player.playing:
+			return player
+	return null  # Все заняты
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ ДЛЯ ВНЕШНИХ ВЫЗОВОВ (для событий без EventBus)

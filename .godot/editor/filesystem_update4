@@ -6,3 +6,5 @@ res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/ui/PayButton.gd
 res://scripts/ui/ChipNavigationManager.gd
+res://scripts/SoundManager.gd
+res://scripts/utils/ChipNavigationCoordinator.gd
