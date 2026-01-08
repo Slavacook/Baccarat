@@ -1219,7 +1219,7 @@ func _show_guest_bets() -> void:
 					break
 			
 			if has_next_sector:
-				await EventBus.get_tree().create_timer(0.2).timeout
+				await EventBus.get_tree().create_timer(0.3).timeout
 
 func _show_guest_chip_at_position(bet_type: String, position_index: int, coords: Vector2, stake: float) -> void:
 	"""Показать фишку гостя на конкретной позиции

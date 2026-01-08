@@ -1,8 +1,6 @@
 res://scripts/GamePhaseManager.gd
+res://scripts/GameConstants.gd
+res://scripts/SoundManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/chance_cards/ChanceCardManager.gd
-res://scripts/StatsManager.gd
-res://scripts/SoundManager.gd
-res://scripts/WinnerSelectionManager.gd

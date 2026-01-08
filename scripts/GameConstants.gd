@@ -106,8 +106,9 @@ const PATIENCE_LOST_SOUND_PATH: String = "res://assets/sound/patience_lost.mp3"
 # heart.mp3 - Звук сердца (Heart Bet) - при выборе/выигрыше в Heart Bet
 const HEART_SOUND_PATH: String = "res://assets/sound/heart.mp3"
 
-# bet.mp3 - Звук ставки гостя - при размещении ставки гостем
-const BET_SOUND_PATH: String = "res://assets/sound/bet.mp3"
+# Звуки ставок гостей (8 вариантов)
+const BET_SOUNDS_COUNT: int = 8
+const BET_SOUND_PATH_TEMPLATE: String = "res://assets/sound/bet_sounds/bet_%d.mp3"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУТИ К РЕСУРСАМ

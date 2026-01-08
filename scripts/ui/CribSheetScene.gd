@@ -102,11 +102,18 @@ func show_cribsheet():
 	if SoundManager:
 		SoundManager.play_crib_sheet_sound()
 	
+	# Проверяем, что get_tree() доступен перед await
+	var tree = get_tree()
+	if not tree:
+		push_error("CribSheetScene: get_tree() вернул null, не могу продолжить")
+		return
+	
 	# Ждём один кадр, чтобы узел полностью инициализировался
-	await get_tree().process_frame
+	await tree.process_frame
 	
 	# Восстанавливаем input
-	background.mouse_filter = Control.MOUSE_FILTER_STOP
+	if background:
+		background.mouse_filter = Control.MOUSE_FILTER_STOP
 	if close_button:
 		close_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	if left_arrow:

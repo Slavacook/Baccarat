@@ -58,16 +58,24 @@ func on_help_button_pressed() -> void:
 	Сбрасывает фокус с кнопки, чтобы пробел не активировал её повторно.
 	"""
 	# Открываем шпаргалку вместо старого help_popup
-	if crib_sheet_scene:
-		# Сбрасываем фокус с кнопки, чтобы пробел не активировал её
-		if ui_manager and ui_manager.help_button:
-			ui_manager.help_button.release_focus()
-		# Также сбрасываем фокус со всего viewport
-		if owner_node.get_viewport():
-			owner_node.get_viewport().gui_release_focus()
-		crib_sheet_scene.show_cribsheet()
-	else:
-		push_warning("CribSheetScene: шпаргалка не инициализирована")
+	if not crib_sheet_scene:
+		push_error("CribSheetScene: шпаргалка не инициализирована")
+		return
+	
+	# Проверяем, что сцена валидна
+	if not is_instance_valid(crib_sheet_scene):
+		push_error("CribSheetScene: сцена не валидна")
+		return
+	
+	# Сбрасываем фокус с кнопки, чтобы пробел не активировал её
+	if ui_manager and ui_manager.help_button:
+		ui_manager.help_button.release_focus()
+	# Также сбрасываем фокус со всего viewport
+	if owner_node.get_viewport():
+		owner_node.get_viewport().gui_release_focus()
+	
+	# Вызываем метод открытия
+	crib_sheet_scene.show_cribsheet()
 
 func on_lang_button_pressed() -> void:
 	"""Обработчик нажатия кнопки переключения языка

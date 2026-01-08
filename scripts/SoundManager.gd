@@ -35,7 +35,7 @@ var tip_received_sound: AudioStream  # Получение чаевых
 var penalty_sound: AudioStream  # Получение штрафа
 var patience_lost_sound: AudioStream  # Потеря терпения
 var heart_sound: AudioStream  # Сердце (heart bet)
-var bet_sound: AudioStream  # Ставка гостя
+var bet_sounds: Array[AudioStream] = []  # Звуки ставок гостей (8 вариантов)
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
@@ -165,9 +165,14 @@ func _load_sounds():
 	#   - Взятии сердца в залог (heart_pledged)
 	heart_sound = _load_sound_safe("res://assets/sound/heart.mp3")
 	
-	# bet.mp3 - Звук ставки гостя - играется при:
+	# Звуки ставок гостей (8 вариантов) - играются при:
 	#   - Размещении ставки гостем на столе (при показе ставок гостей)
-	bet_sound = _load_sound_safe(GameConstants.BET_SOUND_PATH)
+	#   - Каждая ставка играет случайный звук из 8 вариантов
+	for i in range(1, GameConstants.BET_SOUNDS_COUNT + 1):
+		var sound_path = GameConstants.BET_SOUND_PATH_TEMPLATE % i
+		var sound = _load_sound_safe(sound_path)
+		if sound:
+			bet_sounds.append(sound)
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -443,8 +448,12 @@ func play_focus_deactivate_sound():
 		play_sound(focus_activate_2_sound)
 
 func play_bet_sound():
-	"""Звук размещения ставки гостем"""
-	play_sound(bet_sound)
+	"""Звук размещения ставки гостем (случайный из 8 вариантов)"""
+	if bet_sounds.is_empty():
+		return
+	
+	var random_index = randi() % bet_sounds.size()
+	play_sound(bet_sounds[random_index])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ ГРОМКОСТИ
