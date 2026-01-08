@@ -67,9 +67,13 @@ func _handle_correct_payout(
 	collected: float,
 	expected: float
 ) -> void:
-	"""Обработать правильную выплату"""
-	# Эмитим событие
-	EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
+	"""Обработать правильную выплату
+	
+	ПРИМЕЧАНИЕ: payout_correct теперь эмитится синхронно с показом анимации "ВЕРНО!"
+	в PayoutOverlayPaymentHandler._show_success_animation(), поэтому здесь не эмитим.
+	"""
+	# Событие payout_correct уже эмитится в PayoutOverlayPaymentHandler синхронно с анимацией
+	# Здесь только обрабатываем результат (обновление баланса, скрытие фишек и т.д.)
 	DebugLogger.log("  ✅ Правильная выплата %s[%d]: %.1f" % [bet_type, position_index, expected])
 	
 	# Обновляем баланс гостя (если это гостевые ставки)

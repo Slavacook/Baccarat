@@ -96,6 +96,17 @@ func _show_success_animation(is_correct: bool, collected: float, expected: float
 	# Показываем изображение "Верно!"
 	animation_controller.show_success_animation()
 	
+	# Эмитим событие payout_correct СРАЗУ, синхронно с показом "ВЕРНО!"
+	# bet_type и position_index будут получены из owner_node (PayoutOverlay)
+	var bet_type = ""
+	var position_index = -1
+	if owner_node.has("current_winner"):
+		bet_type = owner_node.current_winner
+	if owner_node.has_meta("current_position_index"):
+		position_index = owner_node.get_meta("current_position_index")
+	
+	EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
+	
 	# Ждем время показа
 	await owner_node.get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
 	

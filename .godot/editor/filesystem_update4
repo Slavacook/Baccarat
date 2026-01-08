@@ -8,3 +8,5 @@ res://scripts/ui/PayButton.gd
 res://scripts/ui/ChipNavigationManager.gd
 res://scripts/SoundManager.gd
 res://scripts/utils/ChipNavigationCoordinator.gd
+res://scripts/ui/PayoutOverlayPaymentHandler.gd
+res://scripts/utils/PayoutResultHandler.gd
