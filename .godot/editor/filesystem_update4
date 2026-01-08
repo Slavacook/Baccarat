@@ -4,3 +4,5 @@ res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/autoload/GuestStatsManager.gd
 res://scripts/utils/GameStateController.gd
+res://scripts/SoundManager.gd
+res://scripts/health_system/HeartBar.gd

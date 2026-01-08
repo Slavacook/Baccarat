@@ -310,9 +310,10 @@ func _on_action_error(type: String, _message: String):
 	"""Обработчик ошибки"""
 	# Звук штрафа теперь воспроизводится через событие penalty_applied
 	# с задержкой 1.5 сек после применения штрафа
-	# Здесь только общие ошибки
-	if type != "unpaid_bets_heart_penalty":
-		play_sound(error_sound)
+	# Звук ошибки воспроизводится при потере жизни (life_lost), а не здесь,
+	# чтобы избежать дублирования звука
+	# Режим выживания теперь всегда активен, поэтому action_error всегда приводит к life_lost
+	pass
 
 func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, _position_index: int):
 	"""Обработчик правильной выплаты"""
@@ -328,7 +329,10 @@ func _on_hint_used():
 	play_sound(hint_sound)
 
 func _on_life_lost(_remaining_lives: int):
-	play_sound(error_sound)
+	# Если это последняя жизнь (remaining_lives == 0), не играем error_sound,
+	# потому что сразу после этого будет воспроизведен game_over_sound
+	if _remaining_lives > 0:
+		play_sound(error_sound)
 
 func _on_heart_bet_selected(_target: String):
 	play_sound(heart_sound)
@@ -337,7 +341,10 @@ func _on_heart_bet_won(_target: String, _lives_gained: int):
 	play_sound(heart_sound)
 
 func _on_heart_bet_lost(_target: String, _lives_remaining: int):
-	play_sound(error_sound)
+	# Если это последняя жизнь (lives_remaining == 0), не играем error_sound,
+	# потому что сразу после этого будет воспроизведен game_over_sound
+	if _lives_remaining > 0:
+		play_sound(error_sound)
 
 func _on_heart_pledged():
 	play_sound(heart_sound)
