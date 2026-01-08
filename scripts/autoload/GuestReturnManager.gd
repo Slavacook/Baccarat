@@ -22,8 +22,8 @@ var guests_left: Dictionary = {}  # {guest_id: Dictionary}
 var current_round: int = 0
 
 # Диапазон раундов до возврата
-const MIN_ROUNDS_UNTIL_RETURN: int = 1
-const MAX_ROUNDS_UNTIL_RETURN: int = 2
+const MIN_ROUNDS_UNTIL_RETURN: int = 10
+const MAX_ROUNDS_UNTIL_RETURN: int = 20
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
