@@ -141,16 +141,21 @@ func set_validator(custom_validator) -> void:  # Типизация убрана
 # УПРАВЛЕНИЕ РЕЖИМАМИ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func set_mode(mode: CollectionMode) -> void:
-	"""Установить режим взаимодействия с фишками"""
+func set_mode(mode: CollectionMode, play_sound: bool = true) -> void:
+	"""Установить режим взаимодействия с фишками
+	
+	Args:
+		mode: Новый режим (COLLECT, PAY, NONE)
+		play_sound: Играть ли звук переключения (по умолчанию true)
+	"""
 	if mode != current_mode:
 		current_mode = mode
 		mode_changed.emit(mode)
 		var mode_name = get_mode_name(mode)
 		DebugLogger.log("🔄 BetCollectionPhaseManager: режим изменен на %s" % mode_name)
 
-		# Звук переключения режима
-		if SoundManager and mode != CollectionMode.NONE:
+		# Звук переключения режима (только если явно запрошен)
+		if play_sound and SoundManager and mode != CollectionMode.NONE:
 			SoundManager.play_mode_switch_sound()
 
 func get_mode() -> CollectionMode:

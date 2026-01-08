@@ -106,7 +106,8 @@ func on_auto_switch_to_pay_mode_requested() -> void:
 	"""Обработка запроса автоматического переключения на режим оплаты (режим 2)"""
 	if bet_collection_manager and ui_manager and ui_manager.button_ui:
 		# Переключаем режим в BetCollectionPhaseManager
-		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY)
+		# play_sound=false - не играть звук при автоматическом переключении
+		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.PAY, false)
 		# Обновляем UI кнопки
 		ui_manager.button_ui.set_pay_mode(true)
 		DebugLogger.log("🔄 GameController: автоматически переключено COLLECT → PAY (режим 2)")

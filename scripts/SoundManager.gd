@@ -5,6 +5,12 @@ extends Node
 static var instance: SoundManager
 
 # ═══════════════════════════════════════════════════════════════════════════
+# КОНСТАНТЫ ГРОМКОСТИ
+# ═══════════════════════════════════════════════════════════════════════════
+
+const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_change (30% от оригинала)
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ЗВУКОВЫЕ ПОТОКИ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -249,7 +255,7 @@ func _on_focus_changed(target: String):
 	"""Обработчик изменения фокуса (карты/маркеры/фишки)"""
 	# Игнорируем "None" - это сброс фокуса, не переключение
 	if target != "None":
-		play_sound(focus_change_sound)
+		play_sound(focus_change_sound, FOCUS_CHANGE_VOLUME)
 
 func _on_focus_activated(target: String):
 	"""Обработчик активации фокуса (подтверждение выбора карт/маркеров)
@@ -268,9 +274,9 @@ func _on_focus_activated(target: String):
 
 func _on_focus_control_enabled(_enabled: bool):
 	"""Обработчик включения/выключения управления фокусом"""
-	# Звук при включении фокуса
-	if _enabled:
-		play_sound(focus_change_sound)
+	# Звук убран - управление фокусом активируется автоматически при старте,
+	# звук должен играться только при реальных действиях пользователя
+	pass
 
 func _on_action_correct(_type: String):
 	# Звук успеха уже обрабатывается через другие события
@@ -376,11 +382,11 @@ func play_mode_switch_sound():
 
 func play_chip_navigation_sound():
 	"""Звук переключения между фишками в навигаторе"""
-	play_sound(focus_change_sound)
+	play_sound(focus_change_sound, FOCUS_CHANGE_VOLUME)
 
 func play_payout_chip_navigation_sound():
 	"""Звук переключения между фишками в окне выплат"""
-	play_sound(focus_change_sound)
+	play_sound(focus_change_sound, FOCUS_CHANGE_VOLUME)
 
 func play_crib_sheet_sound():
 	"""Звук открытия шпаргалки"""
