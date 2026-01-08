@@ -113,6 +113,9 @@ const BET_SOUND_PATH_TEMPLATE: String = "res://assets/sound/bet_sounds/bet_%d.mp
 # whoosh_2.mp3 - Звук перехода камеры - при быстрых переходах камеры (is_navigation = false)
 const CAMERA_TRANSITION_SOUND_PATH: String = "res://assets/sound/whoosh/whoosh_2.mp3"
 
+# whoosh_1.mp3 - Звук открытия окна выплат - при открытии PayoutOverlay
+const PAYOUT_OPEN_SOUND_PATH: String = "res://assets/sound/whoosh/whoosh_1.mp3"
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУТИ К РЕСУРСАМ
 # ═══════════════════════════════════════════════════════════════════════════

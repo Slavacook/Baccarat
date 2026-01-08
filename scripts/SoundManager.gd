@@ -37,7 +37,8 @@ var penalty_sound: AudioStream  # Получение штрафа
 var patience_lost_sound: AudioStream  # Потеря терпения
 var heart_sound: AudioStream  # Сердце (heart bet)
 var bet_sounds: Array[AudioStream] = []  # Звуки ставок гостей (8 вариантов)
-var camera_transition_sound: AudioStream  # Звук перехода камеры (whoosh)
+var camera_transition_sound: AudioStream  # Звук перехода камеры (whoosh_2)
+var payout_open_sound: AudioStream  # Звук открытия окна выплат (whoosh_1)
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
@@ -178,6 +179,9 @@ func _load_sounds():
 	
 	# whoosh_2.mp3 - Звук перехода камеры (при быстрых переходах)
 	camera_transition_sound = _load_sound_safe(GameConstants.CAMERA_TRANSITION_SOUND_PATH)
+	
+	# whoosh_1.mp3 - Звук открытия окна выплат
+	payout_open_sound = _load_sound_safe(GameConstants.PAYOUT_OPEN_SOUND_PATH)
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -470,6 +474,10 @@ func play_bet_sound():
 func play_camera_transition_sound():
 	"""Звук перехода камеры (при быстрых переходах, is_navigation = false)"""
 	play_sound(camera_transition_sound, CAMERA_TRANSITION_VOLUME)
+
+func play_payout_open_sound():
+	"""Звук открытия окна выплат"""
+	play_sound(payout_open_sound)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ ГРОМКОСТИ

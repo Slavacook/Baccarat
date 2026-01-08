@@ -448,6 +448,10 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	state_manager.update_score_display()
 
 	show()  # Показать CanvasLayer
+	
+	# Звук открытия окна выплат
+	if SoundManager:
+		SoundManager.play_payout_open_sound()
 
 	# Установить фокус на первую кнопку флота
 	if chip_fleet_container and chip_fleet_container.get_child_count() > 0:
