@@ -98,6 +98,10 @@ func show_cribsheet():
 	# Показываем
 	show()
 	
+	# Звук открытия шпаргалки
+	if SoundManager:
+		SoundManager.play_crib_sheet_sound()
+	
 	# Ждём один кадр, чтобы узел полностью инициализировался
 	await get_tree().process_frame
 	

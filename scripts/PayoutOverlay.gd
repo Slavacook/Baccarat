@@ -294,11 +294,17 @@ func _on_chip_clicked(denomination: float):
 	# Сбрасываем клавиатурную навигацию при клике мышью
 	keyboard_navigator.clear_focus()
 	stack_manager.add_chip(denomination)
+	# Звук подтверждения выбора фишки (focus_activate)
+	if SoundManager:
+		SoundManager.play_sound(SoundManager.focus_activate_sound)
 
 # ← Обработка добавления фишки через клавиатуру (без сброса фокуса)
 func _on_chip_added_by_keyboard(denomination: float):
 	# НЕ сбрасываем фокус - продолжаем навигацию
 	stack_manager.add_chip(denomination)
+	# Звук подтверждения выбора фишки (focus_activate)
+	if SoundManager:
+		SoundManager.play_sound(SoundManager.focus_activate_sound)
 
 # ← Обработка правого клика по кнопке фишки (удаление)
 func _on_chip_button_input(event: InputEvent, denomination: float):
@@ -308,6 +314,9 @@ func _on_chip_button_input(event: InputEvent, denomination: float):
 		# Проверяем, есть ли стек с таким номиналом перед удалением
 		if stack_manager.has_stack(denomination):
 			stack_manager.remove_chip(denomination)
+			# Звук деактивации (удаления фишки)
+			if SoundManager:
+				SoundManager.play_focus_deactivate_sound()
 
 # ← Обработчик добавления новой стопки (подключаем обработчик кликов)
 func _on_stack_added(stack: ChipStack, _index: int):
@@ -320,6 +329,15 @@ func _on_stack_clicked(event: InputEvent, stack: ChipStack):
 		# Сбрасываем клавиатурную навигацию при клике мышью
 		keyboard_navigator.clear_focus()
 		stack_manager.remove_chip(stack.denomination)
+		# Звук деактивации (удаления фишки)
+		if SoundManager:
+			SoundManager.play_focus_deactivate_sound()
+		# Звук деактивации (удаления фишки)
+		if SoundManager:
+			SoundManager.play_focus_deactivate_sound()
+		# Звук деактивации (удаления фишки)
+		if SoundManager:
+			SoundManager.play_focus_deactivate_sound()
 
 # ← Обновление суммы при изменении стопок
 func _on_total_changed(new_total: float):

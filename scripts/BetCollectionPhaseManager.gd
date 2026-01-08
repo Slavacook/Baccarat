@@ -149,6 +149,10 @@ func set_mode(mode: CollectionMode) -> void:
 		var mode_name = get_mode_name(mode)
 		DebugLogger.log("🔄 BetCollectionPhaseManager: режим изменен на %s" % mode_name)
 
+		# Звук переключения режима
+		if SoundManager and mode != CollectionMode.NONE:
+			SoundManager.play_mode_switch_sound()
+
 func get_mode() -> CollectionMode:
 	"""Получить текущий режим"""
 	return current_mode
@@ -643,6 +647,10 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	# Эмитим сигналы только после успешного обновления
 	bet_collected.emit(bet_type)
 	chip_collected.emit(bet_type, position_index)
+	
+	# Звук забора проигрышных ставок
+	if SoundManager:
+		SoundManager.play_chip_collect_sound()
 	
 	DebugLogger.log("💰 BetCollectionPhaseManager: ставка %s[%d] собрана" % [bet_type, position_index])
 	

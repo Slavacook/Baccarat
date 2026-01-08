@@ -237,4 +237,3 @@ func show_game_ui_elements() -> void:
 		DebugLogger.log("  ✅ stats_label показан")
 	
 	DebugLogger.log("⚙️ UI элементы игры показаны (настройки закрыты)")
-

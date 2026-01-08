@@ -623,8 +623,20 @@ func on_player_third_toggled(_selected: bool) -> void:
 	"""
 	# Используем обработчик для получения инструкций
 	var instructions = third_card_ui_handler.handle_player_third_toggled(player_third_selected)
+	var was_selected = player_third_selected
 	player_third_selected = instructions.get("new_selected", false)
 	ui.update_player_third_card_ui(instructions.get("ui_text", "?"))
+	
+	# Звук активации/деактивации третьей карты игрока
+	if not was_selected and player_third_selected:
+		# Активация
+		if SoundManager:
+			SoundManager.play_sound(SoundManager.focus_activate_sound)
+	elif was_selected and not player_third_selected:
+		# Деактивация
+		if SoundManager:
+			SoundManager.play_focus_deactivate_sound()
+	
 	# Дезактивируем маркер при нажатии на toggle третьей карты
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner()
@@ -639,8 +651,20 @@ func on_banker_third_toggled(_selected: bool) -> void:
 	"""
 	# Используем обработчик для получения инструкций
 	var instructions = third_card_ui_handler.handle_banker_third_toggled(banker_third_selected)
+	var was_selected = banker_third_selected
 	banker_third_selected = instructions.get("new_selected", false)
 	ui.update_banker_third_card_ui(instructions.get("ui_text", "?"))
+	
+	# Звук активации/деактивации третьей карты банкира
+	if not was_selected and banker_third_selected:
+		# Активация
+		if SoundManager:
+			SoundManager.play_sound(SoundManager.focus_activate_sound)
+	elif was_selected and not banker_third_selected:
+		# Деактивация
+		if SoundManager:
+			SoundManager.play_focus_deactivate_sound()
+	
 	# Дезактивируем маркер при нажатии на toggle третьей карты
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner()
@@ -651,13 +675,21 @@ func cancel_third_card_orders() -> void:
 	var instructions = third_card_ui_handler.get_cancel_instructions(player_third_selected, banker_third_selected)
 	
 	if instructions.get("should_cancel_player", false):
+		var was_selected = player_third_selected
 		player_third_selected = false
 		ui.update_player_third_card_ui(instructions.get("player_ui_text", "?"))
+		# Звук деактивации третьей карты игрока
+		if was_selected and SoundManager:
+			SoundManager.play_focus_deactivate_sound()
 		DebugLogger.log("🔄 Отменён заказ третьей карты игрока")
 
 	if instructions.get("should_cancel_banker", false):
+		var was_selected = banker_third_selected
 		banker_third_selected = false
 		ui.update_banker_third_card_ui(instructions.get("banker_ui_text", "?"))
+		# Звук деактивации третьей карты банкира
+		if was_selected and SoundManager:
+			SoundManager.play_focus_deactivate_sound()
 		DebugLogger.log("🔄 Отменён заказ третьей карты банкира")
 
 

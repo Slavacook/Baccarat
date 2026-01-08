@@ -94,6 +94,10 @@ func activate() -> void:
 	# Обновляем камеру для текущей позиции
 	_update_camera_for_position()
 	
+	# Звук включения навигации по фишкам (тот же звук что и переключение фокуса)
+	if SoundManager:
+		SoundManager.play_chip_navigation_sound()
+	
 	DebugLogger.log("⌨️ ChipNavigationManager: навигация активирована (позиция: %s, сектор %d)" % [
 		current_bet_type, current_sector
 	])
@@ -308,6 +312,10 @@ func move_focus(direction: String) -> void:
 	# Обновляем рамку и камеру
 	_update_frame_position()
 	_update_camera_for_position()
+	
+	# Звук переключения между фишками
+	if SoundManager:
+		SoundManager.play_chip_navigation_sound()
 	
 	DebugLogger.log("⌨️ ChipNavigationManager: фокус перемещён (%s, сектор %d, направление: %s)" % [
 		current_bet_type, current_sector, direction

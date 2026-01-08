@@ -63,6 +63,49 @@ const CHIP_BUTTON_SIZE: Vector2 = Vector2(90, 90)  # Размер кнопки �
 const FLIP_CARD_SOUNDS_COUNT: int = 8         # Количество вариантов звука flip
 const FLIP_CARD_SOUND_PATH_TEMPLATE: String = "res://assets/sound/flip_card%d.wav"
 
+# Новые звуки (все в формате MP3)
+# game_over.mp3 - Звук окончания игры (game over) - когда игрок теряет все жизни
+const GAME_OVER_SOUND_PATH: String = "res://assets/sound/game_over.mp3"
+
+# focus_change.mp3 - Звук переключения фокуса - при переключении между картами/маркерами/фишками
+const FOCUS_CHANGE_SOUND_PATH: String = "res://assets/sound/focus_change.mp3"
+
+# focus_activate.mp3 - Звук подтверждения выбора - при активации элемента в фокусе
+const FOCUS_ACTIVATE_SOUND_PATH: String = "res://assets/sound/focus_activate.mp3"
+
+# focus_activate_2.mp3 - Звук деактивации выбора - при деактивации элемента
+const FOCUS_ACTIVATE_2_SOUND_PATH: String = "res://assets/sound/focus_activate_2.mp3"
+
+# error.mp3 - Звук ошибки - при неправильном действии или потере жизни
+const ERROR_SOUND_PATH: String = "res://assets/sound/error.mp3"
+
+# chip_collect.mp3 - Звук забора проигрышных ставок - при сборе проигрышной фишки
+const CHIP_COLLECT_SOUND_PATH: String = "res://assets/sound/chip_collect.mp3"
+
+# mode_switch.mp3 - Звук переключения режима - при переключении между "Забрать" и "Оплатить"
+const MODE_SWITCH_SOUND_PATH: String = "res://assets/sound/mode_switch.mp3"
+
+# hint.mp3 - Звук подсказки/шпаргалки - при использовании подсказки или открытии шпаргалки
+const HINT_SOUND_PATH: String = "res://assets/sound/hint.mp3"
+
+# payout_correct.mp3 - Звук верной выплаты - при правильном расчёте выплаты
+const PAYOUT_CORRECT_SOUND_PATH: String = "res://assets/sound/payout_correct.mp3"
+
+# payout_wrong.mp3 - Звук ошибочной выплаты - при неправильном расчёте выплаты
+const PAYOUT_WRONG_SOUND_PATH: String = "res://assets/sound/payout_wrong.mp3"
+
+# tip_received.mp3 - Звук получения чаевых - при получении чаевых от гостя
+const TIP_RECEIVED_SOUND_PATH: String = "res://assets/sound/tip_received.mp3"
+
+# penalty.mp3 - Звук получения штрафа - при штрафе за неоплаченные ставки
+const PENALTY_SOUND_PATH: String = "res://assets/sound/penalty.mp3"
+
+# patience_lost.mp3 - Звук потери терпения - при уменьшении терпения гостя
+const PATIENCE_LOST_SOUND_PATH: String = "res://assets/sound/patience_lost.mp3"
+
+# heart.mp3 - Звук сердца (Heart Bet) - при выборе/выигрыше в Heart Bet
+const HEART_SOUND_PATH: String = "res://assets/sound/heart.mp3"
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУТИ К РЕСУРСАМ
 # ═══════════════════════════════════════════════════════════════════════════

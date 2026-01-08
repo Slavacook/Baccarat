@@ -228,6 +228,9 @@ func navigate_left() -> void:
 		# На нижнем уровне: фишки + кнопка выплатить
 		var total_items = chip_denominations.size() + 1  # +1 для кнопки выплатить
 		focus_index = (focus_index - 1 + total_items) % total_items
+		# Звук переключения между фишками
+		if SoundManager:
+			SoundManager.play_payout_chip_navigation_sound()
 	elif focus_level == FocusLevel.TOP:
 		# На верхнем уровне только кнопка подсказки (ничего не делаем)
 		pass
@@ -238,6 +241,9 @@ func navigate_right() -> void:
 		# На нижнем уровне: фишки + кнопка выплатить
 		var total_items = chip_denominations.size() + 1  # +1 для кнопки выплатить
 		focus_index = (focus_index + 1) % total_items
+		# Звук переключения между фишками
+		if SoundManager:
+			SoundManager.play_payout_chip_navigation_sound()
 	elif focus_level == FocusLevel.TOP:
 		# На верхнем уровне только кнопка подсказки (ничего не делаем)
 		pass
@@ -248,6 +254,9 @@ func navigate_up() -> void:
 		# Переходим на верхний уровень (кнопка подсказки)
 		focus_level = FocusLevel.TOP
 		focus_index = 0  # На верхнем уровне только один элемент
+		# Звук переключения между фишками
+		if SoundManager:
+			SoundManager.play_payout_chip_navigation_sound()
 
 func navigate_down() -> void:
 	"""Навигация вниз (переключение на нижний уровень или удаление фишки)"""
@@ -263,6 +272,9 @@ func navigate_down() -> void:
 					break
 			if has_stack:
 				stack_manager.remove_chip(denomination)
+				# Звук деактивации (удаления фишки)
+				if SoundManager:
+					SoundManager.play_focus_deactivate_sound()
 	elif focus_level == FocusLevel.TOP:
 		# Переходим на нижний уровень
 		focus_level = FocusLevel.BOTTOM
@@ -273,6 +285,9 @@ func navigate_down() -> void:
 				focus_index = chip_denominations.size() - 1
 			if focus_index < 0:
 				focus_index = 0
+		# Звук переключения между фишками
+		if SoundManager:
+			SoundManager.play_payout_chip_navigation_sound()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - FOCUS FRAME

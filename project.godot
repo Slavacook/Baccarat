@@ -41,6 +41,7 @@ KeyboardFocusController="*res://scripts/KeyboardFocusController.gd"
 SwipeNavigationController="*res://scripts/SwipeNavigationController.gd"
 TestCardsManager="*res://scripts/autoload/TestCardsManager.gd"
 FeedbackAnimationManager="*res://scripts/ui/FeedbackAnimationManager.gd"
+SoundManager="*res://scripts/SoundManager.gd"
 
 [display]
 

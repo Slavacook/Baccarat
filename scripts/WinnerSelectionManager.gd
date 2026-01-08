@@ -91,10 +91,17 @@ func select_winner(winner: String) -> void:
 	# Снимаем предыдущий выбор (если был)
 	if selected_winner != "":
 		_set_marker_state(selected_winner, false)
+		# Звук деактивации предыдущего маркера
+		if SoundManager:
+			SoundManager.play_focus_deactivate_sound()
 
 	# Устанавливаем новый выбор
 	selected_winner = winner
 	_set_marker_state(winner, true)
+
+	# Звук активации маркера
+	if SoundManager:
+		SoundManager.play_sound(SoundManager.focus_activate_sound)
 
 	winner_toggled.emit(winner, true)
 	print("🎯 WinnerSelectionManager: выбран %s" % winner)
@@ -108,6 +115,10 @@ func deselect_winner() -> void:
 	var previous_winner = selected_winner
 	_set_marker_state(selected_winner, false)
 	selected_winner = ""
+
+	# Звук деактивации маркера
+	if SoundManager:
+		SoundManager.play_focus_deactivate_sound()
 
 	winner_toggled.emit(previous_winner, false)
 	print("🎯 WinnerSelectionManager: выбор снят")
