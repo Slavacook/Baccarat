@@ -9,7 +9,8 @@ static var instance: SoundManager
 # ═══════════════════════════════════════════════════════════════════════════
 
 const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_change (30% от оригинала)
-const MODE_SWITCH_VOLUME: float = 0.2  # Громкость звука mode_switch (50% от оригинала)
+const MODE_SWITCH_VOLUME: float = 0.2  # Громкость звука mode_switch (20% от оригинала)
+const PATIENCE_LOST_VOLUME: float = 0.5  # Громкость звука patience_lost (50% от оригинала)
 const MAX_SFX_PLAYERS: int = 5  # Максимум одновременно играющих звуков
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -34,6 +35,7 @@ var tip_received_sound: AudioStream  # Получение чаевых
 var penalty_sound: AudioStream  # Получение штрафа
 var patience_lost_sound: AudioStream  # Потеря терпения
 var heart_sound: AudioStream  # Сердце (heart bet)
+var bet_sound: AudioStream  # Ставка гостя
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
@@ -162,6 +164,10 @@ func _load_sounds():
 	#   - Выигрыше в Heart Bet (heart_bet_won)
 	#   - Взятии сердца в залог (heart_pledged)
 	heart_sound = _load_sound_safe("res://assets/sound/heart.mp3")
+	
+	# bet.mp3 - Звук ставки гостя - играется при:
+	#   - Размещении ставки гостем на столе (при показе ставок гостей)
+	bet_sound = _load_sound_safe(GameConstants.BET_SOUND_PATH)
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -337,7 +343,7 @@ func _on_patience_changed(guest_id: int, new_patience: int):
 	
 	# Если терпение уменьшилось - играем звук
 	if new_patience < old_patience:
-		play_sound(patience_lost_sound)
+		play_sound(patience_lost_sound, PATIENCE_LOST_VOLUME)
 
 func _on_tip_received(tip_amount: int):
 	"""Обработчик получения чаевых - играем звук синхронно с начислением"""
@@ -431,6 +437,10 @@ func play_focus_deactivate_sound():
 	"""Звук деактивации выбора (маркеры, карты, фишки)"""
 	if focus_activate_2_sound:
 		play_sound(focus_activate_2_sound)
+
+func play_bet_sound():
+	"""Звук размещения ставки гостем"""
+	play_sound(bet_sound)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ ГРОМКОСТИ

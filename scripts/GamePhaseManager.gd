@@ -1146,7 +1146,7 @@ func _restore_active_bet_chips() -> void:
 	DebugLogger.log_payout("Показаны фишки всех активных ставок")
 
 func _show_guest_bets() -> void:
-	"""Показать ставки гостей на их позициях в секторах"""
+	"""Показать ставки гостей на их позициях в секторах (по очереди с задержкой)"""
 	if not guest_bet_storage or not chip_visual_manager:
 		DebugLogger.log("👥 _show_guest_bets: нет guest_bet_storage или chip_visual_manager")
 		return
@@ -1169,18 +1169,57 @@ func _show_guest_bets() -> void:
 	var guests_count = guest_bet_display_coordinator.get_guests_with_bets_count(guest_bet_storage)
 	DebugLogger.log("👥 Отображение ставок %d гостей" % guests_count)
 	
-	# Отображаем каждую ставку
+	# ═══════════════════════════════════════════════════════════════════
+	# ГРУППИРОВКА ПО СЕКТОРАМ И ПОКАЗ ПО ОЧЕРЕДИ
+	# ═══════════════════════════════════════════════════════════════════
+	# Группируем инструкции по секторам (1-6)
+	var bets_by_sector: Dictionary = {}  # {sector: Array[Dictionary]}
+	
 	for instruction in instructions:
-		var bet_type = instruction.get("bet_type", "")
-		var pos_idx = instruction.get("position_index", -1)
-		var coords = instruction.get("coords", Vector2.ZERO)
-		var stake = instruction.get("stake", 0.0)
-		var guest_id = instruction.get("guest_id", -1)
 		var sector = instruction.get("sector", -1)
+		if sector >= 1 and sector <= 6:
+			if not bets_by_sector.has(sector):
+				bets_by_sector[sector] = []
+			bets_by_sector[sector].append(instruction)
+	
+	# Показываем ставки по очереди по секторам (1, 2, 3, 4, 5, 6)
+	for sector in range(1, 7):  # 1-6
+		if not bets_by_sector.has(sector):
+			continue  # Пропускаем сектора без ставок (без задержки)
 		
-		# Создаём фишку на позиции гостя
-		_show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
-		DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f) в секторе %d" % [guest_id, bet_type, pos_idx, stake, sector])
+		# Проверяем, что гость активен и у него есть ставки
+		if not GuestSettingsManager.is_guest_enabled(sector):
+			continue  # Пропускаем неактивных гостей (без задержки)
+		
+		# Показываем все ставки этого сектора
+		var sector_bets = bets_by_sector[sector]
+		for instruction in sector_bets:
+			var bet_type = instruction.get("bet_type", "")
+			var pos_idx = instruction.get("position_index", -1)
+			var coords = instruction.get("coords", Vector2.ZERO)
+			var stake = instruction.get("stake", 0.0)
+			var guest_id = instruction.get("guest_id", -1)
+			
+			# Создаём фишку на позиции гостя
+			_show_guest_chip_at_position(bet_type, pos_idx, coords, stake)
+			
+			# Звук ставки
+			if SoundManager:
+				SoundManager.play_bet_sound()
+			
+			DebugLogger.log("  → Гость %d: фишка %s на позиции %d (%.0f) в секторе %d" % [guest_id, bet_type, pos_idx, stake, sector])
+		
+		# Задержка 0.3 сек перед следующим сектором (только если есть следующий сектор)
+		if sector < 6:
+			# Проверяем, есть ли следующий сектор с активными ставками
+			var has_next_sector = false
+			for next_sector in range(sector + 1, 7):
+				if bets_by_sector.has(next_sector) and GuestSettingsManager.is_guest_enabled(next_sector):
+					has_next_sector = true
+					break
+			
+			if has_next_sector:
+				await EventBus.get_tree().create_timer(0.2).timeout
 
 func _show_guest_chip_at_position(bet_type: String, position_index: int, coords: Vector2, stake: float) -> void:
 	"""Показать фишку гостя на конкретной позиции
