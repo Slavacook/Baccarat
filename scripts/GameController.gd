@@ -1407,7 +1407,7 @@ func _on_chip_instance_clicked(bet_type: String, position_index: int):
 	Делегирует обработку в ChipClickHandler (Extract Class)
 	"""
 	if chip_click_handler:
-		chip_click_handler.handle_chip_click(bet_type, position_index)
+		await chip_click_handler.handle_chip_click(bet_type, position_index)
 	else:
 		push_error("❌ ChipClickHandler не инициализирован!")
 

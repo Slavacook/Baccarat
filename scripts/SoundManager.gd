@@ -228,6 +228,8 @@ func _connect_events():
 	EventBus.payout_correct.connect(_on_payout_correct)
 	EventBus.payout_wrong.connect(_on_payout_wrong)
 	EventBus.hint_used.connect(_on_hint_used)
+	EventBus.tip_received.connect(_on_tip_received)
+	EventBus.penalty_applied.connect(_on_penalty_applied)
 	
 	# Режим выживания
 	EventBus.life_lost.connect(_on_life_lost)
@@ -291,18 +293,18 @@ func _on_action_correct(_type: String):
 
 func _on_action_error(type: String, _message: String):
 	"""Обработчик ошибки"""
-	# Для штрафа за неоплаченные ставки используем специальный звук
-	if type == "unpaid_bets_heart_penalty":
-		play_sound(penalty_sound)
-	else:
+	# Звук штрафа теперь воспроизводится через событие penalty_applied
+	# с задержкой 1.5 сек после применения штрафа
+	# Здесь только общие ошибки
+	if type != "unpaid_bets_heart_penalty":
 		play_sound(error_sound)
 
 func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, _position_index: int):
 	"""Обработчик правильной выплаты"""
 	play_sound(payout_correct_sound)
 	
-	# Проверяем получение чаевых (для гостевых ставок)
-	_check_tip_received()
+	# Звук чаевых теперь воспроизводится через событие tip_received
+	# с задержкой 0.5 сек после правильной выплаты
 
 func _on_payout_wrong(_collected: float, _expected: float, _bet_type: String, _position_index: int):
 	play_sound(payout_wrong_sound)
@@ -337,15 +339,21 @@ func _on_patience_changed(guest_id: int, new_patience: int):
 	if new_patience < old_patience:
 		play_sound(patience_lost_sound)
 
-func _check_tip_received():
-	"""Проверить получение чаевых"""
-	if not SaveManager:
-		return
-	
-	var current_tips = SaveManager.instance.score
-	if current_tips > last_tips_value:
+func _on_tip_received(tip_amount: int):
+	"""Обработчик получения чаевых - играем звук синхронно с начислением"""
+	if tip_amount > 0:
 		play_sound(tip_received_sound)
-	last_tips_value = current_tips
+		# Обновляем отслеживание для совместимости
+		if SaveManager:
+			last_tips_value = SaveManager.instance.score
+
+func _on_penalty_applied(penalty_amount: int):
+	"""Обработчик применения штрафа - играем звук синхронно с вычитанием"""
+	if penalty_amount > 0:
+		play_sound(penalty_sound)
+		# Обновляем отслеживание для совместимости
+		if SaveManager:
+			last_tips_value = SaveManager.instance.score
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ ДЛЯ ВОСПРОИЗВЕДЕНИЯ ЗВУКОВ

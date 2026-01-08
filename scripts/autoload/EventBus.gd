@@ -246,6 +246,16 @@ signal life_loss_requested()
 @warning_ignore("unused_signal")
 signal life_lost(remaining_lives: int)
 
+## Чаевые получены после правильной выплаты
+## Args: tip_amount - сумма полученных чаевых
+@warning_ignore("unused_signal")
+signal tip_received(tip_amount: int)
+
+## Штраф на чаевые применен
+## Args: penalty_amount - сумма штрафа
+@warning_ignore("unused_signal")
+signal penalty_applied(penalty_amount: int)
+
 ## Игра окончена (game over)
 @warning_ignore("unused_signal")
 signal game_over(rounds_survived: int)

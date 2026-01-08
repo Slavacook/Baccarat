@@ -52,6 +52,7 @@ func _on_payout_correct(_collected: float, expected: float, bet_type: String, po
 	"""Обработка правильной выплаты - начисление чаевых как процент от выигрыша гостя
 	
 	Использует TipCalculator для расчета чаевых с учетом терпения гостя.
+	Добавляет задержку 0.5 сек перед начислением чаевых.
 	
 	Args:
 		collected: Собранная сумма (не используется)
@@ -69,26 +70,62 @@ func _on_payout_correct(_collected: float, expected: float, bet_type: String, po
 		# Не гостевые ставки - чаевые не начисляем
 		return
 	
-	# Это гостевая ставка и есть выигрыш - начисляем чаевые
+	# Это гостевая ставка и есть выигрыш - начисляем чаевые с задержкой
 	if expected > 0:
-		var guest_id = sector  # Сектор = ID гостя
+		_process_tip_with_delay(expected, bet_type, sector)
+
+func _process_tip_with_delay(expected: float, bet_type: String, guest_id: int) -> void:
+	"""Обработать начисление чаевых с задержкой 0.5 сек
+	
+	Args:
+		expected: Ожидаемая выплата (размер выигрыша)
+		bet_type: Тип ставки
+		guest_id: ID гостя (сектор)
+	"""
+	# Задержка 1.5 сек перед начислением чаевых
+	await get_tree().create_timer(1.5).timeout
+	
+	# Используем TipCalculator для расчета чаевых с учетом терпения
+	var tip_amount = TipCalculator.calculate_tip(expected, bet_type, guest_id)
+	
+	if tip_amount > 0:
+		SaveManager.instance.add_score(tip_amount)
+		update_stats()
 		
-		# Используем TipCalculator для расчета чаевых с учетом терпения
-		var tip_amount = TipCalculator.calculate_tip(expected, bet_type, guest_id)
+		# Эмитим событие для синхронизации оповещения и звука
+		EventBus.tip_received.emit(tip_amount)
 		
-		if tip_amount > 0:
-			SaveManager.instance.add_score(tip_amount)
-			update_stats()
-			
-			# Логирование для отладки
-			var patience = GuestStatsManager.get_guest_patience(guest_id)
-			var base_percentage = SaveManager.instance.load_tip_percentage()
-			var effective_percentage = base_percentage * (float(patience) / 100.0)  # Новая формула: 100% терпения = полный чай
-			var multiplier = TipCalculator.get_tip_multiplier(bet_type)
-			
-			print("💰 Чаевые начислены гостю %d: выплата=%.0f, базовый процент=%.1f%%, терпение=%d%%, эффективный=%.2f%%, коэффициент=%d, итого=%d" % [
-				guest_id, expected, base_percentage, patience, effective_percentage, multiplier, tip_amount
-			])
+		# Логирование для отладки
+		var patience = GuestStatsManager.get_guest_patience(guest_id)
+		var base_percentage = SaveManager.instance.load_tip_percentage()
+		var effective_percentage = base_percentage * (float(patience) / 100.0)  # Новая формула: 100% терпения = полный чай
+		var multiplier = TipCalculator.get_tip_multiplier(bet_type)
+		
+		print("💰 Чаевые начислены гостю %d: выплата=%.0f, базовый процент=%.1f%%, терпение=%d%%, эффективный=%.2f%%, коэффициент=%d, итого=%d" % [
+			guest_id, expected, base_percentage, patience, effective_percentage, multiplier, tip_amount
+		])
+
+func apply_penalty_with_delay(penalty_amount: int) -> void:
+	"""Применить штраф на чаевые с задержкой 1.5 сек
+	
+	Args:
+		penalty_amount: Сумма штрафа
+	"""
+	if penalty_amount <= 0:
+		return
+	
+	# Задержка 1.5 сек перед применением штрафа
+	await get_tree().create_timer(1.5).timeout
+	
+	var tips_before = SaveManager.instance.score
+	SaveManager.instance.subtract_score(penalty_amount)
+	var tips_after = SaveManager.instance.score
+	update_stats()
+	
+	# Эмитим событие для синхронизации оповещения и звука
+	EventBus.penalty_applied.emit(penalty_amount)
+	
+	DebugLogger.log("  💰 Штраф применен: чаевые %d → %d (-%d)" % [tips_before, tips_after, penalty_amount])
 
 # Примечание: _on_action_error, _on_payout_wrong, _on_hint_used - 
 # больше не отнимают деньги. За ошибки отнимаются сердца в HeartBar.

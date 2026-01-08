@@ -472,7 +472,7 @@ func activate_current_chip() -> void:
 	
 	if chip_click_handler:
 		var position_index = GuestSectorMapper.get_position_index(current_sector, current_bet_type)
-		chip_click_handler.handle_chip_click(current_bet_type, position_index)
+		await chip_click_handler.handle_chip_click(current_bet_type, position_index)
 		DebugLogger.log("⌨️ ChipNavigationManager: активирована фишка %s[сектор %d]" % [
 			current_bet_type, current_sector
 		])

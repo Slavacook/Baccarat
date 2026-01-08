@@ -1837,13 +1837,13 @@ func _apply_penalties_for_unpaid_bets() -> void:
 			str(penalty_data.bets)
 		])
 	
-	# Применяем штрафы к чаевым
+	# Применяем штрафы к чаевым с задержкой
 	if total_tip_penalty > 0:
 		var tips_before = SaveManager.instance.score
-		SaveManager.instance.subtract_score(total_tip_penalty)
+		# Используем метод с задержкой для синхронизации оповещения и звука
+		if StatsManager.instance:
+			await StatsManager.instance.apply_penalty_with_delay(total_tip_penalty)
 		var tips_after = SaveManager.instance.score
-		
-		DebugLogger.log("  💰 Чаевые: %d → %d (-%d)" % [tips_before, tips_after, total_tip_penalty])
 		
 		# Если чаевые закончились (стали 0) из-за штрафа, отнимаем максимум 1 сердце
 		if tips_before > 0 and tips_after == 0 and total_tip_penalty > tips_before:

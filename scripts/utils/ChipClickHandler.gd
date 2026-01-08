@@ -85,7 +85,7 @@ func set_open_payout_scene_callback(callback: Callable) -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func handle_chip_click(bet_type: String, position_index: int) -> void:
-	"""Обработать клик на фишку
+	"""Обработать клик на фишку (корутина - может использовать await)
 	
 	Args:
 		bet_type: Тип ставки
@@ -126,7 +126,7 @@ func handle_chip_click(bet_type: String, position_index: int) -> void:
 	# Если ошибка валидации - показываем сообщение и штрафуем
 	if not validation.can_proceed:
 		print("  ❌ Ошибка валидации, обрабатываем...")
-		if _handle_validation_error(validation, bet_type, position_index):
+		if await _handle_validation_error(validation, bet_type, position_index):
 			print("  ✅ Ошибка обработана, выходим")
 			return  # Ошибка обработана, выходим
 	
@@ -264,13 +264,9 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 				# Терпение стало < 100% - пытаемся отнять 100 чаевых
 				var current_tips = SaveManager.instance.score
 				if current_tips >= 100:
-					# Чаевых достаточно - отнимаем 100
-					SaveManager.instance.subtract_score(100)
+					# Чаевых достаточно - применяем штраф с задержкой
 					if StatsManager.instance:
-						StatsManager.instance.update_stats()
-					# Показываем оповещение о штрафе
-					if FeedbackAnimationManager:
-						FeedbackAnimationManager.show_penalty(100)
+						await StatsManager.instance.apply_penalty_with_delay(100)
 					DebugLogger.log("  💰 Отнято 100 чаевых (осталось %d)" % SaveManager.instance.score)
 				else:
 					# Чаевых недостаточно - отнимаем сердце
@@ -356,4 +352,3 @@ func _handle_pay_action(bet_type: String, position_index: int) -> void:
 		# СТАРЫЙ СПОСОБ: переход к PayoutScene (scene transition)
 		if open_payout_scene_callback.is_valid():
 			open_payout_scene_callback.call(bet_type)
-

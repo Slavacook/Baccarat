@@ -88,6 +88,8 @@ func _connect_signals():
 	if EventBus:
 		EventBus.game_restarted.connect(_on_game_restarted)
 		EventBus.payout_correct.connect(_on_payout_correct)
+		EventBus.tip_received.connect(_on_tip_received)
+		EventBus.penalty_applied.connect(_on_penalty_applied)
 		EventBus.life_lost.connect(_on_life_lost)
 		print("✅ FeedbackAnimationManager: подключены сигналы EventBus")
 	else:
@@ -354,21 +356,23 @@ func _on_life_lost(_remaining_lives: int):
 	"""Обработчик потери жизни - показываем оповещение"""
 	show_heart()
 
-func _on_payout_correct(_collected: float, expected: float, bet_type: String, position_index: int):
-	"""Обработчик правильной выплаты - показываем оповещение о чаевых"""
-	# Проверяем, является ли ставка гостевой
-	if bet_type.is_empty() or position_index < 0:
-		return
+func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, _position_index: int):
+	"""Обработчик правильной выплаты
 	
-	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
-	if sector < 1 or sector > 6:
-		return
-	
-	# Это гостевая ставка и есть выигрыш - показываем чаевые
-	if expected > 0:
-		var guest_id = sector
-		var tip_amount = TipCalculator.calculate_tip(expected, bet_type, guest_id)
-		
-		if tip_amount > 0:
-			print("🔔 FeedbackAnimationManager: показываю оповещение о чаевых: +%d" % tip_amount)
-			show_tips(tip_amount)
+	ПРИМЕЧАНИЕ: Оповещение о чаевых теперь показывается через событие tip_received
+	с задержкой 1.5 сек после правильной выплаты.
+	"""
+	# Оповещение о чаевых теперь обрабатывается через tip_received
+	pass
+
+func _on_tip_received(tip_amount: int):
+	"""Обработчик получения чаевых - показываем оповещение синхронно с начислением"""
+	if tip_amount > 0:
+		print("🔔 FeedbackAnimationManager: показываю оповещение о чаевых: +%d" % tip_amount)
+		show_tips(tip_amount)
+
+func _on_penalty_applied(penalty_amount: int):
+	"""Обработчик применения штрафа - показываем оповещение синхронно с вычитанием"""
+	if penalty_amount > 0:
+		print("🔔 FeedbackAnimationManager: показываю оповещение о штрафе: -%d" % penalty_amount)
+		show_penalty(penalty_amount)
