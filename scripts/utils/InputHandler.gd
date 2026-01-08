@@ -158,8 +158,12 @@ func handle_unhandled_input(event: InputEvent) -> bool:
 		if chip_navigation_manager.handle_input(event):
 			return true
 	
-	# Переключение режима сбора/выплаты ставок (геймпад или клавиатура)
-	if event.is_action_pressed("toggle_collect_pay_mode"):
+	# Переключение режима сбора/выплаты ставок через клавишу F (только в основном окне)
+	if event is InputEventKey and event.pressed and event.keycode == KEY_F:
+		# Проверяем, что мы в основном окне игры (не в окне выплат, не в меню настроек)
+		if not InputContextManager.can_handle(InputContextManager.InputContext.GAME):
+			return false  # Не обрабатываем в других контекстах
+		
 		# Проверяем, что кнопка PayButton видима (режим сбора/выплаты активен)
 		if ui_manager and ui_manager.button_ui:
 			var pay_button = ui_manager.button_ui.pay_button
@@ -167,10 +171,12 @@ func handle_unhandled_input(event: InputEvent) -> bool:
 				# Переключаем состояние PayButton
 				if pay_button.has_method("toggle_state"):
 					pay_button.toggle_state()
+					return true
 				else:
 					# Fallback: вызываем напрямую _on_pressed, если метод не найден
 					pay_button._on_pressed()
-		return true
+					return true
+		return false
 	
 	# Escape во время игры → открыть/закрыть меню
 	if event.is_action_pressed("exit"):

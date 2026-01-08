@@ -27,6 +27,9 @@ var current_sector: int = 6  # 1-6
 # Флаг активности навигации
 var is_active: bool = false
 
+# Флаг первой активации (для управления звуком)
+var _is_first_activation: bool = true
+
 # Порядок уровней для вертикальной навигации (4 уровня)
 # Вниз: Player → Banker → Tie → Pairs → Player (цикл)
 # Вверх: Player → Pairs → Tie → Banker → Player (цикл)
@@ -94,9 +97,12 @@ func activate() -> void:
 	# Обновляем камеру для текущей позиции
 	_update_camera_for_position()
 	
-	# Звук включения навигации по фишкам (тот же звук что и переключение фокуса)
-	if SoundManager:
+	# Звук включения навигации (только если не первая активация)
+	if SoundManager and not _is_first_activation:
 		SoundManager.play_chip_navigation_sound()
+	
+	# Сбрасываем флаг после первой активации
+	_is_first_activation = false
 	
 	DebugLogger.log("⌨️ ChipNavigationManager: навигация активирована (позиция: %s, сектор %d)" % [
 		current_bet_type, current_sector
@@ -112,6 +118,9 @@ func deactivate() -> void:
 	# Скрываем рамку
 	if navigation_frame:
 		navigation_frame.hide_frame()
+	
+	# Сбрасываем флаг первой активации (следующее включение будет без звука)
+	_is_first_activation = true
 	
 	DebugLogger.log("⌨️ ChipNavigationManager: навигация деактивирована")
 

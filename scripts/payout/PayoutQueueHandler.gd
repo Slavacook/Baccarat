@@ -171,8 +171,8 @@ func finalize_payouts_manual(actual_winner: String) -> void:
 	if bet_collection_manager and payout_queue_manager:
 		bet_collection_manager.setup(payout_queue_manager, actual_winner)
 		# Устанавливаем режим COLLECT по умолчанию (после определения победителя)
-		# play_sound=false - не играть звук при автоматическом включении
-		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT, false)
+		# Звук не играется автоматически (первая активация определяется внутри set_mode)
+		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
 		DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
 
 	# ═══════════════════════════════════════════════════════════════════

@@ -147,15 +147,29 @@ func set_mode(mode: CollectionMode, play_sound: bool = true) -> void:
 	Args:
 		mode: Новый режим (COLLECT, PAY, NONE)
 		play_sound: Играть ли звук переключения (по умолчанию true)
+		           Если play_sound не указан явно, используется логика:
+		           - Переход из NONE в COLLECT - без звука (автоматическая активация)
+		           - Переключение COLLECT ↔ PAY - со звуком (действие пользователя)
 	"""
 	if mode != current_mode:
+		var previous_mode = current_mode
 		current_mode = mode
 		mode_changed.emit(mode)
 		var mode_name = get_mode_name(mode)
 		DebugLogger.log("🔄 BetCollectionPhaseManager: режим изменен на %s" % mode_name)
 
-		# Звук переключения режима (только если явно запрошен)
-		if play_sound and SoundManager and mode != CollectionMode.NONE:
+		# Определяем, нужно ли играть звук
+		var should_play_sound = play_sound
+		
+		# Если play_sound не указан явно (по умолчанию true), проверяем тип переключения
+		if play_sound:
+			# Переход из NONE в COLLECT - автоматическая активация (без звука)
+			if previous_mode == CollectionMode.NONE and mode == CollectionMode.COLLECT:
+				should_play_sound = false
+			# Все остальные переключения (COLLECT ↔ PAY, PAY → COLLECT) - со звуком
+		
+		# Звук переключения режима
+		if should_play_sound and SoundManager and mode != CollectionMode.NONE:
 			SoundManager.play_mode_switch_sound()
 
 func get_mode() -> CollectionMode:
