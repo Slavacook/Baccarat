@@ -76,6 +76,11 @@ func handle_game_over(survival_rounds_completed: int) -> void:
 		GuestStatsManager.reset_all_balances()
 		DebugLogger.log("💰 Все балансы гостей сброшены при Game Over")
 	
+	# 1.3. Возвращаем всех ушедших гостей после геймовера (если есть отсчет раздач)
+	if GuestReturnManager:
+		GuestReturnManager.return_all_guests_after_game_over()
+		DebugLogger.log("👋 Все ушедшие гости возвращены после геймовера")
+	
 	# 2. Закрываем окно выплат, если оно открыто
 	if payout_overlay and payout_overlay.visible:
 		payout_overlay.hide()

@@ -106,6 +106,38 @@ func return_guest(guest_id: int) -> void:
 	guest_returned.emit(guest_id)
 	print("👋 Гость %d вернулся" % guest_id)
 
+## Вернуть всех ушедших гостей после геймовера
+func return_all_guests_after_game_over() -> void:
+	"""Возвращает всех ушедших гостей после геймовера
+	
+	Используется когда игра заканчивается, но у гостей есть отсчет раздач до возврата.
+	Все гости возвращаются сразу, независимо от оставшихся раундов.
+	"""
+	if guests_left.is_empty():
+		print("🔄 GuestReturnManager: нет ушедших гостей для возврата после геймовера")
+		return
+	
+	var guests_to_return: Array[int] = []
+	for guest_id in guests_left.keys():
+		guests_to_return.append(guest_id)
+	
+	print("🔄 GuestReturnManager: возвращаем %d гостей после геймовера" % guests_to_return.size())
+	
+	for guest_id in guests_to_return:
+		# Возвращаем гостя (баланс уже сброшен до начального значения в reset_all_balances())
+		# Нужно только включить гостя обратно и удалить из списка ушедших
+		guests_left.erase(guest_id)
+		
+		# Включаем гостя обратно
+		if GuestSettingsManager:
+			GuestSettingsManager.set_guest_enabled(guest_id, true)
+		
+		# Эмитим сигнал
+		guest_returned.emit(guest_id)
+		print("👋 Гость %d вернулся после геймовера" % guest_id)
+	
+	print("✅ GuestReturnManager: все гости возвращены после геймовера")
+
 ## Получить текущий номер раунда
 func get_current_round() -> int:
 	# Используем собственный счетчик как основной источник
