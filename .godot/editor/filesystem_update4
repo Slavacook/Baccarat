@@ -1,6 +1,5 @@
-res://scripts/GamePhaseManager.gd
-res://scripts/GameConstants.gd
-res://scripts/SoundManager.gd
+res://scripts/autoload/GuestReturnManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
+res://scripts/autoload/GuestStatsManager.gd

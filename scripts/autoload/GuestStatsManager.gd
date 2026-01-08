@@ -98,12 +98,34 @@ func subtract_from_balance(guest_id: int, amount: float) -> void:
 func reset_guest_balance(guest_id: int) -> void:
 	set_guest_balance(guest_id, 0.0)
 
-# ← Сбросить балансы всех гостей
+# ← Сбросить балансы всех гостей до начальных значений (в зависимости от статуса богатства)
 func reset_all_balances() -> void:
-	for i in range(6):
-		guest_balances[i] = 0.0
+	"""Сбрасывает балансы всех гостей до начальных значений в зависимости от их статуса богатства"""
+	if not GuestSettingsManager:
+		push_error("GuestStatsManager: GuestSettingsManager не найден!")
+		return
+	
+	# Сбрасываем балансы всех гостей (1-6) до начальных значений
+	for guest_id in range(1, 7):
+		var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
+		var initial_balance: float = 0.0
+		
+		match wealth:
+			GuestSettingsManager.GuestWealth.POOR:
+				initial_balance = POOR_BALANCE
+			GuestSettingsManager.GuestWealth.MEDIUM:
+				initial_balance = MEDIUM_BALANCE
+			GuestSettingsManager.GuestWealth.RICH:
+				initial_balance = RICH_BALANCE
+			_:
+				initial_balance = MEDIUM_BALANCE  # По умолчанию средний
+		
+		# Устанавливаем начальный баланс
+		guest_initial_balances[guest_id - 1] = initial_balance
+		set_guest_balance(guest_id, initial_balance)
+	
 	_save_stats()
-	print("💰 Все балансы гостей сброшены")
+	print("💰 Все балансы гостей сброшены до начальных значений (в зависимости от статуса богатства)")
 
 # ← Получить форматированную строку баланса (для UI)
 func get_balance_string(guest_id: int) -> String:

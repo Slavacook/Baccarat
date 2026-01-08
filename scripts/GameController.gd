@@ -118,6 +118,7 @@ var gamepad_monitor: GamepadMonitor
 
 # Обновлятель счетчика раундов (Extract Class)
 var rounds_counter_updater: RoundsCounterUpdater
+var guest_return_counter_ui: GuestReturnCounterUI
 
 # Обработчик возврата из PayoutScene (Extract Class)
 var payout_return_handler: PayoutReturnHandler
@@ -273,6 +274,7 @@ func _ready():
 	_initialize_keyboard_focus_handler()
 	_initialize_gamepad_monitor()
 	_initialize_rounds_counter_updater()
+	_initialize_guest_return_counter_ui()
 	_initialize_payout_return_handler()
 	_initialize_payout_preparation_handler()
 	_initialize_ui_event_handler()
@@ -725,6 +727,28 @@ func _initialize_rounds_counter_updater() -> void:
 		print("✅ RoundsCounterUpdater инициализирован")
 	else:
 		push_warning("⚠️ rounds_counter_label не найден для RoundsCounterUpdater")
+
+func _initialize_guest_return_counter_ui() -> void:
+	"""Инициализировать UI счетчиков возврата гостей"""
+	# Создаем контейнер программно, если его нет
+	var container = get_node_or_null("GuestReturnCounterContainer")
+	if not container:
+		# Создаем VBoxContainer рядом с RoundsCounterLabel
+		container = VBoxContainer.new()
+		container.name = "GuestReturnCounterContainer"
+		# Размещаем справа от счетчика раздач
+		if rounds_counter_label:
+			container.position = Vector2(rounds_counter_label.position.x + 120, rounds_counter_label.position.y)
+		else:
+			container.position = Vector2(260, 6)
+		add_child(container)
+		print("✅ GuestReturnCounterContainer создан программно")
+	
+	# Создаем экземпляр GuestReturnCounterUI
+	var counter_ui = GuestReturnCounterUI.new()
+	container.add_child(counter_ui)
+	guest_return_counter_ui = counter_ui
+	print("✅ GuestReturnCounterUI инициализирован")
 
 func _initialize_payout_return_handler() -> void:
 	"""Инициализировать обработчик возврата из PayoutScene"""
