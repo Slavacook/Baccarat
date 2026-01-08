@@ -5,3 +5,4 @@ res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/chance_cards/ChanceCardManager.gd
 res://scripts/StatsManager.gd
 res://scripts/SoundManager.gd
+res://scripts/WinnerSelectionManager.gd

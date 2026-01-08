@@ -275,16 +275,20 @@ func _on_focus_changed(target: String):
 func _on_focus_activated(target: String):
 	"""Обработчик активации фокуса (подтверждение выбора карт/маркеров)
 	
-	ВАЖНО: Этот сигнал эмитится только для карт и маркеров:
-	- PlayerThird, BankerThird (третьи карты)
-	- PlayerMarker, BankerMarker, TieMarker (маркеры победителя)
+	ВАЖНО: 
+	- Для третьих карт (PlayerThird, BankerThird) звук играется в 
+	  GamePhaseManager.on_player_third_toggled() / on_banker_third_toggled()
+	- Для маркеров (PlayerMarker, BankerMarker, TieMarker) звук играется здесь,
+	  так как они активируются напрямую через toggle_winner()
 	
 	Для фишек в окне выплат звук focus_activate играется напрямую в PayoutOverlay.
 	"""
-	# Проверяем, что это действительно карта или маркер
-	var valid_targets = ["PlayerThird", "BankerThird", "PlayerMarker", "BankerMarker", "TieMarker"]
-	if target in valid_targets:
+	# Играем звук только для маркеров
+	# Третьи карты обрабатывают звук сами в своих обработчиках
+	var marker_targets = ["PlayerMarker", "BankerMarker", "TieMarker"]
+	if target in marker_targets:
 		play_sound(focus_activate_sound)
+	# Игнорируем третьи карты - они обрабатывают звук сами
 	# Игнорируем все остальные цели
 
 func _on_focus_control_enabled(_enabled: bool):
