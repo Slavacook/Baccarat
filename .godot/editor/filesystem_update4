@@ -10,3 +10,5 @@ res://scripts/SoundManager.gd
 res://scripts/utils/ChipNavigationCoordinator.gd
 res://scripts/ui/PayoutOverlayPaymentHandler.gd
 res://scripts/utils/PayoutResultHandler.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/WinnerSelectionManager.gd

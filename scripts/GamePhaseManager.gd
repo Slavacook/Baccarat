@@ -669,8 +669,12 @@ func on_banker_third_toggled(_selected: bool) -> void:
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner()
 
-func cancel_third_card_orders() -> void:
-	"""Отменить заказ всех третьих карт (игрока и банкира)"""
+func cancel_third_card_orders(play_sound: bool = true) -> void:
+	"""Отменить заказ всех третьих карт (игрока и банкира)
+	
+	Args:
+		play_sound: Играть ли звук деактивации (по умолчанию true)
+	"""
 	# Используем обработчик для получения инструкций
 	var instructions = third_card_ui_handler.get_cancel_instructions(player_third_selected, banker_third_selected)
 	
@@ -678,8 +682,8 @@ func cancel_third_card_orders() -> void:
 		var was_selected = player_third_selected
 		player_third_selected = false
 		ui.update_player_third_card_ui(instructions.get("player_ui_text", "?"))
-		# Звук деактивации третьей карты игрока
-		if was_selected and SoundManager:
+		# Звук деактивации третьей карты игрока (только при действии пользователя)
+		if play_sound and was_selected and SoundManager:
 			SoundManager.play_focus_deactivate_sound()
 		DebugLogger.log("🔄 Отменён заказ третьей карты игрока")
 
@@ -687,8 +691,8 @@ func cancel_third_card_orders() -> void:
 		var was_selected = banker_third_selected
 		banker_third_selected = false
 		ui.update_banker_third_card_ui(instructions.get("banker_ui_text", "?"))
-		# Звук деактивации третьей карты банкира
-		if was_selected and SoundManager:
+		# Звук деактивации третьей карты банкира (только при действии пользователя)
+		if play_sound and was_selected and SoundManager:
 			SoundManager.play_focus_deactivate_sound()
 		DebugLogger.log("🔄 Отменён заказ третьей карты банкира")
 

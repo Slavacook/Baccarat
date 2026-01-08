@@ -107,8 +107,12 @@ func select_winner(winner: String) -> void:
 	print("🎯 WinnerSelectionManager: выбран %s" % winner)
 
 
-func deselect_winner() -> void:
-	"""Снять выбор победителя"""
+func deselect_winner(play_sound: bool = true) -> void:
+	"""Снять выбор победителя
+	
+	Args:
+		play_sound: Играть ли звук деактивации (по умолчанию true)
+	"""
 	if selected_winner == "":
 		return
 
@@ -116,8 +120,8 @@ func deselect_winner() -> void:
 	_set_marker_state(selected_winner, false)
 	selected_winner = ""
 
-	# Звук деактивации маркера
-	if SoundManager:
+	# Звук деактивации маркера (только при действии пользователя)
+	if play_sound and SoundManager:
 		SoundManager.play_focus_deactivate_sound()
 
 	winner_toggled.emit(previous_winner, false)
@@ -136,7 +140,8 @@ func is_winner_selected() -> bool:
 
 func reset() -> void:
 	"""Сбросить выбор (для новой игры)"""
-	deselect_winner()
+	# При сбросе не играем звук - это автоматическое действие
+	deselect_winner(false)
 
 
 func lock_markers() -> void:

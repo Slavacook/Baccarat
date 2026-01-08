@@ -9,6 +9,7 @@ static var instance: SoundManager
 # ═══════════════════════════════════════════════════════════════════════════
 
 const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_change (30% от оригинала)
+const MODE_SWITCH_VOLUME: float = 0.2  # Громкость звука mode_switch (50% от оригинала)
 const MAX_SFX_PLAYERS: int = 5  # Максимум одновременно играющих звуков
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -404,7 +405,7 @@ func play_chip_collect_sound():
 
 func play_mode_switch_sound():
 	"""Звук переключения режима сбора/оплаты"""
-	play_sound(mode_switch_sound)
+	play_sound(mode_switch_sound, MODE_SWITCH_VOLUME)
 
 func play_chip_navigation_sound():
 	"""Звук переключения между фишками в навигаторе"""
