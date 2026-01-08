@@ -64,7 +64,7 @@ func handle_payout_result(
 func _handle_correct_payout(
 	bet_type: String,
 	position_index: int,
-	collected: float,
+	_collected: float,
 	expected: float
 ) -> void:
 	"""Обработать правильную выплату
@@ -132,4 +132,3 @@ func set_update_guest_balance_callback(callback: Callable) -> void:
 func set_update_chip_visibility_callback(callback: Callable) -> void:
 	"""Установить callback для обновления видимости фишек"""
 	update_chip_visibility_callback = callback
-

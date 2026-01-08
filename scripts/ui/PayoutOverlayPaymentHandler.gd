@@ -100,8 +100,14 @@ func _show_success_animation(is_correct: bool, collected: float, expected: float
 	# bet_type и position_index будут получены из owner_node (PayoutOverlay)
 	var bet_type = ""
 	var position_index = -1
-	if owner_node.has("current_winner"):
-		bet_type = owner_node.current_winner
+	
+	# Получаем bet_type из current_winner (PayoutOverlay наследуется от CanvasLayer)
+	# Используем get() с обработкой ошибки
+	var winner = owner_node.get("current_winner")
+	if winner is String:
+		bet_type = winner
+	
+	# Получаем position_index из метаданных
 	if owner_node.has_meta("current_position_index"):
 		position_index = owner_node.get_meta("current_position_index")
 	
@@ -151,4 +157,3 @@ func _show_error_animation(_collected: float) -> void:
 
 	# НЕ возвращаемся к игре - даём игроку попробовать снова
 	# Режим PayButton остается в PAY
-
