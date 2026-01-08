@@ -6,3 +6,5 @@ res://scripts/autoload/GuestStatsManager.gd
 res://scripts/utils/GameStateController.gd
 res://scripts/SoundManager.gd
 res://scripts/health_system/HeartBar.gd
+res://scripts/GameConstants.gd
+res://scripts/CameraManager.gd

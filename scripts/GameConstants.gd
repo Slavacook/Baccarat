@@ -110,6 +110,9 @@ const HEART_SOUND_PATH: String = "res://assets/sound/heart.mp3"
 const BET_SOUNDS_COUNT: int = 8
 const BET_SOUND_PATH_TEMPLATE: String = "res://assets/sound/bet_sounds/bet_%d.mp3"
 
+# whoosh_2.mp3 - Звук перехода камеры - при быстрых переходах камеры (is_navigation = false)
+const CAMERA_TRANSITION_SOUND_PATH: String = "res://assets/sound/whoosh/whoosh_2.mp3"
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУТИ К РЕСУРСАМ
 # ═══════════════════════════════════════════════════════════════════════════

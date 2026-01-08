@@ -11,6 +11,7 @@ static var instance: SoundManager
 const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_change (30% от оригинала)
 const MODE_SWITCH_VOLUME: float = 0.2  # Громкость звука mode_switch (20% от оригинала)
 const PATIENCE_LOST_VOLUME: float = 0.5  # Громкость звука patience_lost (50% от оригинала)
+const CAMERA_TRANSITION_VOLUME: float = 0.3  # Громкость звука перехода камеры (30% от оригинала)
 const MAX_SFX_PLAYERS: int = 5  # Максимум одновременно играющих звуков
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -36,6 +37,7 @@ var penalty_sound: AudioStream  # Получение штрафа
 var patience_lost_sound: AudioStream  # Потеря терпения
 var heart_sound: AudioStream  # Сердце (heart bet)
 var bet_sounds: Array[AudioStream] = []  # Звуки ставок гостей (8 вариантов)
+var camera_transition_sound: AudioStream  # Звук перехода камеры (whoosh)
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
@@ -173,6 +175,9 @@ func _load_sounds():
 		var sound = _load_sound_safe(sound_path)
 		if sound:
 			bet_sounds.append(sound)
+	
+	# whoosh_2.mp3 - Звук перехода камеры (при быстрых переходах)
+	camera_transition_sound = _load_sound_safe(GameConstants.CAMERA_TRANSITION_SOUND_PATH)
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -306,7 +311,7 @@ func _on_action_correct(_type: String):
 	# Звук успеха уже обрабатывается через другие события
 	pass
 
-func _on_action_error(type: String, _message: String):
+func _on_action_error(_type: String, _message: String):
 	"""Обработчик ошибки"""
 	# Звук штрафа теперь воспроизводится через событие penalty_applied
 	# с задержкой 1.5 сек после применения штрафа
@@ -461,6 +466,10 @@ func play_bet_sound():
 	
 	var random_index = randi() % bet_sounds.size()
 	play_sound(bet_sounds[random_index])
+
+func play_camera_transition_sound():
+	"""Звук перехода камеры (при быстрых переходах, is_navigation = false)"""
+	play_sound(camera_transition_sound, CAMERA_TRANSITION_VOLUME)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ ГРОМКОСТИ

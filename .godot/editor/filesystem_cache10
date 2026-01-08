@@ -334,9 +334,9 @@ bet_5.mp3::AudioStreamMP3::5688611391442678686::1767876552::1767876851::1::::<><
 bet_6.mp3::AudioStreamMP3::210985332506539735::1767876542::1767876851::1::::<><><>0<>0<>aaadbeab9265ffa6c24fd9a23025085a<>res://.godot/imported/bet_6.mp3-9a8c1b2d3b536fa84c9109cc0a650019.mp3str::
 bet_7.mp3::AudioStreamMP3::4080823776644077943::1767876518::1767876851::1::::<><><>0<>0<>51ec9ed98a713d20583e739db9dc9ac3<>res://.godot/imported/bet_7.mp3-b4f5a05521168d0a7f37aef0d3cf5f77.mp3str::
 bet_8.mp3::AudioStreamMP3::128192754036947829::1767876514::1767876851::1::::<><><>0<>0<>9dd4b54eae29d352780abb2640b3f0b2<>res://.godot/imported/bet_8.mp3-6d1057761893d9df183f0158efdf9656.mp3str::
-::res://assets/sound/whoosh/::1767881740
-whoosh_1.mp3::AudioStreamMP3::3709521570678473269::1767878331::1767881725::1::::<><><>0<>0<>06be42b93fcccee1a4a72253a69f5f50<>res://.godot/imported/whoosh_1.mp3-969771dbc0d50759e7f6c93c42bf79ac.mp3str::
-whoosh_2.mp3::AudioStreamMP3::2296680383860293472::1767878333::1767881740::1::::<><><>0<>0<>925637a704ebb91062a06ce79ec0ed76<>res://.godot/imported/whoosh_2.mp3-854d25ded70a9fdf3edae3d5ed65f90c.mp3str::
+::res://assets/sound/whoosh/::1767883610
+whoosh_1.mp3::AudioStreamMP3::3709521570678473269::1767883514::1767883612::1::::<><><>0<>0<>06be42b93fcccee1a4a72253a69f5f50<>res://.godot/imported/whoosh_1.mp3-969771dbc0d50759e7f6c93c42bf79ac.mp3str::
+whoosh_2.mp3::AudioStreamMP3::2296680383860293472::1767883531::1767883612::1::::<><><>0<>0<>925637a704ebb91062a06ce79ec0ed76<>res://.godot/imported/whoosh_2.mp3-854d25ded70a9fdf3edae3d5ed65f90c.mp3str::
 ::res://assets/ui/::1767509553
 banker_marker.png::CompressedTexture2D::1689125725466296418::1765877564::1765877564::1::::<><><>0<>0<>874a60342c96dbf726f2367260c5b950<>res://.godot/imported/banker_marker.png-a88c0c565b27dea210399d89b5409e88.ctex::
 banker_marker_wins.png::CompressedTexture2D::1376032299205725253::1765877564::1765877564::1::::<><><>0<>0<>60103ca6a41d8d868ca8f82bbb55204b<>res://.godot/imported/banker_marker_wins.png-5b4f63f11537a77f5c1a0420ce29bcf7.ctex::
@@ -500,7 +500,7 @@ icon_512x512.png::CompressedTexture2D::2774166128768893739::1765877564::17658775
 ::res://resources/::1767696695
 CameraConfig.gd::GDScript::6373554284852071449::1767698986::0::1::::CameraConfig<>Resource<><>0<>0<><>::
 GameConfig.gd::GDScript::9082664074550891935::1765877564::0::1::::GameConfig<>Resource<><>0<>0<><>::
-::res://scenes/::1767881684
+::res://scenes/::1767883302
 BetPopup.tscn::PackedScene::4738235037960788730::1765878366::0::1::::<><><>0<>0<><>::uid://c60k5ekwpxfw7::::res://scripts/BetPopup.gd
 ChanceCardPopup.tscn::PackedScene::7493855773486672224::1765977273::0::1::::<><><>0<>0<><>::res://scripts/ChanceCardPopup.gd<>uid://ch6mlxy0v6dx7::::res://assets/ui/invitation_card.png
 ChanceCardUI.tscn::PackedScene::-1::1766038839::0::1::::<><><>0<>0<><>::res://scripts/ChanceCardUI.gd<>uid://ch6mlxy0v6dx7::::res://assets/ui/invitation_card.png
@@ -511,7 +511,7 @@ GuestMenuScene.tscn::PackedScene::1655162931525080450::1767163772::0::1::::<><><
 HelpPopup.tscn::PackedScene::1318077622054836299::1765877564::0::1::::<><><>0<>0<><>::uid://3yyj0s6pxqkk::::res://scripts/HelpPopup.gd
 OverlayNotification.tscn::PackedScene::-1::1765877564::0::1::::<><><>0<>0<><>::res://scripts/OverlayNotification.gd
 PayoutScene.tscn::PackedScene::3708280405843324070::1767335777::0::1::::<><><>0<>0<><>::uid://cmdsv8cgwx0jw::::res://scripts/GameController.gd<>uid://rdncw6ifk1c2::::res://scenes/SurvivalModeUI.tscn<>uid://csqohix558l5u::::res://assets/ui/table_background.png<>uid://6nt8xcinibd0::::res://scenes/flip_card.tscn<>uid://c85dmnv0xhlrt::::res://assets/ui/player_marker.png<>uid://b5w6jvx0owvhw::::res://assets/ui/player_marker_wins.png<>uid://ychwh6o6frhy::::res://assets/ui/banker_marker.png<>uid://tutby4vxvi2x::::res://assets/ui/banker_marker_wins.png<>uid://s1qstasvpebr::::res://scenes/HelpPopup.tscn<>res://scenes/GameOverScene.tscn<>uid://4ietsvpelka7::::res://assets/ui/set.png<>uid://dvci1lc3qrbac::::res://scenes/SettingsScene.tscn<>uid://dv2rkxv4s3p3g::::res://scripts/PayoutOverlay.gd<>uid://8fqkmr4r5o0l::::res://scripts/PayoutSurvivalInfo.gd
-SettingsScene.tscn::PackedScene::8637889271710464782::1767881684::0::1::::<><><>0<>0<><>::uid://d3ov5kmwxvbem::::res://scripts/SettingsScene.gd
+SettingsScene.tscn::PackedScene::8637889271710464782::1767883302::0::1::::<><><>0<>0<><>::uid://d3ov5kmwxvbem::::res://scripts/SettingsScene.gd
 SurvivalModeUI.tscn::PackedScene::1200197571375732007::1766041398::0::1::::<><><>0<>0<><>::uid://c44cy12nk5q05::::res://scripts/SurvivalModeUI.gd
 Toast.tscn::PackedScene::1936476259211108317::1765878366::0::1::::<><><>0<>0<><>::uid://c4fvahxd63mip::::res://scripts/Toast.gd
 ::res://scenes/chance_cards/::1766301751
@@ -530,7 +530,7 @@ BetCollectionPhaseManager.gd::GDScript::5658197585948415147::1767866895::0::1:::
 BetFilterManager.gd::GDScript::3239685272360864733::1766460152::0::1::::BetFilterManager<>RefCounted<><>0<>0<><>::
 BetPopup.gd::GDScript::4186871779109626763::1765928393::0::1::::<>PopupPanel<><>0<>0<><>::
 CameraInterpolationNode.gd::GDScript::4623628261249038188::1767691016::0::1::::<>Node<><>0<>0<><>::
-CameraManager.gd::GDScript::4454498763637027129::1767752603::0::1::::CameraManager<>RefCounted<><>0<>0<><>::
+CameraManager.gd::GDScript::4454498763637027129::1767883294::0::1::::CameraManager<>RefCounted<><>0<>0<><>::
 Card.gd::GDScript::3661103580919269901::1765877564::0::1::::Card<>RefCounted<><>0<>0<><>::
 CardDealer.gd::GDScript::7350028232998160553::1766453027::0::1::::CardDealer<>RefCounted<><>0<>0<><>::
 CardDealer.test.gd::GDScript::5589654617348652939::1766453027::0::1::::<>RefCounted<><>0<>0<><>::
@@ -545,7 +545,7 @@ Deck.gd::GDScript::6145890468197991316::1765877564::0::1::::Deck<>RefCounted<><>
 FirstFourDealCoordinator.gd::GDScript::4706552728192853869::1766474011::0::1::::FirstFourDealCoordinator<>RefCounted<><>0<>0<><>::
 FlipCard.gd::GDScript::1979425046039752148::1767864538::0::1::::FlipCard<>Node2D<><>0<>0<><>::
 GameCompletionCoordinator.gd::GDScript::6955625309893872892::1766533760::0::1::::GameCompletionCoordinator<>RefCounted<><>0<>0<><>::
-GameConstants.gd::GDScript::5908386211620384816::1767877385::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
+GameConstants.gd::GDScript::5908386211620384816::1767883294::0::1::::GameConstants<>RefCounted<><>0<>0<><>::
 GameController.gd::GDScript::5622432768509677956::1767878296::0::1::::<>Node2D<><>0<>0<><>::
 GameDataManager.gd::GDScript::3173968144031983268::1766128355::0::1::::<>Node<><>0<>0<><>::
 GameInitializer.gd::GDScript::7528074775368441392::1767667175::0::1::::GameInitializer<>RefCounted<><>0<>0<><>::
@@ -577,7 +577,7 @@ PhaseActionResolver.gd::GDScript::21101011315566169::1766458163::0::1::::PhaseAc
 RoundCompletionCoordinator.gd::GDScript::6317235978486025181::1766458803::0::1::::RoundCompletionCoordinator<>RefCounted<><>0<>0<><>::
 SaveManager.gd::GDScript::8627907365010767779::1767753043::0::1::::<>Node<><>0<>0<><>::
 SettingsScene.gd::GDScript::9154780136968585584::1767753385::0::1::::SettingsScene<>CanvasLayer<><>0<>0<><>::
-SoundManager.gd::GDScript::6297035281785378913::1767881681::0::1::::<>Node<><>0<>0<><>::
+SoundManager.gd::GDScript::6297035281785378913::1767883440::0::1::::<>Node<><>0<>0<><>::
 StatsManager.gd::GDScript::7422061842198344417::1767873296::0::1::::<>Node<><>0<>0<><>::
 SurvivalModeUI.gd::GDScript::6868350488718170528::1766118147::0::1::::<>Control<><>0<>0<><>::
 SwipeNavigationController.gd::GDScript::62770720601697266::1767533159::0::1::::<>Node<><>0<>0<><>::
@@ -644,7 +644,7 @@ ChipStackManager.gd::GDScript::1060822543130080410::1767169796::0::1::::ChipStac
 PayoutValidator.gd::GDScript::2597968456011595629::1765877564::0::1::::PayoutValidator<>RefCounted<><>0<>0<><>::
 ::res://scripts/health_system/::1766118641
 Heart.gd::GDScript::7994545025281459218::1766117618::0::1::::Heart<>RefCounted<><>0<>0<><>::
-HeartBar.gd::GDScript::6713320921047039543::1766579422::0::1::::HeartBar<>RefCounted<><>0<>0<><>::
+HeartBar.gd::GDScript::6713320921047039543::1767882348::0::1::::HeartBar<>RefCounted<><>0<>0<><>::
 HeartState.gd::GDScript::6590716950220477562::1766117618::0::1::::HeartState<>RefCounted<><>0<>0<><>::
 IHeartVisual.gd::GDScript::5998913107109126603::1766118000::0::1::::IHeartVisual<>RefCounted<><>0<>0<><>::
 TESTING_CHECKLIST.md::TextFile::-1::1766118081::0::1::::<><><>0<>0<><>::

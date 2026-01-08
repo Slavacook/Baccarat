@@ -441,6 +441,10 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	#   - МЕДЛЕННАЯ: navigation_min_interpolation_speed, navigation_max_interpolation_speed
 	# ═══════════════════════════════════════════════════════════════════════
 	
+	# Звук перехода камеры (только при быстрых переходах, is_navigation = false)
+	if not is_navigation and SoundManager:
+		SoundManager.play_camera_transition_sound()
+	
 	# Сохраняем целевую область, но НЕ обновляем current_area сразу
 	# current_area будет обновлен только после завершения анимации
 	match zoom_type:
