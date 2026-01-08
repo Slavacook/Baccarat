@@ -431,16 +431,20 @@ func deal_first_four() -> void:
 		pairs_info.get("has_banker_pair", false)
 	])
 	
-	# Проверяем триггеры карт шанса через координатор
-	var player_hand = hand_manager.get_player_hand_ref()
-	var banker_hand = hand_manager.get_banker_hand_ref()
-	var is_survival_mode = SaveManager.instance.load_survival_mode()
-	var triggers = first_four_deal_coordinator.get_triggers_after_deal(
-		player_hand, banker_hand,
-		pairs_info.get("has_player_pair", false),
-		pairs_info.get("has_banker_pair", false),
-		is_survival_mode
-	)
+	# Проверяем триггеры карт шанса через координатор (только если карты шансов включены)
+	var triggers = {}
+	if SaveManager.instance.load_chance_cards_enabled():
+		var player_hand = hand_manager.get_player_hand_ref()
+		var banker_hand = hand_manager.get_banker_hand_ref()
+		var is_survival_mode = SaveManager.instance.load_survival_mode()
+		triggers = first_four_deal_coordinator.get_triggers_after_deal(
+			player_hand, banker_hand,
+			pairs_info.get("has_player_pair", false),
+			pairs_info.get("has_banker_pair", false),
+			is_survival_mode
+		)
+	else:
+		print("🎴 deal_first_four: карты шансов отключены, пропускаем проверку триггеров")
 	
 	# 🔄 ТРИГГЕР: Две пары → Third Card Change (с задержкой 1.5 сек)
 	if triggers.get("third_card_change", false):
@@ -2096,6 +2100,11 @@ func _check_chance_card_triggers(actual_winner: String) -> void:
 	- Third Card Change: две пары — срабатывает сразу после раздачи
 	- Mystery Card: пара тузов — срабатывает сразу после раздачи
 	"""
+	# Проверяем, включены ли карты шансов
+	if not SaveManager.instance.load_chance_cards_enabled():
+		print("🎴 _check_chance_card_triggers: карты шансов отключены, пропускаем")
+		return
+	
 	var player_hand = hand_manager.get_player_hand_ref()
 	var banker_hand = hand_manager.get_banker_hand_ref()
 	

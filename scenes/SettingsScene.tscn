@@ -362,6 +362,26 @@ text = "% от выплат"
 [node name="HSeparatorTip" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 
+[node name="ChanceCardsContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SectionChanceCards" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/ChanceCardsContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "КАРТЫ ШАНСОВ"
+horizontal_alignment = 1
+
+[node name="ChanceCardsCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/ChanceCardsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+button_pressed = true
+text = "Включить"
+
+[node name="HSeparatorChanceCards" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
 [node name="SectionLanguage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)

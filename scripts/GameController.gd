@@ -1328,6 +1328,14 @@ func _setup_chance_card_system() -> void:
 	if storage:
 		ChanceCardManager.set_storage(storage)
 		print("🎴 ChanceCardStorage подключен к ChanceCardManager")
+		
+		# Устанавливаем видимость в зависимости от настройки
+		var chance_cards_enabled = SaveManager.instance.load_chance_cards_enabled()
+		storage.visible = chance_cards_enabled
+		print("🎴 ChanceCardStorage: %s (настройка: %s)" % [
+			"показан" if chance_cards_enabled else "скрыт",
+			"включено" if chance_cards_enabled else "выключено"
+		])
 	else:
 		push_warning("⚠️ ChanceCardStorage не найден в TopUI")
 	

@@ -126,6 +126,13 @@ func get_triggers_after_deal(
 			"mystery_card": bool  # Триггер Mystery Card (пара тузов, только в режиме выживания)
 		}
 	"""
+	# Проверяем, включены ли карты шансов
+	if not SaveManager.instance.load_chance_cards_enabled():
+		return {
+			"third_card_change": false,
+			"mystery_card": false
+		}
+	
 	if not chance_card_trigger_checker:
 		return {
 			"third_card_change": false,

@@ -258,3 +258,15 @@ func load_tip_percentage() -> float:
 	"""Загрузить процент чаевых (по умолчанию 1.0 = 1%)"""
 	var settings = load_settings()
 	return settings.get("tip_percentage", 1.0)
+
+# ← Настройки карт шансов
+func save_chance_cards_enabled(enabled: bool):
+	"""Сохранить состояние карт шансов (включены/выключены)"""
+	var settings = load_settings()
+	settings["chance_cards_enabled"] = enabled
+	save_settings(settings)
+
+func load_chance_cards_enabled() -> bool:
+	"""Загрузить состояние карт шансов (по умолчанию true - включены)"""
+	var settings = load_settings()
+	return settings.get("chance_cards_enabled", true)

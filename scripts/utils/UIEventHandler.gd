@@ -222,11 +222,12 @@ func show_game_ui_elements() -> void:
 		survival_state.show()
 		DebugLogger.log("  ✅ survival_ui показана через SurvivalStateProvider")
 	
-	# Инвентарь с картами шансов
+	# Инвентарь с картами шансов (показываем только если включены)
 	var chance_storage = owner_node.get_node_or_null("TopUI/ChanceCardStorage")
 	if chance_storage:
-		chance_storage.visible = true
-		DebugLogger.log("  ✅ ChanceCardStorage показан")
+		var chance_cards_enabled = SaveManager.instance.load_chance_cards_enabled()
+		chance_storage.visible = chance_cards_enabled
+		DebugLogger.log("  ✅ ChanceCardStorage: %s" % ("показан" if chance_cards_enabled else "скрыт (отключен в настройках)"))
 	
 	# Счетчик раздач - проверяем в TopUI и в корне
 	var rounds_label = owner_node.get_node_or_null("TopUI/RoundsCounterLabel")

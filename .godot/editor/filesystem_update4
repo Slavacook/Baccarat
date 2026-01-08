@@ -10,3 +10,9 @@ res://scripts/GameConstants.gd
 res://scripts/CameraManager.gd
 res://scripts/PayoutOverlay.gd
 res://scripts/GameController.gd
+res://scripts/FirstFourDealCoordinator.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/SaveManager.gd
+res://scripts/SettingsScene.gd
+res://scripts/TieButtonHandler.gd
+res://scripts/utils/UIEventHandler.gd

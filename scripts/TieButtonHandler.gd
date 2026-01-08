@@ -99,6 +99,10 @@ func get_chance_card_triggers(actual_winner: String) -> Dictionary:
 	Returns:
 		Dictionary с триггерами от ChanceCardTriggerChecker
 	"""
+	# Проверяем, включены ли карты шансов
+	if not SaveManager.instance.load_chance_cards_enabled():
+		return {}
+	
 	if not chance_card_trigger_checker or not hand_manager:
 		return {}
 	

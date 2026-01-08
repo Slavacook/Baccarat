@@ -40,6 +40,9 @@ signal language_changed(lang: String)  # "ru" или "en"
 # === РАЗДЕЛ 4.5: ЧАЕВЫЕ ===
 @onready var tip_percentage_spinbox: SpinBox = find_child("TipPercentageSpinBox", true, false)
 
+# === РАЗДЕЛ 4.6: КАРТЫ ШАНСОВ ===
+@onready var chance_cards_checkbox: CheckBox = find_child("ChanceCardsCheckbox", true, false)
+
 # === РАЗДЕЛ 5: ЯЗЫК ===
 @onready var ru_button: Button = find_child("RuButton", true, false)
 @onready var en_button: Button = find_child("EnButton", true, false)
@@ -127,6 +130,10 @@ func _connect_signals() -> void:
 	# Чаевые
 	if tip_percentage_spinbox:
 		tip_percentage_spinbox.value_changed.connect(_on_tip_percentage_changed)
+
+	# Карты шансов
+	if chance_cards_checkbox:
+		chance_cards_checkbox.toggled.connect(_on_chance_cards_toggled)
 
 	# Язык
 	if ru_button:
@@ -299,6 +306,10 @@ func _load_current_values() -> void:
 	# Чаевые
 	if tip_percentage_spinbox:
 		tip_percentage_spinbox.value = SaveManager.instance.load_tip_percentage()
+
+	# Карты шансов
+	if chance_cards_checkbox:
+		chance_cards_checkbox.button_pressed = SaveManager.instance.load_chance_cards_enabled()
 
 	# Язык
 	_update_lang_buttons()
@@ -550,6 +561,27 @@ func _on_tip_percentage_changed(value: float):
 	"""Обработка изменения процента чаевых"""
 	SaveManager.instance.save_tip_percentage(value)
 	print("💰 Процент чаевых изменён: %.1f%%" % value)
+
+# === КАРТЫ ШАНСОВ ===
+func _on_chance_cards_toggled(pressed: bool):
+	"""Обработка переключения карт шансов"""
+	SaveManager.instance.save_chance_cards_enabled(pressed)
+	print("🎴 Карты шансов: %s" % ("включены" if pressed else "выключены"))
+	# Обновляем видимость ChanceCardStorage в реальном времени
+	_update_chance_card_storage_visibility()
+
+func _update_chance_card_storage_visibility() -> void:
+	"""Обновить видимость ChanceCardStorage в зависимости от настройки"""
+	var game_scene = get_tree().get_first_node_in_group("game")
+	if not game_scene:
+		game_scene = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
+	
+	if game_scene:
+		var chance_storage = game_scene.get_node_or_null("TopUI/ChanceCardStorage")
+		if chance_storage:
+			var enabled = SaveManager.instance.load_chance_cards_enabled()
+			chance_storage.visible = enabled
+			print("🎴 ChanceCardStorage: %s" % ("показан" if enabled else "скрыт"))
 
 # === ЯЗЫК ===
 func _on_ru_pressed():
