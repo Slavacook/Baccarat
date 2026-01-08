@@ -9,6 +9,7 @@ extends CanvasLayer
 # UI ЭЛЕМЕНТЫ (обновленные пути для CanvasLayer → ColorRect → ...)
 # ═══════════════════════════════════════════════════════════════════════════
 
+@onready var color_rect: ColorRect = $ColorRect  # Главный контейнер для анимации
 @onready var result_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/ResultLabel
 @onready var stake_label = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/StakeLabel
 @onready var amount_panel = $ColorRect/MarginContainer/VBoxContainer/HeaderHBox/AmountPanel
@@ -447,11 +448,32 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	# Обновляем отображение жизней/очков
 	state_manager.update_score_display()
 
+	# Устанавливаем начальные значения для анимации (масштаб 0, прозрачность 0)
+	if color_rect:
+		# Ждём один кадр, чтобы размер элемента был корректным
+		await get_tree().process_frame
+		# Устанавливаем точку привязки в центр элемента для масштабирования из центра
+		color_rect.pivot_offset = color_rect.size / 2.0
+		color_rect.scale = Vector2.ZERO
+		color_rect.modulate.a = 0.0
+	
 	show()  # Показать CanvasLayer
 	
 	# Звук открытия окна выплат
 	if SoundManager:
 		SoundManager.play_payout_open_sound()
+	
+	# Анимация появления окна (вылет из середины + фейдин)
+	if color_rect:
+		var tween = create_tween()
+		tween.set_parallel(true)  # Параллельная анимация масштаба и прозрачности
+		tween.set_ease(Tween.EASE_OUT)
+		tween.set_trans(Tween.TRANS_QUART)  # Плавный переход без отскока
+		
+		# Анимация масштаба: от 0 до 1 (вылет из середины)
+		tween.tween_property(color_rect, "scale", Vector2.ONE, 0.5)
+		# Анимация прозрачности: от 0 до 1 (фейдин)
+		tween.tween_property(color_rect, "modulate:a", 1.0, 0.5)
 
 	# Установить фокус на первую кнопку флота
 	if chip_fleet_container and chip_fleet_container.get_child_count() > 0:
@@ -485,6 +507,12 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	# Небольшая задержка перед скрытием overlay, чтобы убедиться, что все анимации завершены
 	await get_tree().process_frame
 	await get_tree().process_frame  # Дополнительный кадр для гарантии
+	
+	# Сбрасываем анимацию для следующего открытия (перед скрытием)
+	if color_rect:
+		color_rect.scale = Vector2.ONE  # Возвращаем нормальный масштаб
+		color_rect.modulate.a = 1.0  # Возвращаем полную прозрачность
+		color_rect.pivot_offset = Vector2.ZERO  # Сбрасываем точку привязки
 	
 	# Скрываем overlay
 	hide()

@@ -277,6 +277,10 @@ func _ready():
 	_initialize_guest_return_counter_ui()
 	_initialize_payout_return_handler()
 	_initialize_payout_preparation_handler()
+	
+	# Инициализируем шпаргалку ПЕРЕД UIEventHandler (чтобы crib_sheet_scene был доступен)
+	_initialize_crib_sheet()
+	
 	_initialize_ui_event_handler()
 	_initialize_input_handler()
 	
@@ -297,9 +301,6 @@ func _ready():
 	
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
-	
-	# Инициализируем шпаргалку
-	_initialize_crib_sheet()
 	
 	# Сбрасываем флаг Game Over при инициализации (на случай перезагрузки сцены)
 	# Флаг сбрасывается через game_state_controller после инициализации
