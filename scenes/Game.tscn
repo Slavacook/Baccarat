@@ -49,17 +49,6 @@ script = ExtResource("1_aug50")
 offset = Vector2(0, 50)
 transform = Transform2D(1, 0, 0, 1, 0, 50)
 
-[node name="ToastContainer" type="VBoxContainer" parent="UI"]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -254.0
-offset_top = 400.0
-offset_right = 272.0
-offset_bottom = 500.0
-grow_horizontal = 2
-mouse_filter = 2
-
 [node name="TopUI" type="CanvasLayer" parent="."]
 layer = 128
 
@@ -749,6 +738,20 @@ visible = false
 position = Vector2(613, -168.1)
 scale = Vector2(1.8, 1.8)
 texture = ExtResource("41_xfjuk")
+
+[node name="ToastLayer" type="CanvasLayer" parent="."]
+layer = 210
+
+[node name="ToastContainer" type="VBoxContainer" parent="ToastLayer"]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -254.0
+offset_top = 400.0
+offset_right = 272.0
+offset_bottom = 500.0
+grow_horizontal = 2
+mouse_filter = 2
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]

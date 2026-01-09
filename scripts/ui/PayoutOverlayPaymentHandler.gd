@@ -80,12 +80,25 @@ func process_payment(expected_payout: float) -> void:
 		await _show_success_animation(is_correct, collected_total, expected_payout)
 	else:
 		# ← Неправильная выплата
-		# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
-		# В PayoutOverlay нет информации о bet_type/position_index
-		EventBus.payout_wrong.emit(collected_total, expected_payout, "", -1)
+		# Проверяем, если выплата пустая (0) - это не ошибка, только предупреждение
+		if collected_total == 0.0:
+			# Пустая выплата - только звук и тост, без потери сердца и оверлея
+			if SoundManager:
+				SoundManager.play_sound(SoundManager.payout_wrong_sound)
+			EventBus.show_toast_info.emit(Localization.t("PAYOUT_EMPTY_WARNING"))
+			
+			# Разблокируем кнопку сразу
+			if set_button_blocked_callback.is_valid():
+				set_button_blocked_callback.call(false)
+			payout_button.disabled = false
+		else:
+			# ← Неправильная выплата (не пустая)
+			# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
+			# В PayoutOverlay нет информации о bet_type/position_index
+			EventBus.payout_wrong.emit(collected_total, expected_payout, "", -1)
 
-		# Показываем анимацию ошибки (попап не закрывается)
-		await _show_error_animation(collected_total)
+			# Показываем анимацию ошибки (попап не закрывается)
+			await _show_error_animation(collected_total)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - КООРДИНАЦИЯ АНИМАЦИЙ

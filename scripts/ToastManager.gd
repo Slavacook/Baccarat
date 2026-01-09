@@ -16,9 +16,16 @@ func _init():
 		queue_free()
 
 func _ready():
-	var canvas_layer = get_tree().current_scene.get_node_or_null("UI")
-	if canvas_layer:
-		container = canvas_layer.get_node_or_null("ToastContainer")
+	# Ищем ToastLayer (новое расположение, поверх PayoutOverlay)
+	var toast_layer = get_tree().current_scene.get_node_or_null("ToastLayer")
+	if toast_layer:
+		container = toast_layer.get_node_or_null("ToastContainer")
+	
+	# Если не нашли, пробуем старый путь (UI) для обратной совместимости
+	if not container:
+		var canvas_layer = get_tree().current_scene.get_node_or_null("UI")
+		if canvas_layer:
+			container = canvas_layer.get_node_or_null("ToastContainer")
 
 	if not container:
 		# Это нормально для тестовой среды - просто выходим тихо
@@ -104,9 +111,16 @@ func _get_color(type: String) -> Color:
 
 # ← Переинициализация контейнера после смены сцены
 func _reinitialize_container():
-	var canvas_layer = get_tree().current_scene.get_node_or_null("UI")
-	if canvas_layer:
-		container = canvas_layer.get_node_or_null("ToastContainer")
+	# Ищем ToastLayer (новое расположение, поверх PayoutOverlay)
+	var toast_layer = get_tree().current_scene.get_node_or_null("ToastLayer")
+	if toast_layer:
+		container = toast_layer.get_node_or_null("ToastContainer")
+	
+	# Если не нашли, пробуем старый путь (UI) для обратной совместимости
+	if not container:
+		var canvas_layer = get_tree().current_scene.get_node_or_null("UI")
+		if canvas_layer:
+			container = canvas_layer.get_node_or_null("ToastContainer")
 
 	if not container:
 		push_error("ToastContainer not found in current scene!")
