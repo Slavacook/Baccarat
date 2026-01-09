@@ -133,10 +133,10 @@ func apply_mode_change(mode: String, should_clear_chips: bool = true) -> void:
 		cfg["pairs_min"], cfg["pairs_max"], cfg["pairs_step"]
 	)
 	
-	# Оповещаем игрока
+	# Оповещаем игрока через тост
 	var mode_display_name = Localization.t("MODE_JUNKET_NAME") if mode == "junket" else Localization.t("MODE_CLASSIC_NAME")
 	var message = Localization.t("LIMITS_CHANGED", [mode_display_name])
-	EventBus.show_overlay_info.emit(message, 2.0)
+	EventBus.show_toast_info.emit(message)
 	
 	# Логируем
 	log_mode_change(mode, GameStateManager.get_state_name(GameStateManager.get_current_state()), false)
