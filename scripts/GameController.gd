@@ -118,7 +118,8 @@ var gamepad_monitor: GamepadMonitor
 
 # Обновлятель счетчика раундов (Extract Class)
 var rounds_counter_updater: RoundsCounterUpdater
-var guest_return_counter_ui: GuestReturnCounterUI
+# Счетчики возврата гостей теперь только в настройках, не на главном экране
+# var guest_return_counter_ui: GuestReturnCounterUI  # Убрано - теперь только в SettingsScene
 
 # Обработчик возврата из PayoutScene (Extract Class)
 var payout_return_handler: PayoutReturnHandler
@@ -730,26 +731,17 @@ func _initialize_rounds_counter_updater() -> void:
 		push_warning("⚠️ rounds_counter_label не найден для RoundsCounterUpdater")
 
 func _initialize_guest_return_counter_ui() -> void:
-	"""Инициализировать UI счетчиков возврата гостей"""
-	# Создаем контейнер программно, если его нет
+	"""Инициализировать UI счетчиков возврата гостей (теперь только в настройках, не на главном экране)"""
+	# Счетчики теперь показываются только в меню настроек
+	# На главном экране они не нужны
+	# Удаляем контейнер, если он был создан ранее
 	var container = get_node_or_null("GuestReturnCounterContainer")
-	if not container:
-		# Создаем VBoxContainer рядом с RoundsCounterLabel
-		container = VBoxContainer.new()
-		container.name = "GuestReturnCounterContainer"
-		# Размещаем справа от счетчика раздач
-		if rounds_counter_label:
-			container.position = Vector2(rounds_counter_label.position.x + 120, rounds_counter_label.position.y)
-		else:
-			container.position = Vector2(260, 6)
-		add_child(container)
-		print("✅ GuestReturnCounterContainer создан программно")
+	if container:
+		container.queue_free()
+		print("✅ GuestReturnCounterContainer удален с главного экрана (счетчики теперь только в настройках)")
 	
-	# Создаем экземпляр GuestReturnCounterUI
-	var counter_ui = GuestReturnCounterUI.new()
-	container.add_child(counter_ui)
-	guest_return_counter_ui = counter_ui
-	print("✅ GuestReturnCounterUI инициализирован")
+	# Счетчики теперь создаются только в SettingsScene при открытии настроек
+	# На главном экране они не нужны
 
 func _initialize_payout_return_handler() -> void:
 	"""Инициализировать обработчик возврата из PayoutScene"""

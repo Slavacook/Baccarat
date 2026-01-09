@@ -43,6 +43,10 @@ signal language_changed(lang: String)  # "ru" или "en"
 # === РАЗДЕЛ 4.6: КАРТЫ ШАНСОВ ===
 @onready var chance_cards_checkbox: CheckBox = find_child("ChanceCardsCheckbox", true, false)
 
+# === РАЗДЕЛ 4.7: ВОЗВРАТ ГОСТЕЙ ===
+@onready var guest_return_container: VBoxContainer = find_child("GuestReturnContainer", true, false)
+var guest_return_counter_ui: GuestReturnCounterUI = null
+
 # === РАЗДЕЛ 5: ЯЗЫК ===
 @onready var ru_button: Button = find_child("RuButton", true, false)
 @onready var en_button: Button = find_child("EnButton", true, false)
@@ -167,6 +171,9 @@ func open_settings() -> void:
 	"""
 	# Загружаем значения в UI
 	_load_current_values()
+	
+	# Инициализируем счетчики возврата гостей
+	_setup_guest_return_counters()
 
 	# Устанавливаем контекст меню настроек
 	InputContextManager.set_context(InputContextManager.InputContext.MENU_SETTINGS)
@@ -213,6 +220,9 @@ func close_settings() -> void:
 	Возвращает контекст игры, скрывает окно с анимацией
 	и эмитит сигнал закрытия настроек.
 	"""
+	# Очищаем счетчики возврата гостей
+	_cleanup_guest_return_counters()
+	
 	# Возвращаем контекст игры
 	InputContextManager.set_context(InputContextManager.InputContext.GAME)
 	
@@ -235,6 +245,9 @@ func close_settings() -> void:
 		tween.set_ease(Tween.EASE_IN)
 		tween.set_trans(Tween.TRANS_BACK)
 		await tween.finished
+	
+	# Очищаем счетчики возврата гостей при закрытии
+	_cleanup_guest_return_counters()
 	
 	hide()
 	EventBus.settings_closed.emit()
@@ -668,6 +681,34 @@ func _on_language_changed_external(lang: String):
 	_update_mode_info(current_mode)
 
 	print("🔄 SettingsScene синхронизирован с языком: %s" % lang)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ СЧЕТЧИКАМИ ВОЗВРАТА ГОСТЕЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _setup_guest_return_counters() -> void:
+	"""Настроить счетчики возврата гостей в меню настроек"""
+	if not guest_return_container:
+		return
+	
+	# Очищаем старые счетчики, если есть
+	_cleanup_guest_return_counters()
+	
+	# Создаем новый экземпляр GuestReturnCounterUI
+	guest_return_counter_ui = GuestReturnCounterUI.new()
+	guest_return_container.add_child(guest_return_counter_ui)
+	print("👋 Счетчики возврата гостей настроены в меню настроек")
+
+func _cleanup_guest_return_counters() -> void:
+	"""Очистить счетчики возврата гостей"""
+	if guest_return_counter_ui and is_instance_valid(guest_return_counter_ui):
+		guest_return_counter_ui.queue_free()
+		guest_return_counter_ui = null
+	if guest_return_container:
+		# Удаляем все дочерние элементы
+		for child in guest_return_container.get_children():
+			if is_instance_valid(child):
+				child.queue_free()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СТИЛИЗАЦИЯ КНОПОК СТАВОК

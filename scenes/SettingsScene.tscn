@@ -382,6 +382,23 @@ text = "Включить"
 [node name="HSeparatorChanceCards" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 
+[node name="GuestReturnSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
+[node name="SectionGuestReturn" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/GuestReturnSection"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "ВОЗВРАТ ГОСТЕЙ"
+horizontal_alignment = 1
+
+[node name="GuestReturnContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/GuestReturnSection"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="HSeparatorGuestReturn" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+layout_mode = 2
+
 [node name="SectionLanguage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)

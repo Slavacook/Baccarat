@@ -16,3 +16,5 @@ res://scripts/SaveManager.gd
 res://scripts/SettingsScene.gd
 res://scripts/TieButtonHandler.gd
 res://scripts/utils/UIEventHandler.gd
+res://scenes/Game.tscn
+res://scripts/ui/GuestReturnCounterUI.gd
