@@ -833,6 +833,9 @@ func _validate_and_execute_third_cards() -> void:
 		if current_state in states_requiring_third_cards:
 			# Ошибка! Дилер выбрал победителя, но нужны третьи карты
 			var error_msg = GameStateManager.get_error_message(GameStateManager.Action.SELECT_WINNER, current_state)
+			# Показываем toast с ошибкой
+			EventBus.show_toast_error.emit(error_msg)
+			# Эмитим событие ошибки (для отнятия сердца)
 			EventBus.action_error.emit("winner_early", error_msg)
 			DebugLogger.log("🚫 Ошибка: выбран маркер победителя, но нужны третьи карты. %s" % error_msg)
 			# Сбрасываем выбор маркера после ошибки
@@ -1768,6 +1771,35 @@ func _handle_choose_winner_state() -> void:
 	if not winner_selection_state_handler:
 		DebugLogger.log_error("❌ WinnerSelectionStateHandler не инициализирован!")
 		return
+	
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ОШИБОЧНОГО ВЫБОРА МАРКЕРА ПОБЕДИТЕЛЯ
+	# Если дилер выбрал маркер, но состояние игры требует третьих карт - ошибка
+	# Это может произойти если состояние игры определилось неправильно
+	# ═══════════════════════════════════════════════════════════════════
+	var is_winner_selected = winner_selection_manager and winner_selection_manager.is_winner_selected()
+	
+	if is_winner_selected:
+		var current_state = GameStateManager.get_current_state()
+		# Состояния, требующие третьих карт (не CHOOSE_WINNER и не WAITING)
+		var states_requiring_third_cards = [
+			GameStateManager.GameState.CARD_TO_EACH,
+			GameStateManager.GameState.CARD_TO_PLAYER,
+			GameStateManager.GameState.CARD_TO_BANKER,
+			GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER
+		]
+		
+		if current_state in states_requiring_third_cards:
+			# Ошибка! Дилер выбрал победителя, но нужны третьи карты
+			var error_msg = GameStateManager.get_error_message(GameStateManager.Action.SELECT_WINNER, current_state)
+			# Показываем toast с ошибкой
+			EventBus.show_toast_error.emit(error_msg)
+			# Эмитим событие ошибки (для отнятия сердца)
+			EventBus.action_error.emit("winner_early", error_msg)
+			DebugLogger.log("🚫 Ошибка: выбран маркер победителя, но нужны третьи карты. %s" % error_msg)
+			# Сбрасываем выбор маркера после ошибки
+			winner_selection_manager.deselect_winner()
+			return
 	
 	var button_state = ui.get_action_button_state()
 	var can_complete = _can_complete_round()

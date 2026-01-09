@@ -55,6 +55,8 @@ func _connect_event_bus() -> void:
 	EventBus.heart_returned.connect(_on_heart_returned)
 	EventBus.heart_bet_won.connect(_on_heart_bet_won)
 	EventBus.heart_bet_lost.connect(_on_heart_bet_lost)
+	# Подписываемся на уход гостей из-за терпения
+	EventBus.guest_left_due_to_patience.connect(_on_guest_left_due_to_patience)
 
 ## Установить визуализацию
 func set_visual(heart_visual: IHeartVisual) -> void:
@@ -235,7 +237,49 @@ func _trigger_game_over() -> void:
 
 ## Обработчики событий EventBus
 func _on_action_error(_type: String = "", _message: String = "") -> void:
-	lose_life()
+	"""Обработка ошибки действия
+	
+	Логика:
+	- Если есть чаевые (>= 100) → штраф 100 чаевых + минус 20% терпения всех активных гостей
+	- Если чаевых недостаточно → минус сердце
+	"""
+	if not is_active:
+		return
+	
+	# Проверяем наличие чаевых
+	var current_tips = SaveManager.instance.score if SaveManager.instance else 0
+	var penalty_amount = 100
+	
+	if current_tips >= penalty_amount:
+		# Чаевых достаточно - сначала уменьшаем терпение, потом штраф с задержкой
+		print("💰 Ошибка: штраф %d чаевых (было %d)" % [penalty_amount, current_tips])
+		
+		# Уменьшаем терпение всех активных гостей на 20% (сразу, без задержки)
+		if GuestSettingsManager and GuestStatsManager:
+			var active_guests = GuestSettingsManager.get_active_guests()
+			for guest_id in active_guests:
+				GuestStatsManager.decrease_patience(guest_id, 20)
+				print("😤 Гость %d: терпение уменьшено на 20%% из-за ошибки" % guest_id)
+		
+		# Применяем штраф на чаевые с задержкой 1 сек (со звуком)
+		if StatsManager.instance:
+			await StatsManager.instance.apply_penalty_with_delay(penalty_amount)
+		
+		# Событие penalty_applied уже эмитится в StatsManager.apply_penalty_with_delay()
+		print("✅ Ошибка обработана: терпение уменьшено, штраф %d чаевых применен" % penalty_amount)
+	else:
+		# Чаевых недостаточно - отнимаем сердце и уменьшаем терпение
+		print("❌ Ошибка: чаевых недостаточно (%d < %d) - отнимается сердце" % [current_tips, penalty_amount])
+		
+		# Уменьшаем терпение всех активных гостей на 20%
+		if GuestSettingsManager and GuestStatsManager:
+			var active_guests = GuestSettingsManager.get_active_guests()
+			for guest_id in active_guests:
+				GuestStatsManager.decrease_patience(guest_id, 20)
+				print("😤 Гость %d: терпение уменьшено на 20%% из-за ошибки (отнято сердце)" % guest_id)
+		
+		# Отнимаем сердце
+		lose_life()
 
 func _on_payout_wrong(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
 	lose_life()
@@ -258,3 +302,15 @@ func _on_heart_bet_won(_target: String, lives_gained: int) -> void:
 func _on_heart_bet_lost(_target: String, _lives_remaining: int) -> void:
 	# Залог сгорает
 	forfeit_pledged_heart()
+
+func _on_guest_left_due_to_patience(guest_id: int) -> void:
+	"""Обработчик ухода гостя из-за терпения - отнимаем сердце
+	
+	Args:
+		guest_id: ID гостя (1-6)
+	"""
+	if not is_active:
+		return
+	
+	print("💔 Гость %d ушел из-за терпения - отнимается сердце" % guest_id)
+	lose_life()

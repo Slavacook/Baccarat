@@ -335,6 +335,11 @@ signal guest_bets_hide_requested()
 @warning_ignore("unused_signal")
 signal guest_bets_show_requested()
 
+## Гость ушел из-за терпения (терпение достигло 0%)
+## Args: guest_id - ID гостя (1-6)
+@warning_ignore("unused_signal")
+signal guest_left_due_to_patience(guest_id: int)
+
 ## Скрыть выбранное сердце со стола (после определения результата)
 @warning_ignore("unused_signal")
 signal heart_bet_hide_selected()

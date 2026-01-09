@@ -106,7 +106,7 @@ func _process_tip_with_delay(expected: float, bet_type: String, guest_id: int) -
 		])
 
 func apply_penalty_with_delay(penalty_amount: int) -> void:
-	"""Применить штраф на чаевые с задержкой 0.7 сек
+	"""Применить штраф на чаевые с задержкой 1.0 сек
 	
 	Args:
 		penalty_amount: Сумма штрафа
@@ -114,8 +114,8 @@ func apply_penalty_with_delay(penalty_amount: int) -> void:
 	if penalty_amount <= 0:
 		return
 	
-	# Задержка 1.5 сек перед применением штрафа
-	await get_tree().create_timer(0.7).timeout
+	# Задержка 1.0 сек перед применением штрафа
+	await get_tree().create_timer(1.0).timeout
 	
 	var tips_before = SaveManager.instance.score
 	SaveManager.instance.subtract_score(penalty_amount)
