@@ -456,7 +456,7 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 		color_rect.pivot_offset = color_rect.size / 2.0
 		color_rect.scale = Vector2.ZERO
 		color_rect.modulate.a = 0.0
-	
+
 	show()  # Показать CanvasLayer
 	
 	# Звук открытия окна выплат

@@ -814,6 +814,31 @@ func _validate_and_execute_third_cards() -> void:
 	
 	Делегирует валидацию в ThirdCardActionValidator и выполнение в ThirdCardActionExecutor.
 	"""
+	# ═══════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА ОШИБОЧНОГО ВЫБОРА МАРКЕРА ПОБЕДИТЕЛЯ
+	# Если дилер выбрал маркер, но состояние игры требует третьих карт - ошибка
+	# ═══════════════════════════════════════════════════════════════════
+	var is_winner_selected = winner_selection_manager and winner_selection_manager.is_winner_selected()
+	
+	if is_winner_selected:
+		var current_state = GameStateManager.get_current_state()
+		# Состояния, требующие третьих карт (не CHOOSE_WINNER и не WAITING)
+		var states_requiring_third_cards = [
+			GameStateManager.GameState.CARD_TO_EACH,
+			GameStateManager.GameState.CARD_TO_PLAYER,
+			GameStateManager.GameState.CARD_TO_BANKER,
+			GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER
+		]
+		
+		if current_state in states_requiring_third_cards:
+			# Ошибка! Дилер выбрал победителя, но нужны третьи карты
+			var error_msg = GameStateManager.get_error_message(GameStateManager.Action.SELECT_WINNER, current_state)
+			EventBus.action_error.emit("winner_early", error_msg)
+			DebugLogger.log("🚫 Ошибка: выбран маркер победителя, но нужны третьи карты. %s" % error_msg)
+			# Сбрасываем выбор маркера после ошибки
+			winner_selection_manager.deselect_winner()
+			return
+	
 	# Проверка: если ничего не изменено (обе кнопки не активированы), то подтверждать нечего
 	if not player_third_selected and not banker_third_selected:
 		DebugLogger.log("⚠️ Нет изменений для подтверждения: обе кнопки третьих карт не активированы")

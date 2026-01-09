@@ -421,6 +421,49 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 		return
 	
 	# ═══════════════════════════════════════════════════════════════════════
+	# ПРОВЕРКА: Действительно ли камера будет двигаться?
+	# Если камера уже находится в целевой позиции - не проигрываем звук и не анимируем
+	# ═══════════════════════════════════════════════════════════════════════
+	var position_distance = _camera.position.distance_to(target_pos)
+	var zoom_distance = _camera.zoom.distance_to(target_zoom)
+	var rotation_distance = abs(_camera.rotation_degrees - target_rotation)
+	
+	# Пороги для определения "уже на месте" (в пикселях/единицах)
+	var position_threshold = 5.0  # 5 пикселей
+	var zoom_threshold = 0.01  # Очень маленький порог для zoom
+	var rotation_threshold = 1.0  # 1 градус
+	
+	var is_already_at_target = (
+		position_distance < position_threshold and
+		zoom_distance < zoom_threshold and
+		rotation_distance < rotation_threshold
+	)
+	
+	if is_already_at_target:
+		# Камера уже на месте - не проигрываем звук и не анимируем
+		print("📷 CameraManager: камера уже на месте (pos_dist=%.2f, zoom_dist=%.4f, rot_dist=%.2f), пропускаем анимацию" % [
+			position_distance, zoom_distance, rotation_distance
+		])
+		# Обновляем состояние без анимации
+		match zoom_type:
+			"in", "cards":
+				_target_area = 0
+				current_area = 0
+			"out":
+				_target_area = -1
+				current_area = -1
+			_:
+				if zoom_type.begins_with("area_"):
+					var area_str = zoom_type.substr(5)
+					var area_num = area_str.to_int()
+					if area_num >= 1 and area_num <= 6:
+						_target_area = area_num
+						current_area = area_num
+		last_zoom_type = zoom_type
+		_is_animating = false
+		return
+	
+	# ═══════════════════════════════════════════════════════════════════════
 	# КРИТИЧЕСКИ ВАЖНО: Сохраняем состояние ПЕРЕД любыми изменениями!
 	# 
 	# previous_target_area должен содержать ПРЕДЫДУЩУЮ целевую область,
@@ -442,6 +485,7 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 	# ═══════════════════════════════════════════════════════════════════════
 	
 	# Звук перехода камеры (только при быстрых переходах, is_navigation = false)
+	# И только если камера действительно будет двигаться (проверка выше)
 	if not is_navigation and SoundManager:
 		SoundManager.play_camera_transition_sound()
 	
