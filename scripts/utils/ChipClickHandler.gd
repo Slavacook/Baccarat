@@ -511,9 +511,11 @@ func _apply_penalty_to_guest(bet_type: String, position_index: int, reason: Stri
 		# Показываем тост о прощении
 		EventBus.show_toast_info.emit("На первый раз прощаю")
 	elif patience_after == 0:
-		# Терпение стало 0% - отнимаем сердце напрямую (без уменьшения терпения у всех)
-		_lose_life_directly()
-		DebugLogger.log("  ❌ Терпение = 0% - отнимается сердце")
+		# Терпение стало 0% - сердце уже отнято через decrease_patience() → _handle_guest_left_due_to_patience()
+		# НЕ отнимаем сердце здесь, чтобы избежать двойного отнятия
+		# decrease_patience() автоматически вызывает _handle_guest_left_due_to_patience(), который эмитит
+		# EventBus.guest_left_due_to_patience, и HeartBar._on_guest_left_due_to_patience() отнимает сердце
+		DebugLogger.log("  ❌ Терпение = 0% - сердце отнято через _handle_guest_left_due_to_patience()")
 	else:
 		# Терпение стало < 100% - пытаемся отнять 100 чаевых
 		var current_tips = SaveManager.instance.score
