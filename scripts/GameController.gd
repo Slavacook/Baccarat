@@ -1107,6 +1107,13 @@ func _on_settings_closed():
 		ui_manager.button_ui.action_button.disabled = false
 		DebugLogger.log("⚙️ Настройки закрыты → кнопка 'Карты' включена")
 	
+	# Убираем фокус с кнопки настроек, чтобы пробел не активировал её
+	if settings_button:
+		settings_button.release_focus()
+	# Также сбрасываем фокус со всего viewport
+	if get_viewport():
+		get_viewport().gui_release_focus()
+	
 	# Включаем обратно все UI элементы
 	if ui_event_handler:
 		ui_event_handler.show_game_ui_elements()

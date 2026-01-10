@@ -270,3 +270,15 @@ func load_chance_cards_enabled() -> bool:
 	"""Загрузить состояние карт шансов (по умолчанию true - включены)"""
 	var settings = load_settings()
 	return settings.get("chance_cards_enabled", true)
+
+# ← Настройки бессмертия
+func save_immortality_enabled(enabled: bool):
+	"""Сохранить состояние бессмертия (включено/выключено)"""
+	var settings = load_settings()
+	settings["immortality_enabled"] = enabled
+	save_settings(settings)
+
+func load_immortality_enabled() -> bool:
+	"""Загрузить состояние бессмертия (по умолчанию false - выключено)"""
+	var settings = load_settings()
+	return settings.get("immortality_enabled", false)

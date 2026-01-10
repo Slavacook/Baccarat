@@ -34,7 +34,7 @@ var banker2_suit: OptionButton
 
 var apply_button: Button
 var close_button: Button
-var preset_pairs_button: Button  # Быстрая настройка "две пары"
+var immortality_checkbox: CheckBox  # Переключатель бессмертия
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -166,15 +166,19 @@ func _create_ui():
 	var sep3 = HSeparator.new()
 	content_vbox.add_child(sep3)
 	
+	# Переключатель бессмертия
+	immortality_checkbox = CheckBox.new()
+	immortality_checkbox.text = "💀 Бессмертие (сердца не отнимаются)"
+	content_vbox.add_child(immortality_checkbox)
+	
+	# Разделитель
+	var sep4 = HSeparator.new()
+	content_vbox.add_child(sep4)
+	
 	# Быстрые настройки
 	var presets_hbox = HBoxContainer.new()
 	presets_hbox.add_theme_constant_override("separation", 10)
 	content_vbox.add_child(presets_hbox)
-	
-	preset_pairs_button = Button.new()
-	preset_pairs_button.text = "🔫 Две пары (5,5 + 10,10)"
-	preset_pairs_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	presets_hbox.add_child(preset_pairs_button)
 	
 	var preset_natural_button = Button.new()
 	preset_natural_button.text = "❓ Натуральная (9)"
@@ -219,7 +223,7 @@ func _connect_signals():
 	background.gui_input.connect(_on_background_input)
 	apply_button.pressed.connect(_on_apply_pressed)
 	close_button.pressed.connect(_on_close_pressed)
-	preset_pairs_button.pressed.connect(_on_preset_pairs)
+	immortality_checkbox.toggled.connect(_on_immortality_toggled)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
@@ -244,6 +248,10 @@ func _load_current_values():
 	"""Загрузить текущие значения из TestCardsManager"""
 	enabled_checkbox.button_pressed = TestCardsManager.enabled
 	
+	# Загружаем состояние бессмертия из SaveManager
+	if immortality_checkbox:
+		immortality_checkbox.button_pressed = SaveManager.instance.load_immortality_enabled()
+	
 	_load_card_option("player1", player1_value, player1_suit)
 	_load_card_option("player2", player2_value, player2_suit)
 	_load_card_option("banker1", banker1_value, banker1_suit)
@@ -258,6 +266,10 @@ func _load_card_option(position: String, value_opt: OptionButton, suit_opt: Opti
 func _apply_values():
 	"""Применить выбранные значения"""
 	TestCardsManager.set_enabled(enabled_checkbox.button_pressed)
+	
+	# Сохраняем состояние бессмертия в SaveManager
+	if immortality_checkbox:
+		SaveManager.instance.save_immortality_enabled(immortality_checkbox.button_pressed)
 	
 	_apply_card("player1", player1_value, player1_suit)
 	_apply_card("player2", player2_value, player2_suit)
@@ -290,23 +302,23 @@ func _on_close_pressed():
 	"""Закрыть без применения"""
 	close_popup()
 
-func _on_preset_pairs():
-	"""Быстрая настройка: две пары (для тестирования Revolver Card)"""
-	enabled_checkbox.button_pressed = true
+func _on_immortality_toggled(pressed: bool):
+	"""Обработка переключения бессмертия"""
+	# Сохраняем сразу при изменении
+	SaveManager.instance.save_immortality_enabled(pressed)
 	
-	# Player: 5♠, 5♦
-	player1_value.selected = 5   # 5
-	player1_suit.selected = 2    # Spades
-	player2_value.selected = 5   # 5
-	player2_suit.selected = 3    # Diamonds
-	
-	# Banker: 10♥, 10♦
-	banker1_value.selected = 10  # 10
-	banker1_suit.selected = 1    # Hearts
-	banker2_value.selected = 10  # 10
-	banker2_suit.selected = 3    # Diamonds
-	
-	print("🧪 Пресет 'Две пары' установлен")
+	if pressed:
+		# При включении бессмертия добавляем +100000 чаевых
+		var tips_before = SaveManager.instance.score
+		SaveManager.instance.add_score(100000)
+		var tips_after = SaveManager.instance.score
+		print("💀 Бессмертие включено - добавлено +100000 чаевых: %d → %d" % [tips_before, tips_after])
+		
+		# Обновляем статистику если есть StatsManager
+		if StatsManager.instance:
+			StatsManager.instance.update_stats()
+	else:
+		print("💀 Бессмертие выключено")
 
 func _on_preset_natural():
 	"""Быстрая настройка: натуральная победа (для тестирования Mystery Card)"""
