@@ -17,9 +17,16 @@ signal guest_left(guest_id: int)
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Начальные балансы по статусу богатства
-const POOR_BALANCE: float = 20000.0    # Бедный
-const MEDIUM_BALANCE: float = 40000.0   # Средний
-const RICH_BALANCE: float = 120000.0    # Богатый
+const POOR_BALANCE: float = 50000.0    # Бедный
+const MEDIUM_BALANCE: float = 100000.0  # Средний
+const RICH_BALANCE: float = 300000.0    # Богатый
+
+# Пороги для изменения статуса богатства (динамическое обновление)
+const WEALTH_THRESHOLD_POOR_TO_MEDIUM: float = 70000.0   # Бедный → Средний
+const WEALTH_THRESHOLD_MEDIUM_TO_RICH: float = 150000.0  # Средний → Богатый
+const WEALTH_THRESHOLD_RICH_TO_MEDIUM: float = 70000.0   # Богатый → Средний
+const WEALTH_THRESHOLD_MEDIUM_TO_POOR: float = 30000.0   # Средний → Бедный
+const WEALTH_THRESHOLD_RICH_TO_POOR: float = 30000.0     # Богатый → Бедный (прямой переход)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -141,6 +148,11 @@ func get_balance_string(guest_id: int) -> String:
 
 # ← Инициализировать баланс гостя по статусу богатства
 func initialize_guest_balance(guest_id: int) -> void:
+	"""Инициализирует баланс гостя на основе его текущего статуса богатства
+	
+	ВАЖНО: Эта функция ПРИНУДИТЕЛЬНО устанавливает баланс согласно статусу.
+	Используется при активации нового гостя или при изменении статуса богатства.
+	"""
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestStatsManager: неверный guest_id %d" % guest_id)
 		return
@@ -163,7 +175,7 @@ func initialize_guest_balance(guest_id: int) -> void:
 		_:
 			initial_balance = MEDIUM_BALANCE  # По умолчанию средний
 	
-	# Устанавливаем начальный баланс
+	# Устанавливаем начальный баланс ПРИНУДИТЕЛЬНО (перезаписываем текущий баланс)
 	guest_initial_balances[guest_id - 1] = initial_balance
 	set_guest_balance(guest_id, initial_balance)
 	
@@ -220,6 +232,79 @@ func check_guests_balance_at_round_end() -> void:
 			EventBus.guest_left_due_to_bankruptcy.emit(guest_id)
 			
 			print("👋 Гость %d ушел в минус (баланс: %.0f)" % [guest_id, balance])
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРОВЕРКА И ОБНОВЛЕНИЕ СТАТУСА БОГАТСТВА
+# ═══════════════════════════════════════════════════════════════════════════
+
+func check_and_update_guest_wealth(guest_id: int) -> void:
+	"""Проверяет баланс гостя и обновляет статус богатства при необходимости
+	
+	Логика переходов:
+	- Бедный → Средний: если баланс >= 70000
+	- Средний → Богатый: если баланс >= 150000
+	- Богатый → Средний: если баланс < 70000 (но >= 30000)
+	- Богатый → Бедный: если баланс < 30000 (прямой переход, если большая проигрышная ставка)
+	- Средний → Бедный: если баланс < 30000
+	
+	ВАЖНО: Текущий баланс НЕ меняется, меняется только статус (влияет на размер будущих ставок)
+	"""
+	if guest_id < 1 or guest_id > 6:
+		return
+	
+	if not GuestSettingsManager:
+		return
+	
+	var current_balance = get_guest_balance(guest_id)
+	var current_wealth = GuestSettingsManager.get_guest_wealth(guest_id)
+	var new_wealth: GuestSettingsManager.GuestWealth = current_wealth
+	
+	# Логика перехода между статусами
+	match current_wealth:
+		GuestSettingsManager.GuestWealth.POOR:
+			# Бедный → Средний
+			if current_balance >= WEALTH_THRESHOLD_POOR_TO_MEDIUM:
+				new_wealth = GuestSettingsManager.GuestWealth.MEDIUM
+		
+		GuestSettingsManager.GuestWealth.MEDIUM:
+			# Средний → Богатый
+			if current_balance >= WEALTH_THRESHOLD_MEDIUM_TO_RICH:
+				new_wealth = GuestSettingsManager.GuestWealth.RICH
+			# Средний → Бедный
+			elif current_balance < WEALTH_THRESHOLD_MEDIUM_TO_POOR:
+				new_wealth = GuestSettingsManager.GuestWealth.POOR
+		
+		GuestSettingsManager.GuestWealth.RICH:
+			# Богатый → Бедный (прямой переход при большой проигрышной ставке)
+			if current_balance < WEALTH_THRESHOLD_RICH_TO_POOR:
+				new_wealth = GuestSettingsManager.GuestWealth.POOR
+			# Богатый → Средний
+			elif current_balance < WEALTH_THRESHOLD_RICH_TO_MEDIUM:
+				new_wealth = GuestSettingsManager.GuestWealth.MEDIUM
+	
+	# Обновляем статус, если он изменился
+	if new_wealth != current_wealth:
+		var old_wealth_name = GuestSettingsManager.GuestWealth.keys()[current_wealth]
+		var new_wealth_name = GuestSettingsManager.GuestWealth.keys()[new_wealth]
+		
+		# ВАЖНО: Изменяем статус с preserve_balance = true, чтобы не сбросить баланс
+		GuestSettingsManager.set_guest_wealth(guest_id, new_wealth, true)
+		
+		print("💼 Гость %d: статус изменился %s → %s (баланс: %.0f)" % [
+			guest_id, old_wealth_name, new_wealth_name, current_balance
+		])
+
+func check_all_guests_wealth_at_round_end() -> void:
+	"""Проверяет всех активных гостей и обновляет их статус богатства при необходимости
+	
+	Вызывается в конце раунда после всех выплат (в _complete_round_and_prepare_new_game)
+	"""
+	if not GuestSettingsManager:
+		return
+	
+	for guest_id in range(1, 7):
+		if GuestSettingsManager.is_guest_enabled(guest_id):
+			check_and_update_guest_wealth(guest_id)
 
 # ← Обработать уход гостя из-за терпения (терпение достигло 0)
 func _handle_guest_left_due_to_patience(guest_id: int) -> void:

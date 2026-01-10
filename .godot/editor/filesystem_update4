@@ -7,3 +7,5 @@ res://scripts/Toast.gd
 res://scripts/autoload/GuestStatsManager.gd
 res://scripts/utils/GameStateController.gd
 res://scripts/GameOverScene.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/autoload/GuestSettingsManager.gd

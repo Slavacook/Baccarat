@@ -2043,6 +2043,8 @@ func _complete_round_and_prepare_new_game() -> void:
 	# Проверяем балансы гостей и выключаем тех, кто ушел в минус
 	if GuestStatsManager:
 		GuestStatsManager.check_guests_balance_at_round_end()
+		# Проверяем и обновляем статус богатства после проверки балансов
+		GuestStatsManager.check_all_guests_wealth_at_round_end()
 	
 	# Проверяем возврат гостей перед следующей раздачей (до обновления стола)
 	# Гости должны вернуться до того, как стол обновится и они смогут сделать ставки

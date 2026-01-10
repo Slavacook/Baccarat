@@ -122,7 +122,14 @@ func set_guest_character(guest_id: int, character: GuestCharacter) -> void:
 	print("👥 Гость %d: характер = %s" % [guest_id, GuestCharacter.keys()[character]])
 
 # ← Установить обеспеченность гостя
-func set_guest_wealth(guest_id: int, wealth: GuestWealth) -> void:
+func set_guest_wealth(guest_id: int, wealth: GuestWealth, preserve_balance: bool = false) -> void:
+	"""Установить обеспеченность гостя
+	
+	Args:
+		guest_id: ID гостя (1-6)
+		wealth: Новый статус богатства
+		preserve_balance: Если true, баланс не меняется (только статус)
+	"""
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestSettingsManager: неверный guest_id %d" % guest_id)
 		return
@@ -132,8 +139,8 @@ func set_guest_wealth(guest_id: int, wealth: GuestWealth) -> void:
 	guest_settings_changed.emit(guest_id)
 	print("👥 Гость %d: обеспеченность = %s" % [guest_id, GuestWealth.keys()[wealth]])
 	
-	# Переинициализируем баланс при изменении статуса богатства
-	if GuestStatsManager:
+	# Переинициализируем баланс ТОЛЬКО если preserve_balance = false
+	if not preserve_balance and GuestStatsManager:
 		GuestStatsManager.initialize_guest_balance(guest_id)
 
 # ← Получить список активных гостей (возвращает массив guest_id: 1-6)

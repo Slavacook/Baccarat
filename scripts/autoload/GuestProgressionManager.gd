@@ -56,13 +56,59 @@ func _ready():
 # ═══════════════════════════════════════════════════════════════════════════
 
 func initialize_first_guest() -> void:
-	"""Инициализировать первого случайного гостя при первом запуске"""
+	"""Инициализировать первого случайного гостя при первом запуске
+	
+	ВАЖНО: Если авторежим включен и чаевые = 0, принудительно сбрасываем всех гостей
+	и создаём новых с правильными статусами (первый гость = POOR).
+	Это нужно, чтобы избежать проблем, когда гость был включен вручную в настройках
+	с неправильным статусом (например, RICH вместо POOR).
+	"""
 	if not GuestSettingsManager:
 		return
 	
+	# Если авторежим включен - проверяем чаевые для определения правильного количества гостей
+	if auto_mode_enabled:
+		if not SaveManager or not SaveManager.instance:
+			return
+		
+		var current_tips = SaveManager.instance.score
+		var required_count = get_required_guest_count(current_tips)
+		
+		# Если чаевые = 0 (первый запуск) - принудительно пересоздаём гостей
+		if current_tips == 0:
+			var current_active_guests = GuestSettingsManager.get_active_guests()
+			
+			# Если уже есть активные гости, но это первый запуск (0 чаевых),
+			# значит они были включены вручную или из старых сохранений
+			# Нужно их отключить и создать правильных
+			if current_active_guests.size() > 0:
+				print("🎯 Первый запуск (0 чаевых), но найдены активные гости: %s" % current_active_guests)
+				print("🎯 Отключаем всех для пересоздания с правильными статусами")
+				
+				# Отключаем всех активных гостей
+				for guest_id in current_active_guests:
+					GuestSettingsManager.set_guest_enabled(guest_id, false)
+			
+			# Активируем правильное количество гостей (с 0 чаевых должно быть 1)
+			# activate_random_guests() выберет случайного гостя и установит ему статус POOR
+			if required_count > 0:
+				var activated = activate_random_guests(required_count)
+				if activated.size() > 0:
+					initial_guest_initialized = true
+					print("🎯 Первый гость инициализирован: гость %d (статус: POOR)" % activated[0])
+				else:
+					push_error("GuestProgressionManager: не удалось активировать первого гостя")
+			return
+		else:
+			# Чаевые > 0 - это не первый запуск, гости уже должны быть правильно настроены
+			# Просто проверяем, что их количество соответствует чаевым
+			initial_guest_initialized = true
+			return
+	
+	# Если авторежим выключен - используем старую логику
 	# Проверить, был ли первый запуск (все гости выключены)
-	var active_guests = GuestSettingsManager.get_active_guests()
-	if active_guests.size() > 0:
+	var active_guests_check = GuestSettingsManager.get_active_guests()
+	if active_guests_check.size() > 0:
 		# Уже есть активные гости - пропускаем
 		initial_guest_initialized = true
 		return
@@ -197,6 +243,11 @@ func get_random_inactive_guest() -> int:
 func activate_guest(guest_id: int, show_toast: bool = true) -> bool:
 	"""Активировать конкретного гостя
 	
+	Определяет начальный статус богатства на основе порядка активации:
+	- Первые 2 гостя → бедные
+	- Следующие 2 гостя (3-й и 4-й) → средние
+	- Последние 2 гостя (5-й и 6-й) → богатые
+	
 	Args:
 		guest_id: ID гостя для активации (1-6)
 		show_toast: Показывать ли Toast уведомление
@@ -216,11 +267,40 @@ func activate_guest(guest_id: int, show_toast: bool = true) -> bool:
 	if GuestSettingsManager.is_guest_enabled(guest_id):
 		return false
 	
+	# Определяем начальный статус богатства на основе порядка активации
+	# Получаем количество активных гостей ДО активации текущего
+	var active_guests = GuestSettingsManager.get_active_guests()
+	var active_count = active_guests.size()  # Количество ДО активации текущего
+	
+	var initial_wealth: GuestSettingsManager.GuestWealth
+	if active_count < 2:
+		# Первые 2 гостя → бедные
+		initial_wealth = GuestSettingsManager.GuestWealth.POOR
+	elif active_count < 4:
+		# Следующие 2 гостя (3-й и 4-й) → средние
+		initial_wealth = GuestSettingsManager.GuestWealth.MEDIUM
+	else:
+		# Последние 2 гостя (5-й и 6-й) → богатые
+		initial_wealth = GuestSettingsManager.GuestWealth.RICH
+	
+	# Устанавливаем статус ПЕРЕД активацией (чтобы initialize_guest_balance использовал правильный статус)
+	# preserve_balance = false, потому что это новая активация - баланс устанавливается из статуса
+	# ВАЖНО: Если гость был включен из сохранений, его статус может быть неправильным (RICH вместо POOR)
+	# Поэтому мы принудительно устанавливаем правильный статус и переинициализируем баланс
+	GuestSettingsManager.set_guest_wealth(guest_id, initial_wealth, false)
+	
 	# Активировать гостя
 	GuestSettingsManager.set_guest_enabled(guest_id, true)
 	
+	# ВАЖНО: Принудительно переинициализируем баланс после установки статуса
+	# Это нужно, если гость был включен в сохранённых настройках и имел неправильный баланс
+	if GuestStatsManager:
+		GuestStatsManager.initialize_guest_balance(guest_id)
+	
 	# Логировать активацию
-	print("🎯 Гость %d активирован (прогрессия)" % guest_id)
+	print("🎯 Гость %d активирован (прогрессия, статус: %s)" % [
+		guest_id, GuestSettingsManager.GuestWealth.keys()[initial_wealth]
+	])
 	
 	# Если show_toast - показать Toast
 	if show_toast and EventBus:
