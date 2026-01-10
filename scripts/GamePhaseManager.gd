@@ -1315,6 +1315,7 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		original_chip.texture_normal = texture
 		original_chip.position = coords
 		original_chip.visible = true
+		original_chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 		
 		# Отключаем ВСЕ старые обработчики (и _on_chip_pressed, и _on_chip_instance_pressed)
 		# В Godot 4 используем get_connections() который возвращает Array[Dictionary]
@@ -1352,6 +1353,7 @@ func _show_guest_chip_at_position(bet_type: String, position_index: int, coords:
 		new_chip.scale = original_chip.scale
 		new_chip.modulate = original_chip.modulate
 		new_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		new_chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 		new_chip.visible = true
 		
 		# Подключаем сигнал

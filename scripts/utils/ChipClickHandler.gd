@@ -262,7 +262,29 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 	
 	# Для ошибки "wrong_order" при сборе - штрафуем только гостя, чья ставка была собрана неправильно
 	if validation.error_type == "wrong_order" and bet_collection_manager and bet_collection_manager.is_collect_mode():
-		await _apply_penalty_to_guest(bet_type, position_index, "неправильного порядка сбора ставок")
+		# Проверяем, ушел ли гость, чья ставка была собрана неправильно
+		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+		var is_left_guest = false
+		if sector >= 1 and sector <= 6:
+			var guest_id = sector
+			is_left_guest = GuestSettingsManager and not GuestSettingsManager.is_guest_enabled(guest_id)
+		
+		if is_left_guest:
+			# Гость ушел - применяем только штраф -100 чаевых (без уменьшения терпения)
+			var current_tips = SaveManager.instance.score if SaveManager.instance else 0
+			if current_tips >= 100:
+				# Чаевых достаточно - применяем быстрый штраф
+				await _apply_penalty_quick(100)
+				DebugLogger.log("  💰 Штраф -100 чаевых для ушедшего гостя %d за неправильный порядок сбора ставки %s[%d] (осталось %d)" % [sector, bet_type, position_index, SaveManager.instance.score])
+			else:
+				# Чаевых недостаточно - отнимаем сердце (если не бессмертие)
+				if not SaveManager.instance.load_immortality_enabled():
+					_lose_life_directly()
+				DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) для штрафа ушедшему гостю %d" % [current_tips, sector])
+		else:
+			# Гость не ушел - обычная обработка (уменьшение терпения на 20% и штраф -100 чаевых)
+			await _apply_penalty_to_guest(bet_type, position_index, "неправильного порядка сбора ставок")
+		
 		# Показываем сообщение об ошибке
 		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
 		EventBus.show_toast_error.emit(error_msg)
@@ -326,9 +348,48 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
 		return true  # Ошибка обработана, выходим
 	
-	# Для ошибки "pay_losing" - штрафуем только гостя, чья ставка была проигранной
+	# Для ошибки "pay_losing" - штраф -100 чаевых И уменьшение терпения на -20% (для любых типов ставок: Player, Banker, Tie, пары)
 	if validation.error_type == "pay_losing":
-		await _apply_penalty_to_guest(bet_type, position_index, "попытки оплатить проигранную ставку")
+		# Уменьшаем терпение на 20% у гостя, чья ставка была попытка оплатить проигранную
+		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+		if sector >= 1 and sector <= 6:
+			var guest_id = sector
+			var patience_before = GuestStatsManager.get_guest_patience(guest_id)
+			
+			# Уменьшаем терпение на 20%
+			GuestStatsManager.decrease_patience(guest_id, 20)
+			var patience_after = GuestStatsManager.get_guest_patience(guest_id)
+			
+			DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-20%%) из-за попытки оплатить проигранную ставку %s[%d]" % [guest_id, patience_before, patience_after, bet_type, position_index])
+			
+			# Проверяем терпение перед штрафом
+			if patience_before == 100:
+				# Терпение было 100% - показываем тост о прощении (штраф не применяем)
+				DebugLogger.log("  ✅ Терпение было 100% - ошибка прощена, штраф не применяется")
+				EventBus.show_toast_info.emit("На первый раз прощаю")
+			else:
+				# Терпение было < 100% - применяем штраф -100 чаевых
+				var current_tips = SaveManager.instance.score if SaveManager.instance else 0
+				if current_tips >= 100:
+					# Чаевых достаточно - применяем быстрый штраф
+					await _apply_penalty_quick(100)
+					DebugLogger.log("  💰 Штраф -100 чаевых за попытку оплатить проигранную ставку %s[%d] (осталось %d)" % [bet_type, position_index, SaveManager.instance.score])
+				else:
+					# Чаевых недостаточно - отнимаем сердце (если не бессмертие)
+					if not SaveManager.instance.load_immortality_enabled():
+						_lose_life_directly()
+					DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) для штрафа за попытку оплатить проигранную ставку %s[%d]" % [current_tips, bet_type, position_index])
+		else:
+			# Не гостевые ставки - только штраф без терпения
+			var current_tips = SaveManager.instance.score if SaveManager.instance else 0
+			if current_tips >= 100:
+				await _apply_penalty_quick(100)
+				DebugLogger.log("  💰 Штраф -100 чаевых за попытку оплатить проигранную ставку %s[%d] (осталось %d)" % [bet_type, position_index, SaveManager.instance.score])
+			else:
+				if not SaveManager.instance.load_immortality_enabled():
+					_lose_life_directly()
+				DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) для штрафа" % current_tips)
+		
 		# Показываем сообщение об ошибке
 		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
 		EventBus.show_toast_error.emit(error_msg)

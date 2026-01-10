@@ -151,6 +151,7 @@ func setup(player_chip: TextureButton, banker_chip: TextureButton, tie_chip: Tex
 	for chip in chip_nodes.values():
 		chip.visible = false
 		chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 
 	print("✅ ChipVisualManager: настроено %d фишек" % chip_nodes.size())
 
@@ -358,6 +359,14 @@ func _on_chip_pressed(bet_type: String) -> void:
 	Args:
 		bet_type: Тип ставки, на которую кликнули
 	"""
+	# Снимаем фокус с фишки после клика мышкой, чтобы избежать двойного срабатывания при нажатии пробела
+	var chip = chip_nodes.get(bet_type)
+	if chip:
+		chip.release_focus()
+		# Также снимаем фокус с viewport на случай, если фокус остался
+		if chip.get_viewport():
+			chip.get_viewport().gui_release_focus()
+	
 	print("🖱️  ChipVisualManager: клик на фишку %s" % bet_type)
 	chip_clicked.emit(bet_type)
 
@@ -577,6 +586,7 @@ func _create_extra_chips_max(bet_type: String, texture: Texture2D) -> void:
 		new_chip.scale = original_chip.scale
 		new_chip.modulate = original_chip.modulate
 		new_chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		new_chip.focus_mode = Control.FOCUS_NONE  # Отключаем фокус чтобы Space не активировал фишки
 		new_chip.visible = true
 		
 		# Подключаем сигнал клика с position_index
@@ -825,6 +835,14 @@ func remove_all_stake_labels_for_type(bet_type: String) -> void:
 
 func _on_chip_instance_pressed(bet_type: String, position_index: int) -> void:
 	"""Обработка клика на конкретную фишку"""
+	# Снимаем фокус с фишки после клика мышкой, чтобы избежать двойного срабатывания при нажатии пробела
+	var chip = get_chip_instance(bet_type, position_index)
+	if chip and chip.node:
+		chip.node.release_focus()
+		# Также снимаем фокус с viewport на случай, если фокус остался
+		if chip.node.get_viewport():
+			chip.node.get_viewport().gui_release_focus()
+	
 	print("🖱️  ChipVisualManager: клик на фишку %s[%d]" % [bet_type, position_index])
 	print("🔵 ChipVisualManager: эмитим сигнал chip_instance_clicked для %s[%d]" % [bet_type, position_index])
 	chip_instance_clicked.emit(bet_type, position_index)
