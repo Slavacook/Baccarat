@@ -444,12 +444,14 @@ func _validate_pay_internal(bet, bet_type: String, position_index: int = 0) -> D
 func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Валидация попытки собрать ставку"""
 	
-	# Нельзя собирать выигрышные
-	if bet.is_won():
-		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
-	
-	# Нельзя собирать Tie push ставки (Player/Banker при Tie) - это тоже ошибка collect_winning
+	# Сначала проверяем Tie push (более специфичный случай)
+	# При Tie: Player и Banker - это push ставки (не выиграли, но и не проиграли)
 	if is_tie_push_bet(bet_type):
+		return _error_result("collect_winning", "ERR_COLLECT_TIE_PUSH")
+	
+	# Потом проверяем реально выигрышные ставки
+	# Например: Player выиграл, пытаемся собрать выигрышную ставку Player
+	if bet.is_won():
 		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
 	
 	# Проверяем, не собрана ли уже (используем bet.is_collected как единственный источник истины)
