@@ -232,6 +232,13 @@ func _unhandled_input(event: InputEvent) -> void:
 	if not visible:
 		return
 	
+	# Обработка ESC для закрытия окна (работает для клавиатуры и геймпада)
+	if event.is_action_pressed("exit"):
+		get_viewport().set_input_as_handled()
+		# Закрываем окно с отменой (is_correct=false, collected=0)
+		_return_to_game(false, 0.0, expected_payout)
+		return
+	
 	# Обработка навигации (клавиатура и геймпад через Input Actions)
 	var direction: String = ""
 	if event.is_action_pressed("left"):

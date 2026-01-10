@@ -110,7 +110,18 @@ func _handle_wrong_payout(
 	collected: float,
 	expected: float
 ) -> void:
-	"""Обработать неправильную выплату"""
+	"""Обработать неправильную выплату
+	
+	ВАЖНО: Если collected == 0.0, это отмена (ESC), а не ошибка.
+	В этом случае не эмитим payout_wrong и не отнимаем сердце.
+	"""
+	# Если collected == 0.0, это отмена (ESC) - не считаем это ошибкой
+	if collected == 0.0:
+		DebugLogger.log("  ⏸️ Отмена выплаты %s[%d] (ESC нажата, сердце НЕ отнимается)" % [
+			bet_type, position_index
+		])
+		return  # НЕ эмитим payout_wrong для отмены
+	
 	# Эмитим событие (потеря жизни обрабатывается через EventBus в HeartBar)
 	EventBus.payout_wrong.emit(collected, expected, bet_type, position_index)
 	DebugLogger.log("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [

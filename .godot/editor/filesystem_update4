@@ -16,3 +16,5 @@ res://scripts/ui/GuestEventHandler.gd
 res://scripts/Localization.gd
 res://scripts/payout/PayoutQueueHandler.gd
 res://scripts/health_system/HeartBar.gd
+res://scripts/PayoutOverlay.gd
+res://scripts/utils/PayoutResultHandler.gd
