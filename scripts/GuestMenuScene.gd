@@ -697,7 +697,7 @@ func _on_guest_slot_gui_input(event: InputEvent, guest_id: int):
 	var is_selected = menu_state.get_selected_guest() == guest_id
 	
 	if not is_enabled:
-		# Клик по призраку → включить гостя, выбрать, показать досье
+		# Гость не включен → включить и выбрать (показать досье)
 		GuestSettingsManager.set_guest_enabled(guest_id, true)
 		if menu_state:
 			menu_state.set_selected_guest(guest_id)
@@ -705,14 +705,14 @@ func _on_guest_slot_gui_input(event: InputEvent, guest_id: int):
 		_update_option_buttons(guest_id)
 	
 	elif not is_selected:
-		# Клик по невыбранному материальному гостю → выбрать, показать досье
+		# Гость включен, но не выбран → выбрать (показать досье)
 		if menu_state:
 			menu_state.set_selected_guest(guest_id)
 		_update_all_guests_visibility()
 		_update_option_buttons(guest_id)
 	
 	else:
-		# Клик по выбранному материальному гостю → выключить, показать призрака, скрыть досье
+		# Гость включен и выбран → выключить (скрыть досье)
 		GuestSettingsManager.set_guest_enabled(guest_id, false)
 		if menu_state:
 			menu_state.set_selected_guest(0)

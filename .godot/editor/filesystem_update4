@@ -10,3 +10,5 @@ res://scripts/utils/ChipClickHandler.gd
 res://scripts/ToastManager.gd
 res://scripts/autoload/EventBus.gd
 res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/GuestMenuScene.gd
+res://scripts/popups/TestCardsPopup.gd

@@ -318,7 +318,16 @@ func _on_immortality_toggled(pressed: bool):
 		if StatsManager.instance:
 			StatsManager.instance.update_stats()
 	else:
-		print("💀 Бессмертие выключено")
+		# При выключении бессмертия сбрасываем чаевые на ноль
+		var tips_before = SaveManager.instance.score
+		SaveManager.instance.score = 0
+		SaveManager.instance.save_data()
+		var tips_after = SaveManager.instance.score
+		print("💀 Бессмертие выключено - чаевые сброшены на ноль: %d → %d" % [tips_before, tips_after])
+		
+		# Обновляем статистику если есть StatsManager
+		if StatsManager.instance:
+			StatsManager.instance.update_stats()
 
 func _on_preset_natural():
 	"""Быстрая настройка: натуральная победа (для тестирования Mystery Card)"""
