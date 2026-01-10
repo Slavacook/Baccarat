@@ -372,9 +372,25 @@ func deal_first_four() -> void:
 		DebugLogger.log_error("❌ FirstFourDealCoordinator не инициализирован!")
 		return
 	
+	# Проверяем, есть ли активные гости
+	var active_guests = GuestSettingsManager.get_active_guests() if GuestSettingsManager else []
+	var has_active_guests = not active_guests.is_empty()
+	
+	# Проверяем, есть ли ставки у гостей
+	var has_guest_bets = false
+	if guest_bet_storage:
+		var guests_with_bets = guest_bet_storage.get_guests_with_bets()
+		has_guest_bets = not guests_with_bets.is_empty()
+	
+	# Проверяем, есть ли вообще какие-то ставки (через координатор)
 	var bets_info = first_four_deal_coordinator.has_any_bets()
-	if not bets_info.get("has_any", true):
-		EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
+	var has_any_bets = bets_info.get("has_any", true)
+	
+	# Показываем "Дамику!" если:
+	# 1. Нет активных гостей (все ушли) ИЛИ
+	# 2. Есть активные гости, но нет ставок (ни у гостей, ни общих)
+	if not has_active_guests or (has_active_guests and not has_guest_bets and not has_any_bets):
+		EventBus.show_toast_info.emit(Localization.t("DAMIKU_NO_BETS"))
 
 	# Проверяем флаг подготовки к новой игре (после оплаты всех фишек)
 	DebugLogger.log("  → is_prepared_table: %s" % is_table_prepared)

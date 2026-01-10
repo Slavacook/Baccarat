@@ -41,8 +41,9 @@ func _ready():
 	EventBus.show_toast_error.connect(_on_show_toast_error)
 	
 	# Подписываемся на события гостей
-	if GuestStatsManager:
-		GuestStatsManager.guest_left.connect(_on_guest_left)
+	if EventBus:
+		EventBus.guest_left_due_to_patience.connect(_on_guest_left_due_to_patience)
+		EventBus.guest_left_due_to_bankruptcy.connect(_on_guest_left_due_to_bankruptcy)
 	
 	if GuestReturnManager:
 		GuestReturnManager.guest_returned.connect(_on_guest_returned)
@@ -62,13 +63,20 @@ func _on_show_toast_success(message: String):
 func _on_show_toast_error(message: String):
 	show_error(message)
 
-func _on_guest_left(guest_id: int):
-	"""Обработчик ухода гостя - показываем тост"""
-	show_info("Гость %d ушел" % guest_id, 3.0)
+func _on_guest_left_due_to_patience(guest_id: int):
+	"""Обработчик ухода гостя из-за терпения - показываем тост"""
+	var message = Localization.t("GUEST_LEFT_PATIENCE") % guest_id
+	show_error(message, 3.0)
+
+func _on_guest_left_due_to_bankruptcy(guest_id: int):
+	"""Обработчик ухода гостя из-за банкротства - показываем тост"""
+	var message = Localization.t("GUEST_LEFT_BANKRUPTCY") % guest_id
+	show_info(message, 3.0)
 
 func _on_guest_returned(guest_id: int):
 	"""Обработчик возврата гостя - показываем тост"""
-	show_success("Гость %d вернулся" % guest_id, 3.0)
+	var message = Localization.t("GUEST_RETURNED") % guest_id
+	show_success(message, 3.0)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ (для прямых вызовов, если нужно)

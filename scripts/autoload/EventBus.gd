@@ -340,6 +340,11 @@ signal guest_bets_show_requested()
 @warning_ignore("unused_signal")
 signal guest_left_due_to_patience(guest_id: int)
 
+## Гость ушел из-за банкротства (баланс < 0)
+## Args: guest_id - ID гостя (1-6)
+@warning_ignore("unused_signal")
+signal guest_left_due_to_bankruptcy(guest_id: int)
+
 ## Скрыть выбранное сердце со стола (после определения результата)
 @warning_ignore("unused_signal")
 signal heart_bet_hide_selected()

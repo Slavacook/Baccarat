@@ -207,16 +207,17 @@ func check_guests_balance_at_round_end() -> void:
 		
 		var balance = get_guest_balance(guest_id)
 		
-		# Если баланс отрицательный - выключаем гостя
+		# Если баланс отрицательный - выключаем гостя и отмечаем уход
 		if balance < 0:
 			# Выключаем гостя
 			GuestSettingsManager.set_guest_enabled(guest_id, false)
 			
-			# Отмечаем в GuestReturnManager
-			GuestReturnManager.mark_guest_left(guest_id, current_round)
+			# Отмечаем в GuestReturnManager (причина ухода: банкротство)
+			GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.BANKRUPTCY)
 			
-			# Эмитим сигнал
+			# Эмитим сигнал с причиной ухода
 			guest_left.emit(guest_id)
+			EventBus.guest_left_due_to_bankruptcy.emit(guest_id)
 			
 			print("👋 Гость %d ушел в минус (баланс: %.0f)" % [guest_id, balance])
 
@@ -244,8 +245,8 @@ func _handle_guest_left_due_to_patience(guest_id: int) -> void:
 	# Выключаем гостя
 	GuestSettingsManager.set_guest_enabled(guest_id, false)
 	
-	# Отмечаем в GuestReturnManager
-	GuestReturnManager.mark_guest_left(guest_id, current_round)
+	# Отмечаем в GuestReturnManager (причина ухода: потеря терпения)
+	GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.PATIENCE)
 	
 	# Эмитим стандартный сигнал ухода (для совместимости)
 	guest_left.emit(guest_id)
@@ -304,20 +305,47 @@ func decrease_patience(guest_id: int, amount: int) -> void:
 	var current_patience = guest_patience[guest_id - 1]
 	var new_patience = max(current_patience - amount, 0)  # Минимум 0
 	
+	# Обновляем терпение всегда, даже если оно уже 0 (чтобы сработала проверка на уход)
+	guest_patience[guest_id - 1] = new_patience
+	
 	if new_patience != current_patience:
-		guest_patience[guest_id - 1] = new_patience
 		guest_patience_changed.emit(guest_id, new_patience)
 		print("😤 Гость %d: терпение %d -> %d (-%d)" % [guest_id, current_patience, new_patience, amount])
-		
-		# Проверяем, достигло ли терпение 0
-		if new_patience == 0:
-			# Терпение закончилось - гость уходит
+	else:
+		# Терпение уже было 0, но нужно проверить уход (для возвращенных гостей)
+		if current_patience == 0 and new_patience == 0:
+			print("😤 Гость %d: терпение уже 0%%, проверяем уход" % guest_id)
+	
+	# Проверяем, достигло ли терпение 0 (после обновления)
+	if new_patience == 0:
+		# Терпение закончилось - гость уходит (если он еще активен)
+		if GuestSettingsManager and GuestSettingsManager.is_guest_enabled(guest_id):
 			_handle_guest_left_due_to_patience(guest_id)
-		else:
-			# Запускаем таймер терпения (если PatienceTimerManager доступен)
-			# Таймер будет восстанавливать терпение обратно
-			if PatienceTimerManager and new_patience < 100:
-				PatienceTimerManager.start_timer(guest_id)
+	elif current_patience != new_patience:
+		# Терпение уменьшилось, но не стало 0 - запускаем таймер терпения (если PatienceTimerManager доступен)
+		# Таймер будет восстанавливать терпение обратно
+		if PatienceTimerManager and new_patience < 100:
+			PatienceTimerManager.start_timer(guest_id)
+
+# ← Установить терпение гостя (произвольное значение от 0 до 100)
+func set_guest_patience(guest_id: int, patience: int) -> void:
+	"""Установить терпение гостя
+	
+	Args:
+		guest_id: ID гостя (1-6)
+		patience: Значение терпения (0-100)
+	"""
+	if guest_id < 1 or guest_id > 6:
+		push_error("GuestStatsManager: неверный guest_id %d" % guest_id)
+		return
+	
+	var clamped_patience = clamp(patience, 0, 100)
+	var current_patience = guest_patience[guest_id - 1]
+	
+	if clamped_patience != current_patience:
+		guest_patience[guest_id - 1] = clamped_patience
+		guest_patience_changed.emit(guest_id, clamped_patience)
+		print("😌 Гость %d: терпение установлено до %d%%" % [guest_id, clamped_patience])
 
 # ← Сбросить терпение гостя
 func reset_guest_patience(guest_id: int) -> void:

@@ -14,7 +14,7 @@ signal guest_returned(guest_id: int)
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Словарь ушедших гостей: {guest_id: {round_when_left: int, rounds_until_return: int}}
+# Словарь ушедших гостей: {guest_id: {round_when_left: int, rounds_until_return: int, leave_reason: LeaveReason, patience_when_left: int}}
 # Гость вернется через случайное количество раундов (10-20)
 var guests_left: Dictionary = {}  # {guest_id: Dictionary}
 
@@ -24,6 +24,12 @@ var current_round: int = 0
 # Диапазон раундов до возврата
 const MIN_ROUNDS_UNTIL_RETURN: int = 10
 const MAX_ROUNDS_UNTIL_RETURN: int = 20
+
+# Причины ухода гостя
+enum LeaveReason {
+	PATIENCE,    # Ушел из-за потери терпения (терпение = 0%)
+	BANKRUPTCY   # Ушел из-за банкротства (баланс < 0)
+}
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -48,7 +54,14 @@ func _generate_return_rounds() -> int:
 	return randi_range(MIN_ROUNDS_UNTIL_RETURN, MAX_ROUNDS_UNTIL_RETURN)
 
 ## Отметить гостя как ушедшего
-func mark_guest_left(guest_id: int, round_number: int) -> void:
+func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason = LeaveReason.BANKRUPTCY) -> void:
+	"""Отметить гостя как ушедшего
+	
+	Args:
+		guest_id: ID гостя (1-6)
+		round_number: Номер раунда, когда гость ушел
+		leave_reason: Причина ухода (PATIENCE или BANKRUPTCY), по умолчанию BANKRUPTCY
+	"""
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestReturnManager: неверный guest_id %d" % guest_id)
 		return
@@ -58,13 +71,22 @@ func mark_guest_left(guest_id: int, round_number: int) -> void:
 		push_warning("GuestReturnManager: round_number < 1 (%d), устанавливаем 1" % round_number)
 		round_number = 1
 	
+	# Сохраняем текущее терпение гостя (нужно для возврата с правильным терпением при банкротстве)
+	var patience_when_left = 100
+	if GuestStatsManager:
+		patience_when_left = GuestStatsManager.get_guest_patience(guest_id)
+	
 	var rounds_until_return = _generate_return_rounds()
 	guests_left[guest_id] = {
 		"round_when_left": round_number,
-		"rounds_until_return": rounds_until_return
+		"rounds_until_return": rounds_until_return,
+		"leave_reason": leave_reason,
+		"patience_when_left": patience_when_left
 	}
-	print("👋 Гость %d ушел в раунде %d (вернется через %d раундов, в раунде %d)" % [
-		guest_id, round_number, rounds_until_return, round_number + rounds_until_return
+	
+	var reason_text = "из-за банкротства" if leave_reason == LeaveReason.BANKRUPTCY else "из-за потери терпения"
+	print("👋 Гость %d ушел %s в раунде %d (терпение было %d%%, вернется через %d раундов, в раунде %d)" % [
+		guest_id, reason_text, round_number, patience_when_left, rounds_until_return, round_number + rounds_until_return
 	])
 	print("👋 Текущий раунд в GuestReturnManager: %d" % get_current_round())
 
@@ -73,6 +95,11 @@ func return_guest(guest_id: int) -> void:
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestReturnManager: неверный guest_id %d" % guest_id)
 		return
+	
+	# Получаем данные гостя перед удалением из списка
+	var guest_data = guests_left.get(guest_id, {})
+	var leave_reason = guest_data.get("leave_reason", LeaveReason.BANKRUPTCY)
+	var patience_when_left = guest_data.get("patience_when_left", 100)
 	
 	# Удаляем из списка ушедших
 	guests_left.erase(guest_id)
@@ -102,6 +129,19 @@ func return_guest(guest_id: int) -> void:
 	if GuestSettingsManager:
 		GuestSettingsManager.set_guest_enabled(guest_id, true)
 	
+	# Устанавливаем терпение в зависимости от причины ухода:
+	# - Если ушел из-за терпения (PATIENCE) → возвращается с 60% терпения
+	# - Если ушел из-за банкротства (BANKRUPTCY) → возвращается с тем же терпением, какое было
+	if GuestStatsManager:
+		if leave_reason == LeaveReason.PATIENCE:
+			# Ушел из-за терпения - возвращается с 60% терпения
+			GuestStatsManager.set_guest_patience(guest_id, 60)
+			print("😌 Гость %d: терпение установлено до 60%% при возврате (ушел из-за терпения)" % guest_id)
+		else:
+			# Ушел из-за банкротства - возвращается с тем же терпением, какое было
+			GuestStatsManager.set_guest_patience(guest_id, patience_when_left)
+			print("😌 Гость %d: терпение восстановлено до %d%% при возврате (ушел из-за банкротства)" % [guest_id, patience_when_left])
+	
 	# Эмитим сигнал
 	guest_returned.emit(guest_id)
 	print("👋 Гость %d вернулся" % guest_id)
@@ -124,17 +164,8 @@ func return_all_guests_after_game_over() -> void:
 	print("🔄 GuestReturnManager: возвращаем %d гостей после геймовера" % guests_to_return.size())
 	
 	for guest_id in guests_to_return:
-		# Возвращаем гостя (баланс уже сброшен до начального значения в reset_all_balances())
-		# Нужно только включить гостя обратно и удалить из списка ушедших
-		guests_left.erase(guest_id)
-		
-		# Включаем гостя обратно
-		if GuestSettingsManager:
-			GuestSettingsManager.set_guest_enabled(guest_id, true)
-		
-		# Эмитим сигнал
-		guest_returned.emit(guest_id)
-		print("👋 Гость %d вернулся после геймовера" % guest_id)
+		# Возвращаем гостя через return_guest (который правильно обработает терпение)
+		return_guest(guest_id)
 	
 	print("✅ GuestReturnManager: все гости возвращены после геймовера")
 

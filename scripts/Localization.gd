@@ -55,6 +55,7 @@ const DATA = {
 		"PAYOUT_AMOUNT_EMPTY": "Выплата: —",
 		"PAYOUT_AMOUNT": "Выплата: %d",
 		"DAMIKU": "Дамику",
+		"DAMIKU_NO_BETS": "Дамику! (раздача без ставок)",
 		"VICTORY_BANKER": "Выигрывает Банкир: %d vs %d",
 		"VICTORY_PLAYER": "Выигрывает Игрок: %d vs %d",
 		"VICTORY_TIE": "Игалите",
@@ -145,6 +146,9 @@ const DATA = {
 		"GUEST_WEALTH_MEDIUM": "Средний",
 		"GUEST_WEALTH_RICH": "Богатый",
 		"GUEST_N": "Гость %d",
+		"GUEST_LEFT_PATIENCE": "Гость %d ушел НЕДОВОЛЬНЫЙ",
+		"GUEST_LEFT_BANKRUPTCY": "Гость %d ушел за фишками",
+		"GUEST_RETURNED": "Гость %d вернулся",
 		"CLOSE": "Закрыть",
 		
 		# ═══ HEART BET (Ставка сердцем) ═══
@@ -214,6 +218,7 @@ const DATA = {
 		"PAYOUT_AMOUNT_EMPTY": "Payout: —",
 		"PAYOUT_AMOUNT": "Payout: %d",
 		"DAMIKU": "No bets",
+		"DAMIKU_NO_BETS": "Damiku! (deal without bets)",
 		"VICTORY_BANKER": "Banker Wins: %d vs %d",
 		"VICTORY_PLAYER": "Player Wins: %d vs %d",
 		"VICTORY_TIE": "Tie",
@@ -304,6 +309,9 @@ const DATA = {
 		"GUEST_WEALTH_MEDIUM": "Medium",
 		"GUEST_WEALTH_RICH": "Rich",
 		"GUEST_N": "Guest %d",
+		"GUEST_LEFT_PATIENCE": "Guest %d left UNHAPPY",
+		"GUEST_LEFT_BANKRUPTCY": "Guest %d left for chips",
+		"GUEST_RETURNED": "Guest %d returned",
 		"CLOSE": "Close",
 		
 		# === HEART BET ===

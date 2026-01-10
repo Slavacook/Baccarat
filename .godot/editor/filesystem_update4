@@ -3,3 +3,9 @@ res://scripts/Localization.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
+res://scripts/GamePhaseManager.gd
+res://scripts/autoload/GuestReturnManager.gd
+res://scripts/autoload/GuestStatsManager.gd
+res://scripts/utils/ChipClickHandler.gd
+res://scripts/ToastManager.gd
+res://scripts/autoload/EventBus.gd

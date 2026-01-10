@@ -475,6 +475,8 @@ func _apply_penalty_to_guest(bet_type: String, position_index: int, reason: Stri
 		bet_type: Тип ставки
 		position_index: Индекс позиции
 		reason: Причина штрафа (для логирования)
+	
+	ВАЖНО: Применяет штрафы даже для возвращенных гостей, независимо от их текущего статуса активности.
 	"""
 	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
 	if sector < 1 or sector > 6:
@@ -482,9 +484,21 @@ func _apply_penalty_to_guest(bet_type: String, position_index: int, reason: Stri
 		return
 	
 	var guest_id = sector
+	
+	# Если гость не активен, но есть ставки на столе - это возвращенный гость со ставками
+	# Применяем штрафы в любом случае (даже если гость уже выключен)
+	var is_guest_active = GuestSettingsManager and GuestSettingsManager.is_guest_enabled(guest_id)
+	if not is_guest_active:
+		DebugLogger.log("  ⚠️ Гость %d не активен, но применяем штраф для ставки %s[%d] (возвращенный гость)" % [guest_id, bet_type, position_index])
+	
 	var patience_before = GuestStatsManager.get_guest_patience(guest_id)
 	
-	# Уменьшаем терпение на 20%
+	# Уменьшаем терпение на 20% (даже если гость не активен - это для возвращенных гостей)
+	# Если гость не активен, сначала включаем его обратно (для возвращенных гостей)
+	if not is_guest_active and GuestSettingsManager:
+		GuestSettingsManager.set_guest_enabled(guest_id, true)
+		DebugLogger.log("  🔄 Гость %d включен обратно для применения штрафа" % guest_id)
+	
 	GuestStatsManager.decrease_patience(guest_id, 20)
 	var patience_after = GuestStatsManager.get_guest_patience(guest_id)
 	
