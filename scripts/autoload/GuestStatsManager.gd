@@ -389,14 +389,22 @@ func _on_payout_wrong(_collected: float, _expected: float, bet_type: String, pos
 
 func _on_game_restarted() -> void:
 	"""Обработчик рестарта игры - сбрасываем все терпения и балансы"""
+	# 1. Сбрасываем терпение всех гостей до 100%
 	reset_all_patience()
+	
+	# 2. Сбрасываем таймеры терпения
 	if PatienceTimerManager:
 		PatienceTimerManager.reset_all_timers()
 	
-	# Сбрасываем начальные балансы и переинициализируем включенных гостей
+	# 3. Сбрасываем все балансы гостей на 0 (не используем reset_all_balances, т.к. она устанавливает начальные значения)
 	for i in range(6):
+		guest_balances[i] = 0.0
 		guest_initial_balances[i] = 0.0
+	
+	# 4. Переинициализируем включенных гостей (установим начальные балансы согласно их статусу богатства)
 	_initialize_all_enabled_guests()
+	
+	print("🔄 GuestStatsManager: все данные сброшены при рестарте (терпение=100%, балансы=0)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОХРАНЕНИЕ/ЗАГРУЗКА

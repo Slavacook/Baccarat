@@ -125,7 +125,17 @@ func restart_game() -> void:
 	if phase_manager:
 		phase_manager.reset()
 	
-	# Уведомляем все системы о рестарте
+	# ═══════════════════════════════════════════════════════════════════════
+	# СБРОС ВСЕХ ДАННЫХ ИГРЫ (чаевые, гости, балансы, терпение)
+	# ═══════════════════════════════════════════════════════════════════════
+	
+	# 1. Сбрасываем чаевые (ВАЖНО: до emit, чтобы GuestProgressionManager увидел 0)
+	if SaveManager and SaveManager.instance:
+		SaveManager.instance.reset_stats()
+		DebugLogger.log("💰 Чаевые сброшены при рестарте: 0")
+	
+	# 2. Уведомляем все системы о рестарте (GuestStatsManager сбросит балансы/терпение,
+	#    GuestProgressionManager пересчитает количество гостей на основе 0 чаевых)
 	EventBus.game_restarted.emit()
 	
 	DebugLogger.log("🔄 Игра перезапущена, все системы сброшены")

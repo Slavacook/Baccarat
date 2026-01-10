@@ -33,6 +33,7 @@ signal language_changed(lang: String)  # "ru" или "en"
 @onready var bet_tie_button: Button = find_child("BetTieButton", true, false)
 @onready var bet_pair_button: Button = find_child("BetPairButton", true, false)
 @onready var guest_settings_button: Button = find_child("GuestSettingsButton", true, false)
+@onready var guest_progression_button: Button = find_child("GuestProgressionButton", true, false)
 
 # === РАЗДЕЛ 4: РАЗМЕР СТАВОК ===
 @onready var bet_size_option: OptionButton = find_child("BetSizeOption", true, false)
@@ -126,6 +127,10 @@ func _connect_signals() -> void:
 	# Кнопка настроек гостей
 	if guest_settings_button:
 		guest_settings_button.pressed.connect(_on_guest_settings_pressed)
+	
+	# Кнопка прогрессии гостей
+	if guest_progression_button:
+		guest_progression_button.pressed.connect(_on_guest_progression_pressed)
 
 	# Размер ставок
 	if bet_size_option:
@@ -404,6 +409,10 @@ func _update_texts() -> void:
 	# Кнопка настроек гостей
 	if guest_settings_button:
 		guest_settings_button.text = Localization.t("GUEST_SETTINGS_BUTTON")
+	
+	# Кнопка прогрессии гостей
+	if guest_progression_button:
+		guest_progression_button.text = Localization.t("GUEST_PROGRESSION_BUTTON")
 
 func _update_mode_buttons(mode: String) -> void:
 	"""Обновить состояние кнопок режима игры
@@ -534,6 +543,35 @@ func _on_guest_settings_pressed():
 	if guest_menu and guest_menu.has_method("open_menu"):
 		guest_menu.open_menu()
 		print("👥 Открыто меню настроек гостей")
+
+func _on_guest_progression_pressed():
+	"""Обработка нажатия кнопки 'ПРОГРЕССИЯ ГОСТЕЙ' для открытия попапа настроек прогрессии"""
+	# Ищем попап в сцене Game
+	var game_scene = get_tree().get_first_node_in_group("game")
+	if not game_scene:
+		game_scene = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
+	
+	var progression_popup = null
+	if game_scene:
+		progression_popup = game_scene.get_node_or_null("GuestProgressionPopup")
+	
+	if not progression_popup:
+		# Создаём попап если его нет
+		var popup_scene = load("res://scenes/popups/GuestProgressionPopup.tscn")
+		if popup_scene:
+			progression_popup = popup_scene.instantiate()
+			progression_popup.name = "GuestProgressionPopup"
+			if game_scene:
+				game_scene.add_child(progression_popup)
+			else:
+				get_tree().root.add_child(progression_popup)
+		else:
+			push_error("SettingsScene: не удалось загрузить сцену GuestProgressionPopup.tscn")
+			return
+	
+	if progression_popup and progression_popup.has_method("open_popup"):
+		progression_popup.open_popup()
+		print("🎯 Открыт попап прогрессии гостей")
 
 func _on_bet_player_toggled(pressed: bool):
 	"""Обработка переключения ставки Player"""

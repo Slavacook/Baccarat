@@ -331,6 +331,16 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
 text = "ГОСТИ"
 
+[node name="GuestProgressionButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
+text = "ПРОГРЕССИЯ ГОСТЕЙ"
+
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
 layout_mode = 2
 size_flags_horizontal = 3

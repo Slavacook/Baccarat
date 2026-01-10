@@ -22,7 +22,22 @@ func _ready():
 	add_theme_stylebox_override("panel", stylebox)
 
 func show_message(text: String, duration: float = 2.5, on_finished: Callable = Callable()):
-	label.text = text
+	# Получаем label безопасно (если @onready ещё не инициализирован)
+	var label_node = label
+	if not label_node:
+		label_node = find_child("Label", true, false) as Label
+		if not label_node:
+			# Пытаемся найти через MarginContainer
+			var margin = find_child("MarginContainer", true, false)
+			if margin:
+				label_node = margin.find_child("Label", true, false) as Label
+	
+	if label_node:
+		label_node.text = text
+	else:
+		push_error("Toast: не удалось найти Label в Toast")
+		return
+	
 	var tween = create_tween().set_parallel(false)
 	tween.tween_property(self, "modulate:a", 1.0, 0.2).from(0.0)
 	tween.tween_interval(duration)

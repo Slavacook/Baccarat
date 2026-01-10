@@ -282,3 +282,26 @@ func load_immortality_enabled() -> bool:
 	"""Загрузить состояние бессмертия (по умолчанию false - выключено)"""
 	var settings = load_settings()
 	return settings.get("immortality_enabled", false)
+
+# ← Настройки прогрессии гостей
+func save_guest_progression_thresholds(thresholds: Dictionary):
+	"""Сохранить пороги прогрессии гостей"""
+	var settings = load_settings()
+	settings["guest_progression_thresholds"] = thresholds
+	save_settings(settings)
+
+func load_guest_progression_thresholds() -> Dictionary:
+	"""Загрузить пороги прогрессии гостей"""
+	var settings = load_settings()
+	return settings.get("guest_progression_thresholds", {})
+
+func save_guest_progression_auto_mode(enabled: bool):
+	"""Сохранить состояние автоматического режима прогрессии"""
+	var settings = load_settings()
+	settings["guest_progression_auto_mode"] = enabled
+	save_settings(settings)
+
+func load_guest_progression_auto_mode() -> bool:
+	"""Загрузить состояние автоматического режима прогрессии (по умолчанию true)"""
+	var settings = load_settings()
+	return settings.get("guest_progression_auto_mode", true)

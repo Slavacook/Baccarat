@@ -29,6 +29,26 @@ func _on_restart_pressed():
 	# Возвращаем контекст игры (новый раунд начнется)
 	InputContextManager.set_context(InputContextManager.InputContext.GAME)
 	
+	# ═══════════════════════════════════════════════════════════════════════
+	# СБРОС ВСЕХ ДАННЫХ ПЕРЕД СМЕНОЙ СЦЕНЫ
+	# ═══════════════════════════════════════════════════════════════════════
+	
+	# 1. Сбрасываем чаевые (ВАЖНО: до emit, чтобы GuestProgressionManager увидел 0)
+	if SaveManager and SaveManager.instance:
+		SaveManager.instance.reset_stats()
+		print("💰 Чаевые сброшены при рестарте из GameOverScene: 0")
+	
+	# 2. Вызываем restart_game() через GameController, если он доступен
+	var game_controller = get_tree().get_first_node_in_group("game_controller")
+	if game_controller and game_controller.has_method("_on_restart_game"):
+		game_controller._on_restart_game()
+		print("🔄 Вызван restart_game() через GameController")
+	else:
+		# Фолбэк: эмитим событие рестарта напрямую
+		# GuestProgressionManager обработает это и сбросит гостей
+		EventBus.game_restarted.emit()
+		print("🔄 Вызван EventBus.game_restarted.emit() напрямую")
+	
 	# Закрываем overlay и переходим на главную сцену
 	hide()
 	get_tree().change_scene_to_file("res://scenes/Game.tscn")

@@ -1,0 +1,72 @@
+[gd_scene load_steps=3 format=3 uid="uid://upyvin4u5hve"]
+
+[ext_resource type="Script" uid="uid://k4hx4bcx044i" path="res://scripts/popups/GuestProgressionPopup.gd" id="1_progression"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_bg"]
+bg_color = Color(0.1, 0.1, 0.15, 0.95)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.3, 0.3, 0.4, 1)
+
+[node name="GuestProgressionPopup" type="PopupPanel"]
+oversampling_override = 1.0
+size = Vector2i(600, 500)
+visible = true
+script = ExtResource("1_progression")
+
+[node name="Panel" type="Panel" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 4.0
+offset_top = 4.0
+offset_right = -4.0
+offset_bottom = -4.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_bg")
+
+[node name="MarginContainer" type="MarginContainer" parent="Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="MainVBox" type="VBoxContainer" parent="Panel/MarginContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+
+[node name="TitleLabel" type="Label" parent="Panel/MarginContainer/MainVBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+text = "Прогрессия гостей"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="Panel/MarginContainer/MainVBox"]
+layout_mode = 2
+
+[node name="TableContainer" type="VBoxContainer" parent="Panel/MarginContainer/MainVBox"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 10
+
+[node name="AutoModeCheckbox" type="CheckBox" parent="Panel/MarginContainer/MainVBox"]
+layout_mode = 2
+text = "Автоматический режим"
+
+[node name="HSeparator2" type="HSeparator" parent="Panel/MarginContainer/MainVBox"]
+layout_mode = 2
+
+[node name="ButtonOk" type="Button" parent="Panel/MarginContainer/MainVBox"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+text = "ОК"
