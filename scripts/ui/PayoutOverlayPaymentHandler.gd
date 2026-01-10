@@ -97,8 +97,8 @@ func process_payment(expected_payout: float) -> void:
 			# В PayoutOverlay нет информации о bet_type/position_index
 			EventBus.payout_wrong.emit(collected_total, expected_payout, "", -1)
 
-			# Показываем анимацию ошибки (попап не закрывается)
-			await _show_error_animation(collected_total)
+		# Показываем анимацию ошибки (попап не закрывается)
+		await _show_error_animation(collected_total)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ - КООРДИНАЦИЯ АНИМАЦИЙ

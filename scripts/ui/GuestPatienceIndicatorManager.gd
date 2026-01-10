@@ -367,7 +367,7 @@ func _update_indicator(guest_id: int):
 	
 	# ВАЖНО: Не меняем видимость здесь - это делается в _on_camera_zoom_completed
 	# Обновляем данные всегда, даже если карточка скрыта (для актуальности при появлении)
-	
+
 	var patience = GuestStatsManager.get_guest_patience(guest_id)
 	
 	# Получаем узлы

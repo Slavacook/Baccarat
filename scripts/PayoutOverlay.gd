@@ -367,7 +367,7 @@ func _on_hint_pressed():
 		# Меняем состояние и цвет кнопки
 		hint_purchased = true
 		hint_handler.update_button_style(true)  # Зеленая кнопка
-	
+
 	# Формируем выплату (покупка уже сделана или была куплена ранее)
 	hint_handler.apply_hint(expected_payout, chip_denominations)
 	

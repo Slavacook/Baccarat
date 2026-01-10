@@ -1,6 +1,6 @@
 res://scenes/BetPopup.tscn::ffebf367fc371bc3a3eade3b30ab1e2a::1765878366::res://.godot/exported/133200997/export-34220b0db38a5323f1b23723248a36d8-BetPopup.scn
 res://scenes/flip_card.tscn::b02968e8c1dce58336a7b53fc4a7701b::1765877564::res://.godot/exported/133200997/export-53451cf5d78dad049dbd382e0692b7e2-flip_card.scn
-res://scenes/Game.tscn::9387f445f092edaab17da6cef36cd89d::1767501603::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
+res://scenes/Game.tscn::3eb64a06a2bf96b3982129a09324b66e::1767923380::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
 res://scenes/HelpPopup.tscn::585bb39b407bcc240edbb0a1601c2710::1765877564::res://.godot/exported/133200997/export-1b2dd5d4a853313dc9fc779615d524ff-HelpPopup.scn
 res://scenes/SurvivalModeUI.tscn::67c509831499711f66ccef400b5cb45c::1766041398::res://.godot/exported/133200997/export-45615fe3afa59d26b4203c7fbb0186a4-SurvivalModeUI.scn
 res://scenes/Toast.tscn::d0574c8d643a12045edc019854947f74::1765878366::res://.godot/exported/133200997/export-d67afd36343bf3ac929fd469be32f31a-Toast.scn
@@ -13,4 +13,4 @@ res://scenes/popups/GuestSettingsPopup.tscn::8259677b22f950caa6b5518f730de74c::1
 res://scenes/ChanceCardPopup.tscn::236c427b6a825d5b9f657bb1e9450a3f::1765977273::res://.godot/exported/133200997/export-650de99ace40fb7edfef4d36da561a34-ChanceCardPopup.scn
 res://scenes/ChanceCardUI.tscn::63b56216fa92e7bbecbb23320ab96bb9::1766038839::res://.godot/exported/133200997/export-2ec49b5d9618f6cfc9ee546d9441de35-ChanceCardUI.scn
 res://scenes/GameOverScene.tscn::b3d86ea472235312c79f4bbcbc6b8b89::1765878366::res://.godot/exported/133200997/export-ee65042387edb6388f29bb9fd921ecb4-GameOverScene.scn
-res://scenes/SettingsScene.tscn::575f2b81aeb15cf977a6fe2af0bd0bf0::1767665142::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn
+res://scenes/SettingsScene.tscn::901e5deb54961a3ddf935ec8c897d482::1767932808::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn

@@ -1,10 +1,5 @@
-res://scripts/utils/InputHandler.gd
-res://scripts/CameraManager.gd
+res://scripts/GamePhaseManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/GamePhaseManager.gd
-res://scripts/health_system/HeartBar.gd
-res://scripts/StatsManager.gd
-res://scripts/autoload/EventBus.gd
-res://scripts/autoload/GuestStatsManager.gd
+res://scripts/utils/ChipClickHandler.gd

@@ -279,7 +279,7 @@ func _on_action_error(_type: String = "", _message: String = "") -> void:
 				print("😤 Гость %d: терпение уменьшено на 20%% из-за ошибки (отнято сердце)" % guest_id)
 		
 		# Отнимаем сердце
-		lose_life()
+	lose_life()
 
 func _on_payout_wrong(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
 	lose_life()

@@ -241,37 +241,52 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 	
 	# Для ошибки "collect_winning" - уменьшаем терпение гостя и накладываем штраф
 	if validation.error_type == "collect_winning":
-		var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
-		if sector >= 1 and sector <= 6:
-			var guest_id = sector
-			var patience_before = GuestStatsManager.get_guest_patience(guest_id)
+		await _apply_penalty_to_guest(bet_type, position_index, "попытки собрать выигрышную ставку")
+		# Показываем сообщение об ошибке
+		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+		EventBus.show_toast_error.emit(error_msg)
+		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+		return true  # Ошибка обработана, выходим
+	
+	# Для ошибки "wrong_order" при сборе - штрафуем только гостя, чья ставка была собрана неправильно
+	if validation.error_type == "wrong_order" and bet_collection_manager and bet_collection_manager.is_collect_mode():
+		await _apply_penalty_to_guest(bet_type, position_index, "неправильного порядка сбора ставок")
+		# Показываем сообщение об ошибке
+		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+		EventBus.show_toast_error.emit(error_msg)
+		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+		return true  # Ошибка обработана, выходим
+	
+	# Для ошибки "wrong_order" при оплате - штрафуем двух гостей:
+	# 1. Того, чью ставку оплатили неправильно
+	# 2. Того, чью ставку должны были оплатить
+	if validation.error_type == "wrong_order" and bet_collection_manager and bet_collection_manager.is_pay_mode():
+		# Штрафуем гостя, чью ставку оплатили неправильно
+		await _apply_penalty_to_guest(bet_type, position_index, "неправильного порядка оплаты ставок")
+		
+		# Получаем ожидаемую ставку из bet_collection_manager
+		if bet_collection_manager:
+			# Определяем группу ставки
+			var group = bet_collection_manager.get_bet_group(bet_type) if bet_collection_manager.has_method("get_bet_group") else ""
+			if group.is_empty():
+				# Пробуем определить группу вручную
+				if bet_type in ["Player", "Banker"]:
+					group = "main"
+				elif bet_type == "Tie":
+					group = "tie"
+				elif bet_type.begins_with("PlayerPair") or bet_type.begins_with("BankerPair"):
+					group = "pairs"
 			
-			# Уменьшаем терпение на 20%
-			GuestStatsManager.decrease_patience(guest_id, 20)
-			var patience_after = GuestStatsManager.get_guest_patience(guest_id)
-			
-			DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-20%%) из-за попытки собрать выигрышную ставку %s[%d]" % [guest_id, patience_before, patience_after, bet_type, position_index])
-			
-			# Определяем штраф в зависимости от терпения ДО уменьшения
-			if patience_before == 100:
-				# Терпение было 100% - ошибка прощается (ничего не отнимаем)
-				DebugLogger.log("  ✅ Терпение было 100% - ошибка прощена")
-			elif patience_after == 0:
-				# Терпение стало 0% - отнимаем сердце
-				EventBus.action_error.emit(validation.error_type, validation.error_message)
-				DebugLogger.log("  ❌ Терпение = 0% - отнимается сердце")
-			else:
-				# Терпение стало < 100% - пытаемся отнять 100 чаевых
-				var current_tips = SaveManager.instance.score
-				if current_tips >= 100:
-					# Чаевых достаточно - применяем штраф с задержкой
-					if StatsManager.instance:
-						await StatsManager.instance.apply_penalty_with_delay(100)
-					DebugLogger.log("  💰 Отнято 100 чаевых (осталось %d)" % SaveManager.instance.score)
+			# Получаем ожидаемую ставку через sequence_manager
+			if bet_collection_manager.sequence_manager and not group.is_empty():
+				var expected_bet = bet_collection_manager.sequence_manager.get_expected_next_bet(group, false)
+				if expected_bet:
+					var expected_bet_type = expected_bet.get_bet_type()
+					var expected_position_index = expected_bet.get_position_index()
+					# Штрафуем гостя, чью ставку должны были оплатить
+					await _apply_penalty_to_guest(expected_bet_type, expected_position_index, "неправильного порядка оплаты ставок (ожидалась его ставка)")
 				else:
-					# Чаевых недостаточно - отнимаем сердце
-					EventBus.action_error.emit(validation.error_type, validation.error_message)
-					DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) - отнимается сердце" % current_tips)
+					DebugLogger.log_warning("  ⚠️ Не удалось определить ожидаемую ставку для штрафа")
 		
 		# Показываем сообщение об ошибке
 		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
@@ -279,12 +294,64 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
 		return true  # Ошибка обработана, выходим
 	
-	# Для остальных ошибок - показываем тост и отнимаем жизнь
+	# Для ошибки "pay_losing" - штрафуем только гостя, чья ставка была проигранной
+	if validation.error_type == "pay_losing":
+		await _apply_penalty_to_guest(bet_type, position_index, "попытки оплатить проигранную ставку")
+		# Показываем сообщение об ошибке
+		var error_msg = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+		EventBus.show_toast_error.emit(error_msg)
+		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+		return true  # Ошибка обработана, выходим
+	
+	# Для остальных ошибок - показываем тост и отнимаем жизнь (штрафуем всех гостей через HeartBar)
 	var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
 	EventBus.show_toast_error.emit(error_message)
 	EventBus.action_error.emit(validation.error_type, error_message)
 	DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
 	return true  # Ошибка обработана, выходим
+
+func _apply_penalty_to_guest(bet_type: String, position_index: int, reason: String) -> void:
+	"""Применить штраф к конкретному гостю (уменьшение терпения на 20% и штраф на 100 чаевых)
+	
+	Args:
+		bet_type: Тип ставки
+		position_index: Индекс позиции
+		reason: Причина штрафа (для логирования)
+	"""
+	var sector = GuestSectorMapper.get_sector_from_position(bet_type, position_index)
+	if sector < 1 or sector > 6:
+		# Не гостевые ставки - пропускаем
+		return
+	
+	var guest_id = sector
+	var patience_before = GuestStatsManager.get_guest_patience(guest_id)
+	
+	# Уменьшаем терпение на 20%
+	GuestStatsManager.decrease_patience(guest_id, 20)
+	var patience_after = GuestStatsManager.get_guest_patience(guest_id)
+	
+	DebugLogger.log("  😤 Гость %d: терпение %d%% -> %d%% (-20%%) из-за %s %s[%d]" % [guest_id, patience_before, patience_after, reason, bet_type, position_index])
+	
+	# Определяем штраф в зависимости от терпения ДО уменьшения
+	if patience_before == 100:
+		# Терпение было 100% - ошибка прощается (ничего не отнимаем)
+		DebugLogger.log("  ✅ Терпение было 100% - ошибка прощена")
+	elif patience_after == 0:
+		# Терпение стало 0% - отнимаем сердце
+		EventBus.action_error.emit("patience_zero", "Терпение гостя достигло 0%")
+		DebugLogger.log("  ❌ Терпение = 0% - отнимается сердце")
+	else:
+		# Терпение стало < 100% - пытаемся отнять 100 чаевых
+		var current_tips = SaveManager.instance.score
+		if current_tips >= 100:
+			# Чаевых достаточно - применяем штраф с задержкой
+			if StatsManager.instance:
+				await StatsManager.instance.apply_penalty_with_delay(100)
+			DebugLogger.log("  💰 Отнято 100 чаевых (осталось %d)" % SaveManager.instance.score)
+		else:
+			# Чаевых недостаточно - отнимаем сердце
+			EventBus.action_error.emit("insufficient_tips", "Недостаточно чаевых для штрафа")
+			DebugLogger.log("  ❌ Чаевых недостаточно (%d < 100) - отнимается сердце" % current_tips)
 
 func _handle_collect_action(bet_type: String, position_index: int) -> void:
 	"""Обработать действие "collect" (собрать проигрышную ставку)

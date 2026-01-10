@@ -4,6 +4,71 @@
 
 ## 🔴 Критические проблемы
 
+### Проблема: "Parser Error: Could not parse global class"
+
+**Симптомы:**
+```
+Ошибка в (21, 18): Could not parse global class "GamePhaseManager" from "res://scripts/GamePhaseManager.gd".
+Parser Error: Could not parse global class "GamePhaseManager" from "res://scripts/GamePhaseManager.gd".
+```
+
+**Причина:**
+Неправильные отступы в GDScript файле. GDScript требует строгого соблюдения отступов - после `if`, `for`, `while`, `else`, `elif`, `match`, `func` следующая строка **ОБЯЗАТЕЛЬНО** должна начинаться с табуляции.
+
+**Решение:**
+
+1. **Проверь отступы в проблемном файле:**
+   ```bash
+   ./tools/check_gdscript_syntax.sh scripts/GamePhaseManager.gd
+   ```
+
+2. **Исправь отсутствующие отступы:**
+   ```gdscript
+   # ❌ НЕПРАВИЛЬНО - отсутствует отступ после if
+   if condition:
+   var result = value  # ← ОШИБКА! Нет отступа
+
+   # ✅ ПРАВИЛЬНО - есть отступ (таб)
+   if condition:
+       var result = value  # ← Правильно
+   ```
+
+3. **Проверь все блоки после `:`:**
+   ```gdscript
+   # ❌ НЕПРАВИЛЬНО
+   if condition:
+   for item in items:
+   var value = item
+
+   # ✅ ПРАВИЛЬНО
+   if condition:
+       for item in items:
+           var value = item
+   ```
+
+4. **Используй ТАБЫ, не пробелы:**
+   - В GDScript отступы должны быть табами (`\t`), не пробелами
+   - Настрой редактор: "Editor: Insert Spaces" → **false**
+
+5. **Автоматическая проверка перед коммитом:**
+   ```bash
+   # Проверь все файлы
+   ./tools/check_gdscript_syntax.sh
+
+   # Или только конкретный файл
+   ./tools/check_gdscript_syntax.sh scripts/GamePhaseManager.gd
+   ```
+
+**Полная документация:** См. `INDENTATION_RULES.md` для детальных правил работы с отступами.
+
+**Профилактика:**
+- Всегда проверяй синтаксис перед коммитом
+- Используй автоформатирование в Godot (`Ctrl+Alt+F` / `Cmd+Alt+F`)
+- Включи визуализацию пробелов/табов в редакторе
+- Используй скрипт `./tools/check_gdscript_syntax.sh`
+
+---
+
 ### Проблема: "Сигнал не работает" / "EventBus не срабатывает"
 
 **Симптомы:**

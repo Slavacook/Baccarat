@@ -26,6 +26,7 @@
 | **`CODE_EXAMPLES.md`** | Нужны примеры использования паттернов |
 | **`TROUBLESHOOTING.md`** | Что-то не работает |
 | **`REFACTORING_CHECKLIST.md`** | Рефакторишь код |
+| **`INDENTATION_RULES.md`** | Проблемы с синтаксисом/отступами в GDScript |
 
 ## 📊 Анализ и планирование
 
@@ -52,6 +53,11 @@
 2. `CODE_EXAMPLES.md` - правильные примеры
 3. `CLAUDE.md` - полная документация
 
+### Ошибки парсера/синтаксиса
+1. `INDENTATION_RULES.md` - правила работы с отступами
+2. `tools/check_gdscript_syntax.sh` - автоматическая проверка
+3. `TROUBLESHOOTING.md` - решение проблем
+
 ### Понимание архитектуры
 1. `AI_CONTEXT.md` - краткий обзор
 2. `DEPENDENCY_GRAPH.md` - визуализация
@@ -67,6 +73,7 @@
 ├── CODE_EXAMPLES.md                 # Примеры кода
 ├── DEPENDENCY_GRAPH.md              # Граф зависимостей
 ├── DOCS_INDEX.md                   # Этот файл
+├── INDENTATION_RULES.md            # Правила работы с отступами
 ├── QUICK_START.md                  # Быстрый старт
 ├── REFACTORING_CHECKLIST.md        # Чеклист рефакторинга
 ├── TROUBLESHOOTING.md              # Решение проблем
@@ -88,6 +95,10 @@
 
 ### Что-то не работает?
 → `TROUBLESHOOTING.md` - решение проблем
+
+### Ошибки парсера/синтаксиса?
+→ `INDENTATION_RULES.md` - правила работы с отступами
+→ `tools/check_gdscript_syntax.sh` - автоматическая проверка
 
 ### Начинаешь задачу?
 → `QUICK_START.md` - пошаговый план
