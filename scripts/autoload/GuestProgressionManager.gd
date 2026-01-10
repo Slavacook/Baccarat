@@ -82,7 +82,7 @@ func initialize_first_guest() -> void:
 			# значит они были включены вручную или из старых сохранений
 			# Нужно их отключить и создать правильных
 			if current_active_guests.size() > 0:
-				print("🎯 Первый запуск (0 чаевых), но найдены активные гости: %s" % current_active_guests)
+				print("🎯 Первый запуск (0 чаевых), но найдены активные гости: %s" % str(current_active_guests))
 				print("🎯 Отключаем всех для пересоздания с правильными статусами")
 				
 				# Отключаем всех активных гостей
@@ -305,6 +305,12 @@ func activate_guest(guest_id: int, show_toast: bool = true) -> bool:
 	# Если show_toast - показать Toast
 	if show_toast and EventBus:
 		EventBus.show_toast_success.emit(Localization.t("NEW_GUEST_ARRIVED") if Localization else "Пришел ещё один новый гость")
+	
+	# ВАЖНО: Принудительно устанавливаем видимость гостя, чтобы он не исчез при обновлении стола
+	# Это гарантирует, что новый гость останется видимым сразу после активации
+	if EventBus:
+		EventBus.guest_force_visible.emit(guest_id)
+		print("👥 Гость %d: принудительно установлена видимость после активации" % guest_id)
 	
 	return true
 

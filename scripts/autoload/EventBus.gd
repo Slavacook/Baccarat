@@ -335,6 +335,12 @@ signal guest_bets_hide_requested()
 @warning_ignore("unused_signal")
 signal guest_bets_show_requested()
 
+## Принудительно показать гостя (без анимации)
+## Используется после активации нового гостя, чтобы он не исчез при обновлении стола
+## Args: guest_id - ID гостя (1-6)
+@warning_ignore("unused_signal")
+signal guest_force_visible(guest_id: int)
+
 ## Гость ушел из-за терпения (терпение достигло 0%)
 ## Args: guest_id - ID гостя (1-6)
 @warning_ignore("unused_signal")

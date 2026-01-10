@@ -9,3 +9,7 @@ res://scripts/utils/GameStateController.gd
 res://scripts/GameOverScene.gd
 res://scripts/GamePhaseManager.gd
 res://scripts/autoload/GuestSettingsManager.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/GameController.gd
+res://scripts/autoload/EventBus.gd
+res://scripts/ui/GuestEventHandler.gd

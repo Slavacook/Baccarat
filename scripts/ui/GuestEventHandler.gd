@@ -84,34 +84,93 @@ func handle_guest_settings_changed_visibility(guest_id: int) -> void:
 	var sprite = guest_sprites.get(guest_id)
 	if sprite and guest_id != 666:  # Не трогаем G_666
 		var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
+		
 		if is_enabled:
+			# ВАЖНО: Если гость уже видим, не запускаем анимацию (избегаем мигания)
+			if sprite.visible and sprite.modulate.a >= 0.99:
+				# Гость уже видим - ничего не делаем
+				DebugLogger.log("👥 Гость %d: уже видим, пропускаем анимацию" % guest_id)
+				return
+			
+			# Останавливаем все активные tween для этого спрайта
+			_stop_sprite_animations(sprite)
+			
 			# Fade-in 0.5 сек
+			# ВАЖНО: Устанавливаем visible = true сразу, чтобы гость не исчезал при обновлении стола
 			sprite.visible = true
 			sprite.modulate.a = 0.0
 			_create_fade_animation(sprite, 0.0, 1.0, 0.5)
-			DebugLogger.log("👥 Гость %d: fade-in 0.5 сек" % guest_id)
+			DebugLogger.log("👥 Гость %d: fade-in 0.5 сек (visible=true)" % guest_id)
 		else:
-			# Fade-out 0.5 сек
-			_create_fade_animation(sprite, 1.0, 0.0, 0.5, func(): sprite.visible = false)
-			DebugLogger.log("👥 Гость %d: fade-out 0.5 сек" % guest_id)
+			# Fade-out только если гость видим
+			if sprite.visible and sprite.modulate.a > 0.01:
+				_stop_sprite_animations(sprite)
+				_create_fade_animation(sprite, 1.0, 0.0, 0.5, func(): sprite.visible = false)
+				DebugLogger.log("👥 Гость %d: fade-out 0.5 сек" % guest_id)
+			else:
+				# Уже скрыт - просто устанавливаем состояние
+				sprite.modulate.a = 0.0
+				sprite.visible = false
+
+func force_guest_visible(guest_id: int) -> void:
+	"""Принудительно сделать гостя видимым без анимации
+	
+	Используется для немедленного показа гостя после активации,
+	чтобы он не исчезал при обновлении стола
+	
+	Args:
+		guest_id: ID гостя (1-6)
+	"""
+	if background_666 and background_666.visible:
+		# Во время игры на жизнь не обновляем видимость обычных гостей
+		return
+	
+	var sprite = guest_sprites.get(guest_id)
+	if sprite and guest_id != 666:
+		var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
+		if is_enabled:
+			# ВАЖНО: Останавливаем все активные анимации перед установкой видимости
+			_stop_sprite_animations(sprite)
+			
+			# Принудительно устанавливаем видимость без анимации
+			sprite.visible = true
+			sprite.modulate.a = 1.0
+			DebugLogger.log("👥 Гость %d: принудительно видим (visible=true, alpha=1.0)" % guest_id)
 
 func update_guests_visibility() -> void:
-	"""Обновить видимость гостей на основе их состояния в GuestSettingsManager"""
+	"""Обновить видимость гостей на основе их состояния в GuestSettingsManager
+	
+	ВАЖНО: Не меняет видимость гостей, которые уже видимы (избегает мигания)
+	"""
 	# Инициализируем обычных гостей (1-6)
 	for guest_id in range(1, 7):
 		var sprite = guest_sprites.get(guest_id)
 		if sprite:
 			var is_enabled = GuestSettingsManager.is_guest_enabled(guest_id)
-			# Устанавливаем видимость без анимации при инициализации
-			# ВАЖНО: При инициализации устанавливаем состояние напрямую, без анимации
-			# Просто устанавливаем финальное состояние, игнорируя любые активные анимации
+			
+			# ВАЖНО: Проверяем текущее состояние перед изменением
+			# Если гость уже в правильном состоянии - не трогаем его (избегаем мигания)
+			var is_currently_visible = sprite.visible and sprite.modulate.a >= 0.99
+			var is_currently_hidden = not sprite.visible or sprite.modulate.a < 0.01
+			
 			if is_enabled:
-				sprite.visible = true
-				sprite.modulate.a = 1.0
+				# Гость должен быть видим
+				if not is_currently_visible:
+					# Гость еще не видим - устанавливаем видимость без анимации
+					_stop_sprite_animations(sprite)
+					sprite.visible = true
+					sprite.modulate.a = 1.0
+					DebugLogger.log("👥 Гость %d: установлена видимость (visible=true, alpha=1.0)" % guest_id)
+				# Иначе гость уже видим - ничего не делаем (избегаем мигания)
 			else:
-				sprite.modulate.a = 0.0
-				sprite.visible = false
-			DebugLogger.log("👥 Гость %d: %s (visible=%s, alpha=%.2f)" % [guest_id, "видим" if is_enabled else "скрыт", sprite.visible, sprite.modulate.a])
+				# Гость должен быть скрыт
+				if not is_currently_hidden:
+					# Гость еще видим - скрываем без анимации
+					_stop_sprite_animations(sprite)
+					sprite.modulate.a = 0.0
+					sprite.visible = false
+					DebugLogger.log("👥 Гость %d: установлена скрытость (visible=false, alpha=0.0)" % guest_id)
+				# Иначе гость уже скрыт - ничего не делаем
 	
 	# G_666 всегда скрыт в обычном состоянии
 	var guest_666 = guest_sprites.get(666)
@@ -246,6 +305,22 @@ func update_guest_balance_on_collect(bet_type: String, position_index: int) -> v
 # ВСПОМОГАТЕЛЬНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _stop_sprite_animations(sprite: Node2D) -> void:
+	"""Остановить все активные tween анимации для спрайта
+	
+	Args:
+		sprite: Спрайт гостя
+	"""
+	if not sprite:
+		return
+	
+	# Если tween существует в метаданных спрайта - останавливаем его
+	if sprite.has_meta("active_tween"):
+		var tween = sprite.get_meta("active_tween")
+		if tween and tween.is_valid():
+			tween.kill()
+		sprite.remove_meta("active_tween")
+
 func _create_fade_animation(node: Node, from_alpha: float, to_alpha: float, duration: float, callback: Callable = Callable()) -> void:
 	"""Создать fade анимацию для узла
 	
@@ -259,9 +334,22 @@ func _create_fade_animation(node: Node, from_alpha: float, to_alpha: float, dura
 	if not node or not owner_node:
 		return
 	
+	# Останавливаем предыдущую анимацию, если есть
+	_stop_sprite_animations(node)
+	
 	node.modulate.a = from_alpha
 	var tween = owner_node.create_tween()
 	tween.tween_property(node, "modulate:a", to_alpha, duration)
+	
+	# Сохраняем ссылку на tween в метаданных узла
+	node.set_meta("active_tween", tween)
+	
 	if callback.is_valid():
 		tween.tween_callback(callback)
+	
+	# Удаляем ссылку после завершения анимации
+	tween.finished.connect(func(): 
+		if node and node.has_meta("active_tween"):
+			node.remove_meta("active_tween")
+	)
 

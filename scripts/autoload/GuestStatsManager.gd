@@ -17,16 +17,16 @@ signal guest_left(guest_id: int)
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Начальные балансы по статусу богатства
-const POOR_BALANCE: float = 50000.0    # Бедный
-const MEDIUM_BALANCE: float = 100000.0  # Средний
-const RICH_BALANCE: float = 300000.0    # Богатый
+const POOR_BALANCE: float = 30000.0    # Бедный
+const MEDIUM_BALANCE: float = 80000.0  # Средний
+const RICH_BALANCE: float = 150000.0   # Богатый
 
 # Пороги для изменения статуса богатства (динамическое обновление)
-const WEALTH_THRESHOLD_POOR_TO_MEDIUM: float = 70000.0   # Бедный → Средний
+const WEALTH_THRESHOLD_POOR_TO_MEDIUM: float = 50000.0   # Бедный → Средний
 const WEALTH_THRESHOLD_MEDIUM_TO_RICH: float = 150000.0  # Средний → Богатый
-const WEALTH_THRESHOLD_RICH_TO_MEDIUM: float = 70000.0   # Богатый → Средний
-const WEALTH_THRESHOLD_MEDIUM_TO_POOR: float = 30000.0   # Средний → Бедный
-const WEALTH_THRESHOLD_RICH_TO_POOR: float = 30000.0     # Богатый → Бедный (прямой переход)
+const WEALTH_THRESHOLD_RICH_TO_MEDIUM: float = 150000.0  # Богатый → Средний
+const WEALTH_THRESHOLD_MEDIUM_TO_POOR: float = 50000.0   # Средний → Бедный
+const WEALTH_THRESHOLD_RICH_TO_POOR: float = 50000.0     # Богатый → Бедный (прямой переход)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -295,16 +295,101 @@ func check_and_update_guest_wealth(guest_id: int) -> void:
 		])
 
 func check_all_guests_wealth_at_round_end() -> void:
-	"""Проверяет всех активных гостей и обновляет их статус богатства при необходимости
+	"""Проверяет всех активных гостей и обновляет их статус богатства и характер при необходимости
 	
 	Вызывается в конце раунда после всех выплат (в _complete_round_and_prepare_new_game)
+	ВАЖНО: Вызывается ПЕРЕД генерацией новых ставок, чтобы характер учитывался при генерации
 	"""
 	if not GuestSettingsManager:
 		return
 	
 	for guest_id in range(1, 7):
 		if GuestSettingsManager.is_guest_enabled(guest_id):
+			# 1. Сначала проверяем и обновляем статус богатства
 			check_and_update_guest_wealth(guest_id)
+			# 2. Затем проверяем и обновляем характер (после обновления статуса)
+			check_and_update_guest_character(guest_id)
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПРОВЕРКА И ОБНОВЛЕНИЕ ХАРАКТЕРА ГОСТЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func determine_character_by_balance(guest_id: int) -> GuestSettingsManager.GuestCharacter:
+	"""Определить характер гостя на основе его баланса и статуса богатства
+	
+	Логика:
+	- Бедный (POOR): 0-20000=CAUTIOUS, 20000-40000=GENTLEMAN, 40000+=GAMBLER
+	- Средний (MEDIUM): 50000-80000=CAUTIOUS, 80000-120000=GENTLEMAN, 120000+=GAMBLER
+	- Богатый (RICH): 150000-180000=CAUTIOUS, 180000-250000=GENTLEMAN, 250000+=GAMBLER
+	
+	Args:
+		guest_id: ID гостя (1-6)
+		
+	Returns:
+		GuestCharacter на основе текущего баланса и статуса богатства
+	"""
+	if guest_id < 1 or guest_id > 6:
+		return GuestSettingsManager.GuestCharacter.GENTLEMAN
+	
+	if not GuestSettingsManager:
+		return GuestSettingsManager.GuestCharacter.GENTLEMAN
+	
+	var balance = get_guest_balance(guest_id)
+	var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
+	
+	match wealth:
+		GuestSettingsManager.GuestWealth.POOR:
+			if balance < 20000:
+				return GuestSettingsManager.GuestCharacter.CAUTIOUS
+			elif balance < 40000:
+				return GuestSettingsManager.GuestCharacter.GENTLEMAN
+			else:  # balance >= 40000
+				return GuestSettingsManager.GuestCharacter.GAMBLER
+		
+		GuestSettingsManager.GuestWealth.MEDIUM:
+			if balance < 80000:
+				return GuestSettingsManager.GuestCharacter.CAUTIOUS
+			elif balance < 120000:
+				return GuestSettingsManager.GuestCharacter.GENTLEMAN
+			else:  # balance >= 120000
+				return GuestSettingsManager.GuestCharacter.GAMBLER
+		
+		GuestSettingsManager.GuestWealth.RICH:
+			if balance < 180000:
+				return GuestSettingsManager.GuestCharacter.CAUTIOUS
+			elif balance < 250000:
+				return GuestSettingsManager.GuestCharacter.GENTLEMAN
+			else:  # balance >= 250000
+				return GuestSettingsManager.GuestCharacter.GAMBLER
+		
+		_:
+			return GuestSettingsManager.GuestCharacter.GENTLEMAN  # По умолчанию
+
+func check_and_update_guest_character(guest_id: int) -> void:
+	"""Проверяет баланс гостя и обновляет его характер при необходимости
+	
+	Вызывается в конце раунда после обновления статуса богатства.
+	Характер меняется автоматически на основе баланса относительно статуса богатства.
+	"""
+	if guest_id < 1 or guest_id > 6:
+		return
+	
+	if not GuestSettingsManager:
+		return
+	
+	var current_character = GuestSettingsManager.get_guest_character(guest_id)
+	var new_character = determine_character_by_balance(guest_id)
+	
+	if new_character != current_character:
+		var old_character_name = GuestSettingsManager.GuestCharacter.keys()[current_character]
+		var new_character_name = GuestSettingsManager.GuestCharacter.keys()[new_character]
+		var balance = get_guest_balance(guest_id)
+		
+		GuestSettingsManager.set_guest_character(guest_id, new_character)
+		
+		print("🎭 Гость %d: характер изменился %s → %s (баланс: %.0f)" % [
+			guest_id, old_character_name, new_character_name, balance
+		])
 
 # ← Обработать уход гостя из-за терпения (терпение достигло 0)
 func _handle_guest_left_due_to_patience(guest_id: int) -> void:

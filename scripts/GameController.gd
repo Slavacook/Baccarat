@@ -519,6 +519,7 @@ func _connect_guest_signals() -> void:
 	# Сигналы от GuestSettingsManager
 	GuestSettingsManager.guest_settings_changed.connect(guest_event_handler.handle_guest_settings_changed)
 	GuestSettingsManager.guest_settings_changed.connect(guest_event_handler.handle_guest_settings_changed_visibility)
+	EventBus.guest_force_visible.connect(guest_event_handler.force_guest_visible)
 	
 	# Сигналы от EventBus для Heart Bet
 	EventBus.guest_bets_hide_requested.connect(guest_event_handler.handle_guest_bets_hide_requested)
