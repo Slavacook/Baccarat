@@ -328,6 +328,20 @@ func _on_balance_changed(changed_guest_id: int, _new_balance: float):
 func _on_guest_settings_changed(guest_id: int):
 	"""Обработчик изменения настроек гостя (включение/выключение)"""
 	_update_indicator(guest_id)
+	
+	# Если гость включен, нужно явно показать индикатор (если он скрыт)
+	# Видимость управляется через _on_camera_zoom_completed, но при включении
+	# нового гостя это событие может не вызываться сразу
+	if GuestSettingsManager and GuestSettingsManager.is_guest_enabled(guest_id):
+		if indicators.has(guest_id):
+			var indicator = indicators[guest_id]
+			if is_instance_valid(indicator):
+				# Если индикатор скрыт или прозрачный - показываем его с анимацией
+				if not indicator.visible or indicator.modulate.a < 0.99:
+					indicator.modulate.a = 0.0
+					indicator.visible = true
+					var tween = create_tween()
+					tween.tween_property(indicator, "modulate:a", 1.0, 0.5)
 
 func _on_camera_zoom_completed(_zoom_type: String):
 	"""Обработчик завершения зума камеры"""

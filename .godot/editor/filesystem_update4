@@ -9,3 +9,4 @@ res://scripts/autoload/GuestStatsManager.gd
 res://scripts/utils/ChipClickHandler.gd
 res://scripts/ToastManager.gd
 res://scripts/autoload/EventBus.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd
