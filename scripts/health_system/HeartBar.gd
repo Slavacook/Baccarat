@@ -241,20 +241,73 @@ func _trigger_game_over() -> void:
 	game_over.emit()
 
 ## Обработчики событий EventBus
-func _on_action_error(_type: String = "", _message: String = "") -> void:
+func _on_action_error(error_type: String = "", _message: String = "") -> void:
 	"""Обработка ошибки действия
 	
-	Логика:
+	Логика для ошибок карт и маркеров (во время раздачи):
+	- Всегда: штраф 100 чаевых + минус 20% терпения всех активных гостей
+	- НЕ отнимается сердце (только терпение и штраф)
+	
+	Логика для других ошибок (оплата, сбор ставок):
 	- Если есть чаевые (>= 100) → штраф 100 чаевых + минус 20% терпения всех активных гостей
 	- Если чаевых недостаточно → минус сердце
+	
+	Типы ошибок, связанных с картами и маркерами (НЕ отнимают сердце):
+	- "winner_early" - выбор маркера раньше времени
+	- "winner_wrong" - неправильный выбор победителя
+	- "player_wrong", "banker_wrong" - неправильный выбор третьих карт
+	- "natural_draw", "both_wrong" - ошибки при третьих картах
+	- "final_card_error" - ошибка при выборе карт
+	- "tie_wrong" - неправильный выбор ничьей
 	"""
 	if not is_active:
 		return
+	
+	# Типы ошибок, связанных с картами и маркерами (НЕ отнимают сердце)
+	var card_and_marker_errors = [
+		"winner_early",
+		"winner_wrong",
+		"player_wrong",
+		"banker_wrong",
+		"natural_draw",
+		"both_wrong",
+		"final_card_error",
+		"tie_wrong"
+	]
+	
+	var is_card_or_marker_error = error_type in card_and_marker_errors
 	
 	# Проверяем наличие чаевых
 	var current_tips = SaveManager.instance.score if SaveManager.instance else 0
 	var penalty_amount = 100
 	
+	if is_card_or_marker_error:
+		# Ошибки карт и маркеров: ВСЕГДА штраф + терпение, БЕЗ отнятия сердца
+		print("🎴 Ошибка карт/маркеров (%s): штраф %d чаевых + терпение (сердце НЕ отнимается)" % [error_type, penalty_amount])
+		
+		# Уменьшаем терпение всех активных гостей на 20%
+		if GuestSettingsManager and GuestStatsManager:
+			var active_guests = GuestSettingsManager.get_active_guests()
+			for guest_id in active_guests:
+				GuestStatsManager.decrease_patience(guest_id, 20)
+				print("😤 Гость %d: терпение уменьшено на 20%% из-за ошибки карт/маркеров" % guest_id)
+		
+		# Применяем штраф на чаевые (даже если чаевых недостаточно)
+		if StatsManager.instance:
+			# Если чаевых недостаточно, просто уменьшаем до 0
+			var tips_after_penalty = max(0, current_tips - penalty_amount)
+			if SaveManager.instance:
+				SaveManager.instance.score = tips_after_penalty
+				# Обновляем статистику
+				StatsManager.instance.update_stats()
+				# Эмитим событие для синхронизации оповещения и звука
+				EventBus.penalty_applied.emit(penalty_amount)
+			print("💰 Штраф %d чаевых применен (было %d, стало %d)" % [penalty_amount, current_tips, tips_after_penalty])
+		
+		print("✅ Ошибка карт/маркеров обработана: терпение уменьшено, штраф применен (сердце НЕ отнято)")
+		return  # НЕ отнимаем сердце для ошибок карт и маркеров
+	
+	# Для остальных ошибок - старая логика (отнимаем сердце если чаевых недостаточно)
 	if current_tips >= penalty_amount:
 		# Чаевых достаточно - сначала уменьшаем терпение, потом штраф с задержкой
 		print("💰 Ошибка: штраф %d чаевых (было %d)" % [penalty_amount, current_tips])
@@ -284,7 +337,7 @@ func _on_action_error(_type: String = "", _message: String = "") -> void:
 				print("😤 Гость %d: терпение уменьшено на 20%% из-за ошибки (отнято сердце)" % guest_id)
 		
 		# Отнимаем сердце
-	lose_life()
+		lose_life()
 
 func _on_payout_wrong(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
 	lose_life()

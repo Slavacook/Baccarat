@@ -154,7 +154,7 @@ const DATA = {
 		"GUEST_PROGRESSION_AUTO_MODE": "Автоматический режим",
 		"GUEST_COUNT_COLUMN": "Количество гостей",
 		"TIPS_THRESHOLD_COLUMN": "Чаевые",
-		"NEW_GUEST_ARRIVED": "Пришел ещё один новый гость",
+		"NEW_GUEST_ARRIVED": "Пришел новый гость",
 		"CLOSE": "Закрыть",
 		
 		# ═══ HEART BET (Ставка сердцем) ═══
@@ -323,7 +323,7 @@ const DATA = {
 		"GUEST_PROGRESSION_AUTO_MODE": "Auto Mode",
 		"GUEST_COUNT_COLUMN": "Guest Count",
 		"TIPS_THRESHOLD_COLUMN": "Tips",
-		"NEW_GUEST_ARRIVED": "Another new guest has arrived",
+		"NEW_GUEST_ARRIVED": "A new guest has arrived",
 		"CLOSE": "Close",
 		
 		# === HEART BET ===

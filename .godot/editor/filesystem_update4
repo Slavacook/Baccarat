@@ -13,3 +13,6 @@ res://scripts/ui/GuestPatienceIndicatorManager.gd
 res://scripts/GameController.gd
 res://scripts/autoload/EventBus.gd
 res://scripts/ui/GuestEventHandler.gd
+res://scripts/Localization.gd
+res://scripts/payout/PayoutQueueHandler.gd
+res://scripts/health_system/HeartBar.gd

@@ -778,8 +778,16 @@ func on_tie_button_pressed() -> void:
 		ui.set_action_button_state("complete")
 		ui.enable_action_button()
 		
+		# ВАЖНО: Кнопки Collect/Pay будут показаны автоматически в PayoutQueueHandler.finalize_payouts_manual()
+		# после установки правильного режима (COLLECT или PAY) на основе наличия ставок для сбора
 		if ui.button_ui:
-			ui.button_ui.show_collect_pay_buttons()
+			var pay_button = ui.button_ui.pay_button
+			if pay_button and pay_button.has_method("set_state_take"):
+				# Если PayButton имеет свой скрипт - просто показываем кнопку (режим установится позже)
+				pay_button.visible = true
+			elif ui.button_ui.collect_button:
+				# Старая логика: просто показываем кнопку (режим установится позже)
+				ui.button_ui.collect_button.visible = true
 
 	# Показываем toast
 	if instructions.get("should_show_success", false):
@@ -1665,9 +1673,17 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		# Активируем кнопку при переходе в стадию выплат
 		ui.enable_action_button()
 
-	# Показываем кнопки Collect/Pay после определения победителя
+	# ВАЖНО: Кнопки Collect/Pay будут показаны автоматически в PayoutQueueHandler.finalize_payouts_manual()
+	# после установки правильного режима (COLLECT или PAY) на основе наличия ставок для сбора
+	# Поэтому здесь просто убеждаемся, что кнопки видны (без установки режима по умолчанию)
 	if ui.button_ui:
-		ui.button_ui.show_collect_pay_buttons()
+		var pay_button = ui.button_ui.pay_button
+		if pay_button and pay_button.has_method("set_state_take"):
+			# Если PayButton имеет свой скрипт - просто показываем кнопку (режим установится позже)
+			pay_button.visible = true
+		elif ui.button_ui.collect_button:
+			# Старая логика: просто показываем кнопку (режим установится позже)
+			ui.button_ui.collect_button.visible = true
 
 	# Показываем toast с результатом (кто выиграл и с какими картами)
 	var player_score = hand_manager.get_player_score()

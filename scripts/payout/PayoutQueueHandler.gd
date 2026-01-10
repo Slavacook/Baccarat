@@ -170,10 +170,38 @@ func finalize_payouts_manual(actual_winner: String) -> void:
 	# ═══════════════════════════════════════════════════════════════════
 	if bet_collection_manager and payout_queue_manager:
 		bet_collection_manager.setup(payout_queue_manager, actual_winner)
-		# Устанавливаем режим COLLECT по умолчанию (после определения победителя)
-		# Звук не играется автоматически (первая активация определяется внутри set_mode)
-		bet_collection_manager.set_mode(BetCollectionPhaseManager.CollectionMode.COLLECT)
-		DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
+		# ВАЖНО: Определяем режим автоматически на основе наличия ставок для сбора
+		# Если есть проигрышные ставки для сбора - режим COLLECT
+		# Если нет проигрышных ставок, но есть выигрышные для оплаты - режим PAY
+		var selected_mode: BetCollectionPhaseManager.CollectionMode
+		if bet_collection_manager.has_uncollected_losing_bets():
+			# Есть ставки для сбора - режим COLLECT
+			selected_mode = BetCollectionPhaseManager.CollectionMode.COLLECT
+			DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
+		elif bet_collection_manager.has_unpaid_winnings():
+			# Нет ставок для сбора, но есть выигрышные для оплаты - режим PAY
+			selected_mode = BetCollectionPhaseManager.CollectionMode.PAY
+			DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: PAY - нет ставок для сбора)" % actual_winner)
+		else:
+			# Нет ставок для обработки - режим NONE
+			selected_mode = BetCollectionPhaseManager.CollectionMode.NONE
+			DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: NONE - нет ставок для обработки)" % actual_winner)
+		
+		# Устанавливаем режим
+		bet_collection_manager.set_mode(selected_mode)
+		
+		# Обновляем UI кнопок в соответствии с установленным режимом
+		if phase_manager and phase_manager.ui and phase_manager.ui.button_ui:
+			match selected_mode:
+				BetCollectionPhaseManager.CollectionMode.COLLECT:
+					# Режим COLLECT - показываем кнопку и устанавливаем режим "Забрать"
+					phase_manager.ui.button_ui.set_collect_mode(true)
+				BetCollectionPhaseManager.CollectionMode.PAY:
+					# Режим PAY - показываем кнопку и устанавливаем режим "Оплатить"
+					phase_manager.ui.button_ui.set_pay_mode(true)
+				BetCollectionPhaseManager.CollectionMode.NONE:
+					# Нет ставок для обработки - кнопки не показываем
+					phase_manager.ui.button_ui.hide_collect_pay_buttons()
 
 	# ═══════════════════════════════════════════════════════════════════
 	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
