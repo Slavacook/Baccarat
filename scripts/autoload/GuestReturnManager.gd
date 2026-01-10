@@ -204,11 +204,63 @@ func get_remaining_rounds(guest_id: int) -> int:
 	return max(0, remaining)  # Не меньше 0
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ПУБЛИЧНЫЕ МЕТОДЫ - ПРОВЕРКА ВОЗВРАТА
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Проверить возврат гостей перед следующим раундом (вызывается при подготовке стола)
+func check_guests_return_before_next_round() -> void:
+	"""Проверяет возврат гостей с учетом следующего раунда
+	
+	Вызывается в момент подготовки стола (после завершения раздачи, до начала новой).
+	Проверяет, должны ли гости вернуться на следующей раздаче (current_round + 1).
+	"""
+	if guests_left.is_empty():
+		print("🔄 GuestReturnManager: нет ушедших гостей для проверки возврата")
+		return
+	
+	# Используем текущий раунд + 1 для проверки (следующий раунд)
+	var next_round = get_current_round() + 1
+	print("🔄 GuestReturnManager: проверка возврата гостей перед следующим раундом (текущий: %d, следующий: %d)" % [
+		get_current_round(), next_round
+	])
+	
+	# Проверяем всех ушедших гостей
+	var guests_to_return: Array[int] = []
+	
+	for guest_id in guests_left.keys():
+		var guest_data = guests_left[guest_id]
+		var round_when_left = guest_data["round_when_left"]
+		var rounds_until_return = guest_data["rounds_until_return"]
+		var rounds_passed = next_round - round_when_left
+		
+		print("🔄 Проверка возврата гостя %d: ушел в раунде %d, будет %d раундов, нужно %d" % [
+			guest_id, round_when_left, rounds_passed, rounds_until_return
+		])
+		
+		if rounds_passed >= rounds_until_return:
+			guests_to_return.append(guest_id)
+			print("✅ Гость %d должен вернуться перед следующей раздачей (будет %d >= нужно %d)" % [
+				guest_id, rounds_passed, rounds_until_return
+			])
+	
+	# Возвращаем гостей, которые должны вернуться
+	if guests_to_return.size() > 0:
+		print("🔄 GuestReturnManager: возвращаем %d гостей перед следующей раздачей" % guests_to_return.size())
+		for guest_id in guests_to_return:
+			return_guest(guest_id)
+	else:
+		print("🔄 GuestReturnManager: гостей для возврата перед следующей раздачей нет")
+
+# ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_round_started() -> void:
-	"""Обработчик начала нового раунда - проверяем возврат гостей"""
+	"""Обработчик начала нового раунда - только увеличиваем счетчик
+	
+	Проверка возврата гостей теперь происходит в check_guests_return_before_next_round()
+	который вызывается при подготовке стола (до начала новой раздачи).
+	"""
 	# ВСЕГДА увеличиваем счетчик при начале нового раунда
 	current_round += 1
 	
@@ -224,39 +276,6 @@ func _on_round_started() -> void:
 			print("🔄 GuestReturnManager: текущий раунд = %d (локальный счетчик)" % current_round)
 	else:
 		print("🔄 GuestReturnManager: текущий раунд = %d (локальный счетчик)" % current_round)
-	
-	# Используем get_current_round() для получения актуального значения
-	var current = get_current_round()
-	print("🔄 GuestReturnManager: проверка возврата гостей, текущий раунд = %d, ушедших гостей = %d" % [
-		current, guests_left.size()
-	])
-	
-	# Проверяем всех ушедших гостей
-	var guests_to_return: Array[int] = []
-	
-	for guest_id in guests_left.keys():
-		var guest_data = guests_left[guest_id]
-		var round_when_left = guest_data["round_when_left"]
-		var rounds_until_return = guest_data["rounds_until_return"]
-		var rounds_passed = current - round_when_left
-		
-		print("🔄 Проверка возврата гостя %d: ушел в раунде %d, прошло %d раундов, нужно %d" % [
-			guest_id, round_when_left, rounds_passed, rounds_until_return
-		])
-		
-		if rounds_passed >= rounds_until_return:
-			guests_to_return.append(guest_id)
-			print("✅ Гость %d должен вернуться (прошло %d >= нужно %d)" % [
-				guest_id, rounds_passed, rounds_until_return
-			])
-	
-	# Возвращаем гостей, которые должны вернуться
-	if guests_to_return.size() > 0:
-		print("🔄 GuestReturnManager: возвращаем %d гостей" % guests_to_return.size())
-		for guest_id in guests_to_return:
-			return_guest(guest_id)
-	else:
-		print("🔄 GuestReturnManager: гостей для возврата нет")
 
 func _on_game_restarted() -> void:
 	"""Обработчик рестарта игры - сбрасываем все"""

@@ -2044,6 +2044,11 @@ func _complete_round_and_prepare_new_game() -> void:
 	if GuestStatsManager:
 		GuestStatsManager.check_guests_balance_at_round_end()
 	
+	# Проверяем возврат гостей перед следующей раздачей (до обновления стола)
+	# Гости должны вернуться до того, как стол обновится и они смогут сделать ставки
+	if GuestReturnManager:
+		GuestReturnManager.check_guests_return_before_next_round()
+	
 	var result = table_preparation_executor.execute_preparation_actions(
 		instructions,
 		resolve_heart_bet,  # Callable для разрешения Heart Bet
