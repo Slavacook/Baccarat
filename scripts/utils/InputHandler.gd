@@ -188,14 +188,17 @@ func handle_unhandled_input(event: InputEvent) -> bool:
 			return true
 		
 		# Проверяем, не открыто ли меню настроек
+		# Если меню настроек видно, оно само обработает ESC (кнопка "Назад")
+		# Поэтому мы не обрабатываем ESC здесь, если меню видно
 		if settings_scene and settings_scene.visible:
-			# Если меню открыто, закрываем его
-			settings_scene.close_settings()
+			# Меню настроек само обработает ESC через SettingsScene._input()
+			# Не обрабатываем здесь, чтобы избежать конфликта
+			return false
 		else:
 			# Если меню закрыто, открываем его
 			if settings_scene:
 				settings_scene.open_settings()
 				# UI элементы будут скрыты через сигнал EventBus.settings_opened в _on_settings_opened()
-		return true
+			return true
 	
 	return false

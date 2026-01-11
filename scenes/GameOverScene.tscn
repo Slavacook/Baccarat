@@ -1,11 +1,27 @@
-[gd_scene load_steps=2 format=3 uid="uid://game_over_popup"]
+[gd_scene load_steps=3 format=3 uid="uid://dpymmn15qf0i5"]
 
-[ext_resource type="Script" path="res://scripts/GameOverScene.gd" id="1_gameover"]
+[ext_resource type="Script" uid="uid://cmf8hbbh7mx8w" path="res://scripts/GameOverScene.gd" id="1_gameover"]
+[ext_resource type="Texture2D" uid="uid://cei0v8qt0hwq4" path="res://assets/ui/game_over.png" id="2_game_over_bg"]
 
 [node name="GameOverScene" type="CanvasLayer"]
 layer = 300
 visible = false
 script = ExtResource("1_gameover")
+
+[node name="BackgroundImage" type="TextureRect" parent="."]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -104.0
+offset_top = -57.0
+offset_right = -104.0
+offset_bottom = -57.0
+grow_horizontal = 2
+grow_vertical = 2
+scale = Vector2(1.15, 1.15)
+texture = ExtResource("2_game_over_bg")
+expand_mode = 1
+stretch_mode = 5
 
 [node name="ColorRect" type="ColorRect" parent="."]
 anchors_preset = 15
@@ -13,7 +29,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
-color = Color(0, 0, 0, 0.9)
+color = Color(0, 0, 0, 0)
 
 [node name="MarginContainer" type="MarginContainer" parent="ColorRect"]
 layout_mode = 1
@@ -59,4 +75,3 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_font_sizes/font_size = 24
 text = "Начать заново"
-

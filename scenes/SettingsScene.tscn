@@ -1,4 +1,4 @@
-[gd_scene load_steps=15 format=3 uid="uid://dvci1lc3qrbac"]
+[gd_scene load_steps=16 format=3 uid="uid://dvci1lc3qrbac"]
 
 [ext_resource type="Script" uid="uid://d3ov5kmwxvbem" path="res://scripts/SettingsScene.gd" id="1_8limm"]
 
@@ -32,13 +32,13 @@ corner_radius_top_right = 8
 corner_radius_bottom_right = 8
 corner_radius_bottom_left = 8
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mode_button_disabled"]
-bg_color = Color(0.35, 0.45, 0.35, 1)
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mode_button_pressed"]
+bg_color = Color(0.2, 0.2, 0.25, 1)
 border_width_left = 2
 border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
-border_color = Color(0.6, 0.8, 0.6, 1)
+border_color = Color(0.6, 0.6, 0.7, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -51,6 +51,18 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.7, 0.7, 0.8, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_mode_button_disabled"]
+bg_color = Color(0.35, 0.45, 0.35, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.6, 0.8, 0.6, 1)
 corner_radius_top_left = 8
 corner_radius_top_right = 8
 corner_radius_bottom_right = 8
@@ -206,29 +218,111 @@ horizontal_alignment = 1
 [node name="HSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
 
-[node name="MainHBox" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+[node name="ContentArea" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 30
+theme_override_constants/separation = 15
 
-[node name="LeftColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
+[node name="MainMenuContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 3
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="LeftColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 15
+
+[node name="LimitsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
+text = "Лимиты"
+
+[node name="GuestsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
+text = "Гости"
+
+[node name="BackgroundMusicButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
+theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
+text = "Фоновый шум"
+
+[node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 15
+
+[node name="BetsFilterButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
+text = "Фильтр ставок"
+
+[node name="StoryButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
+text = "Сюжет"
+
+[node name="AdvancedSettingsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
+custom_minimum_size = Vector2(0, 50)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
+text = "Расширенные настройки"
+
+[node name="GuestReturnContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
+
+[node name="LimitsSubmenu" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
+visible = false
+layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="GameModeButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/LimitsSubmenu"]
+layout_mode = 2
+size_flags_horizontal = 4
+size_flags_vertical = 0
 theme_override_constants/separation = 10
 
-[node name="SectionGameMode" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "ЛИМИТЫ"
-horizontal_alignment = 1
-
-[node name="GameModeButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="JunketButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/GameModeButtons"]
+[node name="JunketButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/LimitsSubmenu/GameModeButtons"]
 custom_minimum_size = Vector2(120, 45)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -239,7 +333,7 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
 text = "Junket"
 
-[node name="ClassicButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/GameModeButtons"]
+[node name="ClassicButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/LimitsSubmenu/GameModeButtons"]
 custom_minimum_size = Vector2(120, 45)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -250,261 +344,272 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
 text = "Classic"
 
-[node name="ModeInfoLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+[node name="ModeInfoLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/LimitsSubmenu"]
 layout_mode = 2
-size_flags_vertical = 3
+size_flags_horizontal = 3
+size_flags_vertical = 0
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 theme_override_font_sizes/font_size = 13
 text = "Основные ставки: 2000-200000, шаг 500
 Tie: 100-900, шаг 25
 Пары: 100-900, шаг 25
 Комиссия банкира: 95%"
+horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="TestCardsSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn"]
+[node name="BetsFilterSubmenu" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
+visible = false
 layout_mode = 2
-theme_override_constants/separation = 8
+size_flags_vertical = 3
+theme_override_constants/separation = 20
 
-[node name="TestCardsLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/TestCardsSection"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "ТЕСТИРОВКА"
-horizontal_alignment = 1
-
-[node name="TestCardsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/LeftColumn/TestCardsSection"]
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-text = "НАСТРОЙКА"
-
-[node name="MiddleColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
+[node name="LeftColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="SectionBets" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn"]
+[node name="BetsFilterLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/LeftColumn"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 22
-text = "ФИЛЬТР СТАВОК"
+text = "Настройка ставок"
 horizontal_alignment = 1
 
-[node name="BetsContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn"]
+[node name="BetsContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/LeftColumn"]
 layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 8
 
-[node name="BetPlayerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetPlayerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/LeftColumn/BetsContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 toggle_mode = true
 text = "Игрок"
 
-[node name="BetBankerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetBankerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/LeftColumn/BetsContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 toggle_mode = true
 text = "Банкир"
 
-[node name="BetTieButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetTieButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/LeftColumn/BetsContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 toggle_mode = true
 text = "Ничья"
 
-[node name="BetPairButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="BetPairButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/LeftColumn/BetsContainer"]
 custom_minimum_size = Vector2(0, 40)
 layout_mode = 2
 toggle_mode = true
 text = "Пары"
 
-[node name="HSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
+[node name="VSeparator" type="VSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu"]
+custom_minimum_size = Vector2(2, 0)
 layout_mode = 2
 
-[node name="GuestSettingsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
-text = "ГОСТИ"
-
-[node name="GuestProgressionButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/MiddleColumn/BetsContainer"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 0.95, 0.8, 1)
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
-theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
-text = "ПРОГРЕССИЯ ГОСТЕЙ"
-
-[node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox"]
+[node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu"]
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="TipPercentageContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="CardSettingsHeader" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 0
+
+[node name="CardSettingsLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "Настройка карт"
+horizontal_alignment = 1
+
+[node name="TestCardsEnabledCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsHeader"]
+layout_mode = 2
+
+[node name="CardSettingsContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Banker1Row" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="SectionTipPercentage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TipPercentageContainer"]
+[node name="Banker1Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Banker1Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+text = "БАНКИР 1"
+
+[node name="Banker1CardOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Banker1Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Banker2Row" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Banker2Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Banker2Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+theme_override_font_sizes/font_size = 16
+text = "БАНКИР 2"
+
+[node name="Banker2CardOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Banker2Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Player1Row" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Player1Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Player1Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.3, 0.5, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "ИГРОК 1"
+
+[node name="Player1CardOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Player1Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Player2Row" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Player2Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Player2Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.3, 0.5, 1, 1)
+theme_override_font_sizes/font_size = 16
+text = "ИГРОК 2"
+
+[node name="Player2CardOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Player2Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AdvancedSettingsSubmenu" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 20
+
+[node name="TipPercentageContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SectionTipPercentage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/TipPercentageContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 22
 text = "ЧАЕВЫЕ"
 horizontal_alignment = 1
 
-[node name="TipPercentageSpinBox" type="SpinBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TipPercentageContainer"]
+[node name="TipPercentageSpinBox" type="SpinBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/TipPercentageContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.1
 step = 0.1
 value = 1.0
 
-[node name="TipPercentageLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/TipPercentageContainer"]
+[node name="TipPercentageLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/TipPercentageContainer"]
 layout_mode = 2
 text = "% от выплат"
 
-[node name="HSeparatorTip" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="HSeparatorTip" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
 layout_mode = 2
 
-[node name="ChanceCardsContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="ChanceCardsContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="SectionChanceCards" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/ChanceCardsContainer"]
+[node name="SectionChanceCards" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/ChanceCardsContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 22
 text = "КАРТЫ ШАНСОВ"
 horizontal_alignment = 1
 
-[node name="ChanceCardsCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/ChanceCardsContainer"]
+[node name="ChanceCardsCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/ChanceCardsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 button_pressed = true
 text = "Включить"
 
-[node name="HSeparatorChanceCards" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="HSeparatorChanceCards" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
 layout_mode = 2
 
-[node name="AutoModeSwitchContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="AutoModeSwitchContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="SectionAutoModeSwitch" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/AutoModeSwitchContainer"]
+[node name="SectionAutoModeSwitch" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/AutoModeSwitchContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 22
 text = "АВТО ЗБР/ОПЛ"
 horizontal_alignment = 1
 
-[node name="AutoModeSwitchCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/AutoModeSwitchContainer"]
+[node name="AutoModeSwitchCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/AutoModeSwitchContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 button_pressed = true
 text = "Включить"
 
-[node name="HSeparatorAutoModeSwitch" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="HSeparatorImmortality" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
 layout_mode = 2
 
-[node name="GuestReturnSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="ImmortalityContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
 layout_mode = 2
+theme_override_constants/separation = 10
 
-[node name="SectionGuestReturn" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/GuestReturnSection"]
+[node name="SectionImmortality" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/ImmortalityContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 22
-text = "ВОЗВРАТ ГОСТЕЙ"
+text = "БЕССМЕРТИЕ"
 horizontal_alignment = 1
 
-[node name="GuestReturnContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/GuestReturnSection"]
+[node name="ImmortalityButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/ImmortalityContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Бессмертие"
+
+[node name="StorySubmenu" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
+visible = false
 layout_mode = 2
 size_flags_vertical = 3
+theme_override_constants/separation = 20
 
-[node name="HSeparatorGuestReturn" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="TableContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
 layout_mode = 2
-
-[node name="SectionLanguage" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "ЯЗЫК"
-
-[node name="LanguageButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
+size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="RuButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/LanguageButtons"]
-custom_minimum_size = Vector2(100, 45)
+[node name="AutoModeCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
 layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
-theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
-text = "Русский"
+text = "Автоматический режим"
 
-[node name="EnButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/LanguageButtons"]
-custom_minimum_size = Vector2(100, 45)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
-theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
-text = "English"
-
-[node name="HSeparator5" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="HSeparatorBottom" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+visible = false
 layout_mode = 2
 
-[node name="CardBackSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
+[node name="BackButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+visible = false
+custom_minimum_size = Vector2(200, 50)
 layout_mode = 2
-
-[node name="HBoxContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection"]
-layout_mode = 2
-
-[node name="Label" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/HBoxContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "РУБАШКА:"
-
-[node name="TigerButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/HBoxContainer"]
-layout_mode = 2
-text = "ТИГР"
-
-[node name="LeopardButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/CardBackSection/HBoxContainer"]
-layout_mode = 2
-text = "ЛЕОПАРД"
-
-[node name="HSeparator6" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-
-[node name="SoundSection" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn"]
-layout_mode = 2
-theme_override_constants/separation = 8
-
-[node name="SoundButtons" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/SoundSection"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="BackgroundMusicButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/MainHBox/RightColumn/SoundSection/SoundButtons"]
-custom_minimum_size = Vector2(200, 45)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
-theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
-text = "Фоновый шум"
+size_flags_horizontal = 4
+size_flags_vertical = 3
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
+text = "Назад"
 
 [node name="HSeparator4" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
@@ -522,4 +627,4 @@ theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_apply_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_apply_button")
 theme_override_styles/hover = SubResource("StyleBoxFlat_apply_button_hover")
-text = "ОК"
+text = "Назад"

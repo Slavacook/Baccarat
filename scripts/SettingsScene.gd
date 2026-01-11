@@ -19,6 +19,48 @@ signal language_changed(lang: String)  # "ru" или "en"
 # Заголовок
 @onready var title_label: Label = find_child("TitleLabel", true, false)
 
+# === ГЛАВНОЕ МЕНЮ ===
+@onready var main_menu_container: HBoxContainer = find_child("MainMenuContainer", true, false)
+@onready var limits_button: Button = find_child("LimitsButton", true, false)
+@onready var bets_filter_button: Button = find_child("BetsFilterButton", true, false)
+@onready var guests_button: Button = find_child("GuestsButton", true, false)
+@onready var story_button: Button = find_child("StoryButton", true, false)
+@onready var background_music_button: Button = find_child("BackgroundMusicButton", true, false)
+@onready var advanced_settings_button: Button = find_child("AdvancedSettingsButton", true, false)
+# ok_button больше не используется (убрана из UI)
+
+# === ОБЛАСТЬ КОНТЕНТА ===
+@onready var content_area: VBoxContainer = find_child("ContentArea", true, false)
+
+# === ПОДМЕНЮ ===
+@onready var limits_submenu: VBoxContainer = find_child("LimitsSubmenu", true, false)
+@onready var bets_filter_submenu: HBoxContainer = find_child("BetsFilterSubmenu", true, false)  # Изменено на HBoxContainer (два столбца)
+@onready var advanced_settings_submenu: VBoxContainer = find_child("AdvancedSettingsSubmenu", true, false)
+@onready var story_submenu: VBoxContainer = find_child("StorySubmenu", true, false)
+
+# === КНОПКА НАЗАД ===
+@onready var back_button: Button = find_child("BackButton", true, false)
+@onready var hseparator_bottom: HSeparator = find_child("HSeparatorBottom", true, false)
+
+# === ПОДМЕНЮ: СЮЖЕТ (прогрессия гостей) ===
+var story_table_container: VBoxContainer = null  # Будет найден в _initialize_story_submenu
+var story_auto_mode_checkbox: CheckBox = null  # Будет найден в _initialize_story_submenu
+var story_threshold_spinboxes: Dictionary = {}  # {количество_гостей: SpinBox}
+var story_reset_buttons: Dictionary = {}  # {количество_гостей: Button}
+
+# === ПОДМЕНЮ: ФИЛЬТР СТАВОК И КАРТ ===
+@onready var test_cards_enabled_checkbox: CheckBox = find_child("TestCardsEnabledCheckbox", true, false)
+@onready var banker1_card_option: OptionButton = find_child("Banker1CardOption", true, false)
+@onready var banker2_card_option: OptionButton = find_child("Banker2CardOption", true, false)
+@onready var player1_card_option: OptionButton = find_child("Player1CardOption", true, false)
+@onready var player2_card_option: OptionButton = find_child("Player2CardOption", true, false)
+
+# === ПОДМЕНЮ: РАСШИРЕННЫЕ НАСТРОЙКИ ===
+@onready var immortality_button: Button = find_child("ImmortalityButton", true, false)
+
+# Текущее активное меню
+var current_menu: String = "main"  # "main", "limits", "bets", "advanced", "story"
+
 # === РАЗДЕЛ 1: РЕЖИМ ВЫЖИВАНИЯ === (DEPRECATED - скрыт)
 @onready var survival_checkbox: CheckBox = find_child("SurvivalCheckbox", true, false)
 
@@ -60,10 +102,10 @@ var guest_return_counter_ui: GuestReturnCounterUI = null
 @onready var leopard_button: Button = find_child("LeopardButton", true, false)
 
 # === РАЗДЕЛ 7: ЗВУК ===
-@onready var background_music_button: Button = find_child("BackgroundMusicButton", true, false)
+# background_music_button объявлена в разделе "ГЛАВНОЕ МЕНЮ" (строка 28)
 
 # === РАЗДЕЛ 8: ТЕСТОВЫЕ КАРТЫ (для отладки) ===
-@onready var test_cards_button: Button = find_child("TestCardsButton", true, false)
+# УДАЛЕНО: test_cards_button теперь не используется (настройка карт перенесена в подменю Фильтр ставок и карт)
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 @onready var apply_button: Button = find_child("ApplyButton", true, false)
@@ -98,6 +140,18 @@ func _ready() -> void:
 
 	# Подключаем сигналы кнопок
 	_connect_signals()
+	
+	# Подключаем кнопки "Назад" в подменю (после того как подменю загружены)
+	await get_tree().process_frame
+	_connect_submenu_buttons()
+	
+	# Инициализируем подменю Сюжет (таблица прогрессии) - после загрузки всех узлов
+	await get_tree().process_frame
+	_initialize_story_submenu()
+	
+	# Инициализируем подменю Фильтр ставок и карт (OptionButton для карт)
+	await get_tree().process_frame
+	_initialize_card_options()
 
 	# Подписываемся на изменение языка через EventBus для синхронизации
 	EventBus.language_changed.connect(_on_language_changed_external)
@@ -114,13 +168,28 @@ func _connect_signals() -> void:
 	Подключает сигналы кнопок, переключателей и других UI элементов
 	к соответствующим обработчикам событий.
 	"""
-	# Режим игры
+	# === ГЛАВНОЕ МЕНЮ ===
+	if limits_button:
+		limits_button.pressed.connect(func(): _show_menu("limits"))
+	if bets_filter_button:
+		bets_filter_button.pressed.connect(func(): _show_menu("bets"))
+	if guests_button:
+		guests_button.pressed.connect(_on_guest_settings_pressed)
+	if story_button:
+		story_button.pressed.connect(func(): _show_menu("story"))
+	if advanced_settings_button:
+		advanced_settings_button.pressed.connect(func(): _show_menu("advanced"))
+	# ok_button больше не используется (убрана из UI)
+	
+	# === ПОДМЕНЮ: ЛИМИТЫ ===
+	# Режим игры (внутри подменю Лимиты)
 	if junket_button:
 		junket_button.pressed.connect(_on_junket_pressed)
 	if classic_button:
 		classic_button.pressed.connect(_on_classic_pressed)
 
-	# Ставки (кнопки с toggle_mode)
+	# === ПОДМЕНЮ: ФИЛЬТР СТАВОК ===
+	# Ставки (кнопки с toggle_mode) - теперь в подменю Фильтр ставок
 	if bet_player_button:
 		bet_player_button.toggled.connect(_on_bet_player_toggled)
 	if bet_banker_button:
@@ -130,13 +199,7 @@ func _connect_signals() -> void:
 	if bet_pair_button:
 		bet_pair_button.toggled.connect(_on_bet_pair_toggled)
 	
-	# Кнопка настроек гостей
-	if guest_settings_button:
-		guest_settings_button.pressed.connect(_on_guest_settings_pressed)
-	
-	# Кнопка прогрессии гостей
-	if guest_progression_button:
-		guest_progression_button.pressed.connect(_on_guest_progression_pressed)
+	# === ПОДМЕНЮ: РАСШИРЕННЫЕ НАСТРОЙКИ ===
 
 	# Размер ставок
 	if bet_size_option:
@@ -177,9 +240,23 @@ func _connect_signals() -> void:
 	else:
 		push_warning("⚠️ SettingsScene: Кнопка 'Фоновый шум' НЕ найдена!")
 	
-	# Тестовые карты
-	if test_cards_button:
-		test_cards_button.pressed.connect(_on_test_cards_pressed)
+	# Тестовые карты (в подменю Расширенные настройки) - УДАЛЕНО, теперь в подменю Фильтр ставок и карт
+	
+	# === ПОДМЕНЮ: ФИЛЬТР СТАВОК И КАРТ ===
+	if test_cards_enabled_checkbox:
+		test_cards_enabled_checkbox.toggled.connect(_on_test_cards_enabled_toggled)
+	if banker1_card_option:
+		banker1_card_option.item_selected.connect(func(idx): _on_card_selected("banker1", idx))
+	if banker2_card_option:
+		banker2_card_option.item_selected.connect(func(idx): _on_card_selected("banker2", idx))
+	if player1_card_option:
+		player1_card_option.item_selected.connect(func(idx): _on_card_selected("player1", idx))
+	if player2_card_option:
+		player2_card_option.item_selected.connect(func(idx): _on_card_selected("player2", idx))
+	
+	# === ПОДМЕНЮ: РАСШИРЕННЫЕ НАСТРОЙКИ ===
+	if immortality_button:
+		immortality_button.pressed.connect(_on_immortality_pressed)
 
 	# Управляющие кнопки
 	if apply_button:
@@ -238,7 +315,275 @@ func open_settings() -> void:
 			junket_button.grab_focus()
 	
 	EventBus.settings_opened.emit()
+	
+	# Показываем главное меню при открытии
+	_show_menu("main")
+	
 	print("⚙️  Окно настроек открыто")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# НАВИГАЦИЯ МЕЖДУ МЕНЮ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _show_menu(menu_name: String) -> void:
+	"""Показать указанное меню и скрыть остальные"""
+	current_menu = menu_name
+	
+	# Скрываем все меню в области контента
+	if main_menu_container:
+		main_menu_container.visible = (menu_name == "main")
+	
+	if limits_submenu:
+		limits_submenu.visible = (menu_name == "limits")
+	
+	if bets_filter_submenu:
+		bets_filter_submenu.visible = (menu_name == "bets")
+	
+	if advanced_settings_submenu:
+		advanced_settings_submenu.visible = (menu_name == "advanced")
+	
+	if story_submenu:
+		story_submenu.visible = (menu_name == "story")
+	
+	# GuestReturnContainer виден только в главном меню
+	if guest_return_container:
+		guest_return_container.visible = (menu_name == "main")
+	
+	# Инициализируем OptionButton для карт при открытии подменю "Фильтр ставок и карт"
+	if menu_name == "bets":
+		# Убеждаемся, что OptionButton инициализированы
+		if banker1_card_option and banker1_card_option.get_item_count() == 0:
+			_initialize_card_options()
+		else:
+			# Просто обновляем значения
+			_load_card_values()
+	
+	# BackButton и hseparator_bottom больше не используются (убраны из подменю)
+	
+	# Обновляем заголовок
+	if title_label:
+		if Localization:
+			match menu_name:
+				"main":
+					title_label.text = Localization.t("SETTINGS_TITLE")
+				"limits":
+					title_label.text = Localization.t("SETTINGS_LIMITS")
+				"bets":
+					title_label.text = Localization.t("SETTINGS_BETS_FILTER")  # "ФИЛЬТР СТАВОК И КАРТ"
+				"advanced":
+					title_label.text = Localization.t("SETTINGS_ADVANCED")
+				"story":
+					title_label.text = Localization.t("SETTINGS_STORY")
+		else:
+			match menu_name:
+				"main":
+					title_label.text = "НАСТРОЙКИ"
+				"limits":
+					title_label.text = "ЛИМИТЫ"
+				"bets":
+					title_label.text = "ФИЛЬТР СТАВОК И КАРТ"
+				"advanced":
+					title_label.text = "РАСШИРЕННЫЕ НАСТРОЙКИ"
+				"story":
+					title_label.text = "СЮЖЕТ"
+		title_label.visible = true
+	
+	print("📋 Показано меню: %s" % menu_name)
+
+func _on_back_pressed() -> void:
+	"""Возврат в главное меню (DEPRECATED - теперь используется _on_apply_pressed)"""
+	_on_apply_pressed()
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ПОДМЕНЮ: СЮЖЕТ (прогрессия гостей)
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _initialize_story_submenu() -> void:
+	"""Инициализировать подменю Сюжет (таблица прогрессии гостей)"""
+	if not story_submenu:
+		return
+	
+	# Ищем элементы внутри подменю Сюжет (теперь они напрямую в story_submenu)
+	story_table_container = story_submenu.find_child("TableContainer", true, false)
+	story_auto_mode_checkbox = story_submenu.find_child("AutoModeCheckbox", true, false)
+	
+	if not story_table_container:
+		push_warning("SettingsScene: TableContainer не найден в подменю Сюжет")
+		return
+	
+	# Создаём таблицу программно
+	_create_story_table()
+	
+	# Загружаем текущие значения
+	_load_story_values()
+	
+	# Подключаем сигналы
+	_connect_story_signals()
+
+func _create_story_table() -> void:
+	"""Создать таблицу порогов прогрессии в подменю Сюжет"""
+	if not story_table_container:
+		return
+	
+	# Очищаем контейнер
+	for child in story_table_container.get_children():
+		child.queue_free()
+	
+	# Создаём заголовок таблицы
+	var header_row = HBoxContainer.new()
+	header_row.name = "HeaderRow"
+	story_table_container.add_child(header_row)
+	
+	var header_count_label = Label.new()
+	header_count_label.name = "HeaderCountLabel"
+	header_count_label.text = "Количество гостей" if not Localization else Localization.t("GUEST_COUNT_COLUMN")
+	header_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(header_count_label)
+	
+	var header_tips_label = Label.new()
+	header_tips_label.name = "HeaderTipsLabel"
+	header_tips_label.text = "Чаевые" if not Localization else Localization.t("TIPS_THRESHOLD_COLUMN")
+	header_tips_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	header_row.add_child(header_tips_label)
+	
+	# Заголовок для колонки кнопок сброса
+	var header_reset_label = Label.new()
+	header_reset_label.name = "HeaderResetLabel"
+	header_reset_label.text = ""
+	header_reset_label.custom_minimum_size = Vector2(50, 0)
+	header_row.add_child(header_reset_label)
+	
+	# Создаём строки для порогов 2-6 (порог для 1 гостя = 0, не показываем)
+	for guest_count in range(2, 7):  # 2, 3, 4, 5, 6
+		var row = HBoxContainer.new()
+		row.name = "Row%d" % guest_count
+		story_table_container.add_child(row)
+		
+		# Label с количеством гостей
+		var count_label = Label.new()
+		count_label.name = "CountLabel%d" % guest_count
+		count_label.text = str(guest_count)
+		count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(count_label)
+		
+		# SpinBox для порога
+		var spinbox = SpinBox.new()
+		spinbox.name = "SpinBox%d" % guest_count
+		spinbox.min_value = 0
+		spinbox.max_value = 999999
+		spinbox.step = 10
+		spinbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		spinbox.set_meta("guest_count", guest_count)
+		row.add_child(spinbox)
+		
+		# Кнопка сброса
+		var reset_button = Button.new()
+		reset_button.name = "ResetButton%d" % guest_count
+		reset_button.text = "↺"
+		reset_button.custom_minimum_size = Vector2(50, 0)
+		reset_button.tooltip_text = "Сбросить на значение по умолчанию"
+		reset_button.set_meta("guest_count", guest_count)
+		row.add_child(reset_button)
+		
+		story_threshold_spinboxes[guest_count] = spinbox
+		story_reset_buttons[guest_count] = reset_button
+	
+	print("🎯 Таблица прогрессии создана в подменю Сюжет")
+
+func _load_story_values() -> void:
+	"""Загрузить текущие значения прогрессии в таблицу"""
+	if not GuestProgressionManager:
+		return
+	
+	var thresholds = GuestProgressionManager.get_thresholds()
+	var auto_mode = GuestProgressionManager.is_auto_mode_enabled()
+	
+	# Обновляем SpinBox'ы
+	for guest_count in range(2, 7):
+		if story_threshold_spinboxes.has(guest_count):
+			var spinbox = story_threshold_spinboxes[guest_count]
+			if spinbox:
+				var value = thresholds.get(guest_count, 0)
+				spinbox.value = value
+	
+	# Обновляем чекбокс автоматического режима
+	if story_auto_mode_checkbox:
+		story_auto_mode_checkbox.button_pressed = auto_mode
+
+func _connect_story_signals() -> void:
+	"""Подключить сигналы для подменю Сюжет"""
+	# Подключаем сигналы SpinBox'ов
+	for guest_count in story_threshold_spinboxes.keys():
+		var spinbox = story_threshold_spinboxes[guest_count]
+		if spinbox:
+			spinbox.value_changed.connect(_on_story_threshold_changed.bind(guest_count))
+	
+	# Подключаем кнопки сброса
+	for guest_count in story_reset_buttons.keys():
+		var reset_button = story_reset_buttons[guest_count]
+		if reset_button:
+			reset_button.pressed.connect(_on_story_reset_pressed.bind(guest_count))
+	
+	# Подключаем чекбокс автоматического режима
+	if story_auto_mode_checkbox:
+		story_auto_mode_checkbox.toggled.connect(_on_story_auto_mode_toggled)
+
+func _on_story_threshold_changed(guest_count: int) -> void:
+	"""Обработка изменения порога прогрессии"""
+	if not GuestProgressionManager:
+		return
+	
+	var spinbox = story_threshold_spinboxes.get(guest_count)
+	if not spinbox:
+		return
+	
+	# Получаем все текущие пороги
+	var current_thresholds = GuestProgressionManager.get_thresholds()
+	
+	# Обновляем порог для указанного количества гостей
+	var new_value = int(spinbox.value)
+	current_thresholds[guest_count] = new_value
+	
+	# Устанавливаем все пороги обратно
+	GuestProgressionManager.set_thresholds(current_thresholds)
+	print("🎯 Порог для %d гостей изменён: %d" % [guest_count, new_value])
+
+func _on_story_reset_pressed(guest_count: int) -> void:
+	"""Обработка нажатия кнопки сброса порога"""
+	if not GuestProgressionManager:
+		return
+	
+	# Получаем пороги по умолчанию
+	var default_thresholds = GuestProgressionManager.get_default_thresholds()
+	var default_value = default_thresholds.get(guest_count, 0)
+	
+	# Получаем все текущие пороги и обновляем один
+	var current_thresholds = GuestProgressionManager.get_thresholds()
+	current_thresholds[guest_count] = default_value
+	
+	# Устанавливаем все пороги обратно
+	GuestProgressionManager.set_thresholds(current_thresholds)
+	
+	# Обновляем SpinBox
+	if story_threshold_spinboxes.has(guest_count):
+		var spinbox = story_threshold_spinboxes[guest_count]
+		if spinbox:
+			spinbox.value = default_value
+	
+	print("🎯 Порог для %d гостей сброшен: %d" % [guest_count, default_value])
+
+func _on_story_auto_mode_toggled(pressed: bool) -> void:
+	"""Обработка переключения автоматического режима"""
+	if not GuestProgressionManager:
+		return
+	
+	GuestProgressionManager.set_auto_mode(pressed)
+	print("🎯 Автоматический режим прогрессии: %s" % ("включен" if pressed else "выключен"))
+
+func _connect_submenu_buttons() -> void:
+	"""Подключить кнопку 'Назад' (DEPRECATED - BackButton больше не используется)"""
+	# BackButton больше не используется, используется только ApplyButton (переименована в "Назад")
+	pass
 
 func close_settings() -> void:
 	"""Закрыть окно настроек
@@ -275,6 +620,9 @@ func close_settings() -> void:
 	# Очищаем счетчики возврата гостей при закрытии
 	_cleanup_guest_return_counters()
 	
+	# Возвращаемся в главное меню перед закрытием
+	_show_menu("main")
+	
 	hide()
 	EventBus.settings_closed.emit()
 	print("⚙️  Окно настроек закрыто")
@@ -297,7 +645,18 @@ func _input(event: InputEvent) -> void:
 	"""Обработка ввода (используем _input для перехвата Escape и action даже если фокус на кнопке)
 	
 	Делегирует в SettingsKeyboardNavigator.
+	Обрабатывает ESC для вызова кнопки "Назад" (только когда меню видно).
 	"""
+	# Обрабатываем ESC только когда меню настроек видно
+	if not visible:
+		return
+	
+	# Обработка ESC - вызывает кнопку "Назад" (используем action "exit" как в InputHandler)
+	if event.is_action_pressed("exit") or (event is InputEventKey and event.keycode == KEY_ESCAPE and event.pressed):
+		_on_apply_pressed()
+		get_viewport().set_input_as_handled()
+		return
+	
 	if keyboard_navigator.handle_input(event, self, apply_button):
 		return
 
@@ -362,6 +721,12 @@ func _load_current_values() -> void:
 	
 	# Фоновая музыка
 	_update_background_music_button()
+	
+	# Тестовые карты (в подменю Фильтр ставок и карт)
+	_load_card_values()
+	
+	# Бессмертие
+	_update_immortality_button()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА (делегировано в SettingsKeyboardNavigator)
@@ -417,7 +782,7 @@ func _update_texts() -> void:
 		title_label.text = Localization.t("SETTINGS_TITLE")
 
 	if apply_button:
-		apply_button.text = Localization.t("SETTINGS_BUTTON_APPLY")
+		apply_button.text = "Назад"  # Переименовано из "ОК"
 
 	# Рубашка карт
 	if tiger_button:
@@ -573,33 +938,9 @@ func _on_guest_settings_pressed():
 		print("👥 Открыто меню настроек гостей")
 
 func _on_guest_progression_pressed():
-	"""Обработка нажатия кнопки 'ПРОГРЕССИЯ ГОСТЕЙ' для открытия попапа настроек прогрессии"""
-	# Ищем попап в сцене Game
-	var game_scene = get_tree().get_first_node_in_group("game")
-	if not game_scene:
-		game_scene = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
-	
-	var progression_popup = null
-	if game_scene:
-		progression_popup = game_scene.get_node_or_null("GuestProgressionPopup")
-	
-	if not progression_popup:
-		# Создаём попап если его нет
-		var popup_scene = load("res://scenes/popups/GuestProgressionPopup.tscn")
-		if popup_scene:
-			progression_popup = popup_scene.instantiate()
-			progression_popup.name = "GuestProgressionPopup"
-			if game_scene:
-				game_scene.add_child(progression_popup)
-			else:
-				get_tree().root.add_child(progression_popup)
-		else:
-			push_error("SettingsScene: не удалось загрузить сцену GuestProgressionPopup.tscn")
-			return
-	
-	if progression_popup and progression_popup.has_method("open_popup"):
-		progression_popup.open_popup()
-		print("🎯 Открыт попап прогрессии гостей")
+	"""Обработка нажатия кнопки 'ПРОГРЕССИЯ ГОСТЕЙ' (DEPRECATED - теперь используется подменю Сюжет)"""
+	# Теперь открываем подменю Сюжет вместо попапа
+	_show_menu("story")
 
 func _on_bet_player_toggled(pressed: bool):
 	"""Обработка переключения ставки Player"""
@@ -757,44 +1098,186 @@ func _on_background_music_pressed():
 	
 	print("🎵 Фоновый шум: %s" % ("включен" if verify_enabled else "выключен"))
 
-# === ТЕСТОВЫЕ КАРТЫ ===
-func _on_test_cards_pressed():
-	"""Открыть попап настройки тестовых карт"""
-	# Ищем или создаём попап
-	var game_scene = get_tree().get_first_node_in_group("game")
-	if not game_scene:
-		game_scene = get_tree().root.get_child(get_tree().root.get_child_count() - 1)
+# === ТЕСТОВЫЕ КАРТЫ (в подменю Фильтр ставок и карт) ===
+func _initialize_card_options() -> void:
+	"""Инициализировать OptionButton для выбора карт"""
+	var card_options = [
+		banker1_card_option,
+		banker2_card_option,
+		player1_card_option,
+		player2_card_option
+	]
 	
-	var test_popup = null
-	if game_scene:
-		test_popup = game_scene.get_node_or_null("TestCardsPopup")
+	# Список значений карт: Случайная, A, 2, 3, 4, 5, 6, 7, 8, 9, J, Q, K
+	var card_values = ["Случайная", "A", "2", "3", "4", "5", "6", "7", "8", "9", "J", "Q", "K"]
 	
-	if not test_popup:
-		# Создаём попап программно (скрипт создаёт UI сам)
-		var popup_script = load("res://scripts/popups/TestCardsPopup.gd")
-		if popup_script:
-			test_popup = CanvasLayer.new()
-			test_popup.name = "TestCardsPopup"
-			test_popup.set_script(popup_script)
-			if game_scene:
-				game_scene.add_child(test_popup)
-			else:
-				get_tree().root.add_child(test_popup)
-		else:
-			push_error("SettingsScene: не удалось загрузить TestCardsPopup.gd")
-			return
+	for option_button in card_options:
+		if not option_button:
+			continue
+		
+		option_button.clear()
+		for value in card_values:
+			option_button.add_item(value)
 	
-	if test_popup and test_popup.has_method("open_popup"):
-		test_popup.open_popup()
-		print("🧪 Открыт попап тестовых карт")
+	# Загружаем текущие значения из TestCardsManager
+	_load_card_values()
+
+func _load_card_values() -> void:
+	"""Загрузить текущие значения карт из TestCardsManager в OptionButton"""
+	if not TestCardsManager:
+		return
+	
+	var positions = {
+		"banker1": banker1_card_option,
+		"banker2": banker2_card_option,
+		"player1": player1_card_option,
+		"player2": player2_card_option
+	}
+	
+	for position in positions.keys():
+		var option_button = positions[position]
+		if not option_button:
+			continue
+		
+		var card_data = TestCardsManager.get_card_data(position)
+		var value = card_data.get("value", 0)
+		
+		# Преобразуем значение TestCardsManager в индекс OptionButton
+		# TestCardsManager: 0=случайная, 1=A, 2-9, 11=J, 12=Q, 13=K (нет 10)
+		# OptionButton: 0=Случайная, 1=A, 2-9, 10=J, 11=Q, 12=K
+		var option_index = 0
+		if value == 0:
+			option_index = 0  # Случайная
+		elif value >= 1 and value <= 9:
+			option_index = value  # A, 2-9
+		elif value == 11:
+			option_index = 10  # J
+		elif value == 12:
+			option_index = 11  # Q
+		elif value == 13:
+			option_index = 12  # K
+		
+		option_button.selected = option_index
+	
+	# Загружаем состояние чекбокса
+	if test_cards_enabled_checkbox:
+		test_cards_enabled_checkbox.button_pressed = TestCardsManager.enabled
+
+func _on_test_cards_enabled_toggled(pressed: bool) -> void:
+	"""Обработка переключения чекбокса 'Включить тестовые карты'"""
+	if TestCardsManager:
+		TestCardsManager.set_enabled(pressed)
+		print("🧪 Тестовые карты: %s" % ("включены" if pressed else "выключены"))
+
+func _on_card_selected(position: String, value_index: int) -> void:
+	"""Обработка выбора карты в OptionButton
+	position: "banker1", "banker2", "player1", "player2"
+	value_index: 0=Случайная, 1=A, 2-9, 10=J, 11=Q, 12=K
+	"""
+	if not TestCardsManager:
+		return
+	
+	# Преобразуем индекс OptionButton в значение TestCardsManager
+	# OptionButton: 0=Случайная, 1=A, 2-9, 10=J, 11=Q, 12=K
+	# TestCardsManager: 0=случайная, 1=A, 2-9, 11=J, 12=Q, 13=K (нет 10)
+	var test_value = 0
+	if value_index == 0:
+		test_value = 0  # Случайная
+	elif value_index >= 1 and value_index <= 9:
+		test_value = value_index  # A, 2-9
+	elif value_index == 10:
+		test_value = 11  # J
+	elif value_index == 11:
+		test_value = 12  # Q
+	elif value_index == 12:
+		test_value = 13  # K
+	
+	if test_value == 0:
+		# Случайная карта
+		TestCardsManager.set_test_card(position, 0, 0)
+	else:
+		# Случайная масть (0-3)
+		var random_suit = randi() % 4
+		TestCardsManager.set_test_card(position, random_suit, test_value)
+	
+	# Автоматически включаем тестовые карты при выборе
+	if not TestCardsManager.enabled:
+		TestCardsManager.set_enabled(true)
+		if test_cards_enabled_checkbox:
+			test_cards_enabled_checkbox.button_pressed = true
+	
+	print("🎴 Карта %s установлена: OptionButton индекс %d → TestCardsManager value %d" % [position, value_index, test_value])
+
+# === БЕССМЕРТИЕ ===
+func _on_immortality_pressed() -> void:
+	"""Обработка нажатия кнопки 'Бессмертие'"""
+	if not SaveManager:
+		return
+	
+	var current = SaveManager.instance.load_immortality_enabled()
+	var new_value = not current
+	SaveManager.instance.save_immortality_enabled(new_value)
+	
+	if new_value:
+		# При включении бессмертия добавляем +100000 чаевых
+		var tips_before = SaveManager.instance.score
+		SaveManager.instance.add_score(100000)
+		var tips_after = SaveManager.instance.score
+		print("💀 Бессмертие включено - добавлено +100000 чаевых: %d → %d" % [tips_before, tips_after])
+		
+		# Обновляем статистику если есть StatsManager
+		if StatsManager and StatsManager.instance:
+			StatsManager.instance.update_stats()
+	else:
+		# При выключении бессмертия сбрасываем чаевые на ноль
+		var tips_before = SaveManager.instance.score
+		SaveManager.instance.score = 0
+		SaveManager.instance.save_data()
+		var tips_after = SaveManager.instance.score
+		print("💀 Бессмертие выключено - чаевые сброшены на ноль: %d → %d" % [tips_before, tips_after])
+		
+		# Обновляем статистику если есть StatsManager
+		if StatsManager and StatsManager.instance:
+			StatsManager.instance.update_stats()
+	
+	_update_immortality_button()
+	print("💀 Бессмертие: %s" % ("включено" if new_value else "выключено"))
+
+func _update_immortality_button() -> void:
+	"""Обновить текст кнопки бессмертия"""
+	if not immortality_button:
+		return
+	
+	if not SaveManager:
+		return
+	
+	var enabled = SaveManager.instance.load_immortality_enabled()
+	if Localization:
+		immortality_button.text = Localization.t("SETTINGS_IMMORTALITY") + (" (вкл)" if enabled else " (выкл)")
+	else:
+		immortality_button.text = "Бессмертие" + (" (вкл)" if enabled else " (выкл)")
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 func _on_apply_pressed():
-	"""Обработка нажатия кнопки "ОК" """
-	# Все изменения уже применены в реальном времени через менеджеры
-	# Просто закрываем окно
+	"""Обработка нажатия кнопки "Назад" (переименована из "ОК")
+	
+	Логика:
+	- Если открыто подменю → возврат в главное меню
+	- Если открыто главное меню → закрыть настройки
+	"""
+	# Если мы в подменю, возвращаемся в главное меню
+	if current_menu != "main":
+		_show_menu("main")
+		print("⬅️ Возврат в главное меню настроек")
+		return
+	
+	# Если в главном меню, закрываем настройки
 	close_settings()
-	print("✅ Настройки применены")
+	print("✅ Настройки закрыты")
+
+func _on_ok_pressed():
+	"""Обработка нажатия кнопки "ОК" (DEPRECATED - теперь используется _on_apply_pressed)"""
+	_on_apply_pressed()
 
 # === СИНХРОНИЗАЦИЯ С EVENTBUS ===
 func _on_language_changed_external(lang: String):

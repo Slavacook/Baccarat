@@ -71,4 +71,3 @@ func _unhandled_input(event: InputEvent) -> void:
 		# При Game Over нажатие пробела → рестарт игры
 		get_viewport().set_input_as_handled()
 		_on_restart_pressed()
-
