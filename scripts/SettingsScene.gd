@@ -59,7 +59,10 @@ var guest_return_counter_ui: GuestReturnCounterUI = null
 @onready var tiger_button: Button = find_child("TigerButton", true, false)
 @onready var leopard_button: Button = find_child("LeopardButton", true, false)
 
-# === РАЗДЕЛ 7: ТЕСТОВЫЕ КАРТЫ (для отладки) ===
+# === РАЗДЕЛ 7: ЗВУК ===
+@onready var background_music_button: Button = find_child("BackgroundMusicButton", true, false)
+
+# === РАЗДЕЛ 8: ТЕСТОВЫЕ КАРТЫ (для отладки) ===
 @onready var test_cards_button: Button = find_child("TestCardsButton", true, false)
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
@@ -162,6 +165,17 @@ func _connect_signals() -> void:
 		tiger_button.pressed.connect(_on_tiger_pressed)
 	if leopard_button:
 		leopard_button.pressed.connect(_on_leopard_pressed)
+	if background_music_button:
+		background_music_button.pressed.connect(_on_background_music_pressed)
+		# Убеждаемся, что кнопка активна
+		background_music_button.disabled = false
+		background_music_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		print("✅ SettingsScene: Кнопка 'Фоновый шум' найдена и сигнал подключен")
+		print("   - disabled: %s" % background_music_button.disabled)
+		print("   - mouse_filter: %s" % background_music_button.mouse_filter)
+		print("   - visible: %s" % background_music_button.visible)
+	else:
+		push_warning("⚠️ SettingsScene: Кнопка 'Фоновый шум' НЕ найдена!")
 	
 	# Тестовые карты
 	if test_cards_button:
@@ -345,6 +359,9 @@ func _load_current_values() -> void:
 
 	# Рубашка карт
 	_update_card_back_buttons()
+	
+	# Фоновая музыка
+	_update_background_music_button()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАВИГАЦИЯ С КЛАВИАТУРЫ И ГЕЙМПАДА (делегировано в SettingsKeyboardNavigator)
@@ -683,6 +700,62 @@ func _on_leopard_pressed():
 	_update_card_back_buttons()
 	EventBus.card_back_style_changed.emit("leopard")
 	print("🎴 Рубашка карт изменена: Леопард")
+
+# === ЗВУК ===
+func _update_background_music_button() -> void:
+	"""Обновить текст кнопки фоновой музыки"""
+	if not background_music_button:
+		return
+	
+	var enabled = false
+	if SoundManager:
+		enabled = SoundManager.is_background_music_enabled()
+	
+	# Текст кнопки: "Фоновый шум" всегда, но показываем состояние
+	if Localization:
+		# Если включено - показываем "Фоновый шум ✓", если выключено - "Фоновый шум"
+		if enabled:
+			background_music_button.text = Localization.t("SETTINGS_BACKGROUND_NOISE") + " ✓"
+		else:
+			background_music_button.text = Localization.t("SETTINGS_BACKGROUND_NOISE")
+	else:
+		background_music_button.text = "Фоновый шум" + (" ✓" if enabled else "")
+	
+	# Кнопка всегда активна для переключения (не disabled)
+	background_music_button.disabled = false
+	background_music_button.mouse_filter = Control.MOUSE_FILTER_STOP
+
+func _on_background_music_pressed():
+	"""Обработка нажатия кнопки фоновой музыки"""
+	print("🔘 Кнопка 'Фоновый шум' нажата!")
+	
+	if not SoundManager:
+		push_error("SettingsScene: SoundManager не найден!")
+		return
+	
+	if not background_music_button:
+		push_error("SettingsScene: background_music_button не найден!")
+		return
+	
+	var current_enabled = SoundManager.is_background_music_enabled()
+	var new_enabled = not current_enabled
+	
+	var current_text = "включен" if current_enabled else "выключен"
+	var new_text = "включен" if new_enabled else "выключен"
+	print("🎵 Переключение фонового шума: %s → %s" % [current_text, new_text])
+	
+	# Переключаем состояние
+	SoundManager.set_background_music_enabled(new_enabled)
+	
+	# Проверяем, что состояние изменилось
+	var verify_enabled = SoundManager.is_background_music_enabled()
+	if verify_enabled != new_enabled:
+		push_error("SettingsScene: Ошибка! Состояние не изменилось: ожидалось %s, получено %s" % [new_enabled, verify_enabled])
+	
+	# Обновляем текст кнопки
+	_update_background_music_button()
+	
+	print("🎵 Фоновый шум: %s" % ("включен" if verify_enabled else "выключен"))
 
 # === ТЕСТОВЫЕ КАРТЫ ===
 func _on_test_cards_pressed():

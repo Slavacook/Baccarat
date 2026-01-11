@@ -114,6 +114,8 @@ const DATA = {
 		"SETTINGS_SECTION_CARD_BACK": "РУБАШКА",
 		"SETTINGS_CARD_BACK_TIGER": "Тигр",
 		"SETTINGS_CARD_BACK_LEOPARD": "Леопард",
+		"SETTINGS_SECTION_SOUND": "ЗВУК",
+		"SETTINGS_BACKGROUND_NOISE": "Фоновый шум",
 		"SETTINGS_SURVIVAL_CHECKBOX": "Включить (7 жизней)",
 		"SETTINGS_BET_PAIR_PLAYER": "Пара Игрока",
 		"SETTINGS_BET_PAIR_BANKER": "Пара Банкира",
@@ -170,7 +172,29 @@ const DATA = {
 		"USE_BUTTON": "Использовать",
 		"CARD_CANNOT_USE": "Карту нельзя использовать сейчас",
 		"CANNOT_USE_CHANCE": "Нельзя использовать шанс",
-		"NO_CHANCES_AVAILABLE": "Нет доступных шансов"
+		"NO_CHANCES_AVAILABLE": "Нет доступных шансов",
+		
+		# === ГЛАВНОЕ МЕНЮ ===
+		"MENU_TITLE": "БАККАРА ТРЕНАЖЁР",
+		"MENU_ENTER_NAME": "Введите имя",
+		"MENU_START": "Начать",
+		"MENU_PLAY": "Играть",
+		"MENU_LOGIN": "Войти",
+		"MENU_REGISTER": "Регистрация",
+		"MENU_GUEST": "Попробовать без регистрации",
+		"MENU_USERNAME": "Логин",
+		"MENU_PASSWORD": "Пароль",
+		"MENU_LOADING": "Загрузка...",
+		"MENU_LOADING_PERCENT": "Загрузка... %d%%",
+		"MENU_READY": "Готово! Можно начинать",
+		"MENU_ERROR_EMPTY": "Заполните все поля",
+		"MENU_ERROR_USERNAME_SHORT": "Логин должен быть минимум 3 символа",
+		"MENU_ERROR_PASSWORD_SHORT": "Пароль должен быть минимум 4 символа",
+		"MENU_ERROR_LOGIN": "Неверный логин или пароль",
+		"MENU_ERROR_REGISTER": "Пользователь уже существует",
+		"MENU_ERROR_REGISTER_FAILED": "Ошибка регистрации",
+		"MENU_TO_LOGIN": "Уже есть аккаунт? Войти",
+		"MENU_TO_REGISTER": "Нет аккаунта? Регистрация"
 	},
 	"en": {
 		"ERR_NATURAL_NO_DRAW": "Natural 8 or 9! No third card",
@@ -283,6 +307,8 @@ const DATA = {
 		"SETTINGS_SECTION_CARD_BACK": "CARD BACK",
 		"SETTINGS_CARD_BACK_TIGER": "Tiger",
 		"SETTINGS_CARD_BACK_LEOPARD": "Leopard",
+		"SETTINGS_SECTION_SOUND": "SOUND",
+		"SETTINGS_BACKGROUND_NOISE": "Background Noise",
 		"SETTINGS_SURVIVAL_CHECKBOX": "Enable (7 lives)",
 		"SETTINGS_BET_PAIR_PLAYER": "Player Pair",
 		"SETTINGS_BET_PAIR_BANKER": "Banker Pair",
@@ -339,7 +365,29 @@ const DATA = {
 		"USE_BUTTON": "Use",
 		"CARD_CANNOT_USE": "Card cannot be used now",
 		"CANNOT_USE_CHANCE": "Cannot use chance",
-		"NO_CHANCES_AVAILABLE": "No chances available"
+		"NO_CHANCES_AVAILABLE": "No chances available",
+		
+		# === MAIN MENU ===
+		"MENU_TITLE": "BACCARAT TRAINER",
+		"MENU_ENTER_NAME": "Enter your name",
+		"MENU_START": "Start",
+		"MENU_PLAY": "Play",
+		"MENU_LOGIN": "Login",
+		"MENU_REGISTER": "Register",
+		"MENU_GUEST": "Try without registration",
+		"MENU_USERNAME": "Username",
+		"MENU_PASSWORD": "Password",
+		"MENU_LOADING": "Loading...",
+		"MENU_LOADING_PERCENT": "Loading... %d%%",
+		"MENU_READY": "Ready! You can start",
+		"MENU_ERROR_EMPTY": "Fill in all fields",
+		"MENU_ERROR_USERNAME_SHORT": "Username must be at least 3 characters",
+		"MENU_ERROR_PASSWORD_SHORT": "Password must be at least 4 characters",
+		"MENU_ERROR_LOGIN": "Invalid username or password",
+		"MENU_ERROR_REGISTER": "User already exists",
+		"MENU_ERROR_REGISTER_FAILED": "Registration error",
+		"MENU_TO_LOGIN": "Already have an account? Login",
+		"MENU_TO_REGISTER": "No account? Register"
 	}
 }
 

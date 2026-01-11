@@ -39,14 +39,17 @@ var heart_sound: AudioStream  # Сердце (heart bet)
 var bet_sounds: Array[AudioStream] = []  # Звуки ставок гостей (8 вариантов)
 var camera_transition_sound: AudioStream  # Звук перехода камеры (whoosh_2)
 var payout_open_sound: AudioStream  # Звук открытия окна выплат (whoosh_1)
+var background_music: AudioStream  # Фоновая музыка (asmr.ogg)
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
 var sfx_players: Array[AudioStreamPlayer] = []  # Пул игроков для параллельного воспроизведения звуков
+var background_music_player: AudioStreamPlayer  # Игрок для фоновой музыки
 
 # Настройки громкости
 var master_volume: float = 1.0
 var sfx_volume: float = 1.0
+const BACKGROUND_MUSIC_VOLUME: float = 0.1  # Громкость фоновой музыки (10%)
 
 # Флаги для отслеживания состояния
 var last_patience_values: Dictionary = {}  # {guest_id: patience} для отслеживания потери терпения
@@ -70,6 +73,11 @@ func _ready():
 		add_child(player)
 		sfx_players.append(player)
 	
+	# Создаём AudioStreamPlayer для фоновой музыки
+	background_music_player = AudioStreamPlayer.new()
+	background_music_player.name = "BackgroundMusicPlayer"
+	add_child(background_music_player)
+	
 	# Загружаем звуки
 	_load_sounds()
 	
@@ -78,6 +86,9 @@ func _ready():
 	
 	# Подписываемся на события EventBus
 	_connect_events()
+	
+	# Фоновая музыка будет запущена в GameController._ready() (только во время игры)
+	# _load_background_music_setting() - вызывается в GameController
 	
 	print("🔊 SoundManager готов! Подписан на EventBus.")
 
@@ -182,6 +193,9 @@ func _load_sounds():
 	
 	# whoosh_1.mp3 - Звук открытия окна выплат
 	payout_open_sound = _load_sound_safe(GameConstants.PAYOUT_OPEN_SOUND_PATH)
+	
+	# asmr.ogg - Фоновая музыка (ASMR)
+	background_music = _load_sound_safe("res://assets/sound/asmr.ogg")
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -433,6 +447,85 @@ func _get_free_player() -> AudioStreamPlayer:
 		if not player.playing:
 			return player
 	return null  # Все заняты
+
+# ═══════════════════════════════════════════════════════════════════════════
+# УПРАВЛЕНИЕ ФОНОВОЙ МУЗЫКОЙ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _load_background_music_setting() -> void:
+	"""Загрузить настройку фоновой музыки и запустить/остановить"""
+	if not SaveManager:
+		return
+	
+	var enabled = SaveManager.load_background_music_enabled()
+	if enabled:
+		start_background_music()
+	else:
+		stop_background_music()
+
+func start_background_music() -> void:
+	"""Запустить фоновую музыку"""
+	if not background_music_player or not background_music:
+		return
+	
+	background_music_player.stream = background_music
+	background_music_player.volume_db = linear_to_db(BACKGROUND_MUSIC_VOLUME * master_volume)
+	
+	# Настраиваем на зацикливание
+	if background_music is AudioStreamOggVorbis:
+		background_music.loop = true
+	elif background_music is AudioStreamMP3:
+		background_music.loop = true
+	
+	background_music_player.play()
+	print("🎵 Фоновая музыка запущена (громкость: %d%%)" % int(BACKGROUND_MUSIC_VOLUME * 100))
+
+func stop_background_music() -> void:
+	"""Остановить фоновую музыку"""
+	if not background_music_player:
+		print("⚠️ SoundManager: background_music_player не найден!")
+		return
+	
+	# Останавливаем воспроизведение
+	if background_music_player.playing:
+		background_music_player.stop()
+	
+	# Убираем stream, чтобы гарантировать остановку
+	background_music_player.stream = null
+	
+	# Проверяем, что действительно остановилось
+	if background_music_player.playing:
+		push_error("⚠️ SoundManager: Не удалось остановить фоновую музыку!")
+	else:
+		print("🎵 Фоновая музыка остановлена")
+
+func set_background_music_enabled(enabled: bool) -> void:
+	"""Включить/выключить фоновую музыку"""
+	if not SaveManager:
+		push_error("⚠️ SoundManager: SaveManager не найден!")
+		return
+	
+	print("🎵 SoundManager.set_background_music_enabled(%s)" % enabled)
+	
+	# Сначала сохраняем настройку
+	SaveManager.save_background_music_enabled(enabled)
+	
+	# Затем включаем/выключаем музыку
+	if enabled:
+		start_background_music()
+	else:
+		stop_background_music()
+	
+	# Проверяем, что состояние соответствует
+	var verify = is_background_music_enabled()
+	if verify != enabled:
+		push_error("⚠️ SoundManager: Несоответствие состояния! Ожидалось %s, получено %s" % [enabled, verify])
+
+func is_background_music_enabled() -> bool:
+	"""Проверить, включена ли фоновая музыка"""
+	if not SaveManager:
+		return true  # По умолчанию включена
+	return SaveManager.load_background_music_enabled()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ ДЛЯ ВНЕШНИХ ВЫЗОВОВ (для событий без EventBus)

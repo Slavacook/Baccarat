@@ -317,3 +317,15 @@ func load_guest_progression_auto_mode() -> bool:
 	"""Загрузить состояние автоматического режима прогрессии (по умолчанию true)"""
 	var settings = load_settings()
 	return settings.get("guest_progression_auto_mode", true)
+
+# ← Настройки фоновой музыки
+func save_background_music_enabled(enabled: bool):
+	"""Сохранить состояние фоновой музыки (включена/выключена)"""
+	var settings = load_settings()
+	settings["background_music_enabled"] = enabled
+	save_settings(settings)
+
+func load_background_music_enabled() -> bool:
+	"""Загрузить состояние фоновой музыки (по умолчанию true - включена)"""
+	var settings = load_settings()
+	return settings.get("background_music_enabled", true)
