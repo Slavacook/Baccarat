@@ -109,13 +109,13 @@ func zoom_guest_6_mode2(is_navigation: bool = false) -> void:
 	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_6_mode2", is_navigation)
 
 func zoom_area(area_index: int, is_navigation: bool = false) -> void:
-	"""Зум на указанную область (1-6)
+	"""Зум на указанную область (1-3)
 	
 	Args:
-		area_index: Индекс области (1-6)
+		area_index: Индекс области (1-3)
 		is_navigation: true если запрос от навигатора (используются медленные настройки)
 	"""
-	if area_index < 1 or area_index > 6:
+	if area_index < 1 or area_index > 3:
 		push_error("CameraZoomHandler: неверный индекс области %d" % area_index)
 		return
 	var settings = config.get_area_settings(area_index)

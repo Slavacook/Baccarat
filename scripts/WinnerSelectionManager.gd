@@ -20,6 +20,9 @@ var marker_nodes: Dictionary = {}
 # Текущий выбранный победитель (или пустая строка если никто не выбран)
 var selected_winner: String = ""
 
+# Флаг: было ли последнее переключение маркера через клавиатуру (пробел)
+var was_last_toggle_by_keyboard: bool = false
+
 # Текстуры маркеров (обычные и активированные)
 const MARKER_TEXTURES = {
 	"Player": {
@@ -68,11 +71,19 @@ func setup(player_marker: TextureButton, banker_marker: TextureButton, tie_marke
 # УПРАВЛЕНИЕ ВЫБОРОМ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func toggle_winner(winner: String) -> void:
-	"""Переключить выбор победителя (select ↔ deselect)"""
+func toggle_winner(winner: String, by_keyboard: bool = false) -> void:
+	"""Переключить выбор победителя (select ↔ deselect)
+	
+	Args:
+		winner: Выбранный победитель
+		by_keyboard: true если нажатие было через клавиатуру (пробел), false если через мышь/сенсор
+	"""
 	if not marker_nodes.has(winner):
 		push_error("WinnerSelectionManager: неизвестный победитель '%s'" % winner)
 		return
+
+	# Сохраняем источник нажатия
+	was_last_toggle_by_keyboard = by_keyboard
 
 	if selected_winner == winner:
 		# Уже выбран → снимаем выбор (пользователь напрямую деактивирует маркер)
@@ -181,8 +192,8 @@ func unlock_markers() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _on_marker_clicked(winner: String) -> void:
-	"""Обработка клика на маркер"""
-	toggle_winner(winner)
+	"""Обработка клика на маркер (мышь/сенсор)"""
+	toggle_winner(winner, false)  # Мышь/сенсор - не клавиатура
 
 
 # ═══════════════════════════════════════════════════════════════════════════

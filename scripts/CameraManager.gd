@@ -353,7 +353,7 @@ func _get_target_area_by_direction_from(area: int, direction: String) -> int:
 		return 0
 
 func predict_target_area(zoom_type: String) -> int:
-	"""Предсказать целевую область (1-6) по zoom_type, 0 — если карты/общий план - делегировано в CameraAreaNavigator
+	"""Предсказать целевую область (1-3) по zoom_type, 0 — если карты/общий план - делегировано в CameraAreaNavigator
 	
 	Публичный метод для GameController (используется для подсветки областей).
 	
@@ -361,7 +361,7 @@ func predict_target_area(zoom_type: String) -> int:
 		zoom_type: Тип зума (например, "area_1", "next_area", "up", и т.д.)
 		
 	Returns:
-		Целевая область (1-6), 0 для карт/общего плана, -1 для общего плана
+		Целевая область (1-3), 0 для карт/общего плана, -1 для общего плана
 	"""
 	if _area_navigator:
 		return _area_navigator.predict_target_area(zoom_type, current_area)
@@ -381,9 +381,9 @@ func is_on_area() -> bool:
 	"""Проверка, находится ли камера на области ставок
 	
 	Returns:
-		true если камера находится на области ставок (1-6), false иначе
+		true если камера находится на области ставок (1-3), false иначе
 	"""
-	return current_area >= 1 and current_area <= 6
+	return current_area >= 1 and current_area <= 3
 
 func get_last_zoom_type() -> String:
 	"""Получить последний тип зума
@@ -500,10 +500,10 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 			_target_area = -1  # Остаёмся на общем плане для режима 2
 		_:
 			if zoom_type.begins_with("area_"):
-				# Извлекаем номер области из строки "area_X" (где X от 1 до 6)
-				var area_str = zoom_type.substr(5)  # Получаем "1", "2", и т.д.
+				# Извлекаем номер области из строки "area_X" (где X от 1 до 3)
+				var area_str = zoom_type.substr(5)  # Получаем "1", "2", "3"
 				var area_num = area_str.to_int()
-				if area_num >= 1 and area_num <= 6:
+				if area_num >= 1 and area_num <= 3:
 					_target_area = area_num
 	
 	# Устанавливаем флаг новой анимации
@@ -585,12 +585,6 @@ func _on_zoom_requested(zoom_type: String, is_navigation: bool = false) -> void:
 			_zoom_area(2, is_navigation)
 		"area_3":
 			_zoom_area(3, is_navigation)
-		"area_4":
-			_zoom_area(4, is_navigation)
-		"area_5":
-			_zoom_area(5, is_navigation)
-		"area_6":
-			_zoom_area(6, is_navigation)
 		"guest_1_mode2":
 			_zoom_guest_1_mode2(is_navigation)
 		"guest_2_mode2":
@@ -655,6 +649,11 @@ func _on_current_area_requested() -> void:
 func _on_target_area_requested(direction: String) -> void:
 	"""Обработка запроса целевой области по направлению"""
 	var target = _get_target_area_by_direction(direction)
+	# Проверка на "стоп": если target равен current_area (для area >= 1), то не отправляем сигнал
+	var area = _target_area if _is_animating else current_area
+	if target == area and area >= 1:
+		# Это стоп - не отправляем сигнал, просто ничего не происходит
+		return
 	if EventBus:
 		EventBus.camera_target_area_received.emit(direction, target)
 

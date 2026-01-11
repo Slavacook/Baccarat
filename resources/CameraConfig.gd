@@ -14,9 +14,9 @@ func _init() -> void:
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЩЕГО ПЛАНА
-var general_position: Vector2 = Vector2(570, 120)
+var general_position: Vector2 = Vector2(570, 150)
 # Масштаб камеры для общего плана
-var general_zoom: Vector2 = Vector2(0.45, 0.45)
+var general_zoom: Vector2 = Vector2(0.35, 0.35)
 # Поворот камеры для общего плана (в градусах)
 var general_rotation: float = 0.0
 var general_description: String = "Показывает весь стол"
@@ -38,72 +38,36 @@ var cards_description: String = "Фокус на зоне раздачи кар�
 # ═══════════════════════════════════════════════════════════════════════════
 
 # Позиция камеры для ОБЛАСТИ 1 (левая часть стола)
-var area_1_position: Vector2 = Vector2(-650, 300)
+var area_1_position: Vector2 = Vector2(-380, 150)
 # Масштаб камеры для области 1
-var area_1_zoom: Vector2 = Vector2(1.0, 1.0)
+var area_1_zoom: Vector2 = Vector2(0.8, 0.8)
 # Поворот камеры для области 1 (в градусах)
 var area_1_rotation: float = -8.0
-var area_1_description: String = "Левая область ставок"
+var area_1_description: String = "Левая область ставок (сектора 1-2)"
 
 # ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 4: ОБЛАСТЬ 2 - ЦЕНТРАЛЬНАЯ (Area 2 - Center)
+# РЕЖИМ 4: ОБЛАСТЬ 2 - ЦЕНТРАЛЬНАЯ (Area 2 - Center, бывшая Area 3)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Позиция камеры для ОБЛАСТИ 2
-var area_2_position: Vector2 = Vector2(-120, 60)
+# Позиция камеры для ОБЛАСТИ 2 (центральная часть стола, сектора 3-4)
+var area_2_position: Vector2 = Vector2(590, 30)
 # Масштаб камеры для области 2
-var area_2_zoom: Vector2 = Vector2(1.0, 1.0)
+var area_2_zoom: Vector2 = Vector2(0.8, 0.8)
 # Поворот камеры для области 2 (в градусах)
-var area_2_rotation: float = -4.0
-var area_2_description: String = "Область ставок 2"
+var area_2_rotation: float = 0.0
+var area_2_description: String = "Центральная область ставок (сектора 3-4)"
 
 # ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 5: ОБЛАСТЬ 3 (Area 3)
+# РЕЖИМ 5: ОБЛАСТЬ 3 - ПРАВАЯ (Area 3 - Right, бывшая Area 6)
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Позиция камеры для ОБЛАСТИ 3
-var area_3_position: Vector2 = Vector2(400, 30)
+# Позиция камеры для ОБЛАСТИ 3 (правая часть стола, сектора 5-6)
+var area_3_position: Vector2 = Vector2(1600, 150)
 # Масштаб камеры для области 3
-var area_3_zoom: Vector2 = Vector2(1.0, 1.0)
+var area_3_zoom: Vector2 = Vector2(0.8, 0.8)
 # Поворот камеры для области 3 (в градусах)
-var area_3_rotation: float = 0.0
-var area_3_description: String = "Область ставок 3"
-
-# ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 6: ОБЛАСТЬ 4 (Area 4)
-# ═══════════════════════════════════════════════════════════════════════════
-
-# Позиция камеры для ОБЛАСТИ 4
-var area_4_position: Vector2 = Vector2(730, 30)
-# Масштаб камеры для области 4
-var area_4_zoom: Vector2 = Vector2(1.0, 1.0)
-# Поворот камеры для области 4 (в градусах)
-var area_4_rotation: float = 0.0
-var area_4_description: String = "Область ставок 4"
-
-# ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 7: ОБЛАСТЬ 5 (Area 5)
-# ═══════════════════════════════════════════════════════════════════════════
-
-# Позиция камеры для ОБЛАСТИ 5
-var area_5_position: Vector2 = Vector2(1330,60)
-# Масштаб камеры для области 5
-var area_5_zoom: Vector2 = Vector2(1.0, 1.0)
-# Поворот камеры для области 5 (в градусах)
-var area_5_rotation: float = 4.0
-var area_5_description: String = "Область ставок 5"
-
-# ═══════════════════════════════════════════════════════════════════════════
-# РЕЖИМ 8: ОБЛАСТЬ 6 (Area 6)
-# ═══════════════════════════════════════════════════════════════════════════
-
-# Позиция камеры для ОБЛАСТИ 6
-var area_6_position: Vector2 = Vector2(1800, 300)
-# Масштаб камеры для области 6
-var area_6_zoom: Vector2 = Vector2(1.0, 1.0)
-# Поворот камеры для области 6 (в градусах)
-var area_6_rotation: float = 8.0
-var area_6_description: String = "Область ставок 6"
+var area_3_rotation: float = 8.0
+var area_3_description: String = "Правая область ставок (сектора 5-6)"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # РЕЖИМ 2 (НЕЗАВИСИМЫЙ): ГОСТЬ 1 РЕЖИМ 2
@@ -313,7 +277,7 @@ func get_area_1_settings() -> Dictionary:
 	}
 
 func get_area_2_settings() -> Dictionary:
-	"""Получить настройки для области 2 (центр)"""
+	"""Получить настройки для области 2 (центральная, бывшая Area 3)"""
 	return {
 		"position": area_2_position,
 		"zoom": area_2_zoom,
@@ -322,39 +286,12 @@ func get_area_2_settings() -> Dictionary:
 	}
 
 func get_area_3_settings() -> Dictionary:
-	"""Получить настройки для области 3"""
+	"""Получить настройки для области 3 (правая, бывшая Area 6)"""
 	return {
 		"position": area_3_position,
 		"zoom": area_3_zoom,
 		"rotation": area_3_rotation,
 		"description": area_3_description
-	}
-
-func get_area_4_settings() -> Dictionary:
-	"""Получить настройки для области 4"""
-	return {
-		"position": area_4_position,
-		"zoom": area_4_zoom,
-		"rotation": area_4_rotation,
-		"description": area_4_description
-	}
-
-func get_area_5_settings() -> Dictionary:
-	"""Получить настройки для области 5"""
-	return {
-		"position": area_5_position,
-		"zoom": area_5_zoom,
-		"rotation": area_5_rotation,
-		"description": area_5_description
-	}
-
-func get_area_6_settings() -> Dictionary:
-	"""Получить настройки для области 6"""
-	return {
-		"position": area_6_position,
-		"zoom": area_6_zoom,
-		"rotation": area_6_rotation,
-		"description": area_6_description
 	}
 
 func get_guest_1_mode2_settings() -> Dictionary:
@@ -412,7 +349,7 @@ func get_guest_6_mode2_settings() -> Dictionary:
 	}
 
 func get_area_settings(area_index: int) -> Dictionary:
-	"""Получить настройки для области по индексу (1-6)"""
+	"""Получить настройки для области по индексу (1-3)"""
 	match area_index:
 		1:
 			return get_area_1_settings()
@@ -420,12 +357,6 @@ func get_area_settings(area_index: int) -> Dictionary:
 			return get_area_2_settings()
 		3:
 			return get_area_3_settings()
-		4:
-			return get_area_4_settings()
-		5:
-			return get_area_5_settings()
-		6:
-			return get_area_6_settings()
 		_:
 			push_error("CameraConfig: неизвестный индекс области '%d'" % area_index)
 			return get_general_settings()
@@ -443,12 +374,6 @@ func get_settings_by_type(zoom_type: String) -> Dictionary:
 			return get_area_2_settings()
 		"area_3":
 			return get_area_3_settings()
-		"area_4":
-			return get_area_4_settings()
-		"area_5":
-			return get_area_5_settings()
-		"area_6":
-			return get_area_6_settings()
 		"guest_1_mode2":
 			return get_guest_1_mode2_settings()
 		"guest_2_mode2":

@@ -64,19 +64,19 @@ func on_focus_activated(target: String) -> void:
 		"BankerMarker":
 			# Активируем маркер банкира
 			if winner_selection_manager:
-				winner_selection_manager.toggle_winner("Banker")
+				winner_selection_manager.toggle_winner("Banker", true)  # true = через клавиатуру
 				DebugLogger.log("⌨️ Активирован BankerMarker через клавиатуру")
 		
 		"PlayerMarker":
 			# Активируем маркер игрока
 			if winner_selection_manager:
-				winner_selection_manager.toggle_winner("Player")
+				winner_selection_manager.toggle_winner("Player", true)  # true = через клавиатуру
 				DebugLogger.log("⌨️ Активирован PlayerMarker через клавиатуру")
 		
 		"TieMarker":
 			# Активируем маркер Tie (toggle как и другие маркеры)
 			if winner_selection_manager:
-				winner_selection_manager.toggle_winner("Tie")
+				winner_selection_manager.toggle_winner("Tie", true)  # true = через клавиатуру
 				DebugLogger.log("⌨️ Активирован TieMarker через клавиатуру")
 		
 		_:

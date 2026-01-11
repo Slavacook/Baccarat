@@ -19,6 +19,9 @@ extends PopupPanel
 ## Ссылки на SpinBox'ы для порогов {количество_гостей: SpinBox}
 var threshold_spinboxes: Dictionary = {}
 
+## Ссылки на кнопки сброса {количество_гостей: Button}
+var reset_buttons: Dictionary = {}
+
 ## Текущие пороги (копия для редактирования)
 var current_thresholds: Dictionary = {}
 
@@ -119,6 +122,7 @@ func _initialize_table() -> void:
 func _find_existing_spinboxes() -> void:
 	"""Найти существующие SpinBox'ы в table_container (созданные в сцене)"""
 	threshold_spinboxes.clear()
+	reset_buttons.clear()
 	
 	# Ищем SpinBox'ы для гостей 2-6 (пропускаем 1 гость - это по умолчанию)
 	for i in range(2, 7):  # 2, 3, 4, 5, 6
@@ -134,6 +138,13 @@ func _find_existing_spinboxes() -> void:
 			spinbox.set_meta("guest_count", i)
 			threshold_spinboxes[i] = spinbox
 			print("🎯 Найден SpinBox для гостя %d" % i)
+		
+		# Ищем кнопки сброса (если они созданы в сцене)
+		var reset_button = table_container.find_child("ResetButton%d" % i, true, false) as Button
+		if reset_button:
+			reset_button.set_meta("guest_count", i)
+			reset_buttons[i] = reset_button
+			print("🎯 Найдена кнопка сброса для гостя %d" % i)
 
 func _create_table_programmatically() -> void:
 	"""Создать таблицу порогов программно (если не создана в сцене)"""
@@ -161,6 +172,13 @@ func _create_table_programmatically() -> void:
 	header_tips_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header_row.add_child(header_tips_label)
 	
+	# Заголовок для колонки кнопок сброса (пустой)
+	var header_reset_label = Label.new()
+	header_reset_label.name = "HeaderResetLabel"
+	header_reset_label.text = ""
+	header_reset_label.custom_minimum_size = Vector2(50, 0)
+	header_row.add_child(header_reset_label)
+	
 	# Создаём строки только для порогов 2-6 (5 строк)
 	# Порог для 1 гостя (0 чаевых) не показываем - это по умолчанию
 	for guest_count in range(2, 7):  # 2, 3, 4, 5, 6
@@ -185,8 +203,18 @@ func _create_table_programmatically() -> void:
 		spinbox.set_meta("guest_count", guest_count)  # Сохраняем guest_count в метаданных
 		row.add_child(spinbox)
 		
+		# Кнопка сброса на значение по умолчанию
+		var reset_button = Button.new()
+		reset_button.name = "ResetButton%d" % guest_count
+		reset_button.text = "↺"
+		reset_button.custom_minimum_size = Vector2(50, 0)
+		reset_button.tooltip_text = "Сбросить на значение по умолчанию"
+		reset_button.set_meta("guest_count", guest_count)
+		row.add_child(reset_button)
+		
 		threshold_spinboxes[guest_count] = spinbox
-		print("🎯 Создан SpinBox для гостя %d" % guest_count)
+		reset_buttons[guest_count] = reset_button
+		print("🎯 Создан SpinBox и кнопка сброса для гостя %d" % guest_count)
 
 func _update_table() -> void:
 	"""Обновить значения в таблице на основе current_thresholds"""
@@ -232,6 +260,15 @@ func _connect_signals() -> void:
 				# Проверяем, подключён ли уже сигнал
 				if spinbox.value_changed.get_connections().size() == 0:
 					spinbox.value_changed.connect(_on_threshold_changed)
+	
+	# Кнопки сброса
+	for guest_count in range(2, 7):  # 2, 3, 4, 5, 6
+		if reset_buttons.has(guest_count):
+			var reset_button = reset_buttons[guest_count]
+			if reset_button:
+				# Проверяем, подключён ли уже сигнал
+				if reset_button.pressed.get_connections().size() == 0:
+					reset_button.pressed.connect(_on_reset_button_pressed.bind(guest_count))
 
 func _on_ok_pressed() -> void:
 	"""Обработчик нажатия кнопки "ОК" - просто закрывает попап"""
@@ -293,6 +330,27 @@ func _on_threshold_changed(value: float) -> void:
 			GuestProgressionManager.set_thresholds(thresholds_to_save)
 		
 		print("🎯 Порог для %d гостей изменён на %d" % [changed_guest_count, int(value)])
+
+func _on_reset_button_pressed(guest_count: int) -> void:
+	"""Обработчик нажатия кнопки сброса для конкретного порога
+	
+	Args:
+		guest_count: Количество гостей (2-6)
+	"""
+	if not GuestProgressionManager:
+		push_error("GuestProgressionPopup: GuestProgressionManager не найден")
+		return
+	
+	# Получаем значение по умолчанию
+	var default_thresholds = GuestProgressionManager.get_default_thresholds()
+	var default_value = default_thresholds.get(guest_count, 0)
+	
+	# Устанавливаем значение в SpinBox (это автоматически вызовет _on_threshold_changed и сохранит)
+	if threshold_spinboxes.has(guest_count):
+		var spinbox = threshold_spinboxes[guest_count]
+		if spinbox:
+			spinbox.value = default_value
+			print("🎯 Порог для %d гостей сброшен на значение по умолчанию: %d" % [guest_count, default_value])
 
 func _update_spinboxes_editable(enabled: bool) -> void:
 	"""Обновить доступность редактирования SpinBox'ов"""

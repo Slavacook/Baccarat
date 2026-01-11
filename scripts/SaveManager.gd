@@ -255,9 +255,9 @@ func save_tip_percentage(percentage: float):
 	save_settings(settings)
 
 func load_tip_percentage() -> float:
-	"""Загрузить процент чаевых (по умолчанию 1.0 = 1%)"""
+	"""Загрузить процент чаевых (по умолчанию 0.3 = 0.3%)"""
 	var settings = load_settings()
-	return settings.get("tip_percentage", 1.0)
+	return settings.get("tip_percentage", 0.3)
 
 # ← Настройки карт шансов
 func save_chance_cards_enabled(enabled: bool):
@@ -267,9 +267,9 @@ func save_chance_cards_enabled(enabled: bool):
 	save_settings(settings)
 
 func load_chance_cards_enabled() -> bool:
-	"""Загрузить состояние карт шансов (по умолчанию true - включены)"""
+	"""Загрузить состояние карт шансов (по умолчанию false - выключены)"""
 	var settings = load_settings()
-	return settings.get("chance_cards_enabled", true)
+	return settings.get("chance_cards_enabled", false)
 
 # ← Настройки бессмертия
 func save_immortality_enabled(enabled: bool):

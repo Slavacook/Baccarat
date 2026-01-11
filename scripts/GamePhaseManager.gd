@@ -1702,11 +1702,16 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 			EventBus.navigation_arrows_visibility_changed.emit(true)
 			return
 	
-	# Есть ставки - активируем навигатор (он сам подтянет камеру)
+	# Есть ставки - активируем навигатор только если маркер был активирован через пробел
 	# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 	EventBus.navigation_arrows_visibility_changed.emit(true)
-	# Запрашиваем активацию chip navigation (навигатор сам определит скорость анимации на основе позиции камеры)
-	EventBus.chip_navigation_activation_requested.emit(false)
+	# Проверяем, было ли последнее нажатие маркера через клавиатуру (пробел)
+	var should_activate_navigation = false
+	if winner_selection_manager:
+		should_activate_navigation = winner_selection_manager.was_last_toggle_by_keyboard
+	# Запрашиваем активацию chip navigation только если маркер был активирован через пробел
+	if should_activate_navigation:
+		EventBus.chip_navigation_activation_requested.emit(false)
 
 	# Вызываем метод формирования очереди выплат через EventBus
 	EventBus.manual_payout_requested.emit(actual_winner)

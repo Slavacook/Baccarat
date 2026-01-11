@@ -17,9 +17,9 @@
 extends Node
 
 func _ready():
-	print("=" * 80)
+	print("=".repeat(80))
 	print("МАНУАЛЬНЫЙ ТЕСТ: SettingsEventHandler")
-	print("=" * 80)
+	print("=".repeat(80))
 	print("")
 	print("Проверьте следующие функции:")
 	print("")
@@ -92,7 +92,7 @@ func _print_checklist():
 		print(item)
 	
 	print("")
-	print("=" * 80)
+	print("=".repeat(80))
 	print("После выполнения теста сообщите о результатах")
-	print("=" * 80)
+	print("=".repeat(80))
 

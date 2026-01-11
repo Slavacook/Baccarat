@@ -90,12 +90,6 @@ static func get_zoom_name(zoom_type: String) -> String:
 			return "Область 2"
 		"area_3":
 			return "Область 3"
-		"area_4":
-			return "Область 4"
-		"area_5":
-			return "Область 5"
-		"area_6":
-			return "Область 6"
 		"up":
 			return "Навигация вверх"
 		"down":
