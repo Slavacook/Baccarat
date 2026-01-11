@@ -1691,7 +1691,11 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	var victory_msg = victory_message_formatter.format_victory_message(actual_winner, player_score, banker_score)
 	EventBus.show_toast_success.emit(victory_msg)
 
-	# Навигатор сам подтянет камеру
+	# Проверяем способ управления (клавиатура или мышь/сенсор)
+	var was_keyboard_input = false
+	if winner_selection_manager:
+		was_keyboard_input = winner_selection_manager.was_last_toggle_by_keyboard
+	
 	# Проверяем есть ли ставки для обработки
 	if guest_bet_storage:
 		var guests_with_bets = guest_bet_storage.get_guests_with_bets()
@@ -1700,17 +1704,24 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 			EventBus.camera_zoom_requested.emit("out", false)
 			DebugLogger.log("📷 GamePhaseManager: нет ставок - камера на общий план")
 			EventBus.navigation_arrows_visibility_changed.emit(true)
+			# Вызываем метод формирования очереди выплат через EventBus
+			EventBus.manual_payout_requested.emit(actual_winner)
 			return
 	
-	# Есть ставки - активируем навигатор только если маркер был активирован через пробел
+	# Есть ставки - перемещаем камеру на соответствующую Area (для обоих режимов управления)
+	var rightmost_sector = _find_rightmost_sector_with_bets()
+	var target_area = _sector_to_area(rightmost_sector)
+	
+	# Перемещаем камеру на соответствующую Area
+	var area_zoom_type = "area_%d" % target_area
+	EventBus.camera_zoom_requested.emit(area_zoom_type, false)
+	DebugLogger.log("📷 GamePhaseManager: камера перемещена на Area %d (сектор %d)" % [target_area, rightmost_sector])
+	
 	# Активируем навигацию по полю (стрелки визуально скрыты, но навигация работает)
 	EventBus.navigation_arrows_visibility_changed.emit(true)
-	# Проверяем, было ли последнее нажатие маркера через клавиатуру (пробел)
-	var should_activate_navigation = false
-	if winner_selection_manager:
-		should_activate_navigation = winner_selection_manager.was_last_toggle_by_keyboard
-	# Запрашиваем активацию chip navigation только если маркер был активирован через пробел
-	if should_activate_navigation:
+	
+	# Если управление клавиатурой - дополнительно активируем chip navigation
+	if was_keyboard_input:
 		EventBus.chip_navigation_activation_requested.emit(false)
 
 	# Вызываем метод формирования очереди выплат через EventBus
@@ -1746,6 +1757,29 @@ func _find_rightmost_sector_with_bets() -> int:
 	
 	# Не нашли ставок - возвращаем дефолтный сектор
 	return 6
+
+func _sector_to_area(sector: int) -> int:
+	"""Преобразовать номер сектора (1-6) в номер Area (1-3)
+	
+	Маппинг:
+	- Сектора 1-2 → Area 1 (левая)
+	- Сектора 3-4 → Area 2 (центральная)
+	- Сектора 5-6 → Area 3 (правая)
+	
+	Args:
+		sector: Номер сектора (1-6)
+		
+	Returns:
+		Номер Area (1-3)
+	"""
+	if sector >= 1 and sector <= 2:
+		return 1
+	elif sector >= 3 and sector <= 4:
+		return 2
+	elif sector >= 5 and sector <= 6:
+		return 3
+	else:
+		return 1  # По умолчанию Area 1
 
 func _get_guest_mode2_zoom_for_sector(sector: int) -> String:
 	"""Получить тип зума guest_X_mode2 для сектора
