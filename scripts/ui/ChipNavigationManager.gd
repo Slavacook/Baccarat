@@ -660,6 +660,10 @@ func _check_and_switch_to_pay_if_needed() -> void:
 	if not bet_collection_manager:
 		return
 	
+	# Проверяем, включено ли автоматическое переключение режимов
+	if not SaveManager.instance.load_auto_mode_switch_enabled():
+		return
+	
 	# Проверяем все ли проигрышные ставки собраны
 	if not bet_collection_manager.has_uncollected_losing_bets():
 		# Все проигрышные ставки собраны - проверяем есть ли выигрышные для оплаты

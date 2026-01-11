@@ -384,9 +384,9 @@ func validate_chip_click(bet_type: String, position_index: int = 0) -> Dictionar
 	if not payout_queue_manager:
 		return _error_result("no_queue", "Менеджер ставок не инициализирован")
 	
-	# Режим не выбран - ничего не делаем
+	# Режим не выбран - возвращаем специальную ошибку для показа тоста без штрафа
 	if current_mode == CollectionMode.NONE:
-		return _success_result("none")
+		return _error_result("mode_none", "ERR_MODE_NONE")
 	
 	var bet_data = payout_queue_manager.get_bet_by_id(bet_type, position_index)
 	if not bet_data:

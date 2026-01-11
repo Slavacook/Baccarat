@@ -323,6 +323,10 @@ func _on_pay_button_state_changed(is_pay_mode: bool) -> void:
 	_pay_mode_active = is_pay_mode
 	_collect_mode_active = not is_pay_mode
 	
+	# Убираем grayscale когда режим активируется
+	if pay_button and pay_button.has_method("set_grayscale"):
+		pay_button.set_grayscale(false)
+	
 	var mode_name = "PAY" if is_pay_mode else "COLLECT"
 	print("🔄 PayButton изменил состояние: режим %s" % mode_name)
 	
@@ -428,13 +432,16 @@ func reset_collect_pay_buttons() -> void:
 	print("🔄 Кнопки Collect/Pay сброшены и скрыты")
 
 
-func show_collect_pay_buttons() -> void:
-	"""Показать кнопку сбора и активировать режим COLLECT (после определения победителя)
+func show_collect_pay_buttons(activate_mode: bool = true) -> void:
+	"""Показать кнопку сбора и опционально активировать режим COLLECT
+	
+	Args:
+		activate_mode: Если true - активирует режим COLLECT, если false - только показывает кнопки без активации режима
 	
 	Новая логика:
 		- Если PayButton имеет свой скрипт - используем его
 		- Иначе показываем только CollectButton
-		- Режим COLLECT активирован по умолчанию
+		- Режим COLLECT активирован по умолчанию (если activate_mode = true)
 	"""
 	# Проверяем, есть ли у PayButton кастомный скрипт
 	if pay_button and pay_button.has_method("set_state_take"):
@@ -445,18 +452,42 @@ func show_collect_pay_buttons() -> void:
 			pay_button.ensure_initialized()
 		
 		pay_button.visible = true
-		pay_button.set_state_take()  # Устанавливаем состояние "Забрать"
-		
-		# Синхронизируем состояние (эмитим сигнал для обновления флагов)
-		if pay_button.has_method("sync_state"):
-			pay_button.sync_state()
+		if activate_mode:
+			pay_button.set_state_take()  # Устанавливаем состояние "Забрать"
+			
+			# Синхронизируем состояние (эмитим сигнал для обновления флагов)
+			if pay_button.has_method("sync_state"):
+				pay_button.sync_state()
+			else:
+				# Если метода нет, обновляем вручную
+				_collect_mode_active = true
+				_pay_mode_active = false
+				collect_button_toggled.emit(true)
+			
+			# Убираем grayscale если был установлен
+			if pay_button.has_method("set_grayscale"):
+				pay_button.set_grayscale(false)
+			
+			print("👁️ PayButton показана в состоянии 'Забрать', режим COLLECT активен")
 		else:
-			# Если метода нет, обновляем вручную
-			_collect_mode_active = true
+			# Только показываем кнопку, не активируем режим
+			# Устанавливаем визуальное состояние "Забрать" без эмита сигнала
+			if pay_button.has_method("_update_texture"):
+				# Устанавливаем состояние напрямую, минуя set_state_take() чтобы не эмитить сигнал
+				pay_button.is_pay_state = false
+				pay_button.is_hovering = false
+				pay_button._update_texture()
+			else:
+				# Fallback: если метода нет, просто устанавливаем начальное состояние
+				pay_button.set_state_take()
+			
+			# Устанавливаем черно-белый эффект
+			if pay_button.has_method("set_grayscale"):
+				pay_button.set_grayscale(true)
+			
+			_collect_mode_active = false
 			_pay_mode_active = false
-			collect_button_toggled.emit(true)
-		
-		print("👁️ PayButton показана в состоянии 'Забрать', режим COLLECT активен")
+			print("👁️ PayButton показана в состоянии 'Забрать' (черно-белая), режим НЕ активирован (ручное управление)")
 	else:
 		# Старая логика: показываем только CollectButton
 		if collect_button:
@@ -464,14 +495,20 @@ func show_collect_pay_buttons() -> void:
 		if pay_button:
 			pay_button.visible = false
 		
-		# Активируем режим COLLECT по умолчанию
-		_collect_mode_active = true
-		_pay_mode_active = false
-		
-		# Эмитим сигнал для GameController
-		collect_button_toggled.emit(true)
-		
-		print("👁️ Кнопка 'Забрать' показана, режим COLLECT активен")
+		if activate_mode:
+			# Активируем режим COLLECT по умолчанию
+			_collect_mode_active = true
+			_pay_mode_active = false
+			
+			# Эмитим сигнал для GameController
+			collect_button_toggled.emit(true)
+			
+			print("👁️ Кнопка 'Забрать' показана, режим COLLECT активен")
+		else:
+			# Только показываем кнопку, не активируем режим
+			_collect_mode_active = false
+			_pay_mode_active = false
+			print("👁️ Кнопка 'Забрать' показана, режим НЕ активирован (ручное управление)")
 
 
 func hide_collect_pay_buttons() -> void:

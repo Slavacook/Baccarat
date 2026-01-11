@@ -100,15 +100,16 @@ func _setup_hearts() -> void:
 	
 	# ═══════════════════════════════════════════════════════════════════
 	# ВАЖНО: Настраиваем кликабельность!
+	# Сердца игнорируют клики, чтобы можно было кликать на фишки под ними
 	# ═══════════════════════════════════════════════════════════════════
-	heart_player.mouse_filter = Control.MOUSE_FILTER_STOP
-	heart_banker.mouse_filter = Control.MOUSE_FILTER_STOP
-	heart_tie.mouse_filter = Control.MOUSE_FILTER_STOP
+	heart_player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heart_banker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heart_tie.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	
-	# Убеждаемся что кнопки не заблокированы
-	heart_player.disabled = false
-	heart_banker.disabled = false
-	heart_tie.disabled = false
+	# Блокируем кнопки, чтобы они не реагировали на нажатия
+	heart_player.disabled = true
+	heart_banker.disabled = true
+	heart_tie.disabled = true
 	
 	# Родительский Control должен игнорировать клики (IGNORE), чтобы дети получали их
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -228,10 +229,14 @@ func _on_show_ui() -> void:
 	EventBus.show_toast_info.emit(Localization.t("HEART_BET_SELECT_HEART"))
 
 	# Принудительно обновляем mouse_filter после показа
+	# Сердца игнорируют клики, чтобы можно было кликать на фишки под ними
 	await get_tree().process_frame
-	heart_player.mouse_filter = Control.MOUSE_FILTER_STOP
-	heart_banker.mouse_filter = Control.MOUSE_FILTER_STOP
-	heart_tie.mouse_filter = Control.MOUSE_FILTER_STOP
+	heart_player.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heart_banker.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heart_tie.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	heart_player.disabled = true
+	heart_banker.disabled = true
+	heart_tie.disabled = true
 	
 	print("❤️ Сердца готовы к выбору:")
 	print("   - HeartBetUI: visible=%s, global_pos=%s, size=%s, z_index=%d" % [

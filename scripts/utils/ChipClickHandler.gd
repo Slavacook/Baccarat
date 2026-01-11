@@ -117,11 +117,12 @@ func handle_chip_click(bet_type: String, position_index: int) -> void:
 	print("🔍 Результат валидации: action=%s, can_proceed=%s, error_type=%s" % [validation.get("action", "unknown"), validation.get("can_proceed", false), validation.get("error_type", "")])
 	DebugLogger.log("🔍 Результат валидации: action=%s, can_proceed=%s, error_type=%s" % [validation.get("action", "unknown"), validation.get("can_proceed", false), validation.get("error_type", "")])
 	
-	# Если режим не выбран - ничего не делаем
-	if validation.action == "none" and validation.can_proceed:
-		print("  ⏸️  Режим не выбран, клик игнорируется")
-		DebugLogger.log("  ⏸️  Режим не выбран, клик игнорируется")
-		return
+	# Если режим не выбран - обработается через _handle_validation_error (error_type="mode_none")
+	# Эта проверка больше не нужна, так как режим NONE теперь возвращает ошибку
+	# if validation.action == "none" and validation.can_proceed:
+	# 	print("  ⏸️  Режим не выбран, клик игнорируется")
+	# 	DebugLogger.log("  ⏸️  Режим не выбран, клик игнорируется")
+	# 	return
 	
 	# Если ошибка валидации - показываем сообщение и штрафуем
 	if not validation.can_proceed:
@@ -237,6 +238,13 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 	# Просто игнорируем без тоста и без отнятия жизни
 	if validation.error_type == "already_collected":
 		DebugLogger.log("  ⏸️  Ставка %s[%d] уже собрана, клик игнорируется" % [bet_type, position_index])
+		return true  # Ошибка обработана, выходим
+	
+	# "mode_none" - режим не выбран, показываем тост без штрафа и без отнятия сердца
+	if validation.error_type == "mode_none":
+		var message = "Забрать или оплатить? Включи режим взаимодействия со ставками."
+		EventBus.show_toast_info.emit(message)
+		DebugLogger.log("  ℹ️  Режим не выбран, показываем подсказку")
 		return true  # Ошибка обработана, выходим
 	
 	# Для ошибки "collect_winning" - уменьшаем терпение гостя и накладываем штраф
@@ -552,6 +560,20 @@ func _handle_collect_action(bet_type: String, position_index: int) -> void:
 	if ui_manager and ui_manager.button_ui.is_action_button_broken():
 		ui_manager.enable_action_button()
 		DebugLogger.log("  🔓 Кнопка 'Завершить' восстановлена")
+	
+	# Проверяем, можно ли автоматически переключить режим с COLLECT на PAY
+	# (для режима мыши/сенсора - автоматическое переключение после сбора всех проигрышных ставок)
+	# Только если автоматическое переключение режимов включено в настройках
+	if bet_collection_manager and SaveManager.instance.load_auto_mode_switch_enabled():
+		# Проверяем все ли проигрышные ставки собраны
+		if not bet_collection_manager.has_uncollected_losing_bets():
+			# Все проигрышные ставки собраны - проверяем есть ли выигрышные для оплаты
+			if bet_collection_manager.has_unpaid_winnings():
+				# Если сейчас режим COLLECT, переключаем на PAY
+				if bet_collection_manager.is_collect_mode():
+					# Эмитим сигнал для переключения режима через ChipNavigationCoordinator
+					EventBus.auto_switch_to_pay_mode_requested.emit()
+					DebugLogger.log("🖱️ ChipClickHandler: запрошено переключение COLLECT → PAY (все проигрышные собраны, управление мышкой/сенсором)")
 
 func _handle_pay_action(bet_type: String, position_index: int) -> void:
 	"""Обработать действие "pay" (оплатить выигрышную ставку)

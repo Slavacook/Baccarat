@@ -13,9 +13,9 @@ res://scenes/popups/GuestSettingsPopup.tscn::8259677b22f950caa6b5518f730de74c::1
 res://scenes/ChanceCardPopup.tscn::236c427b6a825d5b9f657bb1e9450a3f::1765977273::res://.godot/exported/133200997/export-650de99ace40fb7edfef4d36da561a34-ChanceCardPopup.scn
 res://scenes/ChanceCardUI.tscn::63b56216fa92e7bbecbb23320ab96bb9::1766038839::res://.godot/exported/133200997/export-2ec49b5d9618f6cfc9ee546d9441de35-ChanceCardUI.scn
 res://scenes/GameOverScene.tscn::b3d86ea472235312c79f4bbcbc6b8b89::1765878366::res://.godot/exported/133200997/export-ee65042387edb6388f29bb9fd921ecb4-GameOverScene.scn
-res://scenes/SettingsScene.tscn::b4a3f79fa696e67104829cf9cfd46995::1768041794::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn
+res://scenes/SettingsScene.tscn::1a00b100e7500cc0ca4f77834d680513::1768103257::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn
 res://addons/gut/gui/about.tscn::ab1376faef1e76aea0aa3ce8703c56f9::1767661809::res://.godot/exported/133200997/export-3eec6d175281e5853cb1df567bd07d3b-about.scn
-res://addons/gut/gui/EditorRadioButton.tres::65528f4ac12fe72e047cfdf83a0c13a8::1768042255::res://.godot/exported/133200997/export-977063b975ed2d07c571eeef00528018-EditorRadioButton.res
+res://addons/gut/gui/EditorRadioButton.tres::65528f4ac12fe72e047cfdf83a0c13a8::1768102353::res://.godot/exported/133200997/export-977063b975ed2d07c571eeef00528018-EditorRadioButton.res
 res://addons/gut/gui/GutBottomPanel.tscn::b001881989bc02fa3a7496e58a01a2d5::1767661809::res://.godot/exported/133200997/export-8386f4bb580e16d6c15d474a2f0091ee-GutBottomPanel.scn
 res://addons/gut/gui/GutControl.tscn::3fb531da56f6a4e477d63133eb4ad6cd::1767661809::res://.godot/exported/133200997/export-26e9e30cc7f4a2376e8aa94aba7b910a-GutControl.scn
 res://addons/gut/gui/GutEditorWindow.tscn::23786b12593bff810737e5dbbc431303::1767661809::res://.godot/exported/133200997/export-663c39ac1e5541814591cf29b69f2ecf-GutEditorWindow.scn
@@ -38,7 +38,7 @@ res://addons/gut/gui/ShortcutDialog.tscn::c2c560595bfe21d65b393545825d7d55::1767
 res://addons/gut/GutScene.tscn::cb7135ab97fe7489d6d6b6ecf056d8e3::1767661809::res://.godot/exported/133200997/export-2f0cb05a5e71328ea0af1eb4f93c4e22-GutScene.scn
 res://addons/gut/gut_loader_the_scene.tscn::89211eae18713b03f061389d066fac76::1767661809::res://.godot/exported/133200997/export-34f11fc3cc3883e31a2efc4f77f66ef2-gut_loader_the_scene.scn
 res://addons/gut/UserFileViewer.tscn::2e5a0c5221bb3397a9d8270e46d3ae22::1767661809::res://.godot/exported/133200997/export-009fff9a427a23713aab85c867002442-UserFileViewer.scn
-res://scenes/popups/GuestProgressionPopup.tscn::e1fd8b5e0a99ee8e3a521df916d28554::1768055334::res://.godot/exported/133200997/export-55150b7a39103efd40978c3a3649e21c-GuestProgressionPopup.scn
+res://scenes/popups/GuestProgressionPopup.tscn::e1fd8b5e0a99ee8e3a521df916d28554::1768103962::res://.godot/exported/133200997/export-55150b7a39103efd40978c3a3649e21c-GuestProgressionPopup.scn
 res://scenes/ui/CribSheetScene.tscn::ceccb9bd93970d3d8ffe38f930d45ea3::1766994471::res://.godot/exported/133200997/export-15f75f148a240169d7254896487b4724-CribSheetScene.scn
 res://scenes/GuestMenuScene.tscn::1dde4ab54d968ed8e8027da736cc6c34::1767163772::res://.godot/exported/133200997/export-4f6a3192fad58b4202275b3c149324ac-GuestMenuScene.scn
 res://tests/ManualTestBankerAfterPlayerHandler.tscn::7c3ebc7f1b4f41063873ea7bf8bbac37::1766485339::res://.godot/exported/133200997/export-052e9046a38a74f61d40d29c4ac46578-ManualTestBankerAfterPlayerHandler.scn

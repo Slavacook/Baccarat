@@ -24,6 +24,9 @@ var is_pay_state: bool = false
 # Флаг наведения мыши
 var is_hovering: bool = false
 
+# Флаг черно-белого режима (когда режим NONE)
+var is_grayscale: bool = false
+
 func _ready():
 	# Скрываем стандартную текстуру кнопки (используем дочерние узлы)
 	texture_normal = null
@@ -135,6 +138,18 @@ func _on_pressed():
 	"""Обработчик нажатия - переключаем состояние и уведомляем систему"""
 	print("🖱️  [DEBUG] pressed вызван!")
 	
+	# Если кнопка в черно-белом режиме (режим NONE) - активируем COLLECT
+	if is_grayscale:
+		is_grayscale = false
+		modulate = Color.WHITE  # Возвращаем цвет
+		is_pay_state = false  # Устанавливаем состояние "Забрать"
+		is_hovering = false
+		_update_texture()
+		state_changed.emit(false)  # Эмитим COLLECT (false = COLLECT)
+		print("🔄 PayButton: градации серого сняты, режим COLLECT активирован")
+		return
+	
+	# Обычное переключение между COLLECT и PAY
 	# Переключаем состояние
 	is_pay_state = !is_pay_state
 	
@@ -186,6 +201,21 @@ func _update_texture():
 			pay_container.visible = false
 			print("   [DEBUG] Нет hover: показываем TakeContainer (COLLECT)")
 
+
+func set_grayscale(enabled: bool) -> void:
+	"""Установить черно-белый эффект (градации серого)
+	
+	Args:
+		enabled: Если true - кнопка становится черно-белой, если false - цветной
+	"""
+	is_grayscale = enabled
+	if enabled:
+		# Черно-белый эффект через modulate (серый цвет)
+		modulate = Color(0.5, 0.5, 0.5, 1.0)  # Средне-серый для grayscale
+	else:
+		# Цветной (белый = нет изменений цвета)
+		modulate = Color.WHITE
+	print("🎨 PayButton grayscale: %s" % ("включен" if enabled else "выключен"))
 
 func set_state_take():
 	"""Установить состояние 'Забрать' (режим COLLECT)"""

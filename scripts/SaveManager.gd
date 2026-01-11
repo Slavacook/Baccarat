@@ -271,6 +271,18 @@ func load_chance_cards_enabled() -> bool:
 	var settings = load_settings()
 	return settings.get("chance_cards_enabled", false)
 
+# ← Настройки автоматического переключения режимов сбора/оплаты
+func save_auto_mode_switch_enabled(enabled: bool):
+	"""Сохранить состояние автоматического переключения режимов сбора/оплаты (включено/выключено)"""
+	var settings = load_settings()
+	settings["auto_mode_switch_enabled"] = enabled
+	save_settings(settings)
+
+func load_auto_mode_switch_enabled() -> bool:
+	"""Загрузить состояние автоматического переключения режимов (по умолчанию true - включено)"""
+	var settings = load_settings()
+	return settings.get("auto_mode_switch_enabled", true)
+
 # ← Настройки бессмертия
 func save_immortality_enabled(enabled: bool):
 	"""Сохранить состояние бессмертия (включено/выключено)"""

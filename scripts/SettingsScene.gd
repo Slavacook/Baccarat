@@ -44,6 +44,9 @@ signal language_changed(lang: String)  # "ru" или "en"
 # === РАЗДЕЛ 4.6: КАРТЫ ШАНСОВ ===
 @onready var chance_cards_checkbox: CheckBox = find_child("ChanceCardsCheckbox", true, false)
 
+# === РАЗДЕЛ 4.6.5: АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ===
+@onready var auto_mode_switch_checkbox: CheckBox = find_child("AutoModeSwitchCheckbox", true, false)
+
 # === РАЗДЕЛ 4.7: ВОЗВРАТ ГОСТЕЙ ===
 @onready var guest_return_container: VBoxContainer = find_child("GuestReturnContainer", true, false)
 var guest_return_counter_ui: GuestReturnCounterUI = null
@@ -143,6 +146,10 @@ func _connect_signals() -> void:
 	# Карты шансов
 	if chance_cards_checkbox:
 		chance_cards_checkbox.toggled.connect(_on_chance_cards_toggled)
+
+	# Автоматическое переключение режимов
+	if auto_mode_switch_checkbox:
+		auto_mode_switch_checkbox.toggled.connect(_on_auto_mode_switch_toggled)
 
 	# Язык
 	if ru_button:
@@ -328,6 +335,10 @@ func _load_current_values() -> void:
 	# Карты шансов
 	if chance_cards_checkbox:
 		chance_cards_checkbox.button_pressed = SaveManager.instance.load_chance_cards_enabled()
+
+	# Автоматическое переключение режимов
+	if auto_mode_switch_checkbox:
+		auto_mode_switch_checkbox.button_pressed = SaveManager.instance.load_auto_mode_switch_enabled()
 
 	# Язык
 	_update_lang_buttons()
@@ -620,6 +631,11 @@ func _on_chance_cards_toggled(pressed: bool):
 	print("🎴 Карты шансов: %s" % ("включены" if pressed else "выключены"))
 	# Обновляем видимость ChanceCardStorage в реальном времени
 	_update_chance_card_storage_visibility()
+
+func _on_auto_mode_switch_toggled(pressed: bool):
+	"""Обработка переключения автоматического переключения режимов"""
+	SaveManager.instance.save_auto_mode_switch_enabled(pressed)
+	print("🔄 Автоматическое переключение режимов: %s" % ("включено" if pressed else "выключено"))
 
 func _update_chance_card_storage_visibility() -> void:
 	"""Обновить видимость ChanceCardStorage в зависимости от настройки"""

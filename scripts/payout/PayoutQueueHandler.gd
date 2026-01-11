@@ -170,33 +170,44 @@ func finalize_payouts_manual(actual_winner: String) -> void:
 	# ═══════════════════════════════════════════════════════════════════
 	if bet_collection_manager and payout_queue_manager:
 		bet_collection_manager.setup(payout_queue_manager, actual_winner)
-		# ВАЖНО: Определяем режим автоматически на основе наличия ставок для сбора
-		# Если есть проигрышные ставки для сбора - режим COLLECT
-		# Если нет проигрышных ставок, но есть выигрышные для оплаты - режим PAY
-		# Если ничего нет и управляли мышкой/сенсором - режим COLLECT по умолчанию
+		
+		# Проверяем настройку автоматического переключения режимов
+		var auto_mode_switch_enabled = SaveManager.instance.load_auto_mode_switch_enabled()
+		
 		var selected_mode: BetCollectionPhaseManager.CollectionMode
-		if bet_collection_manager.has_uncollected_losing_bets():
-			# Есть ставки для сбора - режим COLLECT
-			selected_mode = BetCollectionPhaseManager.CollectionMode.COLLECT
-			DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
-		elif bet_collection_manager.has_unpaid_winnings():
-			# Нет ставок для сбора, но есть выигрышные для оплаты - режим PAY
-			selected_mode = BetCollectionPhaseManager.CollectionMode.PAY
-			DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: PAY - нет ставок для сбора)" % actual_winner)
-		else:
-			# Нет ставок для обработки
-			# Если управляли мышкой/сенсором - режим COLLECT по умолчанию
-			# Если управляли клавиатурой - режим NONE
-			var was_keyboard_input = false
-			if winner_selection_manager:
-				was_keyboard_input = winner_selection_manager.was_last_toggle_by_keyboard
-			
-			if was_keyboard_input:
-				selected_mode = BetCollectionPhaseManager.CollectionMode.NONE
-				DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: NONE - нет ставок для обработки, клавиатура)" % actual_winner)
-			else:
+		
+		if auto_mode_switch_enabled:
+			# Автоматическое переключение включено - работаем как раньше
+			# ВАЖНО: Определяем режим автоматически на основе наличия ставок для сбора
+			# Если есть проигрышные ставки для сбора - режим COLLECT
+			# Если нет проигрышных ставок, но есть выигрышные для оплаты - режим PAY
+			# Если ничего нет и управляли мышкой/сенсором - режим COLLECT по умолчанию
+			if bet_collection_manager.has_uncollected_losing_bets():
+				# Есть ставки для сбора - режим COLLECT
 				selected_mode = BetCollectionPhaseManager.CollectionMode.COLLECT
-				DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT - нет ставок для обработки, мышь/сенсор, режим по умолчанию)" % actual_winner)
+				DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT)" % actual_winner)
+			elif bet_collection_manager.has_unpaid_winnings():
+				# Нет ставок для сбора, но есть выигрышные для оплаты - режим PAY
+				selected_mode = BetCollectionPhaseManager.CollectionMode.PAY
+				DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: PAY - нет ставок для сбора)" % actual_winner)
+			else:
+				# Нет ставок для обработки
+				# Если управляли мышкой/сенсором - режим COLLECT по умолчанию
+				# Если управляли клавиатурой - режим NONE
+				var was_keyboard_input = false
+				if winner_selection_manager:
+					was_keyboard_input = winner_selection_manager.was_last_toggle_by_keyboard
+				
+				if was_keyboard_input:
+					selected_mode = BetCollectionPhaseManager.CollectionMode.NONE
+					DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: NONE - нет ставок для обработки, клавиатура)" % actual_winner)
+				else:
+					selected_mode = BetCollectionPhaseManager.CollectionMode.COLLECT
+					DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: COLLECT - нет ставок для обработки, мышь/сенсор, режим по умолчанию)" % actual_winner)
+		else:
+			# Автоматическое переключение выключено - всегда режим NONE
+			selected_mode = BetCollectionPhaseManager.CollectionMode.NONE
+			DebugLogger.log("✅ BetCollectionPhaseManager настроен для раунда (победитель: %s, режим: NONE - автоматическое переключение выключено)" % actual_winner)
 		
 		# Устанавливаем режим
 		bet_collection_manager.set_mode(selected_mode)
@@ -211,8 +222,16 @@ func finalize_payouts_manual(actual_winner: String) -> void:
 					# Режим PAY - показываем кнопку и устанавливаем режим "Оплатить"
 					phase_manager.ui.button_ui.set_pay_mode(true)
 				BetCollectionPhaseManager.CollectionMode.NONE:
-					# Нет ставок для обработки - кнопки не показываем
-					phase_manager.ui.button_ui.hide_collect_pay_buttons()
+					# Нет ставок для обработки или автоматическое переключение выключено
+					if auto_mode_switch_enabled:
+						# Авто-переключение включено - кнопки не показываем
+						phase_manager.ui.button_ui.hide_collect_pay_buttons()
+					else:
+						# Авто-переключение выключено - показываем кнопки для ручного управления
+						# Показываем кнопку в состоянии "Забрать" по умолчанию, но режим остается NONE
+						# Передаем activate_mode=false, чтобы не активировать режим автоматически
+						phase_manager.ui.button_ui.show_collect_pay_buttons(false)
+						# Не активируем режим автоматически - пользователь активирует вручную
 
 	# ═══════════════════════════════════════════════════════════════════
 	# СОХРАНЕНИЕ СОСТОЯНИЯ СТОЛА в TableStateManager
