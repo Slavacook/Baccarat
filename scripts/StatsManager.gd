@@ -99,10 +99,9 @@ func _process_tip_with_delay(expected: float, bet_type: String, guest_id: int) -
 		var patience = GuestStatsManager.get_guest_patience(guest_id)
 		var base_percentage = SaveManager.instance.load_tip_percentage()
 		var effective_percentage = base_percentage * (float(patience) / 100.0)  # Новая формула: 100% терпения = полный чай
-		var multiplier = TipCalculator.get_tip_multiplier(bet_type)
 		
-		print("💰 Чаевые начислены гостю %d: выплата=%.0f, базовый процент=%.1f%%, терпение=%d%%, эффективный=%.2f%%, коэффициент=%d, итого=%d" % [
-			guest_id, expected, base_percentage, patience, effective_percentage, multiplier, tip_amount
+		print("💰 Чаевые начислены гостю %d: выплата=%.0f, базовый процент=%.1f%%, терпение=%d%%, эффективный=%.2f%%, итого=%d" % [
+			guest_id, expected, base_percentage, patience, effective_percentage, tip_amount
 		])
 
 func apply_penalty_with_delay(penalty_amount: int) -> void:

@@ -6,7 +6,7 @@ class_name TipCalculator
 extends RefCounted
 
 ## Рассчитать сумму чаевых с учетом терпения гостя
-static func calculate_tip(payout: float, bet_type: String, guest_id: int) -> int:
+static func calculate_tip(payout: float, _bet_type: String, guest_id: int) -> int:
 	if payout <= 0:
 		return 0
 	
@@ -17,16 +17,4 @@ static func calculate_tip(payout: float, bet_type: String, guest_id: int) -> int
 	var patience = GuestStatsManager.get_guest_patience(guest_id)
 	var effective_percentage = base_percentage * (float(patience) / 100.0)
 	var base_tip = ceil(payout * effective_percentage / 100.0)
-	var multiplier = get_tip_multiplier(bet_type)
-	return int(base_tip * multiplier)
-
-static func get_tip_multiplier(bet_type: String) -> int:
-	match bet_type:
-		"Player", "Banker":
-			return 1
-		"Tie":
-			return 8
-		"PairPlayer", "PairBanker":
-			return 11
-		_:
-			return 1
+	return int(base_tip)

@@ -149,16 +149,26 @@ func get_balance_string(guest_id: int) -> String:
 
 # ← Генерировать рандомный баланс по статусу богатства
 func generate_random_balance(wealth: GuestSettingsManager.GuestWealth) -> float:
-	"""Генерирует рандомный баланс в диапазоне для указанного статуса богатства"""
+	"""Генерирует рандомный баланс в диапазоне для указанного статуса богатства (кратно 500)"""
+	const STEP: int = 500
+	
 	match wealth:
 		GuestSettingsManager.GuestWealth.POOR:
-			return randf_range(POOR_BALANCE_MIN, POOR_BALANCE_MAX)
+			var min_steps = int(POOR_BALANCE_MIN / STEP)
+			var max_steps = int(POOR_BALANCE_MAX / STEP)
+			return randi_range(min_steps, max_steps) * STEP
 		GuestSettingsManager.GuestWealth.MEDIUM:
-			return randf_range(MEDIUM_BALANCE_MIN, MEDIUM_BALANCE_MAX)
+			var min_steps = int(MEDIUM_BALANCE_MIN / STEP)
+			var max_steps = int(MEDIUM_BALANCE_MAX / STEP)
+			return randi_range(min_steps, max_steps) * STEP
 		GuestSettingsManager.GuestWealth.RICH:
-			return randf_range(RICH_BALANCE_MIN, RICH_BALANCE_MAX)
+			var min_steps = int(RICH_BALANCE_MIN / STEP)
+			var max_steps = int(RICH_BALANCE_MAX / STEP)
+			return randi_range(min_steps, max_steps) * STEP
 		_:
-			return randf_range(MEDIUM_BALANCE_MIN, MEDIUM_BALANCE_MAX)
+			var min_steps = int(MEDIUM_BALANCE_MIN / STEP)
+			var max_steps = int(MEDIUM_BALANCE_MAX / STEP)
+			return randi_range(min_steps, max_steps) * STEP
 
 # ← Инициализировать баланс гостя по статусу богатства
 func initialize_guest_balance(guest_id: int) -> void:

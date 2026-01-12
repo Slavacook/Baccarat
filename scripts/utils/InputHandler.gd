@@ -199,6 +199,6 @@ func handle_unhandled_input(event: InputEvent) -> bool:
 			if settings_scene:
 				settings_scene.open_settings()
 				# UI элементы будут скрыты через сигнал EventBus.settings_opened в _on_settings_opened()
-			return true
+		return true
 	
 	return false
