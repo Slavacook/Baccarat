@@ -49,7 +49,7 @@ var background_music_player: AudioStreamPlayer  # Игрок для фоново
 # Настройки громкости
 var master_volume: float = 1.0
 var sfx_volume: float = 1.0
-const BACKGROUND_MUSIC_VOLUME: float = 0.1  # Громкость фоновой музыки (10%)
+var background_music_level: int = 3  # Уровень громкости фоновой музыки (0-5, где 0 = выкл, 1-5 = 0.1-0.5)
 
 # Флаги для отслеживания состояния
 var last_patience_values: Dictionary = {}  # {guest_id: patience} для отслеживания потери терпения
@@ -457,19 +457,57 @@ func _load_background_music_setting() -> void:
 	if not SaveManager:
 		return
 	
-	var enabled = SaveManager.load_background_music_enabled()
-	if enabled:
+	# Загружаем уровень из сохранения
+	background_music_level = SaveManager.load_background_music_level()
+	
+	# Если уровень > 0, запускаем музыку
+	if background_music_level > 0:
 		start_background_music()
 	else:
 		stop_background_music()
 
+func _get_background_music_volume() -> float:
+	"""Получить громкость фоновой музыки по уровню (0.0 - 0.5)"""
+	match background_music_level:
+		1: return 0.1
+		2: return 0.2
+		3: return 0.3
+		4: return 0.4
+		5: return 0.5
+		_: return 0.0  # Уровень 0 или неверный
+
+func _update_background_music_volume() -> void:
+	"""Обновить громкость фоновой музыки без перезапуска"""
+	if not background_music_player:
+		return
+	
+	# Если музыка не играет, ничего не делаем
+	if not background_music_player.playing:
+		return
+	
+	# Если уровень 0, останавливаем
+	if background_music_level <= 0:
+		stop_background_music()
+		return
+	
+	# Просто меняем громкость
+	var volume = _get_background_music_volume()
+	background_music_player.volume_db = linear_to_db(volume * master_volume)
+	print("🎵 Громкость фоновой музыки изменена (уровень: %d, громкость: %d%%)" % [background_music_level, int(volume * 100)])
+
 func start_background_music() -> void:
-	"""Запустить фоновую музыку"""
+	"""Запустить фоновую музыку с текущим уровнем громкости"""
 	if not background_music_player or not background_music:
 		return
 	
+	# Если уровень 0, не запускаем
+	if background_music_level <= 0:
+		stop_background_music()
+		return
+	
+	var volume = _get_background_music_volume()
 	background_music_player.stream = background_music
-	background_music_player.volume_db = linear_to_db(BACKGROUND_MUSIC_VOLUME * master_volume)
+	background_music_player.volume_db = linear_to_db(volume * master_volume)
 	
 	# Настраиваем на зацикливание
 	if background_music is AudioStreamOggVorbis:
@@ -478,7 +516,7 @@ func start_background_music() -> void:
 		background_music.loop = true
 	
 	background_music_player.play()
-	print("🎵 Фоновая музыка запущена (громкость: %d%%)" % int(BACKGROUND_MUSIC_VOLUME * 100))
+	print("🎵 Фоновая музыка запущена (уровень: %d, громкость: %d%%)" % [background_music_level, int(volume * 100)])
 
 func stop_background_music() -> void:
 	"""Остановить фоновую музыку"""
@@ -499,33 +537,60 @@ func stop_background_music() -> void:
 	else:
 		print("🎵 Фоновая музыка остановлена")
 
-func set_background_music_enabled(enabled: bool) -> void:
-	"""Включить/выключить фоновую музыку"""
+func set_background_music_level(level: int) -> void:
+	"""Установить уровень громкости фоновой музыки (0-5)
+	
+	Args:
+		level: Уровень громкости (0 = выкл, 1-5 = громкость 0.1-0.5)
+	"""
 	if not SaveManager:
 		push_error("⚠️ SoundManager: SaveManager не найден!")
 		return
 	
-	print("🎵 SoundManager.set_background_music_enabled(%s)" % enabled)
+	# Ограничиваем уровень в диапазоне 0-5
+	level = clamp(level, 0, 5)
+	background_music_level = level
 	
-	# Сначала сохраняем настройку
-	SaveManager.save_background_music_enabled(enabled)
+	print("🎵 SoundManager.set_background_music_level(%d)" % level)
 	
-	# Затем включаем/выключаем музыку
-	if enabled:
-		start_background_music()
+	# Сохраняем настройку
+	SaveManager.save_background_music_level(level)
+	
+	# Применяем настройку
+	if level > 0:
+		# Если музыка уже играет, просто меняем громкость
+		if background_music_player and background_music_player.playing:
+			_update_background_music_volume()
+		else:
+			# Если не играет, запускаем
+			start_background_music()
 	else:
+		# Уровень 0 - останавливаем
 		stop_background_music()
 	
 	# Проверяем, что состояние соответствует
-	var verify = is_background_music_enabled()
-	if verify != enabled:
-		push_error("⚠️ SoundManager: Несоответствие состояния! Ожидалось %s, получено %s" % [enabled, verify])
+	var verify = get_background_music_level()
+	if verify != level:
+		push_error("⚠️ SoundManager: Несоответствие состояния! Ожидалось %d, получено %d" % [level, verify])
+
+func get_background_music_level() -> int:
+	"""Получить текущий уровень громкости фоновой музыки (0-5)"""
+	return background_music_level
+
+# Обратная совместимость: старые методы для bool
+func set_background_music_enabled(enabled: bool) -> void:
+	"""Включить/выключить фоновую музыку (обратная совместимость)
+	
+	Включает уровень 3, выключает уровень 0
+	"""
+	if enabled:
+		set_background_music_level(3)
+	else:
+		set_background_music_level(0)
 
 func is_background_music_enabled() -> bool:
-	"""Проверить, включена ли фоновая музыка"""
-	if not SaveManager:
-		return true  # По умолчанию включена
-	return SaveManager.load_background_music_enabled()
+	"""Проверить, включена ли фоновая музыка (обратная совместимость)"""
+	return background_music_level > 0
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ ДЛЯ ВНЕШНИХ ВЫЗОВОВ (для событий без EventBus)

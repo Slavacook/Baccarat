@@ -1048,26 +1048,32 @@ func _update_background_music_button() -> void:
 	if not background_music_button:
 		return
 	
-	var enabled = false
+	var level = 3  # По умолчанию
 	if SoundManager:
-		enabled = SoundManager.is_background_music_enabled()
+		level = SoundManager.get_background_music_level()
 	
-	# Текст кнопки: "Фоновый шум" всегда, но показываем состояние
+	# Текст кнопки в зависимости от уровня
+	var button_text = ""
 	if Localization:
-		# Если включено - показываем "Фоновый шум ✓", если выключено - "Фоновый шум"
-		if enabled:
-			background_music_button.text = Localization.t("SETTINGS_BACKGROUND_NOISE") + " ✓"
+		if level == 0:
+			button_text = Localization.t("SETTINGS_BACKGROUND_NOISE_OFF")
 		else:
-			background_music_button.text = Localization.t("SETTINGS_BACKGROUND_NOISE")
+			button_text = Localization.t("SETTINGS_BACKGROUND_NOISE_LEVEL") % level
 	else:
-		background_music_button.text = "Фоновый шум" + (" ✓" if enabled else "")
+		# Fallback без локализации
+		if level == 0:
+			button_text = "Фон. шум выкл"
+		else:
+			button_text = "Фон. громкость %d" % level
+	
+	background_music_button.text = button_text
 	
 	# Кнопка всегда активна для переключения (не disabled)
 	background_music_button.disabled = false
 	background_music_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _on_background_music_pressed():
-	"""Обработка нажатия кнопки фоновой музыки"""
+	"""Обработка нажатия кнопки фоновой музыки - циклическое переключение уровней"""
 	print("🔘 Кнопка 'Фоновый шум' нажата!")
 	
 	if not SoundManager:
@@ -1078,25 +1084,28 @@ func _on_background_music_pressed():
 		push_error("SettingsScene: background_music_button не найден!")
 		return
 	
-	var current_enabled = SoundManager.is_background_music_enabled()
-	var new_enabled = not current_enabled
+	# Получаем текущий уровень
+	var current_level = SoundManager.get_background_music_level()
 	
-	var current_text = "включен" if current_enabled else "выключен"
-	var new_text = "включен" if new_enabled else "выключен"
+	# Циклическое переключение: 0→1→2→3→4→5→0
+	var new_level = (current_level + 1) % 6
+	
+	var current_text = "выкл" if current_level == 0 else "уровень %d" % current_level
+	var new_text = "выкл" if new_level == 0 else "уровень %d" % new_level
 	print("🎵 Переключение фонового шума: %s → %s" % [current_text, new_text])
 	
-	# Переключаем состояние
-	SoundManager.set_background_music_enabled(new_enabled)
+	# Устанавливаем новый уровень
+	SoundManager.set_background_music_level(new_level)
 	
 	# Проверяем, что состояние изменилось
-	var verify_enabled = SoundManager.is_background_music_enabled()
-	if verify_enabled != new_enabled:
-		push_error("SettingsScene: Ошибка! Состояние не изменилось: ожидалось %s, получено %s" % [new_enabled, verify_enabled])
+	var verify_level = SoundManager.get_background_music_level()
+	if verify_level != new_level:
+		push_error("SettingsScene: Ошибка! Уровень не изменился: ожидалось %d, получено %d" % [new_level, verify_level])
 	
 	# Обновляем текст кнопки
 	_update_background_music_button()
 	
-	print("🎵 Фоновый шум: %s" % ("включен" if verify_enabled else "выключен"))
+	print("🎵 Фоновый шум: %s" % ("выкл" if verify_level == 0 else "уровень %d" % verify_level))
 
 # === ТЕСТОВЫЕ КАРТЫ (в подменю Фильтр ставок и карт) ===
 func _initialize_card_options() -> void:

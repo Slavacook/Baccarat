@@ -1,12 +1,4 @@
-res://scripts/autoload/GuestStatsManager.gd
 res://scenes/SettingsScene.tscn
 res://addons/gut/gui/editor_globals.gd
 res://addons/gut/gui/EditorRadioButton.tres
-res://scripts/StatsManager.gd
-res://scripts/TipCalculator.gd
-res://scripts/ToastManager.gd
-res://scripts/ui/GuestPatienceIndicatorManager.gd
-res://scripts/GamePhaseManager.gd
-res://scripts/TablePreparationExecutor.gd
-res://scripts/Localization.gd
-res://scripts/autoload/GuestReturnManager.gd
+res://scripts/SoundManager.gd
