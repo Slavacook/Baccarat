@@ -196,6 +196,25 @@ func get_remaining_rounds(guest_id: int) -> int:
 	
 	return max(0, remaining)  # Не меньше 0
 
+## Получить минимальное количество оставшихся раундов до возврата ближайшего гостя
+func get_min_remaining_rounds() -> int:
+	"""Получить минимальное количество оставшихся раундов до возврата ближайшего гостя
+	
+	Returns:
+		Минимальное количество раундов до возврата, или -1 если нет ушедших гостей
+	"""
+	if guests_left.is_empty():
+		return -1
+	
+	var min_rounds = -1
+	for guest_id in guests_left.keys():
+		var remaining = get_remaining_rounds(guest_id)
+		if remaining >= 0:
+			if min_rounds == -1 or remaining < min_rounds:
+				min_rounds = remaining
+	
+	return min_rounds
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ - ПРОВЕРКА ВОЗВРАТА
 # ═══════════════════════════════════════════════════════════════════════════

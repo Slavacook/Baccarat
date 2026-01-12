@@ -146,6 +146,26 @@ func _show_completion_message() -> void:
 		DebugLogger.log_warning("⚠️ ЕСТЬ НЕОПЛАЧЕННЫЕ ВЫПЛАТЫ → НЕ ЗАВЕРШАЕМ РАУНД")
 		return
 	
+	# Проверяем, есть ли активные гости
+	var active_guests = GuestSettingsManager.get_active_guests()
+	if active_guests.is_empty():
+		# Нет гостей - показываем "Дамику х раз"
+		if GuestReturnManager:
+			var min_rounds = GuestReturnManager.get_min_remaining_rounds()
+			if min_rounds >= 0:
+				# Есть ушедшие гости - показываем количество раздач до возврата
+				var damiku_message = Localization.t("DAMIKU_ROUNDS") % min_rounds
+				EventBus.show_toast_info.emit(damiku_message)
+				DebugLogger.log("📢 Показан тост: Дамику %d раз" % min_rounds)
+			else:
+				# Нет ушедших гостей - показываем просто "Дамику"
+				EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
+				DebugLogger.log("📢 Показан тост: Дамику (нет ушедших гостей)")
+		else:
+			# GuestReturnManager недоступен - показываем просто "Дамику"
+			EventBus.show_toast_info.emit(Localization.t("DAMIKU"))
+		return
+	
 	# Показываем сообщение если есть ключ
 	if not message_key.is_empty():
 		var log_message = "НЕТ АКТИВНЫХ СТАВОК" if not message_info.get("has_bets", false) else \

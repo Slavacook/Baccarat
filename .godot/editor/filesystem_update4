@@ -8,3 +8,5 @@ res://scripts/ToastManager.gd
 res://scripts/ui/GuestPatienceIndicatorManager.gd
 res://scripts/GamePhaseManager.gd
 res://scripts/TablePreparationExecutor.gd
+res://scripts/Localization.gd
+res://scripts/autoload/GuestReturnManager.gd
