@@ -16,17 +16,20 @@ signal guest_left(guest_id: int)
 # КОНСТАНТЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Начальные балансы по статусу богатства
-const POOR_BALANCE: float = 30000.0    # Бедный
-const MEDIUM_BALANCE: float = 80000.0  # Средний
-const RICH_BALANCE: float = 150000.0   # Богатый
+# Диапазоны начальных балансов по статусу богатства (рандомные значения)
+const POOR_BALANCE_MIN: float = 30000.0
+const POOR_BALANCE_MAX: float = 60000.0
+const MEDIUM_BALANCE_MIN: float = 100000.0
+const MEDIUM_BALANCE_MAX: float = 130000.0
+const RICH_BALANCE_MIN: float = 200000.0
+const RICH_BALANCE_MAX: float = 270000.0
 
 # Пороги для изменения статуса богатства (динамическое обновление)
-const WEALTH_THRESHOLD_POOR_TO_MEDIUM: float = 50000.0   # Бедный → Средний
-const WEALTH_THRESHOLD_MEDIUM_TO_RICH: float = 150000.0  # Средний → Богатый
-const WEALTH_THRESHOLD_RICH_TO_MEDIUM: float = 150000.0  # Богатый → Средний
-const WEALTH_THRESHOLD_MEDIUM_TO_POOR: float = 50000.0   # Средний → Бедный
-const WEALTH_THRESHOLD_RICH_TO_POOR: float = 50000.0     # Богатый → Бедный (прямой переход)
+const WEALTH_THRESHOLD_POOR_TO_MEDIUM: float = 100000.0   # Бедный → Средний
+const WEALTH_THRESHOLD_MEDIUM_TO_RICH: float = 200000.0  # Средний → Богатый
+const WEALTH_THRESHOLD_RICH_TO_MEDIUM: float = 200000.0  # Богатый → Средний
+const WEALTH_THRESHOLD_MEDIUM_TO_POOR: float = 100000.0   # Средний → Бедный
+const WEALTH_THRESHOLD_RICH_TO_POOR: float = 100000.0     # Богатый → Бедный (прямой переход)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
@@ -44,6 +47,11 @@ var guest_initial_balances: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 # Терпение 0-100 (100 = полное терпение/спокоен, 0 = нет терпения/раздражен)
 # НЕ сохраняется между сеансами (сбрасывается при перезапуске)
 var guest_patience: Array[int] = [100, 100, 100, 100, 100, 100]
+
+# Балансы гостей на момент генерации ставок (для анализа результата раунда)
+# Индекс 0-5 соответствует гостю 1-6
+# Значение 0.0 означает, что баланс еще не был сохранен (первый раунд)
+var guest_balances_at_bet_generation: Array[float] = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -115,21 +123,14 @@ func reset_all_balances() -> void:
 	# Сбрасываем балансы всех гостей (1-6) до начальных значений
 	for guest_id in range(1, 7):
 		var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
-		var initial_balance: float = 0.0
-		
-		match wealth:
-			GuestSettingsManager.GuestWealth.POOR:
-				initial_balance = POOR_BALANCE
-			GuestSettingsManager.GuestWealth.MEDIUM:
-				initial_balance = MEDIUM_BALANCE
-			GuestSettingsManager.GuestWealth.RICH:
-				initial_balance = RICH_BALANCE
-			_:
-				initial_balance = MEDIUM_BALANCE  # По умолчанию средний
+		var initial_balance = generate_random_balance(wealth)
 		
 		# Устанавливаем начальный баланс
 		guest_initial_balances[guest_id - 1] = initial_balance
 		set_guest_balance(guest_id, initial_balance)
+		
+		# Сбрасываем сохраненный баланс
+		reset_saved_balance(guest_id)
 	
 	_save_stats()
 	print("💰 Все балансы гостей сброшены до начальных значений (в зависимости от статуса богатства)")
@@ -145,6 +146,19 @@ func get_balance_string(guest_id: int) -> String:
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ РАБОТЫ С НАЧАЛЬНЫМИ БАЛАНСАМИ
 # ═══════════════════════════════════════════════════════════════════════════
+
+# ← Генерировать рандомный баланс по статусу богатства
+func generate_random_balance(wealth: GuestSettingsManager.GuestWealth) -> float:
+	"""Генерирует рандомный баланс в диапазоне для указанного статуса богатства"""
+	match wealth:
+		GuestSettingsManager.GuestWealth.POOR:
+			return randf_range(POOR_BALANCE_MIN, POOR_BALANCE_MAX)
+		GuestSettingsManager.GuestWealth.MEDIUM:
+			return randf_range(MEDIUM_BALANCE_MIN, MEDIUM_BALANCE_MAX)
+		GuestSettingsManager.GuestWealth.RICH:
+			return randf_range(RICH_BALANCE_MIN, RICH_BALANCE_MAX)
+		_:
+			return randf_range(MEDIUM_BALANCE_MIN, MEDIUM_BALANCE_MAX)
 
 # ← Инициализировать баланс гостя по статусу богатства
 func initialize_guest_balance(guest_id: int) -> void:
@@ -163,21 +177,14 @@ func initialize_guest_balance(guest_id: int) -> void:
 	
 	# Получаем статус богатства гостя
 	var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
-	var initial_balance: float = 0.0
-	
-	match wealth:
-		GuestSettingsManager.GuestWealth.POOR:
-			initial_balance = POOR_BALANCE
-		GuestSettingsManager.GuestWealth.MEDIUM:
-			initial_balance = MEDIUM_BALANCE
-		GuestSettingsManager.GuestWealth.RICH:
-			initial_balance = RICH_BALANCE
-		_:
-			initial_balance = MEDIUM_BALANCE  # По умолчанию средний
+	var initial_balance = generate_random_balance(wealth)
 	
 	# Устанавливаем начальный баланс ПРИНУДИТЕЛЬНО (перезаписываем текущий баланс)
 	guest_initial_balances[guest_id - 1] = initial_balance
 	set_guest_balance(guest_id, initial_balance)
+	
+	# Сбрасываем сохраненный баланс при инициализации
+	reset_saved_balance(guest_id)
 	
 	print("💰 Гость %d: начальный баланс установлен = %.0f (статус: %s)" % [guest_id, initial_balance, GuestSettingsManager.GuestWealth.keys()[wealth]])
 
@@ -197,6 +204,22 @@ func get_balance_change(guest_id: int) -> float:
 	var current_balance = get_guest_balance(guest_id)
 	var initial_balance = get_initial_balance(guest_id)
 	return current_balance - initial_balance
+
+# ← Сохранить баланс гостя перед генерацией ставок
+func save_balance_before_bet_generation(guest_id: int) -> void:
+	"""Сохранить текущий баланс гостя перед генерацией ставок"""
+	if guest_id < 1 or guest_id > 6:
+		return
+	var current_balance = get_guest_balance(guest_id)
+	guest_balances_at_bet_generation[guest_id - 1] = current_balance
+	print("💰 Гость %d: баланс сохранен для анализа = %.0f" % [guest_id, current_balance])
+
+# ← Сбросить сохраненный баланс гостя
+func reset_saved_balance(guest_id: int) -> void:
+	"""Сбросить сохраненный баланс гостя (при возврате за стол)"""
+	if guest_id < 1 or guest_id > 6:
+		return
+	guest_balances_at_bet_generation[guest_id - 1] = 0.0
 
 # ← Проверить балансы всех гостей в конце раунда
 func check_guests_balance_at_round_end() -> void:
@@ -241,11 +264,14 @@ func check_and_update_guest_wealth(guest_id: int) -> void:
 	"""Проверяет баланс гостя и обновляет статус богатства при необходимости
 	
 	Логика переходов:
-	- Бедный → Средний: если баланс >= 70000
-	- Средний → Богатый: если баланс >= 150000
-	- Богатый → Средний: если баланс < 70000 (но >= 30000)
-	- Богатый → Бедный: если баланс < 30000 (прямой переход, если большая проигрышная ставка)
-	- Средний → Бедный: если баланс < 30000
+	- Бедный: 0 - 99,500
+	- Средний: 100,000 - 199,500
+	- Богатый: 200,000+
+	- Бедный → Средний: если баланс >= 100,000
+	- Средний → Богатый: если баланс >= 200,000
+	- Богатый → Средний: если баланс < 200,000
+	- Средний → Бедный: если баланс < 100,000
+	- Богатый → Бедный: если баланс < 100,000 (прямой переход)
 	
 	ВАЖНО: Текущий баланс НЕ меняется, меняется только статус (влияет на размер будущих ставок)
 	"""
@@ -314,62 +340,15 @@ func check_all_guests_wealth_at_round_end() -> void:
 # ПРОВЕРКА И ОБНОВЛЕНИЕ ХАРАКТЕРА ГОСТЯ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func determine_character_by_balance(guest_id: int) -> GuestSettingsManager.GuestCharacter:
-	"""Определить характер гостя на основе его баланса и статуса богатства
-	
-	Логика:
-	- Бедный (POOR): 0-20000=CAUTIOUS, 20000-40000=GENTLEMAN, 40000+=GAMBLER
-	- Средний (MEDIUM): 50000-80000=CAUTIOUS, 80000-120000=GENTLEMAN, 120000+=GAMBLER
-	- Богатый (RICH): 150000-180000=CAUTIOUS, 180000-250000=GENTLEMAN, 250000+=GAMBLER
-	
-	Args:
-		guest_id: ID гостя (1-6)
-		
-	Returns:
-		GuestCharacter на основе текущего баланса и статуса богатства
-	"""
-	if guest_id < 1 or guest_id > 6:
-		return GuestSettingsManager.GuestCharacter.GENTLEMAN
-	
-	if not GuestSettingsManager:
-		return GuestSettingsManager.GuestCharacter.GENTLEMAN
-	
-	var balance = get_guest_balance(guest_id)
-	var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
-	
-	match wealth:
-		GuestSettingsManager.GuestWealth.POOR:
-			if balance < 20000:
-				return GuestSettingsManager.GuestCharacter.CAUTIOUS
-			elif balance < 40000:
-				return GuestSettingsManager.GuestCharacter.GENTLEMAN
-			else:  # balance >= 40000
-				return GuestSettingsManager.GuestCharacter.GAMBLER
-		
-		GuestSettingsManager.GuestWealth.MEDIUM:
-			if balance < 80000:
-				return GuestSettingsManager.GuestCharacter.CAUTIOUS
-			elif balance < 120000:
-				return GuestSettingsManager.GuestCharacter.GENTLEMAN
-			else:  # balance >= 120000
-				return GuestSettingsManager.GuestCharacter.GAMBLER
-		
-		GuestSettingsManager.GuestWealth.RICH:
-			if balance < 180000:
-				return GuestSettingsManager.GuestCharacter.CAUTIOUS
-			elif balance < 250000:
-				return GuestSettingsManager.GuestCharacter.GENTLEMAN
-			else:  # balance >= 250000
-				return GuestSettingsManager.GuestCharacter.GAMBLER
-		
-		_:
-			return GuestSettingsManager.GuestCharacter.GENTLEMAN  # По умолчанию
-
 func check_and_update_guest_character(guest_id: int) -> void:
-	"""Проверяет баланс гостя и обновляет его характер при необходимости
+	"""Проверяет результат раунда и обновляет характер гостя
 	
-	Вызывается в конце раунда после обновления статуса богатства.
-	Характер меняется автоматически на основе баланса относительно статуса богатства.
+	Логика переключения (универсальная для всех статусов):
+	- Умеренный: в плюсе → Азартный, в минусе → Осторожный
+	- Азартный: в плюсе → Азартный, в минусе → Умеренный
+	- Осторожный: в плюсе → Умеренный, в минусе → Осторожный
+	
+	Если сохраненный баланс = 0, значит первый раунд - не меняем характер
 	"""
 	if guest_id < 1 or guest_id > 6:
 		return
@@ -377,19 +356,53 @@ func check_and_update_guest_character(guest_id: int) -> void:
 	if not GuestSettingsManager:
 		return
 	
-	var current_character = GuestSettingsManager.get_guest_character(guest_id)
-	var new_character = determine_character_by_balance(guest_id)
+	var saved_balance = guest_balances_at_bet_generation[guest_id - 1]
+	var current_balance = get_guest_balance(guest_id)
 	
+	# Если сохраненный баланс = 0, значит первый раунд - сохраняем баланс и не меняем характер
+	if saved_balance == 0.0:
+		guest_balances_at_bet_generation[guest_id - 1] = current_balance
+		print("💰 Гость %d: первый раунд, баланс сохранен = %.0f (характер не меняется)" % [guest_id, current_balance])
+		return
+	
+	# Анализируем результат раунда
+	var delta = current_balance - saved_balance
+	var current_character = GuestSettingsManager.get_guest_character(guest_id)
+	var new_character = current_character
+	
+	if delta > 0:
+		# В плюсе - характер становится более азартным
+		match current_character:
+			GuestSettingsManager.GuestCharacter.MODERATE:
+				new_character = GuestSettingsManager.GuestCharacter.GAMBLER
+			GuestSettingsManager.GuestCharacter.CAUTIOUS:
+				new_character = GuestSettingsManager.GuestCharacter.MODERATE
+			GuestSettingsManager.GuestCharacter.GAMBLER:
+				new_character = GuestSettingsManager.GuestCharacter.GAMBLER  # Остается
+	elif delta < 0:
+		# В минусе - характер становится менее азартным
+		match current_character:
+			GuestSettingsManager.GuestCharacter.MODERATE:
+				new_character = GuestSettingsManager.GuestCharacter.CAUTIOUS
+			GuestSettingsManager.GuestCharacter.GAMBLER:
+				new_character = GuestSettingsManager.GuestCharacter.MODERATE
+			GuestSettingsManager.GuestCharacter.CAUTIOUS:
+				new_character = GuestSettingsManager.GuestCharacter.CAUTIOUS  # Остается
+	# Если delta == 0, характер не меняется
+	
+	# Обновляем характер, если изменился
 	if new_character != current_character:
 		var old_character_name = GuestSettingsManager.GuestCharacter.keys()[current_character]
 		var new_character_name = GuestSettingsManager.GuestCharacter.keys()[new_character]
-		var balance = get_guest_balance(guest_id)
 		
 		GuestSettingsManager.set_guest_character(guest_id, new_character)
 		
-		print("🎭 Гость %d: характер изменился %s → %s (баланс: %.0f)" % [
-			guest_id, old_character_name, new_character_name, balance
+		print("🎭 Гость %d: характер изменился %s → %s (баланс: %.0f → %.0f, delta: %+.0f)" % [
+			guest_id, old_character_name, new_character_name, saved_balance, current_balance, delta
 		])
+	
+	# Сохраняем текущий баланс для следующего раунда
+	guest_balances_at_bet_generation[guest_id - 1] = current_balance
 
 # ← Обработать уход гостя из-за терпения (терпение достигло 0)
 func _handle_guest_left_due_to_patience(guest_id: int) -> void:

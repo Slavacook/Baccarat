@@ -9,7 +9,7 @@ extends Node
 # ═══════════════════════════════════════════════════════════════════════════
 
 enum GuestCharacter {
-	GENTLEMAN,   # Джентельмен
+	MODERATE,    # Умеренный
 	CAUTIOUS,    # Осторожный
 	GAMBLER      # Азартный
 }
@@ -36,10 +36,10 @@ signal guest_settings_changed(guest_id: int)
 
 class GuestSettings:
 	var enabled: bool = false
-	var character: GuestCharacter = GuestCharacter.GENTLEMAN
+	var character: GuestCharacter = GuestCharacter.MODERATE
 	var wealth: GuestWealth = GuestWealth.MEDIUM
 	
-	func _init(en: bool = false, char_type: GuestCharacter = GuestCharacter.GENTLEMAN, w: GuestWealth = GuestWealth.MEDIUM):
+	func _init(en: bool = false, char_type: GuestCharacter = GuestCharacter.MODERATE, w: GuestWealth = GuestWealth.MEDIUM):
 		enabled = en
 		character = char_type
 		wealth = w
@@ -54,7 +54,7 @@ class GuestSettings:
 	static func from_dict(data: Dictionary) -> GuestSettings:
 		return GuestSettings.new(
 			data.get("enabled", false),
-			data.get("character", GuestCharacter.GENTLEMAN) as GuestCharacter,
+			data.get("character", GuestCharacter.MODERATE) as GuestCharacter,
 			data.get("wealth", GuestWealth.MEDIUM) as GuestWealth
 		)
 
@@ -160,7 +160,7 @@ func is_guest_enabled(guest_id: int) -> bool:
 # ← Получить характер гостя
 func get_guest_character(guest_id: int) -> GuestCharacter:
 	if guest_id < 1 or guest_id > 6:
-		return GuestCharacter.GENTLEMAN
+		return GuestCharacter.MODERATE
 	return guests[guest_id - 1].character
 
 # ← Получить обеспеченность гостя

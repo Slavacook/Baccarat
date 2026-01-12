@@ -40,7 +40,7 @@ func initialize_option_buttons():
 	"""Инициализировать общие OptionButton элементами (если они пустые)"""
 	# OptionButton для характера
 	if character_option and character_option.get_item_count() == 0:
-		character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+		character_option.add_item(Localization.t("GUEST_CHARACTER_MODERATE"))
 		character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
 		character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
 	
@@ -69,7 +69,7 @@ func _update_character_option_texts(selected_guest_id: int):
 	
 	# Очищаем и добавляем заново с новыми переводами
 	character_option.clear()
-	character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+	character_option.add_item(Localization.t("GUEST_CHARACTER_MODERATE"))
 	character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
 	character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
 	

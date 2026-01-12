@@ -526,14 +526,14 @@ func _update_indicator(guest_id: int):
 				wealth_number = 1
 		wealth_label.text = "Фин: %d" % wealth_number
 	
-	# Обновляем характер (1=CAUTIOUS, 2=GENTLEMAN, 3=GAMBLER)
+	# Обновляем характер (1=CAUTIOUS, 2=MODERATE, 3=GAMBLER)
 	if character_label and GuestSettingsManager:
 		var character = GuestSettingsManager.get_guest_character(guest_id)
 		var character_number: int
 		match character:
 			GuestSettingsManager.GuestCharacter.CAUTIOUS:
 				character_number = 1
-			GuestSettingsManager.GuestCharacter.GENTLEMAN:
+			GuestSettingsManager.GuestCharacter.MODERATE:
 				character_number = 2
 			GuestSettingsManager.GuestCharacter.GAMBLER:
 				character_number = 3

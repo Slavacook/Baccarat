@@ -104,23 +104,16 @@ func return_guest(guest_id: int) -> void:
 	# Удаляем из списка ушедших
 	guests_left.erase(guest_id)
 	
-	# Обновляем баланс до полной суммы (в зависимости от богатства)
+	# Обновляем баланс до рандомной суммы (в зависимости от богатства)
 	if GuestStatsManager and GuestSettingsManager:
 		var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
-		var full_balance: float
-		match wealth:
-			GuestSettingsManager.GuestWealth.POOR:
-				full_balance = GuestStatsManager.POOR_BALANCE
-			GuestSettingsManager.GuestWealth.MEDIUM:
-				full_balance = GuestStatsManager.MEDIUM_BALANCE
-			GuestSettingsManager.GuestWealth.RICH:
-				full_balance = GuestStatsManager.RICH_BALANCE
-			_:
-				full_balance = GuestStatsManager.MEDIUM_BALANCE
+		var full_balance = GuestStatsManager.generate_random_balance(wealth)
 		
 		GuestStatsManager.set_guest_balance(guest_id, full_balance)
 		# Также обновляем начальный баланс
 		GuestStatsManager.guest_initial_balances[guest_id - 1] = full_balance
+		# Сбрасываем сохраненный баланс при возврате
+		GuestStatsManager.reset_saved_balance(guest_id)
 		print("💰 Гость %d вернулся с балансом %.0f (статус: %s)" % [
 			guest_id, full_balance, GuestSettingsManager.GuestWealth.keys()[wealth]
 		])

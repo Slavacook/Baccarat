@@ -8,8 +8,8 @@ extends RefCounted
 # КОНСТАНТЫ: ВЕРОЯТНОСТИ ДЛЯ ХАРАКТЕРОВ
 # ═══════════════════════════════════════════════════════════════════════════
 
-# Джентельмен
-const GENTLEMAN_PROBS = {
+# Умеренный
+const MODERATE_PROBS = {
 	"main": {
 		"Player": 44.0,
 		"Banker": 48.0,
@@ -35,14 +35,14 @@ const CAUTIOUS_PROBS = {
 		"None": 18.0
 	},
 	"tie": {
-		"Tie": 15.0,
-		"None": 85.0
+		"Tie": 10.0,
+		"None": 90.0
 	},
 	"pairs": {
-		"Both": 15.0,
-		"None": 55.0,
-		"PlayerPair": 15.0,
-		"BankerPair": 15.0
+		"Both": 10.0,
+		"None": 70.0,
+		"PlayerPair": 10.0,
+		"BankerPair": 10.0
 	}
 }
 
@@ -58,10 +58,10 @@ const GAMBLER_PROBS = {
 		"None": 55.0
 	},
 	"pairs": {
-		"Both": 45.0,
+		"Both": 55.0,
 		"None": 25.0,
-		"PlayerPair": 15.0,
-		"BankerPair": 15.0
+		"PlayerPair": 10.0,
+		"BankerPair": 10.0
 	}
 }
 
@@ -90,6 +90,10 @@ func generate_bets_for_all_guests() -> void:
 	var active_guests = GuestSettingsManager.get_active_guests()
 	
 	for guest_id in active_guests:
+		# Сохраняем баланс перед генерацией ставок
+		if GuestStatsManager:
+			GuestStatsManager.save_balance_before_bet_generation(guest_id)
+		
 		var bets = generate_guest_bets(guest_id)
 		bet_storage.store_guest_bets(guest_id, bets)
 		print("🎲 GuestBetFactory: сгенерировано %d ставок для гостя %d" % [bets.size(), guest_id])
@@ -147,14 +151,14 @@ func generate_guest_bets(guest_id: int) -> Array[Bet]:
 func _get_probabilities_for_character(character: GuestSettingsManager.GuestCharacter) -> Dictionary:
 	"""Получить вероятности для характера"""
 	match character:
-		GuestSettingsManager.GuestCharacter.GENTLEMAN:
-			return GENTLEMAN_PROBS
+		GuestSettingsManager.GuestCharacter.MODERATE:
+			return MODERATE_PROBS
 		GuestSettingsManager.GuestCharacter.CAUTIOUS:
 			return CAUTIOUS_PROBS
 		GuestSettingsManager.GuestCharacter.GAMBLER:
 			return GAMBLER_PROBS
 		_:
-			return GENTLEMAN_PROBS  # По умолчанию
+			return MODERATE_PROBS  # По умолчанию
 
 func _generate_main_bet(guest_id: int, sector: int, probs: Dictionary) -> Bet:
 	"""Сгенерировать основную ставку (Player или Banker)

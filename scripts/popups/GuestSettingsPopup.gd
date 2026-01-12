@@ -116,7 +116,7 @@ func _create_guest_ui(guest_id: int):
 	
 	var character_option = OptionButton.new()
 	character_option.name = "Guest%dCharacter" % guest_id
-	character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+		character_option.add_item(Localization.t("GUEST_CHARACTER_MODERATE"))
 	character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
 	character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
 	character_option.item_selected.connect(_on_guest_character_selected.bind(guest_id))
@@ -278,11 +278,11 @@ func _update_texts():
 			# Обновляем OptionButton
 			if elements.character_option:
 				if elements.character_option.get_item_count() == 0:
-					elements.character_option.add_item(Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+					elements.character_option.add_item(Localization.t("GUEST_CHARACTER_MODERATE"))
 					elements.character_option.add_item(Localization.t("GUEST_CHARACTER_CAUTIOUS"))
 					elements.character_option.add_item(Localization.t("GUEST_CHARACTER_GAMBLER"))
 				else:
-					elements.character_option.set_item_text(0, Localization.t("GUEST_CHARACTER_GENTLEMAN"))
+					elements.character_option.set_item_text(0, Localization.t("GUEST_CHARACTER_MODERATE"))
 					elements.character_option.set_item_text(1, Localization.t("GUEST_CHARACTER_CAUTIOUS"))
 					elements.character_option.set_item_text(2, Localization.t("GUEST_CHARACTER_GAMBLER"))
 			
