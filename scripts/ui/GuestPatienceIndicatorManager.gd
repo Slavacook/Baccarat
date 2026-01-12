@@ -249,35 +249,6 @@ func _create_indicator(guest_id: int):
 	balance_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Растягиваем, чтобы баланс был справа
 	balance_header_container.add_child(balance_label)
 	
-	# Разделитель 3
-	var separator3 = HSeparator.new()
-	separator3.name = "Separator3"
-	vbox.add_child(separator3)
-	
-	# Контейнер для статуса богатства и характера
-	var status_container = HBoxContainer.new()
-	status_container.name = "StatusContainer"
-	vbox.add_child(status_container)
-	
-	# Метка "Фин:"
-	var wealth_label = Label.new()
-	wealth_label.name = "WealthLabel"
-	wealth_label.text = "Фин: 1"
-	wealth_label.add_theme_font_size_override("font_size", 11)
-	wealth_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	wealth_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	status_container.add_child(wealth_label)
-	
-	# Метка "Азарт:"
-	var character_label = Label.new()
-	character_label.name = "CharacterLabel"
-	character_label.text = "Азарт: 1"
-	character_label.add_theme_font_size_override("font_size", 11)
-	character_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	character_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL  # Растягиваем, чтобы было справа
-	character_label.add_theme_color_override("font_color", Color(0.9, 0.9, 0.9))
-	status_container.add_child(character_label)
-	
 	# НЕ добавляем скрипт - используем узлы напрямую
 	# Создаем ссылки на узлы для прямого доступа
 	# (скрипт GuestPatienceIndicator будет использоваться при необходимости)
@@ -432,12 +403,6 @@ func _update_indicator(guest_id: int):
 	var balance_label = null
 	if balance_header_container:
 		balance_label = balance_header_container.get_node_or_null("BalanceLabel")
-	var status_container = vbox.get_node_or_null("StatusContainer")
-	var wealth_label = null
-	var character_label = null
-	if status_container:
-		wealth_label = status_container.get_node_or_null("WealthLabel")
-		character_label = status_container.get_node_or_null("CharacterLabel")
 	
 	# Обновляем прогресс-бар терпения
 	if patience_progress:
@@ -510,36 +475,6 @@ func _update_indicator(guest_id: int):
 			balance_label.modulate = Color(1.0, 0.5, 0.5)
 		balance_text = "%.0f" % balance
 		balance_label.text = balance_text
-	
-	# Обновляем статус богатства (1=POOR, 2=MEDIUM, 3=RICH)
-	if wealth_label and GuestSettingsManager:
-		var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
-		var wealth_number: int
-		match wealth:
-			GuestSettingsManager.GuestWealth.POOR:
-				wealth_number = 1
-			GuestSettingsManager.GuestWealth.MEDIUM:
-				wealth_number = 2
-			GuestSettingsManager.GuestWealth.RICH:
-				wealth_number = 3
-			_:
-				wealth_number = 1
-		wealth_label.text = "Фин: %d" % wealth_number
-	
-	# Обновляем характер (1=CAUTIOUS, 2=MODERATE, 3=GAMBLER)
-	if character_label and GuestSettingsManager:
-		var character = GuestSettingsManager.get_guest_character(guest_id)
-		var character_number: int
-		match character:
-			GuestSettingsManager.GuestCharacter.CAUTIOUS:
-				character_number = 1
-			GuestSettingsManager.GuestCharacter.MODERATE:
-				character_number = 2
-			GuestSettingsManager.GuestCharacter.GAMBLER:
-				character_number = 3
-			_:
-				character_number = 2
-		character_label.text = "Азарт: %d" % character_number
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ

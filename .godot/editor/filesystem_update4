@@ -5,3 +5,6 @@ res://addons/gut/gui/EditorRadioButton.tres
 res://scripts/StatsManager.gd
 res://scripts/TipCalculator.gd
 res://scripts/ToastManager.gd
+res://scripts/ui/GuestPatienceIndicatorManager.gd
+res://scripts/GamePhaseManager.gd
+res://scripts/TablePreparationExecutor.gd

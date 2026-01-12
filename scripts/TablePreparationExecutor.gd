@@ -80,9 +80,14 @@ func execute_preparation_actions(
 		_show_completion_message()
 		actions_executed.append("show_message")
 	
-	# 3. Зум камеры на общий план
-	_execute_camera_zoom()
-	actions_executed.append("camera_zoom")
+	# 3. Зум камеры на общий план (только если есть гости)
+	var active_guests = GuestSettingsManager.get_active_guests()
+	if not active_guests.is_empty():
+		_execute_camera_zoom()
+		actions_executed.append("camera_zoom")
+	else:
+		# Нет гостей - камера остается на картах
+		DebugLogger.log("📷 TablePreparationExecutor: нет гостей - камера остается на картах")
 	
 	# 4. Начисление очков
 	if instructions.get("should_add_score", false):

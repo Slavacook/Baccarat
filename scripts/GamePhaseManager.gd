@@ -1696,6 +1696,16 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 	if winner_selection_manager:
 		was_keyboard_input = winner_selection_manager.was_last_toggle_by_keyboard
 	
+	# Проверяем есть ли активные гости
+	var active_guests = GuestSettingsManager.get_active_guests()
+	if active_guests.is_empty():
+		# Нет гостей - камера остается на картах (не перемещаем)
+		DebugLogger.log("📷 GamePhaseManager: нет гостей - камера остается на картах")
+		EventBus.navigation_arrows_visibility_changed.emit(true)
+		# Вызываем метод формирования очереди выплат через EventBus
+		EventBus.manual_payout_requested.emit(actual_winner)
+		return
+	
 	# Проверяем есть ли ставки для обработки
 	if guest_bet_storage:
 		var guests_with_bets = guest_bet_storage.get_guests_with_bets()
