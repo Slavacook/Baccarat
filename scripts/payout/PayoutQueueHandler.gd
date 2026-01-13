@@ -212,6 +212,15 @@ func finalize_payouts_manual(actual_winner: String) -> void:
 		# Устанавливаем режим
 		bet_collection_manager.set_mode(selected_mode)
 		
+		# Проверяем, все ли ставки уже обработаны (если ставок не было или они уже обработаны)
+		# Это нужно для случая, когда ставок не было вообще
+		var completion_check = bet_collection_manager.can_complete_round()
+		if completion_check.can:
+			# Все ставки обработаны (или их не было) - уведомляем через EventBus
+			if EventBus:
+				EventBus.all_bets_processed.emit()
+				DebugLogger.log("🎯 PayoutQueueHandler: все ставки обработаны (или их не было), эмитим all_bets_processed")
+		
 		# Обновляем UI кнопок в соответствии с установленным режимом
 		if phase_manager and phase_manager.ui and phase_manager.ui.button_ui:
 			match selected_mode:

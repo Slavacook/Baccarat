@@ -17,6 +17,9 @@ const DEFAULT_THRESHOLDS: Dictionary = {
 	6: 8100    # 6-й гость при 8100 чаевых
 }
 
+## Минимальный зазор между активациями новых гостей (в раундах)
+const MIN_ROUNDS_BETWEEN_NEW_GUESTS: int = 3
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -29,6 +32,12 @@ var auto_mode_enabled: bool = true
 
 ## Было ли выполнено начальное инициализирование
 var initial_guest_initialized: bool = false
+
+## Номер раунда последней активации нового гостя (0 = еще не было активаций)
+var last_new_guest_activation_round: int = 0
+
+## Текущий номер раунда (отслеживается через round_started)
+var current_round: int = 0
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -94,6 +103,8 @@ func initialize_first_guest() -> void:
 			if required_count > 0:
 				var activated = activate_random_guests(required_count)
 				if activated.size() > 0:
+					# Сохраняем номер раунда первой активации (если current_round еще 0, это нормально)
+					last_new_guest_activation_round = current_round
 					initial_guest_initialized = true
 					print("🎯 Первый гость инициализирован: гость %d (статус: POOR)" % activated[0])
 				else:
@@ -116,7 +127,9 @@ func initialize_first_guest() -> void:
 	# Если все гости выключены - активировать 1 случайного гостя
 	var random_guest = get_random_inactive_guest()
 	if random_guest > 0:
-		activate_guest(random_guest, false)  # Без toast при инициализации
+		if activate_guest(random_guest, false):  # Без toast при инициализации
+			# Сохраняем номер раунда первой активации (если current_round еще 0, это нормально)
+			last_new_guest_activation_round = current_round
 		initial_guest_initialized = true
 		print("🎯 Первый гость инициализирован: гость %d" % random_guest)
 
@@ -151,9 +164,24 @@ func check_and_update_guests() -> void:
 	# Если нужно больше гостей - активируем недостающих
 	if current_count < required_count:
 		var needed = required_count - current_count
-		var activated = activate_random_guests(needed)
+		
+		# Проверяем, можно ли активировать нового гостя
+		if not _can_activate_new_guest():
+			print("🎯 Недостаточно гостей (требуется %d, активно %d), но активация отложена (зазор < %d раундов)" % [
+				required_count, current_count, MIN_ROUNDS_BETWEEN_NEW_GUESTS
+			])
+			return
+		
+		# Активируем только ОДНОГО гостя, даже если нужно больше
+		var activated = activate_random_guests(1)
 		if activated.size() > 0:
-			print("🎯 Активировано %d гостей: %s" % [activated.size(), activated])
+			# Сохраняем номер раунда активации
+			last_new_guest_activation_round = current_round
+			print("🎯 Активирован 1 гость: %s (раунд %d, осталось активировать: %d)" % [
+				activated, current_round, needed - 1
+			])
+		else:
+			print("🎯 Не удалось активировать нового гостя (все гости уже активны или временно отсутствуют)")
 	
 	# Если активно больше гостей, чем нужно - деактивируем лишних
 	# Это происходит при включении режима прогрессии или изменении порогов
@@ -465,6 +493,50 @@ func _on_penalty_applied(_penalty_amount: int) -> void:
 	# TODO: НЕ вызывать check_and_update_guests() (гости остаются)
 	pass
 
+func _can_activate_new_guest() -> bool:
+	"""Проверить, можно ли активировать нового гостя
+	
+	Returns:
+		true если прошло минимум MIN_ROUNDS_BETWEEN_NEW_GUESTS раундов
+		с последней активации, или если это первая активация
+	"""
+	# Если еще не было активаций - можно активировать
+	if last_new_guest_activation_round == 0:
+		return true
+	
+	# Вычисляем количество раундов с последней активации
+	var rounds_since_last_activation = current_round - last_new_guest_activation_round
+	
+	# Можно активировать, если прошло минимум MIN_ROUNDS_BETWEEN_NEW_GUESTS раундов
+	var can_activate = rounds_since_last_activation >= MIN_ROUNDS_BETWEEN_NEW_GUESTS
+	
+	if not can_activate:
+		print("🎯 Активирование нового гостя отложено: прошло %d раундов, требуется %d" % [
+			rounds_since_last_activation, MIN_ROUNDS_BETWEEN_NEW_GUESTS
+		])
+	
+	return can_activate
+
+func _on_round_started() -> void:
+	"""Обработчик начала нового раунда - увеличиваем счетчик"""
+	current_round += 1
+	print("🎯 GuestProgressionManager: текущий раунд = %d" % current_round)
+	# Примечание: проверка активации гостей теперь происходит через all_bets_processed
+	# Это обеспечивает активацию за шаг до начала новой раздачи
+
+func _on_all_bets_processed() -> void:
+	"""Обработчик завершения обработки всех ставок
+	
+	Вызывается когда:
+	- Оплачена последняя выигрышная ставка (если были выигрышные)
+	- Забрана последняя проигрышная ставка (если не было выигрышных, но были проигрышные)
+	- Сразу после выяснения победителя (если не было ни выигрышных, ни проигрышных ставок)
+	
+	Это момент, когда можно активировать нового гостя (за шаг до начала новой раздачи).
+	"""
+	if auto_mode_enabled:
+		check_and_update_guests()
+
 func _on_game_restarted() -> void:
 	"""Обработчик рестарта игры (подписан на EventBus.game_restarted)
 	
@@ -472,6 +544,10 @@ func _on_game_restarted() -> void:
 	ВАЖНО: Принудительно отключаем всех гостей, затем активируем только необходимое количество.
 	"""
 	initial_guest_initialized = false
+	
+	# Сбрасываем отслеживание активаций
+	last_new_guest_activation_round = 0
+	current_round = 0
 	
 	# Если авторежим включен - пересчитываем гостей на основе 0 чаевых
 	if auto_mode_enabled:
@@ -530,6 +606,8 @@ func _connect_to_events() -> void:
 		EventBus.tip_received.connect(_on_tip_received)
 		# НЕ подписываемся на penalty_applied - гости остаются даже при снижении чаевых
 		EventBus.game_restarted.connect(_on_game_restarted)
+		EventBus.round_started.connect(_on_round_started)
+		EventBus.all_bets_processed.connect(_on_all_bets_processed)
 
 func _load_settings() -> void:
 	"""Загрузить сохранённые настройки из SaveManager"""

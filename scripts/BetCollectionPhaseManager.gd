@@ -675,6 +675,9 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	
 	DebugLogger.log("💰 BetCollectionPhaseManager: ставка %s[%d] собрана" % [bet_type, position_index])
 	
+	# Проверяем, все ли ставки обработаны (после успешного сбора)
+	_check_and_notify_if_all_processed()
+	
 	is_processing = false
 	return true
 
@@ -789,6 +792,9 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	chip_paid.emit(bet_type, position_index)
 	
 	DebugLogger.log("💰 BetCollectionPhaseManager: ставка %s[%d] оплачена" % [bet_type, position_index])
+	
+	# Проверяем, все ли ставки обработаны (после успешной оплаты)
+	_check_and_notify_if_all_processed()
 	
 	is_processing = false
 	return true
@@ -937,6 +943,19 @@ func can_complete_round() -> Dictionary:
 		"reasons": reasons,
 		"error_key": error_key
 	}
+
+func _check_and_notify_if_all_processed() -> void:
+	"""Проверить, все ли ставки обработаны, и уведомить через EventBus если да
+	
+	Вызывается после успешного сбора или оплаты ставки.
+	Эмитит сигнал all_bets_processed если все ставки обработаны (можно активировать нового гостя).
+	"""
+	var completion_check = can_complete_round()
+	if completion_check.can:
+		# Все ставки обработаны - уведомляем через EventBus
+		if EventBus:
+			EventBus.all_bets_processed.emit()
+			DebugLogger.log("🎯 BetCollectionPhaseManager: все ставки обработаны, эмитим all_bets_processed")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОТЛАДКА
