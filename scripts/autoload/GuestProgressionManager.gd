@@ -312,6 +312,10 @@ func activate_guest(guest_id: int, show_toast: bool = true) -> bool:
 		EventBus.guest_force_visible.emit(guest_id)
 		print("👥 Гость %d: принудительно установлена видимость после активации" % guest_id)
 	
+		# Автоматически переводим камеру на нового гостя
+		EventBus.camera_zoom_requested.emit("guest_%d" % guest_id, false)
+		print("📷 Камера автоматически переведена на гостя %d" % guest_id)
+	
 	return true
 
 func activate_random_guests(count: int) -> Array[int]:

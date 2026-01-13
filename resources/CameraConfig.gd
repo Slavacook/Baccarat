@@ -142,6 +142,46 @@ var guest_6_mode2_rotation: float = 0.0
 var guest_6_mode2_description: String = "Гость 6 режим 2"
 
 # ═══════════════════════════════════════════════════════════════════════════
+# ПОЗИЦИИ КАМЕРЫ ДЛЯ ГОСТЕЙ (автоматический переход при приходе нового гостя)
+# ═══════════════════════════════════════════════════════════════════════════
+
+# Позиция камеры для ГОСТЬ 1
+var guest_1_position: Vector2 = Vector2(-720, -180)
+var guest_1_zoom: Vector2 = Vector2(0.6, 0.6)
+var guest_1_rotation: float = -8.0
+var guest_1_description: String = "Гость 1"
+
+# Позиция камеры для ГОСТЬ 2
+var guest_2_position: Vector2 = Vector2(-420, -480)
+var guest_2_zoom: Vector2 = Vector2(0.6, 0.6)
+var guest_2_rotation: float = -4.0
+var guest_2_description: String = "Гость 2"
+
+# Позиция камеры для ГОСТЬ 3
+var guest_3_position: Vector2 = Vector2(150, -540)
+var guest_3_zoom: Vector2 = Vector2(0.6, 0.6)
+var guest_3_rotation: float = 0.0
+var guest_3_description: String = "Гость 3"
+
+# Позиция камеры для ГОСТЬ 4
+var guest_4_position: Vector2 = Vector2(900, -540)
+var guest_4_zoom: Vector2 = Vector2(0.6, 0.6)
+var guest_4_rotation: float = 0.0
+var guest_4_description: String = "Гость 4"
+
+# Позиция камеры для ГОСТЬ 5
+var guest_5_position: Vector2 = Vector2(1600, -480)
+var guest_5_zoom: Vector2 = Vector2(0.6, 0.6)
+var guest_5_rotation: float = 0.4
+var guest_5_description: String = "Гость 5"
+
+# Позиция камеры для ГОСТЬ 6
+var guest_6_position: Vector2 = Vector2(2000, -180)
+var guest_6_zoom: Vector2 = Vector2(0.6, 0.6)
+var guest_6_rotation: float = 8.0
+var guest_6_description: String = "Гость 6"
+
+# ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ АНИМАЦИИ КАМЕРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -348,6 +388,60 @@ func get_guest_6_mode2_settings() -> Dictionary:
 		"description": guest_6_mode2_description
 	}
 
+func get_guest_1_settings() -> Dictionary:
+	"""Получить настройки для гость 1"""
+	return {
+		"position": guest_1_position,
+		"zoom": guest_1_zoom,
+		"rotation": guest_1_rotation,
+		"description": guest_1_description
+	}
+
+func get_guest_2_settings() -> Dictionary:
+	"""Получить настройки для гость 2"""
+	return {
+		"position": guest_2_position,
+		"zoom": guest_2_zoom,
+		"rotation": guest_2_rotation,
+		"description": guest_2_description
+	}
+
+func get_guest_3_settings() -> Dictionary:
+	"""Получить настройки для гость 3"""
+	return {
+		"position": guest_3_position,
+		"zoom": guest_3_zoom,
+		"rotation": guest_3_rotation,
+		"description": guest_3_description
+	}
+
+func get_guest_4_settings() -> Dictionary:
+	"""Получить настройки для гость 4"""
+	return {
+		"position": guest_4_position,
+		"zoom": guest_4_zoom,
+		"rotation": guest_4_rotation,
+		"description": guest_4_description
+	}
+
+func get_guest_5_settings() -> Dictionary:
+	"""Получить настройки для гость 5"""
+	return {
+		"position": guest_5_position,
+		"zoom": guest_5_zoom,
+		"rotation": guest_5_rotation,
+		"description": guest_5_description
+	}
+
+func get_guest_6_settings() -> Dictionary:
+	"""Получить настройки для гость 6"""
+	return {
+		"position": guest_6_position,
+		"zoom": guest_6_zoom,
+		"rotation": guest_6_rotation,
+		"description": guest_6_description
+	}
+
 func get_area_settings(area_index: int) -> Dictionary:
 	"""Получить настройки для области по индексу (1-3)"""
 	match area_index:
@@ -386,6 +480,18 @@ func get_settings_by_type(zoom_type: String) -> Dictionary:
 			return get_guest_5_mode2_settings()
 		"guest_6_mode2":
 			return get_guest_6_mode2_settings()
+		"guest_1":
+			return get_guest_1_settings()
+		"guest_2":
+			return get_guest_2_settings()
+		"guest_3":
+			return get_guest_3_settings()
+		"guest_4":
+			return get_guest_4_settings()
+		"guest_5":
+			return get_guest_5_settings()
+		"guest_6":
+			return get_guest_6_settings()
 		_:
 			push_error("CameraConfig: неизвестный тип зума '%s'" % zoom_type)
 			return get_general_settings()

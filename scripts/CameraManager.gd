@@ -287,6 +287,48 @@ func _zoom_guest_6_mode2(is_navigation: bool = false) -> void:
 	else:
 		push_error("❌ CameraZoomHandler не инициализирован!")
 
+func _zoom_guest_1(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 1 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_1(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_2(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 2 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_2(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_3(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 3 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_3(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_4(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 4 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_4(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_5(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 5 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_5(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
+func _zoom_guest_6(is_navigation: bool = false) -> void:
+	"""Внутренний метод зума на гость 6 - делегировано в CameraZoomHandler"""
+	if _zoom_handler:
+		_zoom_handler.zoom_guest_6(is_navigation)
+	else:
+		push_error("❌ CameraZoomHandler не инициализирован!")
+
 func _zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Внутренний метод зума на указанную область (1-6) - делегировано в CameraZoomHandler"""
 	if _zoom_handler:
@@ -498,6 +540,8 @@ func _animate_to(target_pos: Vector2, target_zoom: Vector2, target_rotation: flo
 			_target_area = -1  # Общий план
 		"guest_1_mode2", "guest_2_mode2", "guest_3_mode2", "guest_4_mode2", "guest_5_mode2", "guest_6_mode2":
 			_target_area = -1  # Остаёмся на общем плане для режима 2
+		"guest_1", "guest_2", "guest_3", "guest_4", "guest_5", "guest_6":
+			_target_area = -1  # Остаёмся на общем плане для автоматического перехода на гостя
 		_:
 			if zoom_type.begins_with("area_"):
 				# Извлекаем номер области из строки "area_X" (где X от 1 до 3)
@@ -597,6 +641,18 @@ func _on_zoom_requested(zoom_type: String, is_navigation: bool = false) -> void:
 			_zoom_guest_5_mode2(is_navigation)
 		"guest_6_mode2":
 			_zoom_guest_6_mode2(is_navigation)
+		"guest_1":
+			_zoom_guest_1(is_navigation)
+		"guest_2":
+			_zoom_guest_2(is_navigation)
+		"guest_3":
+			_zoom_guest_3(is_navigation)
+		"guest_4":
+			_zoom_guest_4(is_navigation)
+		"guest_5":
+			_zoom_guest_5(is_navigation)
+		"guest_6":
+			_zoom_guest_6(is_navigation)
 		"next_area":
 			_zoom_next_area()
 		"prev_area":

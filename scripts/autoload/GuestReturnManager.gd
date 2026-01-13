@@ -138,6 +138,11 @@ func return_guest(guest_id: int) -> void:
 	# Эмитим сигнал
 	guest_returned.emit(guest_id)
 	print("👋 Гость %d вернулся" % guest_id)
+	
+	# Автоматически переводим камеру на вернувшегося гостя
+	if EventBus:
+		EventBus.camera_zoom_requested.emit("guest_%d" % guest_id, false)
+		print("📷 Камера автоматически переведена на вернувшегося гостя %d" % guest_id)
 
 ## Вернуть всех ушедших гостей после геймовера
 func return_all_guests_after_game_over() -> void:

@@ -108,6 +108,36 @@ func zoom_guest_6_mode2(is_navigation: bool = false) -> void:
 	var settings = config.get_guest_6_mode2_settings()
 	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_6_mode2", is_navigation)
 
+func zoom_guest_1(is_navigation: bool = false) -> void:
+	"""Зум на гость 1 (автоматический переход при приходе нового гостя)"""
+	var settings = config.get_guest_1_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_1", is_navigation)
+
+func zoom_guest_2(is_navigation: bool = false) -> void:
+	"""Зум на гость 2 (автоматический переход при приходе нового гостя)"""
+	var settings = config.get_guest_2_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_2", is_navigation)
+
+func zoom_guest_3(is_navigation: bool = false) -> void:
+	"""Зум на гость 3 (автоматический переход при приходе нового гостя)"""
+	var settings = config.get_guest_3_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_3", is_navigation)
+
+func zoom_guest_4(is_navigation: bool = false) -> void:
+	"""Зум на гость 4 (автоматический переход при приходе нового гостя)"""
+	var settings = config.get_guest_4_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_4", is_navigation)
+
+func zoom_guest_5(is_navigation: bool = false) -> void:
+	"""Зум на гость 5 (автоматический переход при приходе нового гостя)"""
+	var settings = config.get_guest_5_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_5", is_navigation)
+
+func zoom_guest_6(is_navigation: bool = false) -> void:
+	"""Зум на гость 6 (автоматический переход при приходе нового гостя)"""
+	var settings = config.get_guest_6_settings()
+	animate_to_callback.call(settings.position, settings.zoom, settings.get("rotation", 0.0), "guest_6", is_navigation)
+
 func zoom_area(area_index: int, is_navigation: bool = false) -> void:
 	"""Зум на указанную область (1-3)
 	
