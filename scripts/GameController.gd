@@ -292,10 +292,6 @@ func _ready():
 	if survival_state:
 		survival_state.activate()
 	
-	# Запускаем фоновую музыку (если включена)
-	if SoundManager:
-		SoundManager._load_background_music_setting()
-	
 	# Передаём heart_bar в ChanceCardManager после инициализации (если он был инициализирован)
 	if heart_bar:
 		ChanceCardManager.set_heart_bar(heart_bar)

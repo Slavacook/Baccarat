@@ -1,4 +1,4 @@
-[gd_scene load_steps=16 format=3 uid="uid://dvci1lc3qrbac"]
+[gd_scene load_steps=13 format=3 uid="uid://dvci1lc3qrbac"]
 
 [ext_resource type="Script" uid="uid://d3ov5kmwxvbem" path="res://scripts/SettingsScene.gd" id="1_8limm"]
 
@@ -110,42 +110,6 @@ shadow_color = Color(0.8, 0.65, 0.3, 0.8)
 shadow_size = 8
 shadow_offset = Vector2(0, 4)
 
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lang_button"]
-bg_color = Color(0.25, 0.25, 0.3, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.5, 0.5, 0.6, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lang_button_disabled"]
-bg_color = Color(0.35, 0.45, 0.35, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.6, 0.8, 0.6, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_lang_button_hover"]
-bg_color = Color(0.3, 0.3, 0.35, 1)
-border_width_left = 2
-border_width_top = 2
-border_width_right = 2
-border_width_bottom = 2
-border_color = Color(0.7, 0.7, 0.8, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
-
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_apply_button"]
 bg_color = Color(0.2, 0.5, 0.2, 1)
 border_width_left = 2
@@ -255,17 +219,6 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
 text = "Гости"
-
-[node name="BackgroundMusicButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
-custom_minimum_size = Vector2(0, 50)
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
-theme_override_styles/normal = SubResource("StyleBoxFlat_lang_button")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_lang_button_disabled")
-theme_override_styles/hover = SubResource("StyleBoxFlat_lang_button_hover")
-theme_override_styles/disabled = SubResource("StyleBoxFlat_lang_button_disabled")
-text = "Фоновый шум"
 
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer"]
 layout_mode = 2

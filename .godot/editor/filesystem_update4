@@ -1,0 +1,5 @@
+res://scripts/SoundManager.gd
+res://scenes/SettingsScene.tscn
+res://addons/gut/gui/editor_globals.gd
+res://addons/gut/gui/EditorRadioButton.tres
+res://scripts/GameConstants.gd

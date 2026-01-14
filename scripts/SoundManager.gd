@@ -11,7 +11,7 @@ static var instance: SoundManager
 const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_change (30% от оригинала)
 const MODE_SWITCH_VOLUME: float = 0.2  # Громкость звука mode_switch (20% от оригинала)
 const PATIENCE_LOST_VOLUME: float = 0.5  # Громкость звука patience_lost (50% от оригинала)
-const CAMERA_TRANSITION_VOLUME: float = 0.3  # Громкость звука перехода камеры (30% от оригинала)
+const CAMERA_TRANSITION_VOLUME: float = 0.05  # Громкость звука перемещения камеры (50% от оригинала)
 const MAX_SFX_PLAYERS: int = 5  # Максимум одновременно играющих звуков
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -39,17 +39,14 @@ var heart_sound: AudioStream  # Сердце (heart bet)
 var bet_sounds: Array[AudioStream] = []  # Звуки ставок гостей (8 вариантов)
 var camera_transition_sound: AudioStream  # Звук перехода камеры (whoosh_2)
 var payout_open_sound: AudioStream  # Звук открытия окна выплат (whoosh_1)
-var background_music: AudioStream  # Фоновая музыка (asmr.ogg)
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
 var sfx_players: Array[AudioStreamPlayer] = []  # Пул игроков для параллельного воспроизведения звуков
-var background_music_player: AudioStreamPlayer  # Игрок для фоновой музыки
 
 # Настройки громкости
 var master_volume: float = 1.0
 var sfx_volume: float = 1.0
-var background_music_level: int = 3  # Уровень громкости фоновой музыки (0-5, где 0 = выкл, 1-5 = 0.1-0.5)
 
 # Флаги для отслеживания состояния
 var last_patience_values: Dictionary = {}  # {guest_id: patience} для отслеживания потери терпения
@@ -73,11 +70,6 @@ func _ready():
 		add_child(player)
 		sfx_players.append(player)
 	
-	# Создаём AudioStreamPlayer для фоновой музыки
-	background_music_player = AudioStreamPlayer.new()
-	background_music_player.name = "BackgroundMusicPlayer"
-	add_child(background_music_player)
-	
 	# Загружаем звуки
 	_load_sounds()
 	
@@ -86,9 +78,6 @@ func _ready():
 	
 	# Подписываемся на события EventBus
 	_connect_events()
-	
-	# Фоновая музыка будет запущена в GameController._ready() (только во время игры)
-	# _load_background_music_setting() - вызывается в GameController
 	
 	print("🔊 SoundManager готов! Подписан на EventBus.")
 
@@ -193,9 +182,6 @@ func _load_sounds():
 	
 	# whoosh_1.mp3 - Звук открытия окна выплат
 	payout_open_sound = _load_sound_safe(GameConstants.PAYOUT_OPEN_SOUND_PATH)
-	
-	# asmr.ogg - Фоновая музыка (ASMR)
-	background_music = _load_sound_safe("res://assets/sound/asmr.ogg")
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -449,150 +435,6 @@ func _get_free_player() -> AudioStreamPlayer:
 	return null  # Все заняты
 
 # ═══════════════════════════════════════════════════════════════════════════
-# УПРАВЛЕНИЕ ФОНОВОЙ МУЗЫКОЙ
-# ═══════════════════════════════════════════════════════════════════════════
-
-func _load_background_music_setting() -> void:
-	"""Загрузить настройку фоновой музыки и запустить/остановить"""
-	if not SaveManager:
-		return
-	
-	# Загружаем уровень из сохранения
-	background_music_level = SaveManager.load_background_music_level()
-	
-	# Если уровень > 0, запускаем музыку
-	if background_music_level > 0:
-		start_background_music()
-	else:
-		stop_background_music()
-
-func _get_background_music_volume() -> float:
-	"""Получить громкость фоновой музыки по уровню (0.0 - 0.5)"""
-	match background_music_level:
-		1: return 0.1
-		2: return 0.2
-		3: return 0.3
-		4: return 0.4
-		5: return 0.5
-		_: return 0.0  # Уровень 0 или неверный
-
-func _update_background_music_volume() -> void:
-	"""Обновить громкость фоновой музыки без перезапуска"""
-	if not background_music_player:
-		return
-	
-	# Если музыка не играет, ничего не делаем
-	if not background_music_player.playing:
-		return
-	
-	# Если уровень 0, останавливаем
-	if background_music_level <= 0:
-		stop_background_music()
-		return
-	
-	# Просто меняем громкость
-	var volume = _get_background_music_volume()
-	background_music_player.volume_db = linear_to_db(volume * master_volume)
-	print("🎵 Громкость фоновой музыки изменена (уровень: %d, громкость: %d%%)" % [background_music_level, int(volume * 100)])
-
-func start_background_music() -> void:
-	"""Запустить фоновую музыку с текущим уровнем громкости"""
-	if not background_music_player or not background_music:
-		return
-	
-	# Если уровень 0, не запускаем
-	if background_music_level <= 0:
-		stop_background_music()
-		return
-	
-	var volume = _get_background_music_volume()
-	background_music_player.stream = background_music
-	background_music_player.volume_db = linear_to_db(volume * master_volume)
-	
-	# Настраиваем на зацикливание
-	if background_music is AudioStreamOggVorbis:
-		background_music.loop = true
-	elif background_music is AudioStreamMP3:
-		background_music.loop = true
-	
-	background_music_player.play()
-	print("🎵 Фоновая музыка запущена (уровень: %d, громкость: %d%%)" % [background_music_level, int(volume * 100)])
-
-func stop_background_music() -> void:
-	"""Остановить фоновую музыку"""
-	if not background_music_player:
-		print("⚠️ SoundManager: background_music_player не найден!")
-		return
-	
-	# Останавливаем воспроизведение
-	if background_music_player.playing:
-		background_music_player.stop()
-	
-	# Убираем stream, чтобы гарантировать остановку
-	background_music_player.stream = null
-	
-	# Проверяем, что действительно остановилось
-	if background_music_player.playing:
-		push_error("⚠️ SoundManager: Не удалось остановить фоновую музыку!")
-	else:
-		print("🎵 Фоновая музыка остановлена")
-
-func set_background_music_level(level: int) -> void:
-	"""Установить уровень громкости фоновой музыки (0-5)
-	
-	Args:
-		level: Уровень громкости (0 = выкл, 1-5 = громкость 0.1-0.5)
-	"""
-	if not SaveManager:
-		push_error("⚠️ SoundManager: SaveManager не найден!")
-		return
-	
-	# Ограничиваем уровень в диапазоне 0-5
-	level = clamp(level, 0, 5)
-	background_music_level = level
-	
-	print("🎵 SoundManager.set_background_music_level(%d)" % level)
-	
-	# Сохраняем настройку
-	SaveManager.save_background_music_level(level)
-	
-	# Применяем настройку
-	if level > 0:
-		# Если музыка уже играет, просто меняем громкость
-		if background_music_player and background_music_player.playing:
-			_update_background_music_volume()
-		else:
-			# Если не играет, запускаем
-			start_background_music()
-	else:
-		# Уровень 0 - останавливаем
-		stop_background_music()
-	
-	# Проверяем, что состояние соответствует
-	var verify = get_background_music_level()
-	if verify != level:
-		push_error("⚠️ SoundManager: Несоответствие состояния! Ожидалось %d, получено %d" % [level, verify])
-
-func get_background_music_level() -> int:
-	"""Получить текущий уровень громкости фоновой музыки (0-5)"""
-	return background_music_level
-
-# Обратная совместимость: старые методы для bool
-func set_background_music_enabled(enabled: bool) -> void:
-	"""Включить/выключить фоновую музыку (обратная совместимость)
-	
-	Включает уровень 3, выключает уровень 0
-	"""
-	if enabled:
-		set_background_music_level(3)
-	else:
-		set_background_music_level(0)
-
-func is_background_music_enabled() -> bool:
-	"""Проверить, включена ли фоновая музыка (обратная совместимость)"""
-	return background_music_level > 0
-
-# ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ ДЛЯ ВНЕШНИХ ВЫЗОВОВ (для событий без EventBus)
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -630,7 +472,7 @@ func play_bet_sound():
 	play_sound(bet_sounds[random_index])
 
 func play_camera_transition_sound():
-	"""Звук перехода камеры (при быстрых переходах, is_navigation = false)"""
+	"""Звук перемещения камеры (при быстрых переходах, is_navigation = false)"""
 	play_sound(camera_transition_sound, CAMERA_TRANSITION_VOLUME)
 
 func play_payout_open_sound():
