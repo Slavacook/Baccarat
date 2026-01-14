@@ -47,7 +47,17 @@ func _init(scene: Node):
 		scene: Корневой узел сцены Game.tscn
 	"""
 	# Получаем ссылки на UI узлы кнопок
-	action_button = scene.get_node("CardsButton")
+	# CardsButton теперь в TopUI (перемещена для адаптивности)
+	if scene.has_node("TopUI/CardsButton"):
+		action_button = scene.get_node("TopUI/CardsButton")
+	elif scene.has_node("CardsButton"):
+		action_button = scene.get_node("CardsButton")
+	else:
+		action_button = scene.find_child("CardsButton", true, false)
+	
+	if not action_button:
+		push_error("ButtonUIManager: CardsButton не найдена в сцене!")
+	
 	help_button = scene.get_node("HelpButton")
 	
 	# Получаем ссылку на broken кнопку (проверяем в разных местах иерархии)

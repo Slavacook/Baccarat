@@ -55,8 +55,15 @@ layer = 128
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 visible = true
 z_index = 3
-offset_top = 600.0
-offset_bottom = 650.0
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_top = -50.0
+offset_bottom = 0.0
+grow_horizontal = 2
+grow_vertical = 0
 
 [node name="ChanceCardStorage" parent="TopUI" instance=ExtResource("33_chance_storage")]
 anchors_preset = 2
@@ -67,6 +74,21 @@ offset_top = -90.0
 offset_right = 300.0
 offset_bottom = -10.0
 grow_vertical = 0
+
+[node name="CardsButton" type="TextureButton" parent="TopUI"]
+modulate = Color(1, 1, 1, 0.8627451)
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -317.0
+offset_top = -133.0
+offset_right = 0.0
+offset_bottom = 0.0
+grow_horizontal = 0
+grow_vertical = 0
+scale = Vector2(0.6, 0.6)
 
 [node name="PayButton" type="TextureButton" parent="TopUI"]
 visible = false
@@ -337,14 +359,6 @@ scale = Vector2(0.6, 0.6)
 
 [node name="FlipCard6" parent="OpenCard" instance=ExtResource("7_sv1m6")]
 position = Vector2(231, 416.00003)
-scale = Vector2(0.6, 0.6)
-
-[node name="CardsButton" type="TextureButton" parent="."]
-modulate = Color(1, 1, 1, 0.8627451)
-offset_left = 949.0
-offset_top = 548.0
-offset_right = 1266.0
-offset_bottom = 681.0
 scale = Vector2(0.6, 0.6)
 
 [node name="CardsButtonBroken" type="TextureButton" parent="."]
@@ -755,5 +769,5 @@ mouse_filter = 2
 
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]
 [connection signal="gui_input" from="BankerZone/BankerThirdCardToggle" to="." method="_on_banker_third_card_toggle_gui_input"]
-[connection signal="pressed" from="CardsButton" to="." method="_on_cards_button_pressed"]
+[connection signal="pressed" from="TopUI/CardsButton" to="." method="_on_cards_button_pressed"]
 [connection signal="pressed" from="HelpButton" to="." method="_on_help_button_pressed"]
