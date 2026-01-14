@@ -97,7 +97,6 @@ func _init(scene: Node):
 		print("✅ ButtonUIManager: CardsButtonBroken найдена и подключена (путь: %s)" % action_button_broken.get_path())
 	else:
 		print("⚠️  ButtonUIManager: CardsButtonBroken НЕ найдена в сцене!")
-
 	# TieMarker теперь обрабатывается через WinnerSelectionManager
 	# (подключение там же, как и для PlayerMarker/BankerMarker)
 
