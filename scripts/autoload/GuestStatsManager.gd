@@ -259,11 +259,8 @@ func check_guests_balance_at_round_end() -> void:
 			var is_single_in_list = false
 			if GuestSettingsManager:
 				var active_guests = GuestSettingsManager.get_active_guests()
-				# ДОБАВЛЕНО: логирование для отладки
-				print("🔍 DEBUG (банкротство): Гость %d уходит. Активных гостей: %d, список: %s" % [guest_id, active_guests.size(), active_guests])
 				# Проверяем, что активных гостей сейчас 1 (этот гость еще активен, но мы его выключаем)
 				is_single_in_list = active_guests.size() == 1
-				print("🔍 DEBUG (банкротство): is_single_in_list = %s (активных гостей: %d)" % [is_single_in_list, active_guests.size()])
 			
 			# Выключаем гостя
 			GuestSettingsManager.set_guest_enabled(guest_id, false)
@@ -451,11 +448,8 @@ func _handle_guest_left_due_to_patience(guest_id: int) -> void:
 	var is_single_in_list = false
 	if GuestSettingsManager:
 		var active_guests = GuestSettingsManager.get_active_guests()
-		# ДОБАВЛЕНО: логирование для отладки
-		print("🔍 DEBUG (терпение): Гость %d уходит. Активных гостей: %d, список: %s" % [guest_id, active_guests.size(), active_guests])
 		# Проверяем, что активных гостей сейчас 1 (этот гость еще активен, но мы его выключаем)
 		is_single_in_list = active_guests.size() == 1
-		print("🔍 DEBUG (терпение): is_single_in_list = %s (активных гостей: %d)" % [is_single_in_list, active_guests.size()])
 	
 	# Выключаем гостя
 	GuestSettingsManager.set_guest_enabled(guest_id, false)
