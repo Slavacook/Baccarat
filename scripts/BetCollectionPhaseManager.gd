@@ -945,17 +945,18 @@ func can_complete_round() -> Dictionary:
 	}
 
 func _check_and_notify_if_all_processed() -> void:
-	"""Проверить, все ли ставки обработаны, и уведомить через EventBus если да
+	"""Проверить, все ли ставки обработаны
 	
 	Вызывается после успешного сбора или оплаты ставки.
-	Эмитит сигнал all_bets_processed если все ставки обработаны (можно активировать нового гостя).
+	ПРИМЕЧАНИЕ: Сигнал all_bets_processed теперь эмитится в _complete_round_and_prepare_new_game()
+	после проверки балансов гостей, чтобы гарантировать правильный порядок операций.
+	Это предотвращает преждевременную активацию нового гостя, когда текущий только что ушел.
 	"""
 	var completion_check = can_complete_round()
 	if completion_check.can:
-		# Все ставки обработаны - уведомляем через EventBus
-		if EventBus:
-			EventBus.all_bets_processed.emit()
-			DebugLogger.log("🎯 BetCollectionPhaseManager: все ставки обработаны, эмитим all_bets_processed")
+		# Все ставки обработаны, но сигнал будет эмитирован позже в _complete_round_and_prepare_new_game()
+		# после проверки балансов гостей
+		DebugLogger.log("🎯 BetCollectionPhaseManager: все ставки обработаны (сигнал будет эмитирован позже после проверки балансов гостей)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОТЛАДКА

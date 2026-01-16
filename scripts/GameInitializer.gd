@@ -389,9 +389,9 @@ static func _finalize_setup(controller: Node2D, result: Dictionary) -> void:
 	# Перемещаем UI кнопки в TopUI для защиты от зума камеры
 	_setup_fixed_ui(controller)
 
-	# Настройка кнопок областей и стрелок навигации
+	# Настройка кнопок областей
 	_setup_area_buttons()
-	_setup_navigation_arrows(controller)
+	# Стрелки навигации удалены - навигация только через клавиатуру и свайп
 
 	# Подключаем PayoutOverlay
 	if controller.has_node("PayoutOverlay"):
@@ -448,31 +448,6 @@ static func _setup_area_buttons() -> void:
 	# Кнопки областей уже настроены через скрипт AreaButton.gd
 	# Они подключаются к EventBus автоматически
 	DebugLogger.log_init("Кнопки областей инициализированы")
-
-
-static func _setup_navigation_arrows(controller: Node2D) -> void:
-	"""Инициализация стрелок навигации"""
-	var left_arrow: Node = controller.get_node_or_null("TopUI/LeftArrowButton")
-	var right_arrow: Node = controller.get_node_or_null("TopUI/RightArrowButton")
-	var up_arrow: Node = controller.get_node_or_null("TopUI/UpArrowButton")
-	var down_arrow: Node = controller.get_node_or_null("TopUI/DownArrowButton")
-
-	if left_arrow:
-		left_arrow.pressed.connect(controller._on_left_arrow_pressed)
-	if right_arrow:
-		right_arrow.pressed.connect(controller._on_right_arrow_pressed)
-	if up_arrow and up_arrow.has_signal("pressed"):
-		up_arrow.pressed.connect(controller._on_up_arrow_pressed)
-	if down_arrow and down_arrow.has_signal("pressed"):
-		down_arrow.pressed.connect(controller._on_down_arrow_pressed)
-
-	# Подписка на EventBus для управления видимостью стрелок будет выполнена
-	# в _initialize_camera_navigation_controller() после инициализации контроллера
-	# Скрываем стрелки при старте - они появятся только после выбора победителя
-	if EventBus:
-		EventBus.navigation_arrows_visibility_changed.emit(false)
-
-	DebugLogger.log_init("Стрелки навигации инициализированы")
 
 
 static func _check_payout_return(controller: Node2D, _result: Dictionary) -> void:

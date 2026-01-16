@@ -463,13 +463,55 @@ func _create_story_table() -> void:
 		spinbox.set_meta("guest_count", guest_count)
 		row.add_child(spinbox)
 		
-		# Кнопка сброса
-		var reset_button = Button.new()
+		# Кнопка сброса с уменьшенной иконкой (используем TextureButton для лучшего контроля размера)
+		var reset_button = TextureButton.new()
 		reset_button.name = "ResetButton%d" % guest_count
-		reset_button.text = "↺"
-		reset_button.custom_minimum_size = Vector2(50, 0)
+		
+		# Загружаем и уменьшаем иконку
+		var icon_texture = load("res://assets/ui/buttons/rotate button.png")
+		if icon_texture:
+			# Уменьшаем изображение в 20 раз
+			if icon_texture is ImageTexture:
+				var image = icon_texture.get_image()
+				if image:
+					# Уменьшаем изображение в 20 раз
+					var original_width = image.get_width()
+					var original_height = image.get_height()
+					var new_width = max(1, original_width / 20)
+					var new_height = max(1, original_height / 20)
+					
+					# Создаем новое изображение с уменьшенным размером
+					image.resize(new_width, new_height, Image.INTERPOLATE_LANCZOS)
+					var resized_texture = ImageTexture.create_from_image(image)
+					reset_button.texture_normal = resized_texture
+				else:
+					reset_button.texture_normal = icon_texture
+			else:
+				reset_button.texture_normal = icon_texture
+			
+			# Игнорируем размер текстуры и используем фиксированный размер
+			reset_button.ignore_texture_size = true
+			reset_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
+		else:
+			# Fallback: создаем обычную Button с текстом, если иконка не найдена
+			var fallback_button = Button.new()
+			fallback_button.name = "ResetButton%d" % guest_count
+			fallback_button.text = "↺"
+			fallback_button.custom_minimum_size = Vector2(20, 20)
+			fallback_button.tooltip_text = "Сбросить на значение по умолчанию"
+			fallback_button.set_meta("guest_count", guest_count)
+			row.add_child(fallback_button)
+			story_reset_buttons[guest_count] = fallback_button
+			continue  # Пропускаем остальной код для этого гостя
+		
+		# Устанавливаем фиксированный небольшой размер кнопки
+		reset_button.custom_minimum_size = Vector2(20, 20)
+		reset_button.size = Vector2(20, 20)  # Принудительно устанавливаем размер
+		reset_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		reset_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		reset_button.tooltip_text = "Сбросить на значение по умолчанию"
 		reset_button.set_meta("guest_count", guest_count)
+		
 		row.add_child(reset_button)
 		
 		story_threshold_spinboxes[guest_count] = spinbox
@@ -515,8 +557,13 @@ func _connect_story_signals() -> void:
 	if story_auto_mode_checkbox:
 		story_auto_mode_checkbox.toggled.connect(_on_story_auto_mode_toggled)
 
-func _on_story_threshold_changed(guest_count: int) -> void:
-	"""Обработка изменения порога прогрессии"""
+func _on_story_threshold_changed(value: float, guest_count: int) -> void:
+	"""Обработка изменения порога прогрессии
+	
+	Args:
+		value: Новое значение из SpinBox
+		guest_count: Количество гостей (передается через bind)
+	"""
 	if not GuestProgressionManager:
 		return
 	
@@ -528,7 +575,7 @@ func _on_story_threshold_changed(guest_count: int) -> void:
 	var current_thresholds = GuestProgressionManager.get_thresholds()
 	
 	# Обновляем порог для указанного количества гостей
-	var new_value = int(spinbox.value)
+	var new_value = int(value)
 	current_thresholds[guest_count] = new_value
 	
 	# Устанавливаем все пороги обратно

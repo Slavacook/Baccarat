@@ -157,9 +157,20 @@ func check_and_update_guests() -> void:
 		return
 	
 	var active_guests = GuestSettingsManager.get_active_guests()
-	var current_count = active_guests.size()
+	var active_count = active_guests.size()
 	
-	print("🎯 Проверка гостей: чаевые=%d, требуется гостей=%d, сейчас активно=%d" % [current_tips, required_count, current_count])
+	# ВАЖНО: Учитываем временно отсутствующих гостей (которые скоро вернутся)
+	# Это предотвращает активацию нового гостя, когда текущий просто временно ушел
+	var temporarily_absent_count = 0
+	if GuestReturnManager:
+		temporarily_absent_count = GuestReturnManager.guests_left.size()
+	
+	# Текущее количество = активные + временно отсутствующие
+	var current_count = active_count + temporarily_absent_count
+	
+	print("🎯 Проверка гостей: чаевые=%d, требуется гостей=%d, сейчас активно=%d, временно отсутствует=%d, всего=%d" % [
+		current_tips, required_count, active_count, temporarily_absent_count, current_count
+	])
 	
 	# Если нужно больше гостей - активируем недостающих
 	if current_count < required_count:
@@ -324,6 +335,10 @@ func activate_guest(guest_id: int, show_toast: bool = true) -> bool:
 	# Это нужно, если гость был включен в сохранённых настройках и имел неправильный баланс
 	if GuestStatsManager:
 		GuestStatsManager.initialize_guest_balance(guest_id)
+	
+	# Регистрируем активацию гостя в GuestReturnManager (добавляем в список задействованных)
+	if GuestReturnManager:
+		GuestReturnManager.register_guest_activation(guest_id)
 	
 	# Логировать активацию
 	print("🎯 Гость %d активирован (прогрессия, статус: %s)" % [
@@ -619,9 +634,8 @@ func _load_settings() -> void:
 		if not thresholds.has(1):
 			thresholds[1] = 0
 	else:
-		thresholds = {}
-		# Даже если порогов нет, устанавливаем порог для 1 гостя = 0
-		thresholds[1] = 0
+		# Если порогов нет, используем дефолтные значения
+		thresholds = DEFAULT_THRESHOLDS.duplicate()
 	
 	# Загрузить состояние режима
 	auto_mode_enabled = SaveManager.load_guest_progression_auto_mode()

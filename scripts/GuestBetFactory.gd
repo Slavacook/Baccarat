@@ -98,6 +98,31 @@ func generate_bets_for_all_guests() -> void:
 		bet_storage.store_guest_bets(guest_id, bets)
 		print("🎲 GuestBetFactory: сгенерировано %d ставок для гостя %d" % [bets.size(), guest_id])
 
+# ← Сгенерировать ставки для конкретных гостей
+func generate_bets_for_specific_guests(guest_ids: Array[int]) -> void:
+	"""Сгенерировать ставки для конкретных гостей
+	
+	Используется для генерации ставок только для гостей, которые были активны
+	ДО проверки балансов и возврата гостей, чтобы не генерировать ставки для
+	гостей, которые только что вернулись.
+	
+	Args:
+		guest_ids: Массив ID гостей (1-6) для генерации ставок
+	"""
+	for guest_id in guest_ids:
+		# Проверяем, что гость все еще активен (на всякий случай)
+		if not GuestSettingsManager.is_guest_enabled(guest_id):
+			print("⚠️ GuestBetFactory: гость %d не активен, пропускаем генерацию ставок" % guest_id)
+			continue
+		
+		# Сохраняем баланс перед генерацией ставок
+		if GuestStatsManager:
+			GuestStatsManager.save_balance_before_bet_generation(guest_id)
+		
+		var bets = generate_guest_bets(guest_id)
+		bet_storage.store_guest_bets(guest_id, bets)
+		print("🎲 GuestBetFactory: сгенерировано %d ставок для гостя %d" % [bets.size(), guest_id])
+
 # ← Сгенерировать ставки для одного гостя
 func generate_guest_bets(guest_id: int) -> Array[Bet]:
 	"""Сгенерировать ставки для гостя на основе его характера и обеспеченности

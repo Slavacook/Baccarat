@@ -525,6 +525,10 @@ func _connect_guest_signals() -> void:
 	EventBus.guest_bets_hide_requested.connect(guest_event_handler.handle_guest_bets_hide_requested)
 	EventBus.guest_bets_show_requested.connect(guest_event_handler.handle_guest_bets_show_requested)
 	
+	# Сигналы ухода гостей - очищаем ставки при уходе
+	EventBus.guest_left_due_to_bankruptcy.connect(guest_event_handler.handle_guest_left)
+	EventBus.guest_left_due_to_patience.connect(guest_event_handler.handle_guest_left)
+	
 	# Инициализируем видимость гостей на основе настроек
 	guest_event_handler.update_guests_visibility()
 
@@ -1233,34 +1237,6 @@ func camera_zoom_area(area_index: int) -> void:
 # Обработчики навигации по областям через стрелки
 # Все запросы идут через EventBus
 
-func _on_left_arrow_pressed() -> void:
-	"""Обработчик нажатия левой стрелки - делегировано в CameraNavigationController"""
-	if camera_navigation_controller:
-		camera_navigation_controller.on_left_arrow_pressed()
-	else:
-		push_error("❌ CameraNavigationController не инициализирован!")
-
-func _on_right_arrow_pressed() -> void:
-	"""Обработчик нажатия правой стрелки - делегировано в CameraNavigationController"""
-	if camera_navigation_controller:
-		camera_navigation_controller.on_right_arrow_pressed()
-	else:
-		push_error("❌ CameraNavigationController не инициализирован!")
-
-func _on_up_arrow_pressed() -> void:
-	"""Обработчик нажатия стрелки вверх - делегировано в CameraNavigationController"""
-	if camera_navigation_controller:
-		camera_navigation_controller.on_up_arrow_pressed()
-	else:
-		push_error("❌ CameraNavigationController не инициализирован!")
-
-func _on_down_arrow_pressed() -> void:
-	"""Обработчик нажатия стрелки вниз - делегировано в CameraNavigationController"""
-	if camera_navigation_controller:
-		camera_navigation_controller.on_down_arrow_pressed()
-	else:
-		push_error("❌ CameraNavigationController не инициализирован!")
-
 # Методы управления камерой перенесены в CameraNavigationController
 # _request_camera_target_area -> camera_navigation_controller.request_camera_target_area
 # _on_arrows_visibility_changed -> camera_navigation_controller.on_arrows_visibility_changed
@@ -1288,6 +1264,13 @@ func _on_winner_toggled(winner: String, selected: bool):
 		# Отменяем заказ третьих карт при активации маркера
 		if phase_manager:
 			phase_manager.cancel_third_card_orders()
+			# ВАЖНО: Сбрасываем состояние кнопки обратно в "confirm" при выборе нового маркера
+			# Это позволяет повторно проверить правильность выбора при следующем нажатии
+			var current_button_state = ui_manager.get_action_button_state()
+			if current_button_state == "complete":
+				ui_manager.set_action_button_state("confirm")
+				ui_manager.enable_action_button()
+				DebugLogger.log("🔄 Состояние кнопки сброшено с 'complete' на 'confirm' при выборе маркера")
 	else:
 		DebugLogger.log("🎯 Снят выбор: %s" % winner)
 		# TieMarker всегда виден и доступен (не нужно активировать/деактивировать)

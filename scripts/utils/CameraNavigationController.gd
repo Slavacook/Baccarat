@@ -131,170 +131,36 @@ func request_camera_target_area(direction: String) -> void:
 func on_arrows_visibility_changed(_should_show: bool) -> void:
 	"""Обработчик изменения видимости стрелок
 	
-	Примечание: стрелки визуально всегда скрыты (visible = false),
-	но сигнал используется для активации/деактивации навигации по полю.
-	Параметр _should_show не используется, так как стрелки всегда скрыты.
+	Примечание: кнопки стрелок удалены из сцены.
+	Сигнал используется для активации/деактивации навигации по полю (клавиатура и свайп).
+	Параметр _should_show не используется, так как кнопок больше нет.
 	"""
-	# Проверяем, что owner_node не освобожден
-	if not is_instance_valid(owner_node):
-		return
-	
-	var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
-	var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
-	var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
-	var down_arrow = owner_node.get_node_or_null("TopUI/DownArrowButton")
+	# Кнопки стрелок удалены - навигация только через клавиатуру и свайп
+	pass
 
-	# Стрелки визуально всегда скрыты (навигация через клавиатуру и свайп)
-	if left_arrow:
-		left_arrow.visible = false
-	if right_arrow:
-		right_arrow.visible = false
-	if up_arrow:
-		up_arrow.visible = false
-	if down_arrow:
-		down_arrow.visible = false
-
-	# Обновление состояния стрелок не нужно - они всегда скрыты
-
-func update_arrows_state(target_area: int = -1) -> void:
+func update_arrows_state(_target_area: int = -1) -> void:
 	"""Обновить состояние стрелок (активность) в зависимости от текущей области
 	
+	Примечание: кнопки стрелок удалены из сцены.
+	Метод оставлен для совместимости, но ничего не делает.
+	
 	Args:
-		target_area: Целевая область для мгновенного обновления (если -1, запрашивается через EventBus)
+		_target_area: Целевая область для мгновенного обновления (если -1, запрашивается через EventBus)
 	"""
-	if target_area >= 0:
-		# Если область передана, используем её напрямую
-		update_arrows_for_area(target_area)
-	else:
-		# Запрашиваем текущую область через EventBus
-		var response_handler = func(area: int):
-			update_arrows_for_area(area)
-			# CONNECT_ONE_SHOT автоматически отписывает после первого вызова
-		
-		EventBus.camera_current_area_received.connect(response_handler, CONNECT_ONE_SHOT)
-		EventBus.camera_current_area_requested.emit()
+	# Кнопки стрелок удалены - навигация только через клавиатуру и свайп
+	pass
 
-# Состояние для обработки ответов (хранится в классе, а не в lambda)
-var _arrows_update_state: Dictionary = {}
-var _arrows_response_handler: Callable = Callable()
-
-func update_arrows_for_area(current_area: int) -> void:
+func update_arrows_for_area(_current_area: int) -> void:
 	"""Обновить состояние стрелок для указанной области
 	
-	Args:
-		current_area: Текущая область (0 = карты, 1-3 = области ставок)
-	"""
-	# Проверяем, что owner_node не освобожден
-	if not is_instance_valid(owner_node):
-		return
-	
-	# Отписываемся от предыдущего обработчика, если он был
-	if _arrows_response_handler.is_valid() and EventBus and EventBus.camera_target_area_from_received.is_connected(_arrows_response_handler):
-		EventBus.camera_target_area_from_received.disconnect(_arrows_response_handler)
-	
-	# Инициализируем состояние для нового запроса
-	_arrows_update_state = {
-		"pending": 4,
-		"completed": false,
-		"responses": {
-			"left": null,
-			"right": null,
-			"up": null,
-			"down": null
-		},
-		"area": current_area
-	}
-	
-	# Создаем обработчик ответов, который использует метод класса вместо lambda
-	# bind() добавляет параметры в конец, сигнал передает (area, direction, target_area)
-	# После bind(current_area) метод получит (area, direction, target_area, current_area)
-	_arrows_response_handler = _on_arrows_area_response.bind(current_area)
-	EventBus.camera_target_area_from_received.connect(_arrows_response_handler)
-	
-	# Запрашиваем целевые области для всех направлений
-	EventBus.camera_target_area_from_requested.emit(current_area, "left")
-	EventBus.camera_target_area_from_requested.emit(current_area, "right")
-	EventBus.camera_target_area_from_requested.emit(current_area, "up")
-	EventBus.camera_target_area_from_requested.emit(current_area, "down")
-
-func _on_arrows_area_response(area: int, direction: String, target_area: int, requested_area: int = -1) -> void:
-	"""Обработчик ответов для обновления стрелок (метод класса вместо lambda)
+	Примечание: кнопки стрелок удалены из сцены.
+	Метод оставлен для совместимости, но ничего не делает.
 	
 	Args:
-		area: Область из ответа (первый параметр сигнала)
-		direction: Направление из ответа (второй параметр сигнала)
-		target_area: Целевая область из ответа (третий параметр сигнала)
-		requested_area: Область, для которой был сделан запрос (захватывается через bind, добавляется в конец)
+		_current_area: Текущая область (0 = карты, 1-3 = области ставок)
 	"""
-	# Проверяем, что owner_node все еще валиден
-	if not is_instance_valid(owner_node):
-		# Отписываемся, если owner_node освобожден
-		if _arrows_response_handler.is_valid() and EventBus and EventBus.camera_target_area_from_received.is_connected(_arrows_response_handler):
-			EventBus.camera_target_area_from_received.disconnect(_arrows_response_handler)
-		return
-	
-	# Проверяем, что состояние инициализировано
-	if _arrows_update_state.is_empty():
-		return
-	
-	# Игнорируем, если уже завершено
-	if _arrows_update_state.get("completed", false):
-		return
-	
-	# Проверяем, что ответ относится к текущему запросу
-	if area == requested_area and direction in _arrows_update_state.responses and _arrows_update_state.responses[direction] == null:
-		_arrows_update_state.responses[direction] = target_area
-		_arrows_update_state.pending -= 1
-		if _arrows_update_state.pending == 0:
-			# Все ответы получены, обновляем стрелки
-			_arrows_update_state.completed = true
-			# Получаем узлы стрелок заново
-			var left_arrow = owner_node.get_node_or_null("TopUI/LeftArrowButton")
-			var right_arrow = owner_node.get_node_or_null("TopUI/RightArrowButton")
-			var up_arrow = owner_node.get_node_or_null("TopUI/UpArrowButton")
-			var down_arrow = owner_node.get_node_or_null("TopUI/DownArrowButton")
-			# Проверяем валидность стрелок перед применением состояния
-			if is_instance_valid(left_arrow) and is_instance_valid(right_arrow) and is_instance_valid(up_arrow) and is_instance_valid(down_arrow):
-				apply_arrows_state(left_arrow, right_arrow, up_arrow, down_arrow, requested_area, _arrows_update_state.responses)
-			# Отписываемся после получения всех ответов
-			if _arrows_response_handler.is_valid() and EventBus and EventBus.camera_target_area_from_received.is_connected(_arrows_response_handler):
-				EventBus.camera_target_area_from_received.disconnect(_arrows_response_handler)
-
-func apply_arrows_state(left_arrow: Node, right_arrow: Node, up_arrow: Node, down_arrow: Node, current_area: int, responses: Dictionary) -> void:
-	"""Применить состояние стрелок на основе ответов
-	
-	Args:
-		left_arrow, right_arrow, up_arrow, down_arrow: Узлы стрелок
-		current_area: Текущая область
-		responses: Словарь с целевыми областями {"left": int, "right": int, ...}
-	"""
-	# Левая стрелка
-	if left_arrow and responses.has("left"):
-		var target_left = responses["left"]
-		var can_go_left = (target_left != current_area)
-		left_arrow.disabled = not can_go_left
-		left_arrow.modulate.a = 0.3 if not can_go_left else 1.0
-	
-	# Правая стрелка
-	if right_arrow and responses.has("right"):
-		var target_right = responses["right"]
-		var can_go_right = (target_right != current_area)
-		right_arrow.disabled = not can_go_right
-		right_arrow.modulate.a = 0.3 if not can_go_right else 1.0
-	
-	# Стрелка вверх
-	if up_arrow and responses.has("up"):
-		var target_up = responses["up"]
-		var can_go_up = (target_up != current_area)
-		up_arrow.disabled = not can_go_up
-		up_arrow.modulate.a = 0.3 if not can_go_up else 1.0
-	
-	# Стрелка вниз
-	if down_arrow and responses.has("down"):
-		var target_down = responses["down"]
-		var can_go_down = (target_down != current_area)
-		down_arrow.disabled = not can_go_down
-		down_arrow.modulate.a = 0.3 if not can_go_down else 1.0
+	# Кнопки стрелок удалены - навигация только через клавиатуру и свайп
+	pass
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБРАБОТКА СОБЫТИЙ КАМЕРЫ

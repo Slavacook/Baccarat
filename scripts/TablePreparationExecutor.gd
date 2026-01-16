@@ -43,7 +43,8 @@ func execute_preparation_actions(
 	resolve_heart_bet_callback: Callable,
 	reset_round_callback: Callable,
 	restore_chips_callback: Callable,
-	apply_filters_callback: Callable
+	apply_filters_callback: Callable,
+	active_guests_before_preparation: Array[int] = []
 ) -> Dictionary:
 	"""Выполнить действия по подготовке стола
 	
@@ -53,6 +54,7 @@ func execute_preparation_actions(
 		reset_round_callback: Callable для сброса раунда (принимает update_state: bool)
 		restore_chips_callback: Callable для восстановления фишек (без параметров)
 		apply_filters_callback: Callable для применения фильтров (без параметров)
+		active_guests_before_preparation: Список гостей, которые были активны ДО подготовки раунда
 		
 	Returns:
 		Dictionary с результатом выполнения:
@@ -114,7 +116,7 @@ func execute_preparation_actions(
 	
 	# 8. Генерация ставок гостей
 	if instructions.get("should_generate_guest_bets", false):
-		_execute_guest_bet_generation()
+		_execute_guest_bet_generation(active_guests_before_preparation)
 		actions_executed.append("generate_guest_bets")
 	
 	# 9. Восстановление фишек
@@ -187,8 +189,18 @@ func _execute_score_addition() -> void:
 		StatsManager.instance.update_stats()
 	DebugLogger.log("  → ✅ +1 очко за завершение игры")
 
-func _execute_guest_bet_generation() -> void:
-	"""Сгенерировать ставки для всех активных гостей"""
+func _execute_guest_bet_generation(active_guests_before_preparation: Array[int] = []) -> void:
+	"""Сгенерировать ставки для гостей, которые были активны ДО подготовки раунда
+	
+	Args:
+		active_guests_before_preparation: Список гостей, которые были активны до проверки балансов
+	"""
 	if guest_bet_factory:
-		guest_bet_factory.generate_bets_for_all_guests()
-		DebugLogger.log("  → ✅ Ставки гостей сгенерированы")
+		# Если список передан - используем его, иначе используем текущих активных (fallback)
+		if active_guests_before_preparation.size() > 0:
+			guest_bet_factory.generate_bets_for_specific_guests(active_guests_before_preparation)
+			DebugLogger.log("  → ✅ Ставки гостей сгенерированы для гостей ДО подготовки: %s" % active_guests_before_preparation)
+		else:
+			# Fallback на старую логику, если список не передан
+			guest_bet_factory.generate_bets_for_all_guests()
+			DebugLogger.log("  → ✅ Ставки гостей сгенерированы (fallback на всех активных)")

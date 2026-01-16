@@ -66,19 +66,80 @@ func save_settings(settings: Dictionary):
 		file.close()
 
 func load_settings() -> Dictionary:
+	"""Загрузить настройки из файла или вернуть значения по умолчанию"""
+	var settings: Dictionary = {}
+	
 	if FileAccess.file_exists(SETTINGS_PATH):
 		var file = FileAccess.open(SETTINGS_PATH, FileAccess.READ)
 		if file:
 			var data = file.get_var()
 			file.close()
 			if data is Dictionary:
-				return data
-	return {
-		"game_mode": "junket",
-		"survival_mode": true,
-		"language": "ru",  # По умолчанию русский
-		"camera_control_mode": "independent"  # Режим 1 удалён, всегда используем режим 2 (независимый)
-	}
+				settings = data
+	
+	# Устанавливаем значения по умолчанию для отсутствующих ключей
+	_ensure_default_settings(settings)
+	
+	return settings
+
+func _ensure_default_settings(settings: Dictionary) -> void:
+	"""Убедиться, что все необходимые настройки имеют значения по умолчанию
+	
+	Если настройка отсутствует в словаре, она будет добавлена с дефолтным значением.
+	Это позволяет устанавливать дефолты для новых настроек без потери существующих.
+	"""
+	var settings_changed: bool = false
+	
+	# Базовые настройки
+	if not settings.has("game_mode"):
+		settings["game_mode"] = "junket"
+		settings_changed = true
+	if not settings.has("survival_mode"):
+		settings["survival_mode"] = true
+		settings_changed = true
+	if not settings.has("language"):
+		settings["language"] = "ru"  # По умолчанию русский
+		settings_changed = true
+	if not settings.has("camera_control_mode"):
+		settings["camera_control_mode"] = "independent"  # Режим 1 удалён, всегда используем режим 2 (независимый)
+		settings_changed = true
+	
+	# Настройки прогрессии гостей (сюжет - автоматический режим)
+	if not settings.has("guest_progression_auto_mode"):
+		settings["guest_progression_auto_mode"] = true  # Автоматический режим включен по умолчанию
+		settings_changed = true
+	
+	# Пороги чаевых для гостей (если не установлены, используем стандартные)
+	if not settings.has("guest_progression_thresholds") or settings["guest_progression_thresholds"].is_empty():
+		settings["guest_progression_thresholds"] = {
+			1: 0,      # Начальное состояние - 1 гость
+			2: 100,    # 2-й гость при 100 чаевых
+			3: 300,    # 3-й гость при 300 чаевых
+			4: 900,    # 4-й гость при 900 чаевых
+			5: 2700,   # 5-й гость при 2700 чаевых
+			6: 8100    # 6-й гость при 8100 чаевых
+		}
+		settings_changed = true
+	
+	# Карты шансов - выключены по умолчанию
+	if not settings.has("chance_cards_enabled"):
+		settings["chance_cards_enabled"] = false
+		settings_changed = true
+	
+	# Автозабор - включен по умолчанию
+	if not settings.has("auto_mode_switch_enabled"):
+		settings["auto_mode_switch_enabled"] = true
+		settings_changed = true
+	
+	# Бессмертие - выключено по умолчанию
+	if not settings.has("immortality_enabled"):
+		settings["immortality_enabled"] = false
+		settings_changed = true
+	
+	# Сохраняем обновленные настройки только если были добавлены дефолты
+	# Это нужно, чтобы при следующем запуске дефолты уже были в файле
+	if settings_changed:
+		save_settings(settings)
 
 func save_game_mode(mode: String):
 	var settings = load_settings()

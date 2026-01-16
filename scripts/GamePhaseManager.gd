@@ -2105,11 +2105,28 @@ func _complete_round_and_prepare_new_game() -> void:
 	
 	DebugLogger.log_separator("ВСЕ ВЫПЛАТЫ ОПЛАЧЕНЫ → ПОДГОТОВКА К НОВОЙ ИГРЕ")
 	
+	# ВАЖНО: Сохраняем список активных гостей ДО проверки балансов и возврата
+	# Это нужно, чтобы генерировать ставки только для гостей, которые были активны
+	# в конце предыдущего раунда, а не для тех, кто только что вернулся
+	var active_guests_before_preparation: Array[int] = []
+	if GuestSettingsManager:
+		active_guests_before_preparation = GuestSettingsManager.get_active_guests().duplicate()
+		DebugLogger.log("📝 GamePhaseManager: сохранен список активных гостей ДО подготовки: %s" % str(active_guests_before_preparation))
+	
 	# Проверяем балансы гостей и выключаем тех, кто ушел в минус
+	# ВАЖНО: Это должно быть ДО эмита all_bets_processed, чтобы GuestProgressionManager
+	# видел ушедших гостей в guests_left и не активировал нового гостя преждевременно
 	if GuestStatsManager:
 		GuestStatsManager.check_guests_balance_at_round_end()
 		# Проверяем и обновляем статус богатства после проверки балансов
 		GuestStatsManager.check_all_guests_wealth_at_round_end()
+	
+	# Эмитим сигнал all_bets_processed ПОСЛЕ проверки балансов гостей
+	# Это гарантирует, что ушедшие гости уже добавлены в guests_left
+	# и GuestProgressionManager правильно учитывает их при проверке
+	if EventBus:
+		EventBus.all_bets_processed.emit()
+		DebugLogger.log("🎯 GamePhaseManager: все ставки обработаны, эмитим all_bets_processed (после проверки балансов гостей)")
 	
 	# Проверяем возврат гостей перед следующей раздачей (до обновления стола)
 	# Гости должны вернуться до того, как стол обновится и они смогут сделать ставки
@@ -2123,7 +2140,8 @@ func _complete_round_and_prepare_new_game() -> void:
 		resolve_heart_bet,  # Callable для разрешения Heart Bet
 		reset,  # Callable для сброса раунда
 		_restore_active_bet_chips,  # Callable для восстановления фишек
-		_apply_pending_filter_changes  # Callable для применения фильтров
+		_apply_pending_filter_changes,  # Callable для применения фильтров
+		active_guests_before_preparation  # Список активных гостей ДО подготовки
 	)
 	
 	# Если Heart Bet был разрешен - не продолжаем

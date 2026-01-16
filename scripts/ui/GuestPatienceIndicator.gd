@@ -77,11 +77,12 @@ func update_display(patience: int, timer_remaining: int, reduction_percent: floa
 	
 	# Обновляем процент урезания
 	if reduction_label:
+		# Убираем эмодзи из текста, так как теперь используется отдельная иконка
 		if reduction_percent > 0:
-			reduction_label.text = "💰 Чаевые -%.1f%%" % reduction_percent
+			reduction_label.text = "Чаевые -%.1f%%" % reduction_percent
 			reduction_label.modulate = Color(1.0, 0.8, 0.8)  # Легкий красноватый оттенок
 		else:
-			reduction_label.text = "💰 Полные чаевые"
+			reduction_label.text = "Полные чаевые"
 			reduction_label.modulate = Color(0.8, 1.0, 0.8)  # Легкий зеленоватый оттенок
 
 func set_world_position(pos: Vector2):

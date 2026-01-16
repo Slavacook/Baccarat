@@ -254,11 +254,16 @@ func check_guests_balance_at_round_end() -> void:
 		
 		# Если баланс отрицательный - выключаем гостя и отмечаем уход
 		if balance < 0:
+			# Определяем, единственный ли гость в списке задействованных
+			var is_single_in_list = false
+			if GuestReturnManager:
+				is_single_in_list = GuestReturnManager.get_activated_guests_count() == 1
+			
 			# Выключаем гостя
 			GuestSettingsManager.set_guest_enabled(guest_id, false)
 			
 			# Отмечаем в GuestReturnManager (причина ухода: банкротство)
-			GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.BANKRUPTCY)
+			GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.BANKRUPTCY, is_single_in_list)
 			
 			# Эмитим сигнал с причиной ухода
 			guest_left.emit(guest_id)
@@ -435,11 +440,16 @@ func _handle_guest_left_due_to_patience(guest_id: int) -> void:
 	# Получаем текущий номер раунда
 	var current_round = GuestReturnManager.get_current_round()
 	
+	# Определяем, единственный ли гость в списке задействованных
+	var is_single_in_list = false
+	if GuestReturnManager:
+		is_single_in_list = GuestReturnManager.get_activated_guests_count() == 1
+	
 	# Выключаем гостя
 	GuestSettingsManager.set_guest_enabled(guest_id, false)
 	
 	# Отмечаем в GuestReturnManager (причина ухода: потеря терпения)
-	GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.PATIENCE)
+	GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.PATIENCE, is_single_in_list)
 	
 	# Эмитим стандартный сигнал ухода (для совместимости)
 	guest_left.emit(guest_id)

@@ -214,12 +214,59 @@ func _create_indicator(guest_id: int):
 	vbox.add_child(separator1)
 	
 	# Создаем Label для процента урезания
+	# Контейнер для чаевых (иконка + текст)
+	var tips_container = HBoxContainer.new()
+	tips_container.name = "TipsContainer"
+	tips_container.add_theme_constant_override("separation", 4)  # Небольшой отступ между иконкой и текстом
+	vbox.add_child(tips_container)
+	
+	# Маленькая иконка чаевых (используем Control с clip_contents для жесткого ограничения размера)
+	var tips_icon_container = Control.new()
+	tips_icon_container.name = "TipsIconContainer"
+	# Увеличиваем размер в 2 раза (было 10x10, стало 20x20)
+	tips_icon_container.custom_minimum_size = Vector2(20, 20)
+	tips_icon_container.size = Vector2(20, 20)
+	tips_icon_container.clip_contents = true  # Обрезаем содержимое, которое выходит за границы
+	tips_icon_container.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	tips_icon_container.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	tips_container.add_child(tips_icon_container)
+	
+	var tips_icon = TextureRect.new()
+	tips_icon.name = "TipsIcon"
+	var tips_texture = load("res://assets/ui/tips.png")
+	if tips_texture:
+		# Уменьшаем изображение до размера примерно 20x20 пикселей (увеличено в 2 раза)
+		if tips_texture is ImageTexture:
+			var image = tips_texture.get_image()
+			if image:
+				var original_width = image.get_width()
+				var original_height = image.get_height()
+				# Уменьшаем до целевого размера 20x20 (вычисляем коэффициент масштабирования)
+				var target_size = 20
+				var scale_factor = float(target_size) / max(original_width, original_height)
+				var new_width = max(1, int(original_width * scale_factor))
+				var new_height = max(1, int(original_height * scale_factor))
+				image.resize(new_width, new_height, Image.INTERPOLATE_LANCZOS)
+				var resized_texture = ImageTexture.create_from_image(image)
+				tips_icon.texture = resized_texture
+			else:
+				tips_icon.texture = tips_texture
+		else:
+			tips_icon.texture = tips_texture
+		
+		# Устанавливаем размер иконки равным размеру контейнера
+		tips_icon.set_anchors_preset(Control.PRESET_FULL_RECT)
+		tips_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tips_icon.expand_mode = TextureRect.EXPAND_FIT_WIDTH_PROPORTIONAL
+	tips_icon_container.add_child(tips_icon)
+	
+	# Текст чаевых
 	var reduction_label = Label.new()
 	reduction_label.name = "ReductionLabel"
 	reduction_label.text = "Чаевые: 0%"
 	reduction_label.add_theme_font_size_override("font_size", 11)
 	reduction_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	vbox.add_child(reduction_label)
+	tips_container.add_child(reduction_label)
 	
 	# Разделитель 2
 	var separator2 = HSeparator.new()
@@ -442,14 +489,20 @@ func _update_indicator(guest_id: int):
 			timer_label.visible = false
 	
 	# Обновляем процент чаевых (равен терпению)
+	# Ищем контейнер с чаевыми (может быть TipsContainer или напрямую ReductionLabel для обратной совместимости)
+	var tips_container = vbox.get_node_or_null("TipsContainer")
+	if tips_container:
+		reduction_label = tips_container.get_node_or_null("ReductionLabel")
+	
 	if reduction_label:
 		var tips_percentage = patience  # Процент чаевых равен терпению
 		
+		# Убираем эмодзи из текста, так как теперь используется отдельная иконка
 		if tips_percentage >= 100:
-			reduction_label.text = "💰 Чаевые: 100%"
+			reduction_label.text = "Чаевые: 100%"
 			reduction_label.modulate = Color(1.0, 1.0, 1.0)  # Белый
 		elif tips_percentage > 0:
-			reduction_label.text = "💰 Чаевые: %d%%" % tips_percentage
+			reduction_label.text = "Чаевые: %d%%" % tips_percentage
 			# Цвет от белого (100%) к красному (0%)
 			var color_ratio = float(100 - tips_percentage) / 100.0  # Инвертируем: 0% чаевых = красный
 			reduction_label.modulate = Color(
@@ -458,7 +511,7 @@ func _update_indicator(guest_id: int):
 				1.0 - color_ratio * 0.5   # B: от 1.0 до 0.5
 			)
 		else:
-			reduction_label.text = "💰 Чаевые: 0%"
+			reduction_label.text = "Чаевые: 0%"
 			reduction_label.modulate = Color(1.0, 0.5, 0.5)  # Красный
 	
 	# Обновляем баланс

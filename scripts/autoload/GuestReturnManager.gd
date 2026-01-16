@@ -18,12 +18,20 @@ signal guest_returned(guest_id: int)
 # Гость вернется через случайное количество раундов (10-20)
 var guests_left: Dictionary = {}  # {guest_id: Dictionary}
 
+# Список всех гостей, которые когда-либо были активированы в игре
+# Используется для определения правила ухода (единственный или нет)
+var activated_guests: Array[int] = []
+
 # Текущий номер раунда (отслеживается через round_started)
 var current_round: int = 0
 
-# Диапазон раундов до возврата
-const MIN_ROUNDS_UNTIL_RETURN: int = 10
-const MAX_ROUNDS_UNTIL_RETURN: int = 20
+# Диапазон раундов до возврата для единственного гостя (если в списке всего 1 гость)
+const MIN_ROUNDS_UNTIL_RETURN_SINGLE: int = 3
+const MAX_ROUNDS_UNTIL_RETURN_SINGLE: int = 5
+
+# Диапазон раундов до возврата для гостя (если в списке больше 1 гостя)
+const MIN_ROUNDS_UNTIL_RETURN_MULTIPLE: int = 10
+const MAX_ROUNDS_UNTIL_RETURN_MULTIPLE: int = 20
 
 # Причины ухода гостя
 enum LeaveReason {
@@ -52,19 +60,55 @@ func _ready():
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+## Зарегистрировать активацию гостя (добавить в список задействованных)
+func register_guest_activation(guest_id: int) -> void:
+	"""Зарегистрировать активацию гостя (добавить в список задействованных)
+	
+	Args:
+		guest_id: ID гостя (1-6)
+	"""
+	if guest_id < 1 or guest_id > 6:
+		push_error("GuestReturnManager: неверный guest_id %d" % guest_id)
+		return
+	
+	# Добавляем только если еще не в списке
+	if not guest_id in activated_guests:
+		activated_guests.append(guest_id)
+		print("📝 Гость %d добавлен в список задействованных (всего: %d)" % [guest_id, activated_guests.size()])
+
+## Получить количество задействованных гостей
+func get_activated_guests_count() -> int:
+	"""Получить количество задействованных гостей
+	
+	Returns:
+		Количество гостей, которые когда-либо были активированы
+	"""
+	return activated_guests.size()
+
 ## Генерировать случайное количество раундов до возврата
-func _generate_return_rounds() -> int:
-	"""Генерирует случайное количество раундов от 10 до 20"""
-	return randi_range(MIN_ROUNDS_UNTIL_RETURN, MAX_ROUNDS_UNTIL_RETURN)
+func _generate_return_rounds(is_single_in_list: bool = false) -> int:
+	"""Генерирует случайное количество раундов до возврата
+	
+	Args:
+		is_single_in_list: true если в списке задействованных всего 1 гость
+	
+	Returns:
+		Количество раундов до возврата (3-5 для единственного, 10-20 для остальных)
+	"""
+	if is_single_in_list:
+		return randi_range(MIN_ROUNDS_UNTIL_RETURN_SINGLE, MAX_ROUNDS_UNTIL_RETURN_SINGLE)
+	else:
+		return randi_range(MIN_ROUNDS_UNTIL_RETURN_MULTIPLE, MAX_ROUNDS_UNTIL_RETURN_MULTIPLE)
 
 ## Отметить гостя как ушедшего
-func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason = LeaveReason.BANKRUPTCY) -> void:
+func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason = LeaveReason.BANKRUPTCY, is_single_in_list: bool = false) -> void:
 	"""Отметить гостя как ушедшего
 	
 	Args:
 		guest_id: ID гостя (1-6)
 		round_number: Номер раунда, когда гость ушел
 		leave_reason: Причина ухода (PATIENCE или BANKRUPTCY), по умолчанию BANKRUPTCY
+		is_single_in_list: true если в списке задействованных всего 1 гость
 	"""
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestReturnManager: неверный guest_id %d" % guest_id)
@@ -75,12 +119,22 @@ func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason
 		push_warning("GuestReturnManager: round_number < 1 (%d), устанавливаем 1" % round_number)
 		round_number = 1
 	
+	# Определяем, единственный ли гость в списке задействованных
+	# Если параметр не передан, определяем автоматически
+	if not is_single_in_list:
+		is_single_in_list = activated_guests.size() == 1
+	
+	# Логируем, если это единственный гость
+	if is_single_in_list:
+		print("👋 Гость %d - единственный в списке задействованных, вернется через 3-5 раундов" % guest_id)
+	
 	# Сохраняем текущее терпение гостя (нужно для возврата с правильным терпением при банкротстве)
 	var patience_when_left = 100
 	if GuestStatsManager:
 		patience_when_left = GuestStatsManager.get_guest_patience(guest_id)
 	
-	var rounds_until_return = _generate_return_rounds()
+	# Генерируем количество раундов до возврата (3-5 для единственного, 10-20 для остальных)
+	var rounds_until_return = _generate_return_rounds(is_single_in_list)
 	guests_left[guest_id] = {
 		"round_when_left": round_number,
 		"rounds_until_return": rounds_until_return,
@@ -89,8 +143,9 @@ func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason
 	}
 	
 	var reason_text = "из-за банкротства" if leave_reason == LeaveReason.BANKRUPTCY else "из-за потери терпения"
-	print("👋 Гость %d ушел %s в раунде %d (терпение было %d%%, вернется через %d раундов, в раунде %d)" % [
-		guest_id, reason_text, round_number, patience_when_left, rounds_until_return, round_number + rounds_until_return
+	var return_range_text = "3-5" if is_single_in_list else "10-20"
+	print("👋 Гость %d ушел %s в раунде %d (терпение было %d%%, вернется через %d раундов, в раунде %d, диапазон: %s)" % [
+		guest_id, reason_text, round_number, patience_when_left, rounds_until_return, round_number + rounds_until_return, return_range_text
 	])
 	print("👋 Текущий раунд в GuestReturnManager: %d" % get_current_round())
 
@@ -108,19 +163,27 @@ func return_guest(guest_id: int) -> void:
 	# Удаляем из списка ушедших
 	guests_left.erase(guest_id)
 	
-	# Обновляем баланс до рандомной суммы (в зависимости от богатства)
+	# Обновляем баланс в зависимости от причины ухода:
+	# - Если ушел из-за терпения (PATIENCE) → сохраняем текущий баланс (не обновляем)
+	# - Если ушел из-за банкротства (BANKRUPTCY) → полный баланс
 	if GuestStatsManager and GuestSettingsManager:
-		var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
-		var full_balance = GuestStatsManager.generate_random_balance(wealth)
-		
-		GuestStatsManager.set_guest_balance(guest_id, full_balance)
-		# Также обновляем начальный баланс
-		GuestStatsManager.guest_initial_balances[guest_id - 1] = full_balance
-		# Сбрасываем сохраненный баланс при возврате
-		GuestStatsManager.reset_saved_balance(guest_id)
-		print("💰 Гость %d вернулся с балансом %.0f (статус: %s)" % [
-			guest_id, full_balance, GuestSettingsManager.GuestWealth.keys()[wealth]
-		])
+		if leave_reason == LeaveReason.PATIENCE:
+			# Ушел из-за терпения - сохраняем баланс (не обновляем)
+			var current_balance = GuestStatsManager.get_guest_balance(guest_id)
+			print("💰 Гость %d вернулся с сохраненным балансом %.0f (ушел из-за терпения)" % [guest_id, current_balance])
+		else:
+			# Ушел из-за банкротства - полный баланс
+			var wealth = GuestSettingsManager.get_guest_wealth(guest_id)
+			var full_balance = GuestStatsManager.generate_random_balance(wealth)
+			
+			GuestStatsManager.set_guest_balance(guest_id, full_balance)
+			# Также обновляем начальный баланс
+			GuestStatsManager.guest_initial_balances[guest_id - 1] = full_balance
+			# Сбрасываем сохраненный баланс при возврате
+			GuestStatsManager.reset_saved_balance(guest_id)
+			print("💰 Гость %d вернулся с балансом %.0f (статус: %s)" % [
+				guest_id, full_balance, GuestSettingsManager.GuestWealth.keys()[wealth]
+			])
 	
 	# Включаем гостя обратно
 	if GuestSettingsManager:
@@ -185,22 +248,26 @@ func is_guest_left(guest_id: int) -> bool:
 func get_remaining_rounds(guest_id: int) -> int:
 	"""Получить количество оставшихся раундов до возврата гостя
 	
+	Считает количество раздач до возврата, используя ту же логику,
+	что и check_guests_return_before_next_round() - с учетом следующего раунда.
+	
 	Args:
 		guest_id: ID гостя (1-6)
 		
 	Returns:
-		Количество оставшихся раундов (0 или больше), или -1 если гость не ушел
+		Количество оставшихся раздач (0 или больше), или -1 если гость не ушел
 	"""
 	if not guests_left.has(guest_id):
 		return -1  # Гость не ушел
 	
-	# Используем get_current_round() для получения актуального значения
-	var current = get_current_round()
+	# Используем get_current_round() + 1 для получения следующего раунда
+	# Это соответствует логике check_guests_return_before_next_round()
+	var next_round = get_current_round() + 1
 	
 	var guest_data = guests_left[guest_id]
 	var round_when_left = guest_data["round_when_left"]
 	var rounds_until_return = guest_data["rounds_until_return"]
-	var rounds_passed = current - round_when_left
+	var rounds_passed = next_round - round_when_left
 	var remaining = rounds_until_return - rounds_passed
 	
 	return max(0, remaining)  # Не меньше 0
@@ -224,6 +291,37 @@ func get_min_remaining_rounds() -> int:
 	
 	return min_rounds
 
+## Проверить, остались ли активные гости за столом (только для отладки)
+func _check_and_return_guest_if_table_empty(_round_number: int) -> void:
+	"""Проверить, остались ли активные гости за столом
+	
+	Используется только для отладки. Не изменяет счетчики возврата гостей.
+	Если за столом никого нет, просто показываем пустую раздачу (ДАМИКУ)
+	и ждем, пока кто-то вернется по своему счетчику.
+	
+	Args:
+		_round_number: Номер текущего раунда (не используется, оставлен для совместимости)
+	"""
+	if not GuestSettingsManager:
+		return
+	
+	# Проверяем, есть ли активные гости за столом
+	var active_guests = GuestSettingsManager.get_active_guests()
+	if active_guests.size() > 0:
+		return  # Есть активные гости - ничего не делаем
+	
+	# За столом никого нет - логируем для отладки
+	if guests_left.is_empty():
+		print("🔄 За столом никого нет, и нет ушедших гостей (пустая раздача)")
+		return
+	
+	# Есть ушедшие гости - показываем информацию о ближайшем возврате
+	var min_remaining = get_min_remaining_rounds()
+	if min_remaining >= 0:
+		print("🔄 За столом никого нет, ближайший гость вернется через %d раздач" % min_remaining)
+	else:
+		print("🔄 За столом никого нет, есть ушедшие гости")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ - ПРОВЕРКА ВОЗВРАТА
 # ═══════════════════════════════════════════════════════════════════════════
@@ -234,6 +332,7 @@ func check_guests_return_before_next_round() -> void:
 	
 	Вызывается в момент подготовки стола (после завершения раздачи, до начала новой).
 	Проверяет, должны ли гости вернуться на следующей раздаче (current_round + 1).
+	Гости возвращаются только по своему счетчику, без принудительного возврата.
 	"""
 	if guests_left.is_empty():
 		print("🔄 GuestReturnManager: нет ушедших гостей для проверки возврата")
@@ -313,5 +412,6 @@ func _on_all_bets_processed() -> void:
 func _on_game_restarted() -> void:
 	"""Обработчик рестарта игры - сбрасываем все"""
 	guests_left.clear()
+	activated_guests.clear()  # Сбрасываем список задействованных гостей
 	current_round = 0
 	print("🔄 GuestReturnManager: все данные сброшены при рестарте")
