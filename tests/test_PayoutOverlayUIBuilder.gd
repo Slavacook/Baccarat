@@ -122,4 +122,3 @@ func test_create_chip_buttons_clears_existing():
 	# Ждём освобождения старых кнопок
 	await get_tree().process_frame
 	assert_eq(mock_chip_fleet_container.get_child_count(), 2, "Вторая партия: должно быть 2 кнопки (старые удалены)")
-

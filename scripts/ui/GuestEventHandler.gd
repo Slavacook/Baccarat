@@ -113,25 +113,19 @@ func handle_guest_settings_changed_visibility(guest_id: int) -> void:
 				sprite.visible = false
 
 func handle_guest_left(guest_id: int) -> void:
-	"""Обработать уход гостя - очистить его ставки из хранилища и визуальные фишки
+	"""Обработать уход гостя
 	
 	Вызывается когда гость уходит из-за банкротства или потери терпения.
-	Очищает ставки гостя и визуальные фишки независимо от состояния игры,
-	так как ставки уже обработаны (собраны или оплачены) и не должны
-	использоваться в следующем раунде.
+	ВАЖНО: Ставки и фишки НЕ очищаются при уходе гостя - они остаются на столе
+	до полной обработки (выплаты или сбора). Очистка происходит только после
+	завершения раунда через GamePhaseManager.
 	
 	Args:
 		guest_id: ID гостя (1-6)
 	"""
-	# Очищаем ставки гостя из хранилища (для следующего раунда)
-	if phase_manager and phase_manager.guest_bet_storage:
-		phase_manager.guest_bet_storage.clear_guest_bets(guest_id)
-		DebugLogger.log("🗑️ GuestEventHandler: очищены ставки гостя %d при уходе" % guest_id)
-	
-	# Очищаем визуальные фишки гостя (чтобы они не остались на столе)
-	if chip_visual_manager:
-		chip_visual_manager.clear_guest_chips_for_sector(guest_id)
-		DebugLogger.log("🗑️ GuestEventHandler: очищены визуальные фишки гостя %d при уходе" % guest_id)
+	# НЕ очищаем ставки и фишки - они должны остаться на столе до обработки
+	# Очистка произойдет автоматически после завершения раунда
+	DebugLogger.log("👋 Гость %d ушел - ставки и фишки останутся на столе до обработки" % guest_id)
 
 func force_guest_visible(guest_id: int) -> void:
 	"""Принудительно сделать гостя видимым без анимации

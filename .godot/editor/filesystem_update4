@@ -17,3 +17,6 @@ res://scripts/payout/PayoutQueueHandler.gd
 res://scripts/ui/GuestEventHandler.gd
 res://scripts/GuestBetFactory.gd
 res://scripts/TablePreparationExecutor.gd
+res://scripts/popups/TestCardsPopup.gd
+res://addons/gut/gut.gd
+res://tests/test_PayoutOverlayUIBuilder.gd

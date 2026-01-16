@@ -133,11 +133,16 @@ func initialize_first_guest() -> void:
 		initial_guest_initialized = true
 		print("🎯 Первый гость инициализирован: гость %d" % random_guest)
 
-func check_and_update_guests() -> void:
+func check_and_update_guests(allow_deactivation: bool = false) -> void:
 	"""Проверить текущие чаевые и обновить количество гостей при необходимости
 	
 	Вызывается при изменении чаевых (tip_received, penalty_applied)
 	и при инициализации игры после game_restarted
+	
+	Args:
+		allow_deactivation: Разрешить ли деактивацию лишних гостей.
+			true - деактивировать лишних (при включении режима, изменении порогов, рестарте)
+			false - не деактивировать (при получении чаевых, штрафах, обработке ставок)
 	"""
 	# Проверить, включен ли автоматический режим
 	if not auto_mode_enabled:
@@ -195,11 +200,12 @@ func check_and_update_guests() -> void:
 			print("🎯 Не удалось активировать нового гостя (все гости уже активны или временно отсутствуют)")
 	
 	# Если активно больше гостей, чем нужно - деактивируем лишних
-	# Это происходит при включении режима прогрессии или изменении порогов
-	# Примечание: гости остаются активными, если чаевые упали ниже порога (не деактивируем при штрафах)
-	elif current_count > required_count:
+	# ВАЖНО: Деактивация происходит ТОЛЬКО если allow_deactivation = true
+	# Это предотвращает деактивацию гостей при штрафах или падении чаевых
+	# Деактивация разрешена только при включении режима, изменении порогов или рестарте
+	elif current_count > required_count and allow_deactivation:
 		var excess = current_count - required_count
-		print("🎯 Найдено лишних гостей: %d (требуется %d, активно %d)" % [excess, required_count, current_count])
+		print("🎯 Найдено лишних гостей: %d (требуется %d, активно %d) - деактивируем" % [excess, required_count, current_count])
 		
 		# Создаём копию списка активных гостей для работы
 		var guests_to_deactivate: Array[int] = []
@@ -217,6 +223,9 @@ func check_and_update_guests() -> void:
 			if GuestSettingsManager:
 				GuestSettingsManager.set_guest_enabled(guest_id, false)
 				print("🎯 Деактивирован гость %d (лишний для текущих чаевых: %d)" % [guest_id, current_tips])
+	elif current_count > required_count and not allow_deactivation:
+		# Лишние гости есть, но деактивация не разрешена (штрафы, падение чаевых)
+		print("🎯 Найдено лишних гостей: %d (требуется %d, активно %d), но деактивация запрещена (гости остаются)" % [current_count - required_count, required_count, current_count])
 
 func get_required_guest_count(tips: int) -> int:
 	"""Определить необходимое количество гостей на основе текущих чаевых
@@ -438,8 +447,9 @@ func set_thresholds(new_thresholds: Dictionary) -> void:
 	_save_thresholds()
 	
 	# Перепроверить текущее состояние гостей
+	# При изменении порогов разрешаем деактивацию лишних гостей
 	if auto_mode_enabled:
-		check_and_update_guests()
+		check_and_update_guests(true)  # allow_deactivation = true
 
 func get_thresholds() -> Dictionary:
 	"""Получить текущие пороги
@@ -481,8 +491,9 @@ func set_auto_mode(enabled: bool) -> void:
 	# Если режим включен - проверить и обновить гостей на основе текущих чаевых
 	if enabled and not was_enabled:
 		# Режим только что включили - нужно пересчитать гостей
+		# Разрешаем деактивацию лишних гостей при включении режима
 		print("🎯 Режим прогрессии включен - пересчитываем гостей")
-		check_and_update_guests()
+		check_and_update_guests(true)  # allow_deactivation = true
 
 func is_auto_mode_enabled() -> bool:
 	"""Проверить, включен ли автоматический режим

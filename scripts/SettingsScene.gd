@@ -1196,7 +1196,7 @@ func _on_immortality_pressed() -> void:
 	if new_value:
 		# При включении бессмертия добавляем +100000 чаевых
 		var tips_before = SaveManager.instance.score
-		SaveManager.instance.add_score(100000)
+		SaveManager.instance.add_score(100)
 		var tips_after = SaveManager.instance.score
 		print("💀 Бессмертие включено - добавлено +100000 чаевых: %d → %d" % [tips_before, tips_after])
 		

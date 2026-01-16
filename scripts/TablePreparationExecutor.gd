@@ -199,7 +199,7 @@ func _execute_guest_bet_generation(active_guests_before_preparation: Array[int] 
 		# Если список передан - используем его, иначе используем текущих активных (fallback)
 		if active_guests_before_preparation.size() > 0:
 			guest_bet_factory.generate_bets_for_specific_guests(active_guests_before_preparation)
-			DebugLogger.log("  → ✅ Ставки гостей сгенерированы для гостей ДО подготовки: %s" % active_guests_before_preparation)
+			DebugLogger.log("  → ✅ Ставки гостей сгенерированы для гостей ДО подготовки: %s" % str(active_guests_before_preparation))
 		else:
 			# Fallback на старую логику, если список не передан
 			guest_bet_factory.generate_bets_for_all_guests()

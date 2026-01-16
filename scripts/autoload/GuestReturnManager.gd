@@ -90,10 +90,10 @@ func _generate_return_rounds(is_single_in_list: bool = false) -> int:
 	"""Генерирует случайное количество раундов до возврата
 	
 	Args:
-		is_single_in_list: true если в списке задействованных всего 1 гость
+		is_single_in_list: true если это последний активный гость за столом
 	
 	Returns:
-		Количество раундов до возврата (3-5 для единственного, 10-20 для остальных)
+		Количество раундов до возврата (3-5 для последнего активного, 10-20 для остальных)
 	"""
 	if is_single_in_list:
 		return randi_range(MIN_ROUNDS_UNTIL_RETURN_SINGLE, MAX_ROUNDS_UNTIL_RETURN_SINGLE)
@@ -108,7 +108,8 @@ func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason
 		guest_id: ID гостя (1-6)
 		round_number: Номер раунда, когда гость ушел
 		leave_reason: Причина ухода (PATIENCE или BANKRUPTCY), по умолчанию BANKRUPTCY
-		is_single_in_list: true если в списке задействованных всего 1 гость
+		is_single_in_list: true если это последний активный гость за столом
+			ВАЖНО: Это значение должно быть вычислено ДО выключения гостя в вызывающем коде
 	"""
 	if guest_id < 1 or guest_id > 6:
 		push_error("GuestReturnManager: неверный guest_id %d" % guest_id)
@@ -119,21 +120,23 @@ func mark_guest_left(guest_id: int, round_number: int, leave_reason: LeaveReason
 		push_warning("GuestReturnManager: round_number < 1 (%d), устанавливаем 1" % round_number)
 		round_number = 1
 	
-	# Определяем, единственный ли гость в списке задействованных
-	# Если параметр не передан, определяем автоматически
-	if not is_single_in_list:
-		is_single_in_list = activated_guests.size() == 1
+	# ВАЖНО: НЕ переопределяем is_single_in_list, если он был передан
+	# Проверка должна происходить ДО выключения гостя в вызывающем коде
+	# Если параметр не передан (остался false по умолчанию), проверяем заново
+	# Но это не должно происходить, так как вызывающий код всегда передает правильное значение
 	
-	# Логируем, если это единственный гость
+	# Логируем, если это последний активный гость
 	if is_single_in_list:
-		print("👋 Гость %d - единственный в списке задействованных, вернется через 3-5 раундов" % guest_id)
+		print("👋 Гость %d - последний активный гость за столом, вернется через 3-5 раундов" % guest_id)
+	else:
+		print("👋 Гость %d - НЕ последний активный гость за столом (есть еще активные), вернется через 10-20 раундов" % guest_id)
 	
 	# Сохраняем текущее терпение гостя (нужно для возврата с правильным терпением при банкротстве)
 	var patience_when_left = 100
 	if GuestStatsManager:
 		patience_when_left = GuestStatsManager.get_guest_patience(guest_id)
 	
-	# Генерируем количество раундов до возврата (3-5 для единственного, 10-20 для остальных)
+	# Генерируем количество раундов до возврата (3-5 для последнего активного, 10-20 для остальных)
 	var rounds_until_return = _generate_return_rounds(is_single_in_list)
 	guests_left[guest_id] = {
 		"round_when_left": round_number,

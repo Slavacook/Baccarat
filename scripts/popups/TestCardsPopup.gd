@@ -346,4 +346,3 @@ func _on_preset_natural():
 	banker2_suit.selected = 3    # Diamonds
 	
 	print("🧪 Пресет 'Натуральная победа' установлен")
-
