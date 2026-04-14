@@ -1,18 +1,16 @@
 ## Экран входа дилера — код комнаты + PIN-код + имя.
 extends Control
 
-signal login_succeeded
 signal go_back
 
 var room_code_input: LineEdit
 var pin_input: LineEdit
 var name_input: LineEdit
 var join_btn: Button
-var back_btn: Button
 var error_label: Label
 var status_label: Label
 
-var _api_service: Node = null
+var _api_service: ApiService = null
 
 
 func _ready() -> void:
@@ -21,15 +19,16 @@ func _ready() -> void:
 	pin_input = find_child("PinInput", true, false)
 	name_input = find_child("NameInput", true, false)
 	join_btn = find_child("DealerJoinBtn", true, false)
-	back_btn = find_child("DealerBackBtn", true, false)
+	var back_btn = find_child("DealerBackBtn", true, false)
 	error_label = find_child("DealerErrorLabel", true, false)
 	status_label = find_child("DealerStatusLabel", true, false)
 
+	# Ищем ApiService
 	_api_service = _find_api_service()
 	if not _api_service:
 		_api_service = ApiService.new()
 		_api_service.name = "ApiService"
-		add_child(_api_service)
+		get_tree().root.add_child(_api_service)
 
 	_api_service.dealer_joined.connect(_on_join_succeeded)
 	_api_service.request_error.connect(_on_request_error)
@@ -49,17 +48,16 @@ func _ready() -> void:
 		pin_input.text_changed.connect(_on_pin_changed)
 
 
-func _find_api_service() -> Node:
-	if Engine.has_singleton("ApiService"):
-		return Engine.get_singleton("ApiService") as Node
+func _find_api_service() -> ApiService:
 	var root = get_tree().root
 	for child in root.get_children():
 		if child.name == "ApiService":
-			return child
+			return child as ApiService
 	return null
 
 
 func _on_join_pressed() -> void:
+	print("🟡 Кнопка 'Войти' (Дилер) нажата")
 	var room_code = room_code_input.text.strip_edges() if room_code_input else ""
 	var pin = pin_input.text.strip_edges() if pin_input else ""
 	var display_name = name_input.text.strip_edges() if name_input else ""
@@ -83,8 +81,8 @@ func _on_join_pressed() -> void:
 
 
 func _on_join_succeeded(_user: Dictionary) -> void:
+	print("🎉 Вход дилера успешен! Переход в лобби...")
 	_set_loading(false)
-	login_succeeded.emit()
 	get_tree().change_scene_to_file("res://scenes/network/LobbyScreen.tscn")
 
 
@@ -100,12 +98,12 @@ func _on_request_error(status_code: int, detail: String) -> void:
 		410:
 			_show_error("Эта комната закрыта")
 		_:
-			_show_error(detail if detail else "Ошибка сервера")
+			_show_error("Ошибка: " + detail)
 
 
 func _on_network_error(message: String) -> void:
 	_set_loading(false)
-	_show_error("Нет соединения с сервером: %s" % message)
+	_show_error("Нет связи с сервером: " + message)
 
 
 func _on_back_pressed() -> void:
@@ -141,6 +139,6 @@ func _hide_error() -> void:
 func _set_loading(loading: bool) -> void:
 	if join_btn:
 		join_btn.disabled = loading
-		join_btn.text = "Подключение..." if loading else "Войти"
+		join_btn.text = "Вход..." if loading else "Войти"
 	if status_label:
-		status_label.text = "Проверка данных..." if loading else ""
+		status_label.text = "Подключение..." if loading else ""

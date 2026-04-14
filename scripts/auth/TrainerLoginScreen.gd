@@ -1,25 +1,23 @@
 ## Экран входа тренера — email + пароль.
 extends Control
 
-signal login_succeeded
 signal go_back
 
 var email_input: LineEdit
 var password_input: LineEdit
 var login_btn: Button
-var back_btn: Button
 var error_label: Label
 var status_label: Label
 
-var _api_service: Node = null
+var _api_service: ApiService = null
 
 
 func _ready() -> void:
-	# Ищем узлы через find_child (уникальные имена % в .tscn не работают)
+	# Ищем узлы через find_child
 	email_input = find_child("EmailInput", true, false)
 	password_input = find_child("PasswordInput", true, false)
 	login_btn = find_child("LoginBtn", true, false)
-	back_btn = find_child("TrainerBackBtn", true, false)
+	var back_btn = find_child("TrainerBackBtn", true, false)
 	error_label = find_child("ErrorLabel", true, false)
 	status_label = find_child("StatusLabel", true, false)
 
@@ -28,7 +26,7 @@ func _ready() -> void:
 	if not _api_service:
 		_api_service = ApiService.new()
 		_api_service.name = "ApiService"
-		add_child(_api_service)
+		get_tree().root.add_child(_api_service)
 
 	_api_service.trainer_logged_in.connect(_on_login_succeeded)
 	_api_service.request_error.connect(_on_request_error)
@@ -43,17 +41,16 @@ func _ready() -> void:
 		error_label.visible = false
 
 
-func _find_api_service() -> Node:
-	if Engine.has_singleton("ApiService"):
-		return Engine.get_singleton("ApiService") as Node
+func _find_api_service() -> ApiService:
 	var root = get_tree().root
 	for child in root.get_children():
 		if child.name == "ApiService":
-			return child
+			return child as ApiService
 	return null
 
 
 func _on_login_pressed() -> void:
+	print("🔵 Кнопка 'Войти' (Тренер) нажата")
 	var email = email_input.text.strip_edges() if email_input else ""
 	var password = password_input.text if password_input else ""
 
@@ -73,8 +70,8 @@ func _on_login_pressed() -> void:
 
 
 func _on_login_succeeded(_user: Dictionary) -> void:
+	print("🎉 Вход тренера успешен! Переход в лобби...")
 	_set_loading(false)
-	login_succeeded.emit()
 	get_tree().change_scene_to_file("res://scenes/network/LobbyScreen.tscn")
 
 
@@ -84,13 +81,15 @@ func _on_request_error(status_code: int, detail: String) -> void:
 		_show_error("Неверный email или пароль")
 	elif status_code == 403:
 		_show_error("Аккаунт деактивирован")
+	elif status_code == 409:
+		_show_error("Email уже зарегистрирован")
 	else:
-		_show_error(detail if detail else "Ошибка сервера")
+		_show_error("Ошибка: " + detail)
 
 
 func _on_network_error(message: String) -> void:
 	_set_loading(false)
-	_show_error("Нет соединения с сервером: %s" % message)
+	_show_error("Нет связи с сервером: " + message)
 
 
 func _on_back_pressed() -> void:
@@ -113,7 +112,7 @@ func _set_loading(loading: bool) -> void:
 		login_btn.disabled = loading
 		login_btn.text = "Вход..." if loading else "Войти"
 	if status_label:
-		status_label.text = "Подключение к серверу..." if loading else ""
+		status_label.text = "Подключение..." if loading else ""
 
 
 func _is_valid_email(email: String) -> bool:
