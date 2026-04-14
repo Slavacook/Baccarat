@@ -5,6 +5,8 @@
 extends CanvasLayer
 class_name SettingsScene
 
+const SHOW_TRAINING_MENU_ENTRY: bool = false
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (для совместимости с GameController)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -26,10 +28,15 @@ signal language_changed(lang: String)  # "ru" или "en"
 @onready var guests_button: Button = find_child("GuestsButton", true, false)
 @onready var story_button: Button = find_child("StoryButton", true, false)
 @onready var advanced_settings_button: Button = find_child("AdvancedSettingsButton", true, false)
+@onready var training_button: Button = find_child("TrainingButton", true, false)
 # ok_button больше не используется (убрана из UI)
+
+# Онлайн режим (создаётся программно)
+var online_mode_button: Button = null
 
 # === ОБЛАСТЬ КОНТЕНТА ===
 @onready var content_area: VBoxContainer = find_child("ContentArea", true, false)
+@onready var content_footer_separator: HSeparator = find_child("HSeparator4", true, false)
 
 # === ПОДМЕНЮ ===
 @onready var limits_submenu: VBoxContainer = find_child("LimitsSubmenu", true, false)
@@ -43,11 +50,15 @@ signal language_changed(lang: String)  # "ru" или "en"
 
 # === ПОДМЕНЮ: СЮЖЕТ (прогрессия гостей) ===
 var story_table_container: VBoxContainer = null  # Будет найден в _initialize_story_submenu
-var story_auto_mode_checkbox: CheckBox = null  # Будет найден в _initialize_story_submenu
+var story_scroll_container: ScrollContainer = null  # Будет найден в _initialize_story_submenu
+var story_description_label: Label = null  # Будет найден в _initialize_story_submenu
+var story_mode_info_label: Label = null  # Будет найден в _initialize_story_submenu
+var story_toggle_button: Button = null  # Будет найден в _initialize_story_submenu
 var story_threshold_spinboxes: Dictionary = {}  # {количество_гостей: SpinBox}
 var story_reset_buttons: Dictionary = {}  # {количество_гостей: Button}
 
 # === ПОДМЕНЮ: ФИЛЬТР СТАВОК И КАРТ ===
+@onready var card_settings_label: Label = find_child("CardSettingsLabel", true, false)
 @onready var test_cards_enabled_checkbox: CheckBox = find_child("TestCardsEnabledCheckbox", true, false)
 @onready var banker1_card_option: OptionButton = find_child("Banker1CardOption", true, false)
 @onready var banker2_card_option: OptionButton = find_child("Banker2CardOption", true, false)
@@ -55,6 +66,7 @@ var story_reset_buttons: Dictionary = {}  # {количество_гостей: 
 @onready var player2_card_option: OptionButton = find_child("Player2CardOption", true, false)
 
 # === ПОДМЕНЮ: РАСШИРЕННЫЕ НАСТРОЙКИ ===
+@onready var section_immortality_label: Label = find_child("SectionImmortality", true, false)
 @onready var immortality_button: Button = find_child("ImmortalityButton", true, false)
 
 # Текущее активное меню
@@ -136,6 +148,14 @@ func _ready() -> void:
 		if parent and parent.name.contains("Survival"):
 			parent.visible = false
 
+	# Временно скрываем вход в режим обучения из релизного UI.
+	# Сам режим и его код остаются в проекте для будущего обновления.
+	if training_button and not SHOW_TRAINING_MENU_ENTRY:
+		training_button.visible = false
+		training_button.disabled = true
+		training_button.focus_mode = Control.FOCUS_NONE
+		training_button.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
 	# Подключаем сигналы кнопок
 	_connect_signals()
 	
@@ -177,6 +197,13 @@ func _connect_signals() -> void:
 		story_button.pressed.connect(func(): _show_menu("story"))
 	if advanced_settings_button:
 		advanced_settings_button.pressed.connect(func(): _show_menu("advanced"))
+	if training_button and SHOW_TRAINING_MENU_ENTRY:
+		training_button.pressed.connect(_on_training_button_pressed)
+
+	# Онлайн режим (программная кнопка)
+	_create_online_mode_button()
+	if online_mode_button:
+		online_mode_button.pressed.connect(_on_online_mode_pressed)
 	# ok_button больше не используется (убрана из UI)
 	
 	# === ПОДМЕНЮ: ЛИМИТЫ ===
@@ -226,8 +253,8 @@ func _connect_signals() -> void:
 		tiger_button.pressed.connect(_on_tiger_pressed)
 	if leopard_button:
 		leopard_button.pressed.connect(_on_leopard_pressed)
-	
-	# Тестовые карты (в подменю Расширенные настройки) - УДАЛЕНО, теперь в подменю Фильтр ставок и карт
+
+	# Ручная раздача теперь находится в подменю "Фильтр ставок и карт"
 	
 	# === ПОДМЕНЮ: ФИЛЬТР СТАВОК И КАРТ ===
 	if test_cards_enabled_checkbox:
@@ -331,6 +358,12 @@ func _show_menu(menu_name: String) -> void:
 	
 	if story_submenu:
 		story_submenu.visible = (menu_name == "story")
+
+	if story_toggle_button:
+		story_toggle_button.visible = (menu_name == "story")
+
+	if content_footer_separator:
+		content_footer_separator.visible = (menu_name != "story")
 	
 	# GuestReturnContainer виден только в главном меню
 	if guest_return_container:
@@ -356,7 +389,7 @@ func _show_menu(menu_name: String) -> void:
 				"limits":
 					title_label.text = Localization.t("SETTINGS_LIMITS")
 				"bets":
-					title_label.text = Localization.t("SETTINGS_BETS_FILTER")  # "ФИЛЬТР СТАВОК И КАРТ"
+					title_label.text = Localization.t("SETTINGS_BETS_FILTER")
 				"advanced":
 					title_label.text = Localization.t("SETTINGS_ADVANCED")
 				"story":
@@ -372,8 +405,13 @@ func _show_menu(menu_name: String) -> void:
 				"advanced":
 					title_label.text = "РАСШИРЕННЫЕ НАСТРОЙКИ"
 				"story":
-					title_label.text = "СЮЖЕТ"
+					title_label.text = "СЮЖЕТ ГОСТЕЙ"
 		title_label.visible = true
+	
+	if menu_name == "story":
+		_update_story_submenu_texts()
+		if story_scroll_container:
+			story_scroll_container.set_deferred("scroll_vertical", 0)
 	
 	print("📋 Показано меню: %s" % menu_name)
 
@@ -390,9 +428,12 @@ func _initialize_story_submenu() -> void:
 	if not story_submenu:
 		return
 	
-	# Ищем элементы внутри подменю Сюжет (теперь они напрямую в story_submenu)
+	# Ищем элементы подменю и верхнего блока Сюжет гостей
+	story_description_label = story_submenu.find_child("StoryDescriptionLabel", true, false)
+	story_scroll_container = story_submenu.find_child("StoryScrollContainer", true, false)
 	story_table_container = story_submenu.find_child("TableContainer", true, false)
-	story_auto_mode_checkbox = story_submenu.find_child("AutoModeCheckbox", true, false)
+	story_mode_info_label = story_submenu.find_child("StoryModeInfoLabel", true, false)
+	story_toggle_button = find_child("StoryToggleButton", true, false)
 	
 	if not story_table_container:
 		push_warning("SettingsScene: TableContainer не найден в подменю Сюжет")
@@ -406,52 +447,39 @@ func _initialize_story_submenu() -> void:
 	
 	# Подключаем сигналы
 	_connect_story_signals()
+	_update_story_submenu_texts()
 
 func _create_story_table() -> void:
-	"""Создать таблицу порогов прогрессии в подменю Сюжет"""
+	"""Создать строки порогов прогрессии в подменю Сюжет"""
 	if not story_table_container:
 		return
 	
 	# Очищаем контейнер
 	for child in story_table_container.get_children():
 		child.queue_free()
-	
-	# Создаём заголовок таблицы
-	var header_row = HBoxContainer.new()
-	header_row.name = "HeaderRow"
-	story_table_container.add_child(header_row)
-	
-	var header_count_label = Label.new()
-	header_count_label.name = "HeaderCountLabel"
-	header_count_label.text = "Количество гостей" if not Localization else Localization.t("GUEST_COUNT_COLUMN")
-	header_count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_row.add_child(header_count_label)
-	
-	var header_tips_label = Label.new()
-	header_tips_label.name = "HeaderTipsLabel"
-	header_tips_label.text = "Чаевые" if not Localization else Localization.t("TIPS_THRESHOLD_COLUMN")
-	header_tips_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header_row.add_child(header_tips_label)
-	
-	# Заголовок для колонки кнопок сброса
-	var header_reset_label = Label.new()
-	header_reset_label.name = "HeaderResetLabel"
-	header_reset_label.text = ""
-	header_reset_label.custom_minimum_size = Vector2(50, 0)
-	header_row.add_child(header_reset_label)
+	story_threshold_spinboxes.clear()
+	story_reset_buttons.clear()
+	story_table_container.add_theme_constant_override("separation", 8)
 	
 	# Создаём строки для порогов 2-6 (порог для 1 гостя = 0, не показываем)
 	for guest_count in range(2, 7):  # 2, 3, 4, 5, 6
 		var row = HBoxContainer.new()
 		row.name = "Row%d" % guest_count
+		row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", 10)
 		story_table_container.add_child(row)
 		
-		# Label с количеством гостей
-		var count_label = Label.new()
-		count_label.name = "CountLabel%d" % guest_count
-		count_label.text = str(guest_count)
-		count_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(count_label)
+		# Поясняющий текст слева
+		var prompt_label = Label.new()
+		prompt_label.name = "PromptLabel%d" % guest_count
+		prompt_label.text = _get_story_threshold_text(guest_count)
+		prompt_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		prompt_label.custom_minimum_size = Vector2(0, 44)
+		prompt_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		prompt_label.autowrap_mode = TextServer.AUTOWRAP_OFF
+		prompt_label.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95, 1))
+		prompt_label.add_theme_font_size_override("font_size", 21)
+		row.add_child(prompt_label)
 		
 		# SpinBox для порога
 		var spinbox = SpinBox.new()
@@ -459,57 +487,27 @@ func _create_story_table() -> void:
 		spinbox.min_value = 0
 		spinbox.max_value = 999999
 		spinbox.step = 10
-		spinbox.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		spinbox.custom_minimum_size = Vector2(120, 44)
+		spinbox.size_flags_horizontal = Control.SIZE_SHRINK_END
+		spinbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		spinbox.set_meta("guest_count", guest_count)
 		row.add_child(spinbox)
+		_configure_story_threshold_spinbox(spinbox)
 		
-		# Кнопка сброса с уменьшенной иконкой (используем TextureButton для лучшего контроля размера)
-		var reset_button = TextureButton.new()
+		# Большая кнопка-пилюля сброса с понятной подписью
+		var reset_button = Button.new()
 		reset_button.name = "ResetButton%d" % guest_count
-		
-		# Загружаем и уменьшаем иконку
-		var icon_texture = load("res://assets/ui/buttons/rotate button.png")
-		if icon_texture:
-			# Уменьшаем изображение в 20 раз
-			if icon_texture is ImageTexture:
-				var image = icon_texture.get_image()
-				if image:
-					# Уменьшаем изображение в 20 раз
-					var original_width = image.get_width()
-					var original_height = image.get_height()
-					var new_width = max(1, original_width / 20)
-					var new_height = max(1, original_height / 20)
-					
-					# Создаем новое изображение с уменьшенным размером
-					image.resize(new_width, new_height, Image.INTERPOLATE_LANCZOS)
-					var resized_texture = ImageTexture.create_from_image(image)
-					reset_button.texture_normal = resized_texture
-				else:
-					reset_button.texture_normal = icon_texture
-			else:
-				reset_button.texture_normal = icon_texture
-			
-			# Игнорируем размер текстуры и используем фиксированный размер
-			reset_button.ignore_texture_size = true
-			reset_button.stretch_mode = TextureButton.STRETCH_KEEP_ASPECT_CENTERED
-		else:
-			# Fallback: создаем обычную Button с текстом, если иконка не найдена
-			var fallback_button = Button.new()
-			fallback_button.name = "ResetButton%d" % guest_count
-			fallback_button.text = "↺"
-			fallback_button.custom_minimum_size = Vector2(20, 20)
-			fallback_button.tooltip_text = "Сбросить на значение по умолчанию"
-			fallback_button.set_meta("guest_count", guest_count)
-			row.add_child(fallback_button)
-			story_reset_buttons[guest_count] = fallback_button
-			continue  # Пропускаем остальной код для этого гостя
-		
-		# Устанавливаем фиксированный небольшой размер кнопки
-		reset_button.custom_minimum_size = Vector2(20, 20)
-		reset_button.size = Vector2(20, 20)  # Принудительно устанавливаем размер
-		reset_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		reset_button.text = Localization.t("SETTINGS_STORY_RESET")
+		reset_button.custom_minimum_size = Vector2(96, 44)
+		reset_button.size_flags_horizontal = Control.SIZE_SHRINK_END
 		reset_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		reset_button.tooltip_text = "Сбросить на значение по умолчанию"
+		reset_button.add_theme_font_size_override("font_size", 15)
+		reset_button.add_theme_color_override("font_color", Color(0.95, 0.95, 0.95, 1))
+		reset_button.add_theme_stylebox_override("normal", _create_story_reset_button_style(Color(0.22, 0.22, 0.27, 1), Color(0.58, 0.58, 0.68, 1)))
+		reset_button.add_theme_stylebox_override("hover", _create_story_reset_button_style(Color(0.28, 0.28, 0.34, 1), Color(0.76, 0.76, 0.86, 1)))
+		reset_button.add_theme_stylebox_override("pressed", _create_story_reset_button_style(Color(0.18, 0.18, 0.23, 1), Color(0.68, 0.68, 0.78, 1)))
+		reset_button.add_theme_stylebox_override("focus", _create_story_reset_button_style(Color(0.28, 0.28, 0.34, 1), Color(0.88, 0.76, 0.48, 1)))
+		reset_button.tooltip_text = Localization.t("SETTINGS_STORY_RESET_TOOLTIP")
 		reset_button.set_meta("guest_count", guest_count)
 		
 		row.add_child(reset_button)
@@ -517,7 +515,7 @@ func _create_story_table() -> void:
 		story_threshold_spinboxes[guest_count] = spinbox
 		story_reset_buttons[guest_count] = reset_button
 	
-	print("🎯 Таблица прогрессии создана в подменю Сюжет")
+	print("🎯 Список порогов прогрессии создан в подменю Сюжет")
 
 func _load_story_values() -> void:
 	"""Загрузить текущие значения прогрессии в таблицу"""
@@ -535,9 +533,8 @@ func _load_story_values() -> void:
 				var value = thresholds.get(guest_count, 0)
 				spinbox.value = value
 	
-	# Обновляем чекбокс автоматического режима
-	if story_auto_mode_checkbox:
-		story_auto_mode_checkbox.button_pressed = auto_mode
+	_update_story_mode_texts(auto_mode)
+	_update_story_button_text()
 
 func _connect_story_signals() -> void:
 	"""Подключить сигналы для подменю Сюжет"""
@@ -553,9 +550,9 @@ func _connect_story_signals() -> void:
 		if reset_button:
 			reset_button.pressed.connect(_on_story_reset_pressed.bind(guest_count))
 	
-	# Подключаем чекбокс автоматического режима
-	if story_auto_mode_checkbox:
-		story_auto_mode_checkbox.toggled.connect(_on_story_auto_mode_toggled)
+	# Подключаем кнопку переключения режима
+	if story_toggle_button and story_toggle_button.pressed.get_connections().is_empty():
+		story_toggle_button.pressed.connect(_on_story_toggle_pressed)
 
 func _on_story_threshold_changed(value: float, guest_count: int) -> void:
 	"""Обработка изменения порога прогрессии
@@ -606,13 +603,99 @@ func _on_story_reset_pressed(guest_count: int) -> void:
 	
 	print("🎯 Порог для %d гостей сброшен: %d" % [guest_count, default_value])
 
-func _on_story_auto_mode_toggled(pressed: bool) -> void:
-	"""Обработка переключения автоматического режима"""
+func _on_story_toggle_pressed() -> void:
+	"""Переключить режим сюжета гостей"""
 	if not GuestProgressionManager:
 		return
 	
-	GuestProgressionManager.set_auto_mode(pressed)
-	print("🎯 Автоматический режим прогрессии: %s" % ("включен" if pressed else "выключен"))
+	var new_state = not GuestProgressionManager.is_auto_mode_enabled()
+	GuestProgressionManager.set_auto_mode(new_state)
+	_update_story_mode_texts(new_state)
+	_update_story_button_text()
+	print("🎯 Автоматический режим прогрессии: %s" % ("включен" if new_state else "выключен"))
+
+func _update_story_submenu_texts() -> void:
+	"""Обновить тексты подменю Сюжет гостей."""
+	if story_description_label:
+		story_description_label.text = Localization.t("SETTINGS_STORY_DESCRIPTION")
+	
+	var auto_mode_enabled = true
+	if GuestProgressionManager:
+		auto_mode_enabled = GuestProgressionManager.is_auto_mode_enabled()
+	
+	_update_story_mode_texts(auto_mode_enabled)
+	
+	if story_table_container:
+		for guest_count in range(2, 7):
+			var prompt_label = story_table_container.get_node_or_null("Row%d/PromptLabel%d" % [guest_count, guest_count]) as Label
+			if prompt_label:
+				prompt_label.text = _get_story_threshold_text(guest_count)
+			if story_reset_buttons.has(guest_count):
+				var reset_button = story_reset_buttons[guest_count]
+				if reset_button:
+					reset_button.text = Localization.t("SETTINGS_STORY_RESET")
+					reset_button.tooltip_text = Localization.t("SETTINGS_STORY_RESET_TOOLTIP")
+
+func _update_story_mode_texts(is_enabled: bool) -> void:
+	"""Обновить подписи переключателя и пояснение режима сюжета."""
+	if story_toggle_button:
+		story_toggle_button.text = Localization.t("SETTINGS_STORY_TOGGLE_ON") if is_enabled else Localization.t("SETTINGS_STORY_TOGGLE_OFF")
+	if story_mode_info_label:
+		story_mode_info_label.text = Localization.t("SETTINGS_STORY_MODE_INFO_ON") if is_enabled else Localization.t("SETTINGS_STORY_MODE_INFO_OFF")
+
+func _update_story_button_text() -> void:
+	"""Обновить подпись кнопки Сюжет в главном меню с текущим статусом."""
+	if not story_button:
+		return
+	
+	var auto_mode_enabled = true
+	if GuestProgressionManager:
+		auto_mode_enabled = GuestProgressionManager.is_auto_mode_enabled()
+	
+	story_button.text = Localization.t("SETTINGS_STORY_BUTTON_ON") if auto_mode_enabled else Localization.t("SETTINGS_STORY_BUTTON_OFF")
+
+func _get_story_threshold_text(guest_count: int) -> String:
+	"""Получить локализованный текст строки порога для указанного гостя."""
+	return Localization.t("SETTINGS_STORY_ROW_%d" % guest_count)
+
+func _configure_story_threshold_spinbox(spinbox: SpinBox) -> void:
+	"""Сделать компактное числовое поле без боковых стрелок."""
+	spinbox.add_theme_constant_override("buttons_width", 0)
+	spinbox.add_theme_constant_override("field_and_buttons_separation", 0)
+	spinbox.add_theme_constant_override("set_min_buttons_width_from_icons", 0)
+
+	var transparent = Color(1, 1, 1, 0)
+	for color_name in [
+		"up_icon_modulate",
+		"up_hover_icon_modulate",
+		"up_pressed_icon_modulate",
+		"up_disabled_icon_modulate",
+		"down_icon_modulate",
+		"down_hover_icon_modulate",
+		"down_pressed_icon_modulate",
+		"down_disabled_icon_modulate"
+	]:
+		spinbox.add_theme_color_override(color_name, transparent)
+
+	var line_edit = spinbox.get_line_edit()
+	if line_edit:
+		line_edit.alignment = HORIZONTAL_ALIGNMENT_CENTER
+		line_edit.select_all_on_focus = true
+
+func _create_story_reset_button_style(bg_color: Color, border_color: Color) -> StyleBoxFlat:
+	"""Создать круглую stylebox для кнопки сброса."""
+	var style = StyleBoxFlat.new()
+	style.bg_color = bg_color
+	style.border_color = border_color
+	style.border_width_left = 2
+	style.border_width_top = 2
+	style.border_width_right = 2
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 24
+	style.corner_radius_top_right = 24
+	style.corner_radius_bottom_right = 24
+	style.corner_radius_bottom_left = 24
+	return style
 
 func _connect_submenu_buttons() -> void:
 	"""Подключить кнопку 'Назад' (DEPRECATED - BackButton больше не используется)"""
@@ -753,10 +836,10 @@ func _load_current_values() -> void:
 	# Рубашка карт
 	_update_card_back_buttons()
 	
-	# Тестовые карты (в подменю Фильтр ставок и карт)
+	# Ручная раздача (в подменю Фильтр ставок и карт)
 	_load_card_values()
 	
-	# Бессмертие
+	# Свободная тренировка
 	_update_immortality_button()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -810,7 +893,17 @@ func _update_texts() -> void:
 	- Кнопка настроек гостей
 	"""
 	if title_label:
-		title_label.text = Localization.t("SETTINGS_TITLE")
+		match current_menu:
+			"limits":
+				title_label.text = Localization.t("SETTINGS_LIMITS")
+			"bets":
+				title_label.text = Localization.t("SETTINGS_BETS_FILTER")
+			"advanced":
+				title_label.text = Localization.t("SETTINGS_ADVANCED")
+			"story":
+				title_label.text = Localization.t("SETTINGS_STORY")
+			_:
+				title_label.text = Localization.t("SETTINGS_TITLE")
 
 	if apply_button:
 		apply_button.text = "Назад"  # Переименовано из "ОК"
@@ -837,6 +930,22 @@ func _update_texts() -> void:
 	# Кнопка прогрессии гостей
 	if guest_progression_button:
 		guest_progression_button.text = Localization.t("GUEST_PROGRESSION_BUTTON")
+	if story_button:
+		_update_story_button_text()
+	
+	# Ручная раздача
+	if card_settings_label:
+		card_settings_label.text = Localization.t("SETTINGS_CARD_SETTINGS")
+	if test_cards_enabled_checkbox:
+		test_cards_enabled_checkbox.text = Localization.t("SETTINGS_TEST_CARDS_ENABLED")
+	
+	# Свободная тренировка
+	if section_immortality_label:
+		section_immortality_label.text = Localization.t("SETTINGS_SECTION_FREE_PRACTICE")
+	if immortality_button:
+		_update_immortality_button()
+	
+	_update_story_submenu_texts()
 
 func _update_mode_buttons(mode: String) -> void:
 	"""Обновить состояние кнопок режима игры
@@ -939,6 +1048,13 @@ func _switch_game_mode(mode: String) -> void:
 	print("🎮 Режим игры изменён: %s" % mode.capitalize())
 
 # === СТАВКИ ===
+
+func _on_training_button_pressed() -> void:
+	"""Обработка нажатия кнопки 'Обучение' — включить режим обучения и закрыть настройки"""
+	var game_controller = get_tree().get_first_node_in_group("game_controller")
+	if game_controller and game_controller.has_method("activate_training_mode"):
+		game_controller.activate_training_mode()
+		hide()
 
 func _on_guest_settings_pressed():
 	"""Обработка нажатия кнопки 'ГОСТИ' для открытия меню настроек гостей"""
@@ -1139,10 +1255,9 @@ func _load_card_values() -> void:
 		test_cards_enabled_checkbox.button_pressed = TestCardsManager.enabled
 
 func _on_test_cards_enabled_toggled(pressed: bool) -> void:
-	"""Обработка переключения чекбокса 'Включить тестовые карты'"""
+	"""Обработка переключения режима ручной раздачи"""
 	if TestCardsManager:
 		TestCardsManager.set_enabled(pressed)
-		print("🧪 Тестовые карты: %s" % ("включены" if pressed else "выключены"))
 
 func _on_card_selected(position: String, value_index: int) -> void:
 	"""Обработка выбора карты в OptionButton
@@ -1175,17 +1290,15 @@ func _on_card_selected(position: String, value_index: int) -> void:
 		var random_suit = randi() % 4
 		TestCardsManager.set_test_card(position, random_suit, test_value)
 	
-	# Автоматически включаем тестовые карты при выборе
+	# Автоматически включаем ручную раздачу при выборе карты
 	if not TestCardsManager.enabled:
 		TestCardsManager.set_enabled(true)
 		if test_cards_enabled_checkbox:
 			test_cards_enabled_checkbox.button_pressed = true
-	
-	print("🎴 Карта %s установлена: OptionButton индекс %d → TestCardsManager value %d" % [position, value_index, test_value])
 
-# === БЕССМЕРТИЕ ===
+# === СВОБОДНАЯ ТРЕНИРОВКА ===
 func _on_immortality_pressed() -> void:
-	"""Обработка нажатия кнопки 'Бессмертие'"""
+	"""Обработка нажатия кнопки 'Свободная тренировка'"""
 	if not SaveManager:
 		return
 	
@@ -1194,32 +1307,25 @@ func _on_immortality_pressed() -> void:
 	SaveManager.instance.save_immortality_enabled(new_value)
 	
 	if new_value:
-		# При включении бессмертия добавляем +100000 чаевых
-		var tips_before = SaveManager.instance.score
+		# При включении свободной тренировки добавляем бонусные чаевые
 		SaveManager.instance.add_score(100)
-		var tips_after = SaveManager.instance.score
-		print("💀 Бессмертие включено - добавлено +100000 чаевых: %d → %d" % [tips_before, tips_after])
 		
 		# Обновляем статистику если есть StatsManager
 		if StatsManager and StatsManager.instance:
 			StatsManager.instance.update_stats()
 	else:
-		# При выключении бессмертия сбрасываем чаевые на ноль
-		var tips_before = SaveManager.instance.score
+		# При выключении свободной тренировки сбрасываем чаевые на ноль
 		SaveManager.instance.score = 0
 		SaveManager.instance.save_data()
-		var tips_after = SaveManager.instance.score
-		print("💀 Бессмертие выключено - чаевые сброшены на ноль: %d → %d" % [tips_before, tips_after])
 		
 		# Обновляем статистику если есть StatsManager
 		if StatsManager and StatsManager.instance:
 			StatsManager.instance.update_stats()
 	
 	_update_immortality_button()
-	print("💀 Бессмертие: %s" % ("включено" if new_value else "выключено"))
 
 func _update_immortality_button() -> void:
-	"""Обновить текст кнопки бессмертия"""
+	"""Обновить текст кнопки свободной тренировки"""
 	if not immortality_button:
 		return
 	
@@ -1230,7 +1336,7 @@ func _update_immortality_button() -> void:
 	if Localization:
 		immortality_button.text = Localization.t("SETTINGS_IMMORTALITY") + (" (вкл)" if enabled else " (выкл)")
 	else:
-		immortality_button.text = "Бессмертие" + (" (вкл)" if enabled else " (выкл)")
+		immortality_button.text = "Свободная тренировка" + (" (вкл)" if enabled else " (выкл)")
 
 # === УПРАВЛЯЮЩИЕ КНОПКИ ===
 func _on_apply_pressed():
@@ -1351,8 +1457,57 @@ func _update_bet_button_style(button: Button, enabled: bool) -> void:
 		
 		button.modulate.a = 0.65
 		button.add_theme_color_override("font_color", Color(0.6, 0.6, 0.6, 1.0))
-	
-	button.add_theme_stylebox_override("normal", style_normal)
-	button.add_theme_stylebox_override("pressed", style_pressed)
-	button.add_theme_stylebox_override("hover", style_hover)
-	button.add_theme_font_size_override("font_size", 16)
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ОНЛАЙН РЕЖИМ
+# ═══════════════════════════════════════════════════════════════════════════
+
+func _create_online_mode_button() -> void:
+	"""Создаёт кнопку «Онлайн режим» в главном меню настроек."""
+	if not main_menu_container:
+		return
+
+	online_mode_button = Button.new()
+	online_mode_button.name = "OnlineModeButton"
+	online_mode_button.text = "🌐 Онлайн режим"
+	online_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	online_mode_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	online_mode_button.custom_minimum_size = Vector2(180, 40)
+
+	# Стиль под остальные кнопки
+	var style_normal = StyleBoxFlat.new()
+	style_normal.bg_color = Color(0.1, 0.25, 0.4, 0.8)
+	style_normal.border_color = Color(0.3, 0.6, 0.9, 0.9)
+	style_normal.border_width_left = 2
+	style_normal.border_width_right = 2
+	style_normal.border_width_top = 2
+	style_normal.border_width_bottom = 2
+	style_normal.corner_radius_top_left = 8
+	style_normal.corner_radius_top_right = 8
+	style_normal.corner_radius_bottom_left = 8
+	style_normal.corner_radius_bottom_right = 8
+
+	var style_hover = style_normal.duplicate()
+	style_hover.bg_color = Color(0.15, 0.35, 0.5, 0.9)
+
+	var style_pressed = style_normal.duplicate()
+	style_pressed.bg_color = Color(0.08, 0.2, 0.35, 0.9)
+
+	online_mode_button.add_theme_stylebox_override("normal", style_normal)
+	online_mode_button.add_theme_stylebox_override("hover", style_hover)
+	online_mode_button.add_theme_stylebox_override("pressed", style_pressed)
+
+	main_menu_container.add_child(online_mode_button)
+	print("🌐 Кнопка «Онлайн режим» создана")
+
+
+func _on_online_mode_pressed() -> void:
+	"""Переход в онлайн меню."""
+	print("🌐 Переход в онлайн режим...")
+	# Закрываем настройки
+	close_settings()
+	# Небольшая задержка для завершения анимации
+	await get_tree().create_timer(0.1).timeout
+	# Переходим на сцену онлайн меню
+	get_tree().change_scene_to_file("res://scenes/network/MainMenu.tscn")
