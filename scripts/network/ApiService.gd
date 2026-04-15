@@ -1,7 +1,6 @@
 ## Сервис API — единая точка входа для всех HTTP-запросов.
-## Связывает APIClient и AuthManager, управляет refresh токенами.
+## (autoload — class_name НЕ нужен)
 extends Node
-class_name ApiService
 
 var api_client: APIClient
 
