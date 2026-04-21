@@ -1,5 +1,6 @@
 """API роутер для комнат."""
 
+from datetime import datetime, timezone
 import secrets
 import string
 from typing import Any
@@ -121,6 +122,181 @@ async def list_rooms(
     return [RoomResponse.from_model(room) for room in rooms]
 
 
+@router.get("/{room_code}/dealers")
+async def list_room_dealers(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Список дилеров комнаты (для тренера), даже если live-сессия ещё не запущена."""
+    room_res = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = room_res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+
+    dealers_res = await db.execute(
+        select(Dealer)
+        .where(Dealer.room_id == room.id, Dealer.is_active == True)
+        .order_by(Dealer.display_name)
+    )
+    dealers = dealers_res.scalars().all()
+    return [
+        {
+            "dealer_id": str(d.id),
+            "display_name": d.display_name,
+            "last_seen_at": d.last_seen_at,
+        }
+        for d in dealers
+    ]
+
+
+@router.get("/{room_code}/pins")
+async def list_room_pins(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    room_res = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = room_res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+
+    pins_res = await db.execute(
+        select(RoomPin, Dealer)
+        .outerjoin(Dealer, Dealer.id == RoomPin.dealer_id)
+        .where(RoomPin.room_id == room.id, RoomPin.is_active == True)
+        .order_by(RoomPin.dealer_slot.asc())
+    )
+    rows = pins_res.all()
+    return [
+        {
+            "pin_id": str(pin.id),
+            "dealer_slot": pin.dealer_slot,
+            "dealer_id": str(pin.dealer_id) if pin.dealer_id else None,
+            "display_name": dealer.display_name if dealer else None,
+        }
+        for pin, dealer in rows
+    ]
+
+
+@router.post("/{room_code}/pins")
+async def add_room_pin_slot(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    room_res = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = room_res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+
+    slot_res = await db.execute(
+        select(func.coalesce(func.max(RoomPin.dealer_slot), 0)).where(
+            RoomPin.room_id == room.id,
+            RoomPin.is_active == True,
+        )
+    )
+    next_slot = int(slot_res.scalar() or 0) + 1
+    pin = generate_pin()
+    pin_entry = RoomPin(
+        room_id=room.id,
+        pin_hash=hash_pin(pin),
+        dealer_slot=next_slot,
+        is_active=True,
+    )
+    db.add(pin_entry)
+    room.max_dealers = max(int(room.max_dealers or 0), next_slot)
+    await db.commit()
+    await db.refresh(pin_entry)
+    return {"pin": pin, "dealer_slot": next_slot}
+
+
+@router.post("/{room_code}/pins/{dealer_slot}/reset")
+async def reset_room_pin_slot(
+    room_code: str,
+    dealer_slot: int,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    room_res = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = room_res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+
+    pin_res = await db.execute(
+        select(RoomPin).where(
+            RoomPin.room_id == room.id,
+            RoomPin.dealer_slot == dealer_slot,
+            RoomPin.is_active == True,
+        )
+    )
+    pin_entry = pin_res.scalar_one_or_none()
+    if not pin_entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PIN slot not found")
+
+    if pin_entry.dealer_id:
+        dealer_res = await db.execute(select(Dealer).where(Dealer.id == pin_entry.dealer_id))
+        dealer = dealer_res.scalar_one_or_none()
+        if dealer:
+            dealer.is_active = False
+            dealer.last_seen_at = datetime.now(timezone.utc)
+            if room.total_dealers > 0:
+                room.total_dealers -= 1
+
+    new_pin = generate_pin()
+    pin_entry.pin_hash = hash_pin(new_pin)
+    pin_entry.dealer_id = None
+    await db.commit()
+    return {"pin": new_pin, "dealer_slot": dealer_slot}
+
+
+@router.delete("/{room_code}/pins/{dealer_slot}")
+async def delete_room_pin_slot(
+    room_code: str,
+    dealer_slot: int,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    room_res = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = room_res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+
+    pin_res = await db.execute(
+        select(RoomPin).where(
+            RoomPin.room_id == room.id,
+            RoomPin.dealer_slot == dealer_slot,
+            RoomPin.is_active == True,
+        )
+    )
+    pin_entry = pin_res.scalar_one_or_none()
+    if not pin_entry:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="PIN slot not found")
+
+    if pin_entry.dealer_id:
+        dealer_res = await db.execute(select(Dealer).where(Dealer.id == pin_entry.dealer_id))
+        dealer = dealer_res.scalar_one_or_none()
+        if dealer:
+            dealer.is_active = False
+            dealer.last_seen_at = datetime.now(timezone.utc)
+            if room.total_dealers > 0:
+                room.total_dealers -= 1
+
+    pin_entry.is_active = False
+    await db.commit()
+    return {"deleted": True, "dealer_slot": dealer_slot}
+
+
 @router.get("/{room_code}", response_model=RoomResponse)
 async def get_room(room_code: str, db: AsyncSession = Depends(get_db)):
     """Получить детали комнаты."""
@@ -131,6 +307,31 @@ async def get_room(room_code: str, db: AsyncSession = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
 
     return RoomResponse.from_model(room)
+
+
+@router.delete("/{room_code}")
+async def delete_room(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Мягкое удаление комнаты тренера (скрываем из интерфейса)."""
+    result = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = result.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+
+    room.status = RoomStatus.CLOSED
+    pins_res = await db.execute(select(RoomPin).where(RoomPin.room_id == room.id))
+    for pin in pins_res.scalars().all():
+        pin.is_active = False
+    dealers_res = await db.execute(select(Dealer).where(Dealer.room_id == room.id))
+    for dealer in dealers_res.scalars().all():
+        dealer.is_active = False
+    await db.commit()
+    return {"deleted": True, "room_code": room_code}
 
 
 @router.post("/dealer/join", response_model=DealerJoinResponse, status_code=status.HTTP_200_OK)
