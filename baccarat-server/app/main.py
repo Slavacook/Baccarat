@@ -11,6 +11,7 @@ from slowapi.util import get_remote_address
 from app.config import settings
 from app.api.auth import router as auth_router
 from app.api.rooms import router as rooms_router
+from app.api.sessions import router as sessions_router, ws_router as sessions_ws_router
 
 
 # ─── Sentry ───
@@ -59,6 +60,8 @@ app.add_middleware(
 # ─── Роутеры ───
 app.include_router(auth_router, prefix=f"{settings.API_PREFIX}/auth", tags=["Авторизация"])
 app.include_router(rooms_router, prefix=settings.API_PREFIX, tags=["Комнаты"])
+app.include_router(sessions_router, prefix=settings.API_PREFIX, tags=["Сессии"])
+app.include_router(sessions_ws_router, tags=["WebSocket"])
 
 
 # ─── Health Check ───

@@ -12,6 +12,58 @@ from app.api import sessions as sessions_api
 from app.models.session import Session as DBSession
 
 
+def test_live_monitor_ws_types_include_protocol_events():
+    """Контракт с docs/ONLINE_PROTOCOL.md: сервер ретранслирует эти типы от дилера."""
+    assert "round_started" in sessions_api._LIVE_MONITOR_TYPES
+    assert "error_occurred" in sessions_api._LIVE_MONITOR_TYPES
+    assert "action_performed" in sessions_api._LIVE_MONITOR_TYPES
+    assert "round_completed" in sessions_api._LIVE_MONITOR_TYPES
+    assert "table_state" in sessions_api._LIVE_MONITOR_TYPES
+
+
+def test_table_state_dealer_id_spoof_protection():
+    merged = sessions_api._merge_live_payload_with_listener_dealer(
+        {"dealer_id": "spoofed", "event_seq": 7},
+        "real-dealer-id",
+    )
+    assert merged["dealer_id"] == "real-dealer-id"
+    assert merged["event_seq"] == 7
+
+
+def test_table_state_cache_seq_rule():
+    sessions_api._LATEST_TABLE_STATE_BY_SESSION.clear()
+    sid = "s-1"
+    did = "d-1"
+    assert sessions_api._cache_table_state_if_newer(
+        sid, did, {"event_seq": 10, "round_id": "r1", "schema_version": 1}
+    )
+    assert not sessions_api._cache_table_state_if_newer(
+        sid, did, {"event_seq": 10, "round_id": "r1", "schema_version": 1}
+    )
+    assert not sessions_api._cache_table_state_if_newer(
+        sid, did, {"event_seq": 9, "round_id": "r1", "schema_version": 1}
+    )
+    assert sessions_api._cache_table_state_if_newer(
+        sid, did, {"event_seq": 11, "round_id": "r2", "schema_version": 1}
+    )
+
+
+def test_table_state_sync_returns_only_current_session_states():
+    sessions_api._LATEST_TABLE_STATE_BY_SESSION.clear()
+    sessions_api._cache_table_state_if_newer(
+        "s-1", "d-1", {"event_seq": 5, "round_id": "r1", "schema_version": 1}
+    )
+    sessions_api._cache_table_state_if_newer(
+        "s-1", "d-2", {"event_seq": 3, "round_id": "r9", "schema_version": 1}
+    )
+    sessions_api._cache_table_state_if_newer(
+        "s-2", "d-3", {"event_seq": 7, "round_id": "r2", "schema_version": 1}
+    )
+    states = sessions_api._get_cached_table_states_for_session("s-1")
+    assert len(states) == 2
+    assert sorted([x["event_seq"] for x in states]) == [3, 5]
+
+
 def _auth_headers(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
 

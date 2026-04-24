@@ -1,4 +1,4 @@
-[gd_scene load_steps=38 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=45 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
@@ -17,7 +17,6 @@
 [ext_resource type="Script" uid="uid://dv2rkxv4s3p3g" path="res://scripts/PayoutOverlay.gd" id="16_y5y3l"]
 [ext_resource type="Texture2D" uid="uid://bscx53pxl4v6p" path="res://assets/ui/correct.png" id="17_kyk2p"]
 [ext_resource type="Script" uid="uid://8fqkmr4r5o0l" path="res://scripts/PayoutSurvivalInfo.gd" id="17_survival_info"]
-[ext_resource type="Texture2D" uid="uid://4ietsvpelka7" path="res://assets/ui/set.png" id="18_45i86"]
 [ext_resource type="Texture2D" uid="uid://bi8p5atnji7jw" path="res://assets/ui/error.png" id="18_sv1m6"]
 [ext_resource type="PackedScene" uid="uid://dvci1lc3qrbac" path="res://scenes/SettingsScene.tscn" id="21_a8wo8"]
 [ext_resource type="Texture2D" uid="uid://bvepwtmlt4ecj" path="res://assets/ui/buttons/complete_button_broken.png" id="22_broken"]
@@ -37,6 +36,74 @@
 [ext_resource type="Texture2D" uid="uid://c55f5kjt6y4y3" path="res://assets/ui/tables_&_guests/guest_666.png" id="39_ca228"]
 [ext_resource type="Texture2D" uid="uid://ci77x60sr7762" path="res://assets/ui/tables_&_guests/guest_5.png" id="40_lscvm"]
 [ext_resource type="Texture2D" uid="uid://dfmfkg8lff33a" path="res://assets/ui/tables_&_guests/guest_6.png" id="41_xfjuk"]
+[ext_resource type="PackedScene" path="res://scenes/training/TrainingProgressBar.tscn" id="42_training_progress"]
+[ext_resource type="PackedScene" path="res://scenes/training/TrainingInstructionPopup.tscn" id="43_training_instruction"]
+[ext_resource type="PackedScene" path="res://scenes/training/TrainingQuestionPopup.tscn" id="44_training_question"]
+[ext_resource type="PackedScene" path="res://scenes/training/TrainingStageCompletePopup.tscn" id="45_training_complete"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topbar_button_normal"]
+content_margin_left = 24.0
+content_margin_top = 12.0
+content_margin_right = 24.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0901961, 0.121569, 0.152941, 0.86)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.87451, 0.792157, 0.572549, 0.58)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topbar_button_pressed"]
+content_margin_left = 24.0
+content_margin_top = 12.0
+content_margin_right = 24.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0588235, 0.0823529, 0.109804, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.95)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topbar_button_hover"]
+content_margin_left = 24.0
+content_margin_top = 12.0
+content_margin_right = 24.0
+content_margin_bottom = 12.0
+bg_color = Color(0.145098, 0.188235, 0.231373, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.9)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_topbar_button_focus"]
+content_margin_left = 24.0
+content_margin_top = 12.0
+content_margin_right = 24.0
+content_margin_bottom = 12.0
+bg_color = Color(0.121569, 0.152941, 0.188235, 0.9)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.937255, 0.854902, 0.627451, 1)
+corner_radius_top_left = 22
+corner_radius_top_right = 22
+corner_radius_bottom_right = 22
+corner_radius_bottom_left = 22
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
@@ -83,17 +150,15 @@ scale = Vector2(0.6, 0.6)
 
 [node name="PayButton" type="TextureButton" parent="TopUI"]
 visible = false
-anchors_preset = 8
-anchor_left = 0.5
-anchor_top = 0.5
-anchor_right = 0.5
-anchor_bottom = 0.5
-offset_left = 424.0
-offset_top = -324.0
-offset_right = 1084.0001
-offset_bottom = 405.0
-grow_horizontal = 2
-grow_vertical = 2
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -245.0
+offset_top = 88.0
+offset_right = 415.0
+offset_bottom = 817.0
+grow_horizontal = 0
+grow_vertical = 0
 scale = Vector2(0.2, 0.2)
 size_flags_horizontal = 4
 script = ExtResource("23_paybutton")
@@ -333,23 +398,40 @@ texture_pressed = ExtResource("24_m1oc7")
 texture_hover = ExtResource("24_m1oc7")
 
 [node name="HelpButton" type="Button" parent="."]
-custom_minimum_size = Vector2(40, 40)
-offset_left = 80.0
-offset_top = 6.0
-offset_right = 129.0
-offset_bottom = 48.0
-theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 0.35686275)
-theme_override_font_sizes/font_size = 24
-text = "?"
+custom_minimum_size = Vector2(250, 64)
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -304.0
+offset_top = 8.0
+offset_right = -54.0
+offset_bottom = 72.0
+grow_horizontal = 0
+theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
+theme_override_colors/font_focus_color = Color(1, 0.952941, 0.792157, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.952941, 0.792157, 1)
+theme_override_colors/font_hover_color = Color(0.972549, 0.901961, 0.705882, 1)
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBoxFlat_topbar_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_topbar_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_topbar_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_topbar_button_focus")
+text = "Шпаргалка"
 
 [node name="RoundsCounterLabel" type="Label" parent="."]
 unique_name_in_owner = true
-offset_left = 140.0
-offset_top = 6.0
-offset_right = 250.0
-offset_bottom = 48.0
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = 190.0
+offset_top = -58.0
+offset_right = 400.0
+offset_bottom = -4.0
+grow_horizontal = 2
 theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 1)
-theme_override_font_sizes/font_size = 20
+theme_override_font_sizes/font_size = 28
 text = "Раздача: 0"
 horizontal_alignment = 1
 vertical_alignment = 1
@@ -359,22 +441,38 @@ vertical_alignment = 1
 [node name="GameOverScene" parent="." instance=ExtResource("4_gameover")]
 
 [node name="StatsLabel" type="Label" parent="."]
-offset_left = 595.0
-offset_top = -2.0
-offset_right = 806.0
-offset_bottom = 21.0
-scale = Vector2(1.5, 1.5)
-text = "Правильно: 0 | Ошибок: 0"
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -400.0
+offset_top = -58.0
+offset_right = -190.0
+offset_bottom = -4.0
+grow_horizontal = 2
+theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 1)
+theme_override_font_sizes/font_size = 28
+text = "Чаевые: 0"
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="SettingsButton" type="Button" parent="."]
-offset_top = 2.0
-offset_right = 534.0
-offset_bottom = 522.0
-scale = Vector2(0.1, 0.1)
-size_flags_horizontal = 4
-theme_override_icons/icon = ExtResource("18_45i86")
-text = "⚙︎"
-icon = ExtResource("18_45i86")
+custom_minimum_size = Vector2(250, 64)
+offset_left = 54.0
+offset_top = 8.0
+offset_right = 304.0
+offset_bottom = 72.0
+theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
+theme_override_colors/font_focus_color = Color(1, 0.952941, 0.792157, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.952941, 0.792157, 1)
+theme_override_colors/font_hover_color = Color(0.972549, 0.901961, 0.705882, 1)
+theme_override_font_sizes/font_size = 36
+theme_override_styles/normal = SubResource("StyleBoxFlat_topbar_button_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_topbar_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_topbar_button_hover")
+theme_override_styles/focus = SubResource("StyleBoxFlat_topbar_button_focus")
+text = "Настройки"
 
 [node name="ChipPlayer" type="TextureButton" parent="."]
 visible = false
@@ -697,6 +795,18 @@ offset_right = 272.0
 offset_bottom = 500.0
 grow_horizontal = 2
 mouse_filter = 2
+
+[node name="TrainingLayer" type="CanvasLayer" parent="."]
+layer = 200
+visible = false
+
+[node name="TrainingProgressBar" parent="TrainingLayer" instance=ExtResource("42_training_progress")]
+
+[node name="TrainingInstructionPopup" parent="TrainingLayer" instance=ExtResource("43_training_instruction")]
+
+[node name="TrainingQuestionPopup" parent="TrainingLayer" instance=ExtResource("44_training_question")]
+
+[node name="TrainingStageCompletePopup" parent="TrainingLayer" instance=ExtResource("45_training_complete")]
 
 [connection signal="pressed" from="TopUI/CardsButton" to="." method="_on_cards_button_pressed"]
 [connection signal="gui_input" from="PlayerZone/PlayerThirdCardToggle" to="." method="_on_player_third_card_toggle_gui_input"]

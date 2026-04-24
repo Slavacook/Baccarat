@@ -21,11 +21,262 @@ let latestDealersSnapshot = [];
 let dealerRoundsCache = [];
 let roomPinsSnapshot = [];
 let currentRoomCode = "";
+const liveTableStore = {
+  byDealerId: new Map(),
+};
+const LIVE_FEED_MAX = 100;
+const LIVE_MONITOR_TYPES = new Set([
+  "round_started",
+  "error_occurred",
+  "action_performed",
+  "round_completed",
+]);
 
 function resetLiveCounters() {
   onlineDealers = null;
   readyDealerIds = new Set();
   connectedDealerIds = new Set();
+  liveTableStore.byDealerId.clear();
+}
+
+function applyTableState(snapshot) {
+  if (!snapshot || typeof snapshot !== "object") return false;
+  const dealerId = String(snapshot.dealer_id || "").trim();
+  if (!dealerId) return false;
+
+  const seqRaw = snapshot.event_seq;
+  if (typeof seqRaw !== "number" || !Number.isInteger(seqRaw)) return false;
+
+  const roundId = String(snapshot.round_id || "").trim();
+  const prev = liveTableStore.byDealerId.get(dealerId);
+  const lastSeq = prev && Number.isInteger(prev.lastSeq) ? prev.lastSeq : -1;
+  if (seqRaw <= lastSeq) return false;
+
+  liveTableStore.byDealerId.set(dealerId, {
+    lastSeq: seqRaw,
+    currentRoundId: roundId || (prev ? prev.currentRoundId : ""),
+    currentState: snapshot,
+  });
+
+  renderLiveTableView();
+  if (typeof console !== "undefined" && typeof console.debug === "function") {
+    console.debug("[live-table] state applied", {
+      dealerId,
+      eventSeq: seqRaw,
+      roundId: roundId || null,
+    });
+  }
+  return true;
+}
+
+function applyTableStateSync(states) {
+  if (!Array.isArray(states)) return 0;
+  let applied = 0;
+  for (const item of states) {
+    if (applyTableState(item)) applied += 1;
+  }
+  if (applied > 0) renderLiveTableView();
+  return applied;
+}
+
+function _renderCardCodesFromSlots(slots) {
+  if (!Array.isArray(slots)) return "<span class=\"live-card is-hidden\">??</span>";
+  const out = [];
+  for (const slot of slots) {
+    if (!slot || typeof slot !== "object") {
+      out.push("<span class=\"live-card is-empty\">--</span>");
+      continue;
+    }
+    const isVisible = slot.visible === true;
+    const code = slot.code != null ? String(slot.code) : "";
+    if (!isVisible) out.push("<span class=\"live-card is-hidden\">??</span>");
+    else if (!code) out.push("<span class=\"live-card is-empty\">--</span>");
+    else out.push(`<span class=\"live-card\">${code}</span>`);
+  }
+  return out.join("");
+}
+
+function _phaseClass(phase) {
+  const p = String(phase || "waiting").trim().toLowerCase();
+  return "phase-" + (p || "waiting");
+}
+
+function _safeScore(value) {
+  if (typeof value === "number" && Number.isFinite(value)) return String(value);
+  if (typeof value === "string" && value.trim() !== "") return value.trim();
+  return "—";
+}
+
+function _safePhase(value) {
+  if (typeof value === "string" && value.trim() !== "") return value.trim();
+  return "waiting";
+}
+
+function _safeAction(state) {
+  const lastAction = state && state.last_action && typeof state.last_action === "object" ? state.last_action : {};
+  const actionType = lastAction.type != null && String(lastAction.type).trim() !== "" ? String(lastAction.type) : "—";
+  const actionValue = lastAction.value != null ? String(lastAction.value) : "";
+  return { actionType, actionValue };
+}
+
+function _safeError(state) {
+  const error = state && state.error && typeof state.error === "object" ? state.error : {};
+  const hasError = error.active === true;
+  const errorType = error.error_type != null ? String(error.error_type) : "";
+  const errorMsg = error.message != null ? String(error.message) : "";
+  return { hasError, errorType, errorMsg };
+}
+
+function renderLiveTableView() {
+  const root = el("live-table-view");
+  if (!root) return;
+  root.innerHTML = "";
+  const rows = Array.from(liveTableStore.byDealerId.entries());
+  if (rows.length === 0) {
+    root.textContent = "Нет live-данных стола.";
+    return;
+  }
+
+  for (const [dealerId, entry] of rows) {
+    const state = entry && entry.currentState && typeof entry.currentState === "object" ? entry.currentState : {};
+    const dealerName = state.display_name ? String(state.display_name) : dealerDisplayName(dealerId);
+    const roundNumber = state.round_number != null ? String(state.round_number) : "—";
+    const phase = _safePhase(state.phase);
+    const player = state.player && typeof state.player === "object" ? state.player : {};
+    const banker = state.banker && typeof state.banker === "object" ? state.banker : {};
+    const playerScore = _safeScore(player.score);
+    const bankerScore = _safeScore(banker.score);
+    const { actionType, actionValue } = _safeAction(state);
+    const { hasError, errorType, errorMsg } = _safeError(state);
+
+    const card = document.createElement("article");
+    card.className = "live-dealer-card";
+    card.innerHTML = `
+      <div class="live-head">
+        <div class="live-title">
+          <strong>${dealerName}</strong>
+          <span class="muted small mono">${dealerId}</span>
+        </div>
+        <span class="live-phase ${_phaseClass(phase)}">${phase}</span>
+      </div>
+      <div class="live-meta muted small">
+        <span>Раунд: ${roundNumber}</span>
+        <span>seq: ${entry.lastSeq}</span>
+      </div>
+      <div class="live-row">
+        <div class="live-side-label">Banker</div>
+        <div class="live-cards">${_renderCardCodesFromSlots(banker.cards)}</div>
+        <div class="live-score">${bankerScore}</div>
+      </div>
+      <div class="live-row">
+        <div class="live-side-label">Player</div>
+        <div class="live-cards">${_renderCardCodesFromSlots(player.cards)}</div>
+        <div class="live-score">${playerScore}</div>
+      </div>
+      <div class="live-action small">last_action: <span class="mono">${actionType}${actionValue ? ` (${actionValue})` : ""}</span></div>
+      <div class="live-error-wrap">
+        ${
+          hasError
+            ? `<span class="live-error-badge">Ошибка: ${errorType || "unknown"}${errorMsg ? ` — ${errorMsg}` : ""}</span>`
+            : `<span class="live-ok-badge">Без активной ошибки</span>`
+        }
+      </div>
+    `;
+    root.appendChild(card);
+  }
+}
+
+function clearLiveFeed() {
+  const ul = el("live-feed-list");
+  if (ul) ul.innerHTML = "";
+  const empty = el("live-feed-empty");
+  if (empty) empty.hidden = false;
+}
+
+function dealerDisplayName(dealerId) {
+  const id = String(dealerId || "");
+  if (!id) return "—";
+  const row = latestDealersSnapshot.find((d) => String(d.dealer_id || "") === id);
+  return row && row.display_name ? String(row.display_name) : id.slice(0, 8) + "…";
+}
+
+function formatLiveEventLine(t, data) {
+  const name = dealerDisplayName(data.dealer_id);
+  const r = data.round_number != null ? `#${data.round_number}` : "";
+  if (t === "error_occurred") {
+    const et = data.error_type || "ошибка";
+    const msg = data.message ? String(data.message) : "";
+    return `${name} ${r} — ${et}${msg ? `: ${msg}` : ""}`;
+  }
+  if (t === "action_performed") {
+    const at = data.action_type || "действие";
+    const val = data.value != null && String(data.value) !== "" ? ` → ${data.value}` : "";
+    return `${name} ${r} — ${at}${val}`;
+  }
+  if (t === "round_started") {
+    return `${name} ${r} — раздача`;
+  }
+  if (t === "round_completed") {
+    const acc = typeof data.accuracy === "number" ? `${(data.accuracy <= 1 ? data.accuracy * 100 : data.accuracy).toFixed(0)}%` : "—";
+    const go = data.is_game_over ? " (game over)" : "";
+    return `${name} ${r} — раунд завершён, точность ${acc}${go}`;
+  }
+  return `${name} — ${t}`;
+}
+
+function pushLiveFeedEntry(msgType, data) {
+  const ul = el("live-feed-list");
+  const empty = el("live-feed-empty");
+  if (!ul) return;
+  const errOnly = el("live-feed-errors-only")?.checked;
+  if (errOnly && msgType !== "error_occurred") return;
+
+  const li = document.createElement("li");
+  li.dataset.msgType = msgType;
+  const ts = document.createElement("span");
+  ts.className = "ts";
+  const d = new Date();
+  ts.textContent = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  const tag = document.createElement("span");
+  tag.className = "tag " + (msgType === "error_occurred" ? "tag-err" : msgType === "action_performed" ? "tag-ok" : "tag-info");
+  tag.textContent =
+    msgType === "error_occurred" ? "Ошибка" : msgType === "action_performed" ? "Действие" : msgType === "round_started" ? "Старт" : "Конец";
+
+  const text = document.createElement("span");
+  text.textContent = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
+
+  li.appendChild(ts);
+  li.appendChild(tag);
+  li.appendChild(text);
+  ul.insertBefore(li, ul.firstChild);
+  while (ul.children.length > LIVE_FEED_MAX) {
+    ul.removeChild(ul.lastChild);
+  }
+  if (empty) empty.hidden = ul.children.length > 0;
+}
+
+function pulseDealerRow(dealerId) {
+  const id = String(dealerId || "");
+  if (!id) return;
+  const tbody = el("dealers-table")?.querySelector("tbody");
+  if (!tbody) return;
+  const tr = Array.from(tbody.querySelectorAll("tr[data-dealer-id]")).find((row) => row.dataset.dealerId === id);
+  if (!tr) return;
+  tr.classList.remove("row-live-error");
+  void tr.offsetWidth;
+  tr.classList.add("row-live-error");
+  window.setTimeout(() => tr.classList.remove("row-live-error"), 2600);
+}
+
+function refilterLiveFeed() {
+  const ul = el("live-feed-list");
+  if (!ul) return;
+  const errOnly = el("live-feed-errors-only")?.checked;
+  for (const li of ul.querySelectorAll("li")) {
+    const t = li.dataset.msgType || "";
+    li.hidden = errOnly && t !== "error_occurred";
+  }
 }
 
 function setTrainingButtons(active) {
@@ -163,6 +414,7 @@ function clearTokens() {
 function handleAuthExpired(message = "Сессия истекла. Войдите снова.") {
   clearTokens();
   stopLiveWatch();
+  clearLiveFeed();
   currentSessionId = null;
   currentSessionInfoBase = "";
   resetLiveCounters();
@@ -355,6 +607,20 @@ function startTrainerSessionWebSocket() {
       t === "session_ended"
     ) {
       fetchResultsOnce();
+    }
+    if (LIVE_MONITOR_TYPES.has(t)) {
+      pushLiveFeedEntry(t, data);
+      if (t === "error_occurred") {
+        pulseDealerRow(data.dealer_id);
+      }
+      fetchResultsOnce();
+    }
+    if (t === "table_state") {
+      applyTableState(data);
+    }
+    if (t === "table_state_sync") {
+      const states = data && Array.isArray(data.states) ? data.states : [];
+      applyTableStateSync(states);
     }
   };
   sessionWs.onerror = () => {
@@ -662,6 +928,7 @@ async function loadTrainerLiveSession() {
   const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/trainer-live-session`);
   if (!ok) {
     stopLiveWatch();
+    clearLiveFeed();
     currentSessionId = null;
     resetLiveCounters();
     setTrainingButtons(false);
@@ -673,14 +940,19 @@ async function loadTrainerLiveSession() {
     showError("action-error", (data && data.detail) || `Ошибка ${status}`);
     return;
   }
+  const prevSessionId = currentSessionId;
   currentSessionId = data.session_id;
   resetLiveCounters();
+  if (String(prevSessionId || "") !== String(currentSessionId || "")) {
+    clearLiveFeed();
+  }
   renderSessionInfo();
   setTrainingButtons(data.status === "active");
   if (data.status === "active") {
     startTrainerSessionWebSocket();
   } else {
     stopLiveWatch();
+    clearLiveFeed();
     renderResultsEmpty();
   }
 }
@@ -725,6 +997,7 @@ async function endLiveSession() {
     return;
   }
   stopLiveWatch();
+  clearLiveFeed();
   currentSessionId = null;
   resetLiveCounters();
   setTrainingButtons(false);
@@ -850,8 +1123,9 @@ function renderDealers(dealers) {
   el("results-empty").hidden = dealers.length > 0;
   for (const d of dealers) {
     const tr = document.createElement("tr");
-    const name = document.createElement("td");
     const did = String(d.dealer_id || "");
+    if (did) tr.dataset.dealerId = did;
+    const name = document.createElement("td");
     if (did && currentSessionId) {
       const a = document.createElement("a");
       a.className = "dealer-link";
@@ -942,6 +1216,7 @@ async function onRegister() {
 function onLogout() {
   clearTokens();
   stopLiveWatch();
+  clearLiveFeed();
   currentSessionId = null;
   setDashboardVisible(false);
   setDashboardStage("rooms");
@@ -979,6 +1254,8 @@ function wire() {
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());
   el("btn-close-dealer-details").addEventListener("click", () => closeDealerDetailsModal());
   el("dealer-rounds-filter").addEventListener("change", () => renderDealerRounds(dealerRoundsCache));
+  const feedErr = el("live-feed-errors-only");
+  if (feedErr) feedErr.addEventListener("change", () => refilterLiveFeed());
   el("dealer-details-modal").addEventListener("click", (ev) => {
     if (ev.target === el("dealer-details-modal")) closeDealerDetailsModal();
   });

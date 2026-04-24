@@ -20,6 +20,8 @@ var phase_manager: GamePhaseManager
 var crib_sheet_scene: CribSheetScene
 var survival_state: SurvivalStateProvider
 var owner_node: Node  # Узел для доступа к дочерним элементам
+var _pay_button_was_visible_before_settings: bool = false
+var _collect_button_was_visible_before_settings: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -135,6 +137,18 @@ func hide_game_ui_elements() -> void:
 			if ui_manager.button_ui.action_button_broken:
 				ui_manager.button_ui.action_button_broken.visible = false
 			DebugLogger.log("  ✅ action_button скрыта")
+		if ui_manager.button_ui.pay_button:
+			_pay_button_was_visible_before_settings = ui_manager.button_ui.pay_button.visible
+			ui_manager.button_ui.pay_button.visible = false
+			DebugLogger.log("  ✅ pay_button скрыта")
+		else:
+			_pay_button_was_visible_before_settings = false
+		if ui_manager.button_ui.collect_button:
+			_collect_button_was_visible_before_settings = ui_manager.button_ui.collect_button.visible
+			ui_manager.button_ui.collect_button.visible = false
+			DebugLogger.log("  ✅ collect_button скрыта")
+		else:
+			_collect_button_was_visible_before_settings = false
 	
 	# Кнопка подсказки - проверяем в TopUI и в корне
 	var help_button = owner_node.get_node_or_null("TopUI/HelpButton")
@@ -146,6 +160,19 @@ func hide_game_ui_elements() -> void:
 	elif ui_manager and ui_manager.button_ui and ui_manager.button_ui.help_button:
 		ui_manager.button_ui.help_button.visible = false
 		DebugLogger.log("  ✅ help_button (из ui_manager) скрыта")
+
+	# Кнопка настроек - проверяем в TopUI и в корне
+	var settings_button = owner_node.get_node_or_null("TopUI/SettingsButton")
+	if not settings_button:
+		settings_button = owner_node.get_node_or_null("SettingsButton")
+	if settings_button:
+		settings_button.visible = false
+		DebugLogger.log("  ✅ settings_button скрыта")
+	elif owner_node.has("settings_button"):
+		var top_settings_button = owner_node.get("settings_button")
+		if top_settings_button:
+			top_settings_button.visible = false
+			DebugLogger.log("  ✅ settings_button (из owner_node) скрыта")
 	
 	# Сердца (SurvivalModeUI) - находится в TopUI
 	var survival = owner_node.get_node_or_null("TopUI/SurvivalModeUI")
@@ -201,6 +228,12 @@ func show_game_ui_elements() -> void:
 				if ui_manager.button_ui.action_button_broken:
 					ui_manager.button_ui.action_button_broken.visible = true
 				DebugLogger.log("  ✅ action_button_broken показана (action_button disabled)")
+		if ui_manager.button_ui.pay_button:
+			ui_manager.button_ui.pay_button.visible = _pay_button_was_visible_before_settings
+			DebugLogger.log("  ✅ pay_button: %s" % ("показана" if _pay_button_was_visible_before_settings else "оставлена скрытой"))
+		if ui_manager.button_ui.collect_button:
+			ui_manager.button_ui.collect_button.visible = _collect_button_was_visible_before_settings
+			DebugLogger.log("  ✅ collect_button: %s" % ("показана" if _collect_button_was_visible_before_settings else "оставлена скрытой"))
 	
 	# Кнопка подсказки - проверяем в TopUI и в корне
 	var help_button = owner_node.get_node_or_null("TopUI/HelpButton")
@@ -212,6 +245,19 @@ func show_game_ui_elements() -> void:
 	elif ui_manager and ui_manager.button_ui and ui_manager.button_ui.help_button:
 		ui_manager.button_ui.help_button.visible = true
 		DebugLogger.log("  ✅ help_button (из ui_manager) показана")
+
+	# Кнопка настроек - проверяем в TopUI и в корне
+	var settings_button = owner_node.get_node_or_null("TopUI/SettingsButton")
+	if not settings_button:
+		settings_button = owner_node.get_node_or_null("SettingsButton")
+	if settings_button:
+		settings_button.visible = true
+		DebugLogger.log("  ✅ settings_button показана")
+	elif owner_node.has("settings_button"):
+		var top_settings_button = owner_node.get("settings_button")
+		if top_settings_button:
+			top_settings_button.visible = true
+			DebugLogger.log("  ✅ settings_button (из owner_node) показана")
 	
 	# Сердца (SurvivalModeUI) - находится в TopUI
 	var survival = owner_node.get_node_or_null("TopUI/SurvivalModeUI")

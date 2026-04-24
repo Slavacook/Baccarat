@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mkdir *)",
+      "Bash(mv *)",
+      "Bash(touch *)",
+      "Bash(docker compose up *)",
+      "Bash(docker info)",
+      "Bash(docker system *)",
+      "Bash(osascript *)",
+      "Bash(open *)",
+      "Bash(ls *)",
+      "Bash(pkill *)",
+      "Bash(docker version)",
+      "Bash(docker compose exec *)",
+      "Bash(chmod *)",
+      "Bash(ssh *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git push)",
+      "Bash(git ls-files *)",
+      "Bash(ping *)",
+      "Bash(do *)",
+      "Bash(break)",
+      "Bash(done)",
+      "Bash(curl *)",
+      "Bash(scp *)"
+    ]
+  },
+  "$version": 3
+}

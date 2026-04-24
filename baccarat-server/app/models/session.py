@@ -1,8 +1,8 @@
-import uuid
 import enum
 from datetime import datetime
+import uuid
 
-from sqlalchemy import String, Integer, ForeignKey, Enum, DateTime, func
+from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -39,7 +39,7 @@ class Session(Base):
         Enum(SessionStatus), default=SessionStatus.CREATED, index=True
     )
     type: Mapped[SessionType] = mapped_column(
-        Enum(SessionType), default=SessionType.LIVE
+        "type", Enum(SessionType), default=SessionType.LIVE
     )
     master_seed: Mapped[str] = mapped_column(String(255), nullable=False)
     duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False)
@@ -87,9 +87,7 @@ class SessionParticipant(Base):
     # ─── Relationships ───
     session: Mapped["Session"] = relationship("Session", back_populates="participants", lazy="selectin")
 
-    __table_args__ = (
-        # Уникальная пара сессия + дилер
-    )
+    __table_args__ = (UniqueConstraint("session_id", "dealer_id", name="uq_session_participant"),)
 
     def __repr__(self) -> str:
         return f"<SessionParticipant {self.dealer_id} in {self.session_id}>"

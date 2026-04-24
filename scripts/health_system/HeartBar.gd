@@ -93,7 +93,6 @@ func lose_life() -> void:
 	
 	# Проверяем бессмертие - если включено, не отнимаем сердце
 	if SaveManager.instance and SaveManager.instance.load_immortality_enabled():
-		print("💀 Бессмертие активно - сердце не отнимается")
 		return
 	
 	current_lives -= 1

@@ -27,21 +27,21 @@ class TestTrainerRegister:
         response = await client.post("/api/auth/trainer/register", json=body)
         assert response.status_code == 409
 
-    @pytest.mark.parametrize(
-        "password,expected_error",
-        [
-            ("short", "8 символов"),
-            ("nouppercas123", "букву"),  # только строчные
-            ("lettersOnly", "цифру"),
-        ],
-    )
-    async def test_register_weak_password(self, client: AsyncClient, password: str, expected_error: str):
-        """Слабый пароль → 422."""
+    async def test_register_password_too_short(self, client: AsyncClient):
+        """Пароль короче 4 символов → 422."""
         response = await client.post(
             "/api/auth/trainer/register",
-            json={"email": "weak@trainer.com", "password": password},
+            json={"email": "weak@trainer.com", "password": "ab"},
         )
         assert response.status_code == 422
+
+    async def test_register_simple_password_ok(self, client: AsyncClient, db_session):
+        """Тестовый простой пароль (без заглавных и цифр) → 201."""
+        response = await client.post(
+            "/api/auth/trainer/register",
+            json={"email": "simple@trainer.com", "password": "00000000"},
+        )
+        assert response.status_code == 201
 
     async def test_register_invalid_email(self, client: AsyncClient):
         """Неверный формат email → 422."""

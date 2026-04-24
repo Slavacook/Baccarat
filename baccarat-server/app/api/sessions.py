@@ -2,6 +2,7 @@
 
 from datetime import datetime, timezone
 import hashlib
+import json
 import secrets
 import uuid
 
@@ -28,9 +29,82 @@ from app.schemas.session import (
 from app.utils.auth import decode_token
 from app.websocket.manager import ws_manager
 
+# Сообщения дилера → ретрансляция всем в live-сессии (тренер + дилеры), см. docs/ONLINE_PROTOCOL.md
+_LIVE_MONITOR_TYPES = frozenset(
+    {
+        "round_started",
+        "error_occurred",
+        "action_performed",
+        "round_completed",
+        "table_state",
+    },
+)
+_LIVE_MONITOR_MAX_JSON_BYTES = 12_000
+
 
 router = APIRouter()
 ws_router = APIRouter()
+# Последний валидный table_state по ключу session_id + dealer_id (in-memory, процессный).
+_LATEST_TABLE_STATE_BY_SESSION: dict[str, dict[str, dict]] = {}
+
+
+def _is_valid_table_state_payload(data: dict, session_id: str) -> bool:
+    """Базовая валидация table_state без падения WS."""
+    schema_version = data.get("schema_version")
+    if schema_version != 1:
+        return False
+
+    event_seq = data.get("event_seq")
+    if isinstance(event_seq, bool) or not isinstance(event_seq, int):
+        return False
+
+    round_id = data.get("round_id")
+    if not isinstance(round_id, str) or not round_id.strip():
+        return False
+
+    payload_session_id = data.get("session_id")
+    if payload_session_id is not None and str(payload_session_id).strip() != str(session_id).strip():
+        return False
+
+    return True
+
+
+def _cache_table_state_if_newer(session_id: str, dealer_id: str, payload: dict) -> bool:
+    """Кэширует table_state только если event_seq строго больше предыдущего.
+
+    Returns:
+        True если кэш обновлен, иначе False.
+    """
+    event_seq = payload.get("event_seq")
+    if isinstance(event_seq, bool) or not isinstance(event_seq, int):
+        return False
+
+    by_dealer = _LATEST_TABLE_STATE_BY_SESSION.setdefault(session_id, {})
+    prev = by_dealer.get(dealer_id)
+    if isinstance(prev, dict):
+        prev_seq = prev.get("event_seq")
+        if isinstance(prev_seq, int) and event_seq <= prev_seq:
+            return False
+
+    by_dealer[dealer_id] = payload
+    return True
+
+
+def _get_cached_table_states_for_session(session_id: str) -> list[dict]:
+    """Возвращает копии последних table_state для заданной сессии."""
+    by_dealer = _LATEST_TABLE_STATE_BY_SESSION.get(session_id, {})
+    if not isinstance(by_dealer, dict) or not by_dealer:
+        return []
+    states: list[dict] = []
+    for payload in by_dealer.values():
+        if isinstance(payload, dict):
+            states.append(dict(payload))
+    return states
+
+
+def _merge_live_payload_with_listener_dealer(data: dict, listener_id: str) -> dict:
+    """dealer_id из токена — единственный источник правды."""
+    return {**data, "dealer_id": listener_id}
 
 
 def _new_master_seed() -> str:
@@ -631,6 +705,15 @@ async def session_ws(
     listener_id: str = user_sub
 
     await ws_manager.connect(session_id, websocket)
+    if listener_role == "trainer":
+        # Безопаснее всегда отправлять sync (даже пустой) как явный hand-shake.
+        # Это позволяет клиенту не гадать, есть ли уже состояние в сессии.
+        await websocket.send_json(
+            {
+                "type": "table_state_sync",
+                "data": {"states": _get_cached_table_states_for_session(session_id)},
+            }
+        )
     if listener_role == "dealer":
         await ws_manager.broadcast(
             session_id=session_id,
@@ -654,6 +737,39 @@ async def session_ws(
                     session_id=session_id,
                     event_type="dealer_ready",
                     data={"dealer_id": listener_id},
+                )
+            elif listener_role == "dealer" and message_type in _LIVE_MONITOR_TYPES:
+                raw_data = message.get("data")
+                if not isinstance(raw_data, dict):
+                    if message_type == "table_state":
+                        print(f"[WS] skip invalid table_state data type: session={session_id} dealer={listener_id}")
+                        continue
+                    data: dict = {}
+                else:
+                    data = raw_data
+
+                if message_type == "table_state" and not _is_valid_table_state_payload(data, session_id):
+                    print(f"[WS] skip invalid table_state payload: session={session_id} dealer={listener_id}")
+                    continue
+
+                merged = _merge_live_payload_with_listener_dealer(data, listener_id)
+                try:
+                    if len(json.dumps(merged, ensure_ascii=False)) > _LIVE_MONITOR_MAX_JSON_BYTES:
+                        if message_type == "table_state":
+                            print(f"[WS] skip oversized table_state payload: session={session_id} dealer={listener_id}")
+                        continue
+                except (TypeError, ValueError):
+                    if message_type == "table_state":
+                        print(f"[WS] skip non-serializable table_state payload: session={session_id} dealer={listener_id}")
+                    continue
+                if message_type == "table_state":
+                    updated = _cache_table_state_if_newer(session_id, listener_id, merged)
+                    if not updated:
+                        print(f"[WS] skip table_state cache update (old/duplicate seq): session={session_id} dealer={listener_id}")
+                await ws_manager.broadcast(
+                    session_id=session_id,
+                    event_type=message_type,
+                    data=merged,
                 )
     except WebSocketDisconnect:
         ws_manager.disconnect(session_id, websocket)

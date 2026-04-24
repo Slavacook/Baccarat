@@ -135,7 +135,7 @@ corner_radius_bottom_right = 10
 corner_radius_bottom_left = 10
 
 [node name="SettingsScene" type="CanvasLayer"]
-layer = 100
+layer = 180
 script = ExtResource("1_8limm")
 
 [node name="BackgroundPanel" type="Panel" parent="."]
@@ -169,7 +169,19 @@ theme_override_constants/margin_bottom = 30
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="TitleLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+[node name="TitleHeader" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="TitleHeaderLeftSpacer" type="Control" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/TitleHeader"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="TitleCenterContainer" type="CenterContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/TitleHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TitleLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/TitleHeader/TitleCenterContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.95, 0.95, 0.95, 1)
 theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.5)
@@ -178,6 +190,32 @@ theme_override_constants/shadow_offset_y = 2
 theme_override_font_sizes/font_size = 36
 text = "НАСТРОЙКИ"
 horizontal_alignment = 1
+
+[node name="TitleHeaderRightSlot" type="CenterContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/TitleHeader"]
+custom_minimum_size = Vector2(250, 0)
+layout_mode = 2
+
+[node name="StoryHeaderToggle" type="CheckButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/TitleHeader/TitleHeaderRightSlot"]
+visible = false
+custom_minimum_size = Vector2(220, 50)
+layout_mode = 2
+text = "Включен"
+
+[node name="StoryHeaderDescriptionLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.56, 0.88, 0.56, 1)
+theme_override_font_sizes/font_size = 17
+text = "Здесь настраивается, при каком количестве чаевых за стол приходит следующий гость."
+autowrap_mode = 3
+
+[node name="StoryHeaderModeInfoLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.93, 0.82, 0.34, 1)
+theme_override_font_sizes/font_size = 16
+text = "Новые гости приходят автоматически, когда чаевые достигают указанных порогов."
+autowrap_mode = 3
 
 [node name="HSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 layout_mode = 2
@@ -200,10 +238,10 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 15
 
 [node name="LimitsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 27
 theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
@@ -211,14 +249,25 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled"
 text = "Лимиты"
 
 [node name="GuestsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 27
 theme_override_styles/normal = SubResource("StyleBoxFlat_guest_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_guest_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_guest_button_hover")
 text = "Гости"
+
+[node name="TrainingButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/LeftColumn"]
+custom_minimum_size = Vector2(0, 75)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 27
+theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
+theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
+theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
+text = "Обучение"
 
 [node name="RightColumn" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer"]
 layout_mode = 2
@@ -226,10 +275,10 @@ size_flags_horizontal = 3
 theme_override_constants/separation = 15
 
 [node name="BetsFilterButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 27
 theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
@@ -237,21 +286,21 @@ theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled"
 text = "Фильтр ставок"
 
 [node name="StoryButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 27
 theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
 theme_override_styles/disabled = SubResource("StyleBoxFlat_mode_button_disabled")
-text = "Сюжет"
+text = "Сюжет: вкл"
 
 [node name="AdvancedSettingsButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
-custom_minimum_size = Vector2(0, 50)
+custom_minimum_size = Vector2(0, 75)
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 27
 theme_override_styles/normal = SubResource("StyleBoxFlat_mode_button")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_mode_button_pressed")
 theme_override_styles/hover = SubResource("StyleBoxFlat_mode_button_hover")
@@ -375,11 +424,12 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
 theme_override_font_sizes/font_size = 22
-text = "Настройка карт"
+text = "Ручная раздача"
 horizontal_alignment = 1
 
 [node name="TestCardsEnabledCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsHeader"]
 layout_mode = 2
+text = "Задать карты вручную"
 
 [node name="CardSettingsContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn"]
 layout_mode = 2
@@ -444,6 +494,26 @@ text = "ИГРОК 2"
 [node name="Player2CardOption" type="OptionButton" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/CardSettingsContainer/Player2Row"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="HSeparatorFreePractice" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn"]
+layout_mode = 2
+
+[node name="ImmortalityContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SectionImmortality" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/ImmortalityContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "СВОБОДНАЯ ТРЕНИРОВКА"
+horizontal_alignment = 1
+
+[node name="ImmortalityButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/BetsFilterSubmenu/RightColumn/ImmortalityContainer"]
+custom_minimum_size = Vector2(0, 40)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Свободная тренировка"
 
 [node name="AdvancedSettingsSubmenu" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
 visible = false
@@ -513,40 +583,39 @@ size_flags_horizontal = 3
 button_pressed = true
 text = "Включить"
 
-[node name="HSeparatorImmortality" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
-layout_mode = 2
-
-[node name="ImmortalityContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="SectionImmortality" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/ImmortalityContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "БЕССМЕРТИЕ"
-horizontal_alignment = 1
-
-[node name="ImmortalityButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/ImmortalityContainer"]
-custom_minimum_size = Vector2(0, 40)
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Бессмертие"
-
 [node name="StorySubmenu" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
 visible = false
 layout_mode = 2
 size_flags_vertical = 3
-theme_override_constants/separation = 20
-
-[node name="TableContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
-layout_mode = 2
-size_flags_vertical = 3
 theme_override_constants/separation = 10
 
-[node name="AutoModeCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
+[node name="StoryDescriptionLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
 layout_mode = 2
-text = "Автоматический режим"
+theme_override_colors/font_color = Color(0.93, 0.82, 0.34, 1)
+theme_override_font_sizes/font_size = 16
+text = "Здесь настраивается, при каком количестве чаевых за стол приходит следующий гость."
+autowrap_mode = 3
+
+[node name="StoryScrollContainer" type="ScrollContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
+layout_mode = 2
+size_flags_vertical = 3
+follow_focus = true
+
+[node name="TableContainer" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu/StoryScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="StoryFooterSeparator" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
+layout_mode = 2
+
+[node name="StoryModeInfoLabel" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/StorySubmenu"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.56, 0.88, 0.56, 1)
+theme_override_font_sizes/font_size = 17
+text = "Новые гости приходят автоматически, когда чаевые достигают указанных порогов."
+autowrap_mode = 3
 
 [node name="HSeparatorBottom" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox"]
 visible = false
@@ -572,9 +641,22 @@ layout_mode = 2
 size_flags_horizontal = 4
 theme_override_constants/separation = 20
 
+[node name="StoryToggleButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ControlButtons"]
+visible = false
+custom_minimum_size = Vector2(180, 55)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_font_sizes/font_size = 18
+theme_override_styles/normal = SubResource("StyleBoxFlat_apply_button")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_apply_button")
+theme_override_styles/hover = SubResource("StyleBoxFlat_apply_button_hover")
+text = "Сюжет ВКЛ"
+
 [node name="ApplyButton" type="Button" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ControlButtons"]
 custom_minimum_size = Vector2(180, 55)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_font_sizes/font_size = 18
 theme_override_styles/normal = SubResource("StyleBoxFlat_apply_button")

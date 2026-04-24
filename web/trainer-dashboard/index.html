@@ -100,6 +100,24 @@
         <p id="session-info" class="mono muted"></p>
       </div>
 
+      <div class="card" id="live-feed-card">
+        <h2>События в реальном времени</h2>
+        <p class="muted small">Ошибки и ключевые действия дилеров по WebSocket (пока активна тренировка).</p>
+        <div class="row wrap">
+          <label class="inline-check">
+            <input type="checkbox" id="live-feed-errors-only" />
+            Только ошибки
+          </label>
+        </div>
+        <ul id="live-feed-list" class="live-feed" aria-live="polite"></ul>
+        <p id="live-feed-empty" class="muted small">Пока нет событий — дождитесь действий ученика в игре.</p>
+      </div>
+
+      <div class="card" id="live-table-card">
+        <h2>Live View стола (MVP)</h2>
+        <div id="live-table-view"></div>
+      </div>
+
       <div class="card">
         <h2>Live-дашборд</h2>
         <div class="table-wrap">

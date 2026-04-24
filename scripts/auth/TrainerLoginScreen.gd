@@ -42,6 +42,8 @@ func _ready() -> void:
 
 
 func _find_api_service() -> ApiService:
+	if Engine.has_singleton("ApiService"):
+		return Engine.get_singleton("ApiService") as ApiService
 	var root = get_tree().root
 	for child in root.get_children():
 		if child.name == "ApiService":

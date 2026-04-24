@@ -32,6 +32,14 @@ var pay_button: TextureButton      # Кнопка "Оплатить" (toggle)
 # Текущее состояние action button
 var current_button_state: String = "start"
 
+# Базовые параметры кнопки действия для восстановления layout
+var _default_action_button_scale: Vector2 = Vector2.ONE
+var _default_action_button_offset_left: float = 0.0
+var _default_action_button_offset_top: float = 0.0
+var _default_action_button_broken_scale: Vector2 = Vector2.ONE
+var _default_action_button_broken_offset_left: float = 0.0
+var _default_action_button_broken_offset_top: float = 0.0
+
 # Состояние кнопок collect/pay (взаимоисключающие toggle)
 var _collect_mode_active: bool = false
 var _pay_mode_active: bool = false
@@ -57,6 +65,10 @@ func _init(scene: Node):
 	
 	if not action_button:
 		push_error("ButtonUIManager: CardsButton не найдена в сцене!")
+	else:
+		_default_action_button_scale = action_button.scale
+		_default_action_button_offset_left = action_button.offset_left
+		_default_action_button_offset_top = action_button.offset_top
 	
 	help_button = scene.get_node("HelpButton")
 	
@@ -71,6 +83,9 @@ func _init(scene: Node):
 		action_button_broken = scene.find_child("CardsButtonBroken", true, false)
 	
 	if action_button_broken:
+		_default_action_button_broken_scale = action_button_broken.scale
+		_default_action_button_broken_offset_left = action_button_broken.offset_left
+		_default_action_button_broken_offset_top = action_button_broken.offset_top
 		# Если кнопки находятся в разных родительских узлах, перемещаем broken кнопку к основной
 		# НО НЕ меняем её позицию и размер - они настроены отдельно в сцене!
 		if action_button and action_button_broken.get_parent() != action_button.get_parent():
@@ -92,6 +107,9 @@ func _init(scene: Node):
 			action_button_broken.offset_bottom = saved_offset_bottom
 			action_button_broken.scale = saved_scale
 			print("🔄 ButtonUIManager: CardsButtonBroken перемещена к тому же родителю что и CardsButton (параметры сохранены)")
+		_default_action_button_broken_scale = action_button_broken.scale
+		_default_action_button_broken_offset_left = action_button_broken.offset_left
+		_default_action_button_broken_offset_top = action_button_broken.offset_top
 		# Подключаем обработчик нажатия на broken кнопку
 		action_button_broken.pressed.connect(_on_broken_button_pressed)
 		print("✅ ButtonUIManager: CardsButtonBroken найдена и подключена (путь: %s)" % action_button_broken.get_path())
@@ -166,9 +184,38 @@ func set_action_button_state(state: String):
 	if pressed_tex:
 		action_button.texture_pressed = pressed_tex
 
+	_apply_action_button_layout_for_state(state)
+
 	# Сохраняем текущее состояние
 	current_button_state = state
 	print("🔘 Кнопка: %s" % state)
+
+
+func _apply_action_button_layout_for_state(state: String) -> void:
+	"""Применить layout для состояния action button.
+
+	Кнопка "Завершить" делается заметно крупнее, остальные состояния
+	возвращаются к базовому размеру и позиции.
+	"""
+	if action_button:
+		if state == "complete":
+			action_button.scale = _default_action_button_scale * 1.5
+			action_button.offset_left = _default_action_button_offset_left
+			action_button.offset_top = _default_action_button_offset_top - 18.0
+		else:
+			action_button.scale = _default_action_button_scale
+			action_button.offset_left = _default_action_button_offset_left
+			action_button.offset_top = _default_action_button_offset_top
+
+	if action_button_broken:
+		if state == "complete":
+			action_button_broken.scale = _default_action_button_broken_scale * 1.5
+			action_button_broken.offset_left = _default_action_button_broken_offset_left
+			action_button_broken.offset_top = _default_action_button_broken_offset_top
+		else:
+			action_button_broken.scale = _default_action_button_broken_scale
+			action_button_broken.offset_left = _default_action_button_broken_offset_left
+			action_button_broken.offset_top = _default_action_button_broken_offset_top
 
 
 func get_action_button_state() -> String:

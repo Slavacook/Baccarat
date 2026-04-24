@@ -1,5 +1,5 @@
 res://addons/gut/gui/about.tscn::ab1376faef1e76aea0aa3ce8703c56f9::1767661809::res://.godot/exported/133200997/export-3eec6d175281e5853cb1df567bd07d3b-about.scn
-res://addons/gut/gui/EditorRadioButton.tres::65528f4ac12fe72e047cfdf83a0c13a8::1768445928::res://.godot/exported/133200997/export-977063b975ed2d07c571eeef00528018-EditorRadioButton.res
+res://addons/gut/gui/EditorRadioButton.tres::65528f4ac12fe72e047cfdf83a0c13a8::1774178383::res://.godot/exported/133200997/export-977063b975ed2d07c571eeef00528018-EditorRadioButton.res
 res://addons/gut/gui/GutBottomPanel.tscn::b001881989bc02fa3a7496e58a01a2d5::1767661809::res://.godot/exported/133200997/export-8386f4bb580e16d6c15d474a2f0091ee-GutBottomPanel.scn
 res://addons/gut/gui/GutControl.tscn::3fb531da56f6a4e477d63133eb4ad6cd::1767661809::res://.godot/exported/133200997/export-26e9e30cc7f4a2376e8aa94aba7b910a-GutControl.scn
 res://addons/gut/gui/GutEditorWindow.tscn::23786b12593bff810737e5dbbc431303::1767661809::res://.godot/exported/133200997/export-663c39ac1e5541814591cf29b69f2ecf-GutEditorWindow.scn
@@ -32,13 +32,13 @@ res://scenes/BetPopup.tscn::ffebf367fc371bc3a3eade3b30ab1e2a::1768285065::res://
 res://scenes/ChanceCardPopup.tscn::236c427b6a825d5b9f657bb1e9450a3f::1765977273::res://.godot/exported/133200997/export-650de99ace40fb7edfef4d36da561a34-ChanceCardPopup.scn
 res://scenes/ChanceCardUI.tscn::63b56216fa92e7bbecbb23320ab96bb9::1766038839::res://.godot/exported/133200997/export-2ec49b5d9618f6cfc9ee546d9441de35-ChanceCardUI.scn
 res://scenes/flip_card.tscn::b02968e8c1dce58336a7b53fc4a7701b::1765877564::res://.godot/exported/133200997/export-53451cf5d78dad049dbd382e0692b7e2-flip_card.scn
-res://scenes/Game.tscn::c76033517fd362a9a0f0f8e1d34d78e7::1768446308::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
+res://scenes/Game.tscn::1292fe81d0a8d29ebd2ccce5660262d2::1774338985::res://.godot/exported/133200997/export-ff8ceb9b2bd5b48777d3d52e811276ab-Game.scn
 res://scenes/GameOverScene.tscn::808b7ae61f1cc8bc5c93ddbcec99dab6::1768138236::res://.godot/exported/133200997/export-ee65042387edb6388f29bb9fd921ecb4-GameOverScene.scn
 res://scenes/GuestMenuScene.tscn::1dde4ab54d968ed8e8027da736cc6c34::1767163772::res://.godot/exported/133200997/export-4f6a3192fad58b4202275b3c149324ac-GuestMenuScene.scn
 res://scenes/HelpPopup.tscn::585bb39b407bcc240edbb0a1601c2710::1768285065::res://.godot/exported/133200997/export-1b2dd5d4a853313dc9fc779615d524ff-HelpPopup.scn
 res://scenes/OverlayNotification.tscn::a4e7e2d2b8bc1711fbda24b228d2fc42::1765877564::res://.godot/exported/133200997/export-675c578198c2449a017848c049fd5c2f-OverlayNotification.scn
 res://scenes/PayoutScene.tscn::cdd0f147f10d4b95bd03ddc92bd3c964::1767335777::res://.godot/exported/133200997/export-e2477eb6b22f910000322590cd82aa75-PayoutScene.scn
-res://scenes/SettingsScene.tscn::89817ceeff135d728ebddfaaa8ec7230::1768450032::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn
+res://scenes/SettingsScene.tscn::5bf658359c16bb7d23d0a6b5cf07f011::1774247438::res://.godot/exported/133200997/export-18f0db4684828660a43e0a35872c103f-SettingsScene.scn
 res://scenes/SurvivalModeUI.tscn::67c509831499711f66ccef400b5cb45c::1766041398::res://.godot/exported/133200997/export-45615fe3afa59d26b4203c7fbb0186a4-SurvivalModeUI.scn
 res://scenes/Toast.tscn::d0574c8d643a12045edc019854947f74::1765878366::res://.godot/exported/133200997/export-d67afd36343bf3ac929fd469be32f31a-Toast.scn
 res://tests/ManualTestBankerAfterPlayerHandler.tscn::7c3ebc7f1b4f41063873ea7bf8bbac37::1766485339::res://.godot/exported/133200997/export-052e9046a38a74f61d40d29c4ac46578-ManualTestBankerAfterPlayerHandler.scn
@@ -73,3 +73,10 @@ res://tests/ManualTestWinnerActionExecutor.tscn::0a7667563373399a89d349fad8c6f84
 res://tests/ManualTestWinnerSelectionCoordinator.tscn::c478fb6e0cc60301131179063e7c3200::1766467515::res://.godot/exported/133200997/export-c8ded621eb898eb9dc716cc7168e5215-ManualTestWinnerSelectionCoordinator.scn
 res://tests/ManualTestWinnerSelectionStateHandler.tscn::e24168be6f57f211fb1636f6b38f903c::1766468689::res://.godot/exported/133200997/export-1b4fb62020d0f45ae3a8624cb3ab07ff-ManualTestWinnerSelectionStateHandler.scn
 res://tests/ManualTestWinnerSelectionValidator.tscn::0ef112a043f7d0c40853006ff5da598c::1766457116::res://.godot/exported/133200997/export-ab0b9b42ef98e0dc5db94e61bbb358b4-ManualTestWinnerSelectionValidator.scn
+res://scenes/training/TrainingInstructionPopup.tscn::e4051216f44909ce7962fdac04a186fb::1769684187::res://.godot/exported/133200997/export-f32c2dcaaf99a08d737ee1d294ee76dc-TrainingInstructionPopup.scn
+res://scenes/training/TrainingProgressBar.tscn::d9879d714ee3837cf8ff3b2d2a8bc28a::1769684054::res://.godot/exported/133200997/export-d55c4e11e33e0bed6e53f988eb777782-TrainingProgressBar.scn
+res://scenes/training/TrainingQuestionPopup.tscn::3547df2d8d0f9ba26a990d293a526f21::1769684295::res://.godot/exported/133200997/export-ac2bbd859d7e4c33ac952888e38d5209-TrainingQuestionPopup.scn
+res://scenes/training/TrainingStageCompletePopup.tscn::f5e75e106c49551fcbbaeb286cdabe9d::1769684512::res://.godot/exported/133200997/export-de60c8dba1ab3399d33acf2b80679d14-TrainingStageCompletePopup.scn
+res://scenes/network/DealerWaitingScreen.tscn::bc3c8c92c978783f2344093e0cef4741::1777009640::res://.godot/exported/133200997/export-fc43f917df6663f4ad0a945f34644ae7-DealerWaitingScreen.scn
+res://scenes/network/LobbyScreen.tscn::f6bec70a3544bfa2c0ebbb9bc8b7af48::1777009640::res://.godot/exported/133200997/export-fe2b74ad24cfe8777e0b4e10aa6ab42e-LobbyScreen.scn
+res://scenes/network/MainMenu.tscn::a61f2a323e9f20ab79820a7ac699f34e::1776171621::res://.godot/exported/133200997/export-754d247c1357e9b9f655518a770660d9-MainMenu.scn

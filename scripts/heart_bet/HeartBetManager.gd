@@ -66,11 +66,6 @@ func _connect_signals() -> void:
 ## Проверить триггеры после завершения раунда
 ## Возвращает true если какой-то триггер сработал
 func check_triggers(winner: String, banker_score: int, player_score: int, is_natural: bool) -> bool:
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H9","location":"HeartBetManager.check_triggers","message":"checking triggers","data":{"current_state":"%s","winner":"%s","banker_score":%d,"player_score":%d,"is_natural":%s},"timestamp":%d}' % [State.keys()[current_state], winner, banker_score, player_score, str(is_natural).to_lower(), int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
 	# Можем накапливать шансы даже во время активной игры на жизнь
 	# (но не во время RESOLVING)
 	if current_state == State.RESOLVING:
@@ -105,11 +100,6 @@ func get_chance_count() -> int:
 ## Возвращает true если шанс использован успешно
 ## ВАЖНО: Карта НЕ отнимается здесь, только при подтверждении ставки в confirm()
 func use_chance() -> bool:
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H7","location":"HeartBetManager.use_chance","message":"use_chance called","data":{"chance_count":%d,"current_state":"%s"},"timestamp":%d}' % [chance_count, State.keys()[current_state], int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
 	if chance_count <= 0:
 		print("❤️ HeartBetManager: нет доступных шансов")
 		return false
@@ -239,11 +229,6 @@ func _decline() -> void:
 ## Определить результат ставки
 ## Вызывается после определения победителя раздачи
 func resolve(actual_winner: String) -> void:
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H1","location":"HeartBetManager.resolve:entry","message":"resolve called","data":{"current_state":"%s","selected_target":"%s","actual_winner":"%s"},"timestamp":%d}' % [State.keys()[current_state], selected_target, actual_winner, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
 	if current_state != State.ACTIVE:
 		print("❤️ HeartBetManager: нет активной ставки для разрешения")
 		return
@@ -251,12 +236,7 @@ func resolve(actual_winner: String) -> void:
 	current_state = State.RESOLVING
 
 	print("❤️ Разрешение ставки: выбрано '%s', победитель '%s'" % [selected_target, actual_winner])
-
-	# #region agent log
-	var _log_file2 = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
 	var _is_tie_draw = (selected_target != "Tie" and actual_winner == "Tie")
-	if _log_file2: _log_file2.seek_end(); _log_file2.store_line('{"hypothesisId":"H5","location":"HeartBetManager.resolve:check","message":"checking conditions","data":{"selected_target":"%s","actual_winner":"%s","is_tie_draw":%s,"is_match":%s},"timestamp":%d}' % [selected_target, actual_winner, str(_is_tie_draw).to_lower(), str(selected_target == actual_winner).to_lower(), int(Time.get_unix_time_from_system() * 1000)]); _log_file2.close()
-	# #endregion
 
 	if selected_target == actual_winner:
 		# Угадал!
@@ -319,11 +299,6 @@ func _handle_loss() -> void:
 
 ## Обработка ничьей (Tie при ставке на Player/Banker)
 func _handle_tie_draw() -> void:
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H2","location":"HeartBetManager._handle_tie_draw","message":"tie draw handling started","data":{"selected_target":"%s","chance_count":%d},"timestamp":%d}' % [selected_target, chance_count, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
 	print("❤️🔄 НИЧЬЯ (Tie)! Карта сгорела, залог возвращается, игра завершается")
 
 	# Показываем оверлей (4 секунды чтобы успеть прочитать)
@@ -353,11 +328,6 @@ func _handle_tie_draw() -> void:
 
 ## Сбросить состояние
 func _reset() -> void:
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H8","location":"HeartBetManager._reset","message":"resetting state","data":{"old_state":"%s","chance_count":%d},"timestamp":%d}' % [State.keys()[current_state], chance_count, int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
 	current_state = State.IDLE
 	selected_target = ""
 	last_trigger_name = ""

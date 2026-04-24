@@ -56,24 +56,24 @@ const PROFILE_CHANCES = {
 		"tie": [70, 22, 7.5, 0.5],
 		"name_ru": "Малые",
 		"name_en": "Small",
-		"description_ru": "Мелкие ставки для тренировки",
-		"description_en": "Small bets for practice"
+		"description_ru": "Небольшие ставки для тренировки",
+		"description_en": "Smaller bets for practice"
 	},
 	BetProfile.MEDIUM: {
 		"main": [70, 22, 7.5, 0.5],
 		"tie": [70, 22, 7.5, 0.5],
 		"name_ru": "Средние",
 		"name_en": "Medium",
-		"description_ru": "Реалистичная игра",
-		"description_en": "Realistic gameplay"
+		"description_ru": "Реалистичная тренировка за столом",
+		"description_en": "Realistic table practice"
 	},
 	BetProfile.LARGE: {
 		"main": [70, 22, 7.5, 0.5],
 		"tie": [70, 22, 7.5, 0.5],
 		"name_ru": "Крупные",
 		"name_en": "Large",
-		"description_ru": "Имитация богатого клиента",
-		"description_en": "High roller simulation"
+		"description_ru": "Сценарий крупного гостя",
+		"description_en": "VIP guest scenario"
 	}
 }
 

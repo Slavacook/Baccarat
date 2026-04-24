@@ -11,6 +11,8 @@ extends Node2D
 
 # Явная загрузка классов для избежания проблем с парсингом
 const PayoutQueueHandlerScript = preload("res://scripts/payout/PayoutQueueHandler.gd")
+const RoundResultSenderScript = preload("res://scripts/session/RoundResultSender.gd")
+const OnlineLiveEventBridgeScript = preload("res://scripts/session/OnlineLiveEventBridge.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНФИГУРАЦИЯ
@@ -134,6 +136,18 @@ var ui_event_handler: UIEventHandler
 var input_handler: InputHandler
 
 # ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ ОБУЧЕНИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+var training_mode_manager: TrainingModeManager = null
+var training_stage_manager: TrainingStageManager = null
+var is_training_mode_active: bool = false
+var training_progress_bar: TrainingProgressBar = null
+var training_instruction_popup: TrainingInstructionPopup = null
+var training_question_popup: TrainingQuestionPopup = null
+var training_stage_complete_popup: TrainingStageCompletePopup = null
+
+# ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
@@ -226,6 +240,8 @@ func _ready():
 	# Настройки: скрываем/показываем UI элементы
 	EventBus.settings_opened.connect(_on_settings_opened)
 	EventBus.settings_closed.connect(_on_settings_closed)
+	if settings_scene:
+		settings_scene.language_changed.connect(_refresh_top_bar_texts)
 	
 	# Начало новой раздачи: увеличиваем счетчик раздач
 	EventBus.round_started.connect(_on_round_started)
@@ -284,6 +300,7 @@ func _ready():
 	
 	_initialize_ui_event_handler()
 	_initialize_input_handler()
+	_initialize_training_mode()
 	
 	# Проверка подключения геймпадов (после инициализации GamepadMonitor)
 	_check_gamepad_connection()
@@ -299,6 +316,7 @@ func _ready():
 	
 	# Инициализируем счетчик раздач
 	_update_rounds_counter()
+	_refresh_top_bar_texts()
 	
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
@@ -315,6 +333,61 @@ func _ready():
 		PatienceTimerManager.reset_all_timers()
 	DebugLogger.log("🔄 Данные сброшены при инициализации сцены (чаевые, терпение, таймеры)")
 
+	# ─── Сетевая интеграция: RoundResultSender, живые события для тренера ───
+	_initialize_round_result_sender()
+	_initialize_online_live_event_bridge()
+	_setup_live_session_ws()
+
+func _setup_live_session_ws() -> void:
+	"""Подписка на события live WebSocket (сессия завершена и т.д.)."""
+	var sm: Node = get_node_or_null("/root/SessionManager")
+	if not sm or sm.current_mode != sm.Mode.ONLINE:
+		return
+	if not Engine.has_singleton("LiveSessionClient"):
+		return
+	var lsc: Node = LiveSessionClient
+	if lsc.live_event.is_connected(_on_live_session_ws_event):
+		return
+	lsc.live_event.connect(_on_live_session_ws_event)
+
+
+func _on_live_session_ws_event(event_type: String, data: Dictionary) -> void:
+	if event_type == "session_ended":
+		var reason: String = str(data.get("reason", ""))
+		var msg: String = "Live-сессия завершена тренером"
+		if reason != "":
+			msg += " (%s)" % reason
+		EventBus.show_toast_info.emit(msg)
+	elif event_type == "round_sync":
+		var sm_rs: Node = get_node_or_null("/root/SessionManager")
+		if sm_rs and sm_rs.has_method("apply_server_round_sync"):
+			sm_rs.apply_server_round_sync(data)
+		if training_mode_manager and training_mode_manager.has_method("queue_deck_reseed_from_server"):
+			training_mode_manager.queue_deck_reseed_from_server(str(data.get("round_seed", "")))
+
+
+func _initialize_round_result_sender() -> void:
+	"""Создаёт RoundResultSender если сессия онлайн."""
+	var sm = get_node_or_null("/root/SessionManager")
+	if sm and sm.current_mode == sm.Mode.ONLINE:
+		var sender = RoundResultSenderScript.new()
+		sender.name = "RoundResultSender"
+		add_child(sender)
+		print("🌐 RoundResultSender создан (сетевая сессия)")
+
+
+func _initialize_online_live_event_bridge() -> void:
+	"""Создаёт OnlineLiveEventBridge: EventBus → WebSocket для дашборда тренера."""
+	var sm: Node = get_node_or_null("/root/SessionManager")
+	if sm == null or sm.current_mode != sm.Mode.ONLINE:
+		return
+	if get_node_or_null("OnlineLiveEventBridge") != null:
+		return
+	var bridge: Node = OnlineLiveEventBridgeScript.new()
+	bridge.name = "OnlineLiveEventBridge"
+	add_child(bridge)
+	print("🌐 OnlineLiveEventBridge создан (live-события для тренера)")
+
 func _exit_tree() -> void:
 	"""Очистка при удалении сцены (важно при change_scene!)
 	
@@ -322,6 +395,10 @@ func _exit_tree() -> void:
 	иначе старый экземпляр продолжит получать события после рестарта.
 	"""
 	print("🧹 GameController._exit_tree: очистка CameraManager")
+	if Engine.has_singleton("LiveSessionClient"):
+		var lsc_ws: Node = LiveSessionClient
+		if lsc_ws.live_event.is_connected(_on_live_session_ws_event):
+			lsc_ws.live_event.disconnect(_on_live_session_ws_event)
 	if camera_manager:
 		camera_manager.cleanup()
 		camera_manager = null
@@ -830,6 +907,215 @@ func _initialize_input_handler() -> void:
 		get_viewport_callback
 	)
 	print("✅ InputHandler инициализирован")
+
+func _initialize_training_mode() -> void:
+	"""Инициализировать режим обучения (менеджеры и UI-ссылки)"""
+	var training_rng: RandomNumberGenerator = null
+	if Engine.has_singleton("SessionManager"):
+		var sm2: Node = Engine.get_singleton("SessionManager")
+		if sm2.current_mode == sm2.Mode.ONLINE:
+			var tseed: String = str(sm2.live_round_seed)
+			if not tseed.is_empty():
+				training_rng = LiveSeedRng.make_rng(tseed)
+	var training_deck: Deck = Deck.new(training_rng)
+	training_mode_manager = TrainingModeManager.new(training_deck, card_manager, ui_manager)
+	training_stage_manager = TrainingStageManager.new()
+	_setup_training_stages()
+	training_progress_bar = get_node_or_null("TrainingLayer/TrainingProgressBar") as TrainingProgressBar
+	training_instruction_popup = get_node_or_null("TrainingLayer/TrainingInstructionPopup") as TrainingInstructionPopup
+	training_question_popup = get_node_or_null("TrainingLayer/TrainingQuestionPopup") as TrainingQuestionPopup
+	training_stage_complete_popup = get_node_or_null("TrainingLayer/TrainingStageCompletePopup") as TrainingStageCompletePopup
+	if training_instruction_popup:
+		training_instruction_popup.start_button_pressed.connect(_on_training_instruction_start_pressed)
+	if training_question_popup:
+		training_question_popup.answer_selected.connect(_on_training_answer_selected)
+	if training_stage_complete_popup:
+		training_stage_complete_popup.repeat_pressed.connect(_on_training_repeat_pressed)
+		training_stage_complete_popup.continue_pressed.connect(_on_training_continue_pressed)
+	if training_mode_manager:
+		training_mode_manager.progress_changed.connect(_on_training_progress_changed)
+		training_mode_manager.stage_completed.connect(_on_training_stage_completed)
+	print("✅ Режим обучения инициализирован")
+
+# ═══════════════════════════════════════════════════════════════════════════
+# РЕЖИМ ОБУЧЕНИЯ — АКТИВАЦИЯ И ПОТОК
+# ═══════════════════════════════════════════════════════════════════════════
+
+func activate_training_mode() -> void:
+	if not training_mode_manager or training_mode_manager.stages.is_empty():
+		return
+	is_training_mode_active = true
+	training_mode_manager.activate_training_mode()
+	_hide_main_game_elements()
+	_show_training_elements()
+	training_mode_manager.start_stage(0)
+	if training_progress_bar:
+		training_progress_bar.reset_progress()
+	if training_instruction_popup and training_mode_manager.current_stage:
+		training_instruction_popup.setup(training_mode_manager.current_stage.instruction_text)
+		training_instruction_popup.popup_centered()
+	EventBus.training_mode_activated.emit()
+
+func deactivate_training_mode() -> void:
+	is_training_mode_active = false
+	if training_mode_manager:
+		training_mode_manager.deactivate_training_mode()
+	_show_main_game_elements()
+	_hide_training_elements()
+	EventBus.training_mode_deactivated.emit()
+
+func _hide_main_game_elements() -> void:
+	var top_ui: Node = get_node_or_null("TopUI")
+	if top_ui:
+		top_ui.visible = false
+	for path in ["PlayerMarker", "BankerMarker", "TieMarker", "SettingsButton", "HelpButton"]:
+		var n: Node = get_node_or_null(path)
+		if n:
+			n.visible = false
+
+func _show_main_game_elements() -> void:
+	var top_ui: Node = get_node_or_null("TopUI")
+	if top_ui:
+		top_ui.visible = true
+	for path in ["PlayerMarker", "BankerMarker", "TieMarker", "SettingsButton", "HelpButton"]:
+		var n: Node = get_node_or_null(path)
+		if n:
+			n.visible = true
+
+func _show_training_elements() -> void:
+	var layer: Node = get_node_or_null("TrainingLayer")
+	if layer:
+		layer.visible = true
+	if training_progress_bar:
+		training_progress_bar.visible = true
+
+func _hide_training_elements() -> void:
+	var layer: Node = get_node_or_null("TrainingLayer")
+	if layer:
+		layer.visible = false
+	if training_instruction_popup and training_instruction_popup.visible:
+		training_instruction_popup.hide()
+	if training_question_popup and training_question_popup.visible:
+		training_question_popup.hide()
+	if training_stage_complete_popup and training_stage_complete_popup.visible:
+		training_stage_complete_popup.hide()
+
+func _training_show_cards(scenario: Dictionary) -> void:
+	var p_hand: Array = scenario.get("player_hand", [])
+	var b_hand: Array = scenario.get("banker_hand", [])
+	if p_hand.size() >= 2 and b_hand.size() >= 2:
+		var p1: TextureRect = get_node_or_null("PlayerZone/Card1") as TextureRect
+		var p2: TextureRect = get_node_or_null("PlayerZone/Card2") as TextureRect
+		var b1: TextureRect = get_node_or_null("BankerZone/Card1") as TextureRect
+		var b2: TextureRect = get_node_or_null("BankerZone/Card2") as TextureRect
+		if p1: p1.texture = (p_hand[0] as Card).get_texture(card_manager)
+		if p2: p2.texture = (p_hand[1] as Card).get_texture(card_manager)
+		if b1: b1.texture = (b_hand[0] as Card).get_texture(card_manager)
+		if b2: b2.texture = (b_hand[1] as Card).get_texture(card_manager)
+	var card3_p: TextureRect = get_node_or_null("PlayerZone/Card3") as TextureRect
+	var card3_b: TextureRect = get_node_or_null("BankerZone/Card3") as TextureRect
+	if card3_p: card3_p.visible = false
+	if card3_b: card3_b.visible = false
+
+func _on_training_instruction_start_pressed() -> void:
+	if not training_mode_manager or not training_mode_manager.current_stage:
+		return
+	var scenario: Dictionary = training_mode_manager.generate_current_scenario()
+	if scenario.is_empty():
+		return
+	_training_show_cards(scenario)
+	if training_question_popup and training_mode_manager.current_stage:
+		var stage: TrainingStageBase = training_mode_manager.current_stage
+		var qtype: int = TrainingQuestionPopup.QuestionType.BINARY if stage.question_type == "binary" else TrainingQuestionPopup.QuestionType.ACTION_CHOICE
+		training_question_popup.setup(stage.question_text, qtype, stage.get_answer_options(scenario))
+		training_question_popup.popup_centered()
+
+func _on_training_answer_selected(answer: Variant) -> void:
+	if not training_mode_manager:
+		return
+	var result: Dictionary = training_mode_manager.process_answer(answer)
+	if result.is_empty():
+		return
+	if result.get("is_correct", false):
+		EventBus.show_overlay_success.emit("Верно!", 1.0)
+	else:
+		EventBus.show_overlay_error.emit("Ошибка!", 1.0)
+	var explanation: String = result.get("explanation", "")
+	if explanation != "":
+		EventBus.show_toast_info.emit(explanation)
+	if training_progress_bar:
+		training_progress_bar.update_progress(result.get("current_progress", 0.0))
+	EventBus.training_answer_processed.emit(result.get("is_correct", false), explanation, result.get("current_progress", 0.0))
+	# Если этап не завершён — через короткую паузу показать следующий вопрос (новые карты + попап).
+	# Таймер даёт время закрыться попапу и показать «Верно!», затем стабильно открыть следующий вопрос.
+	if not training_mode_manager.is_current_stage_complete():
+		var t: SceneTreeTimer = get_tree().create_timer(0.45)
+		t.timeout.connect(_training_next_round)
+	else:
+		# stage_completed уже эмитится из process_answer, попап покажет _on_training_stage_completed
+		pass
+
+func _training_next_round() -> void:
+	"""Следующий раунд этапа: новые карты и вопрос"""
+	if not training_mode_manager or not training_mode_manager.current_stage:
+		return
+	var scenario: Dictionary = training_mode_manager.generate_current_scenario()
+	if scenario.is_empty():
+		return
+	_training_show_cards(scenario)
+	if training_question_popup and training_mode_manager.current_stage:
+		var stage: TrainingStageBase = training_mode_manager.current_stage
+		var qtype: int = TrainingQuestionPopup.QuestionType.BINARY if stage.question_type == "binary" else TrainingQuestionPopup.QuestionType.ACTION_CHOICE
+		training_question_popup.setup(stage.question_text, qtype, stage.get_answer_options(scenario))
+		training_question_popup.popup_centered()
+
+func _on_training_progress_changed(_stage_id: String, progress: float) -> void:
+	if training_progress_bar:
+		training_progress_bar.update_progress(progress)
+
+func _on_training_stage_completed(_stage_id: String) -> void:
+	if training_stage_manager and training_mode_manager and training_mode_manager.current_stage:
+		training_stage_manager.mark_stage_completed(training_mode_manager.current_stage.stage_id)
+	if training_stage_complete_popup:
+		var is_last: bool = not training_mode_manager.has_next_stage()
+		training_stage_complete_popup.setup(training_mode_manager.get_current_progress(), is_last)
+		training_stage_complete_popup.popup_centered()
+
+func _on_training_repeat_pressed() -> void:
+	if not training_mode_manager or not training_mode_manager.current_stage:
+		return
+	training_mode_manager.stage_progress[training_mode_manager.current_stage.stage_id] = 0.0
+	if training_progress_bar:
+		training_progress_bar.reset_progress()
+	if training_instruction_popup and training_mode_manager.current_stage:
+		training_instruction_popup.setup(training_mode_manager.current_stage.instruction_text)
+		training_instruction_popup.popup_centered()
+
+func _on_training_continue_pressed() -> void:
+	if not training_mode_manager:
+		return
+	var next_idx: int = training_mode_manager.get_next_stage_index()
+	if next_idx < 0:
+		deactivate_training_mode()
+		if settings_scene and settings_scene is CanvasLayer:
+			settings_scene.visible = false
+		return
+	training_mode_manager.start_stage(next_idx)
+	if training_progress_bar:
+		training_progress_bar.reset_progress()
+	if training_instruction_popup and training_mode_manager.current_stage:
+		training_instruction_popup.setup(training_mode_manager.current_stage.instruction_text)
+		training_instruction_popup.popup_centered()
+
+func _setup_training_stages() -> void:
+	if not training_mode_manager:
+		return
+	var card_gen: TrainingCardGenerator = TrainingCardGenerator.new(training_mode_manager.deck)
+	var natural_stage: NaturalWinStage = NaturalWinStage.new(card_gen)
+	training_mode_manager.stages.append(natural_stage)
+	if training_stage_manager:
+		training_stage_manager.register_stage(natural_stage)
+	print("✅ Этапы обучения зарегистрированы (1 этап)")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ - ВЫНЕСЕНА В GameInitializer.gd
@@ -1624,3 +1910,18 @@ func _update_rounds_counter() -> void:
 	"""Обновить отображение счетчика раздач - делегировано в RoundsCounterUpdater"""
 	if rounds_counter_updater:
 		rounds_counter_updater.update_counter()
+
+func _refresh_top_bar_texts(_lang: String = "") -> void:
+	"""Обновить тексты верхней панели под текущий язык."""
+	var help_button_node: Button = find_child("HelpButton", true, false) as Button
+	if help_button_node:
+		help_button_node.text = Localization.t("TOPBAR_HELP")
+
+	var top_settings_button: Button = settings_button if settings_button else find_child("SettingsButton", true, false) as Button
+	if top_settings_button:
+		top_settings_button.text = Localization.t("TOPBAR_SETTINGS")
+
+	_update_rounds_counter()
+
+	if StatsManager.instance:
+		StatsManager.instance.update_stats()

@@ -1,22 +1,85 @@
 # 🚀 Статус деплоя сервера
 
-> **Дата:** 2026-04-13
-> **Сервер:** 147.45.103.38 (Ubuntu 24.04, Docker 29.1.5, Nginx 1.24.0)
-> **Домен:** baccarat-trainer.ru (SSL ✅ Let's Encrypt)
+> **Сервер:** 147.45.103.38 (Ubuntu 24.04, Docker, Nginx 1.24.0)  
+> **Домен:** https://baccarat-trainer.ru (SSL ✅ Let's Encrypt)
 
 ---
 
-## ✅ Что сделано
+## Отчёт о деплое — 2026-04-24 (live-мониторинг тренера)
 
-### 1. Файлы деплоя созданы и в Git
+### Что выкатили
 
-| Файл | Описание |
-|------|----------|
-| `baccarat-server/deploy/docker-compose.prod.yml` | Все сервисы: DB + Redis + API + Nginx |
-| `baccarat-server/deploy/nginx/nginx.conf` | Reverse proxy (API на `/api/`, сайт на `/`) |
-| `baccarat-server/deploy/.env.prod.example` | Шаблон секретов |
-| `baccarat-server/deploy/deploy.sh` | Скрипт запуска |
-| `baccarat-server/deploy/README.md` | Инструкция |
+| Компонент | Действие |
+|-----------|----------|
+| **API** | На сервер скопирован `baccarat-server/app/api/sessions.py` (ретрансляция WS-событий `round_started`, `error_occurred`, `action_performed`, `round_completed` от дилера). Контейнер `deploy-api-1` пересобран и перезапущен (`docker compose … build api && up -d api`). |
+| **Дашборд тренера** | Файлы `web/trainer-dashboard/` (`app.js`, `index.html`, `styles.css`) → `/var/www/dashboard/` (как в `root` сайта в `/etc/nginx/sites-available/baccarat`). |
+
+Проверка сразу после выката: `curl -sf https://baccarat-trainer.ru/api/health` → `{"status":"ok","version":"0.1.0"}`.
+
+### Что не выкатывалось с сервера
+
+- **Godot-клиент** (в т.ч. `OnlineLiveEventBridge.gd`, правки `GameController.gd`) — это локальный билд/экспорт; без нового билда ученик не начнёт слать live-события. Нужно собрать проект у себя и поставить билд там, где вы тестируете (TestFlight, APK, веб и т.д.).
+
+### Короткий чеклист проверки
+
+1. **API жив**  
+   Откройте в браузере или выполните:  
+   `curl -s https://baccarat-trainer.ru/api/health`  
+   Ожидание: JSON с `"status":"ok"`.
+
+2. **Дашборд обновился**  
+   Зайдите на https://baccarat-trainer.ru под тренером → жёсткое обновление страницы (Ctrl+F5 / ⌘⇧R), чтобы сбросить кэш.  
+   Ожидание: на экране live-сессии есть блок **«События в реальном времени»** и чекбокс «Только ошибки».
+
+3. **Сессия и WebSocket**  
+   Создайте/откройте комнату → «Начать тренировку» → дашборд комнаты.  
+   Ожидание: таблица дилеров и строка состояния сессии без ошибок в консоли (F12).
+
+4. **Цепочка live-событий (после обновления клиента Godot)**  
+   Ученик входит в онлайн-сессию с **новым** билдом, тренер смотрит дашборд.  
+   Ожидание: при раздаче / ошибке / завершении раунда в ленте появляются строки; при ошибке строка дилера в таблице кратко подсвечивается.
+
+5. **Регрессия HTTP**  
+   После раунда по-прежнему уходит `POST …/round-results`, в дашборде обновляются агрегаты (раунды, ошибки).  
+
+Если что-то из п.4 не работает при обновлённом сервере — сначала убедитесь, что у ученика именно свежий билд с `OnlineLiveEventBridge`.
+
+---
+
+## История: 2026-04-13 — первичный статус
+
+> **Дата:** 2026-04-13
+
+## ✅ Что сделано (на 2026-04-13)
+
+### 1. Сервер ЗАПУЩЕН и РАБОТАЕТ 🎉
+
+| Компонент         | Статус     | Детали                              |
+| ----------------- | ---------- | ----------------------------------- |
+| **PostgreSQL**    | ✅ healthy | 17 таблиц с Foreign Keys            |
+| **Redis**         | ✅ healthy | Кэш и сессии                        |
+| **API (FastAPI)** | ✅ healthy | `{"status":"ok","version":"0.1.0"}` |
+
+**Адрес:** `http://147.45.103.38:8000`
+
+### 2. API эндпоинты протестированы
+
+| Эндпоинт                     | Метод | Результат                                |
+| ---------------------------- | ----- | ---------------------------------------- |
+| `/api/health`                | GET   | ✅ `{"status":"ok"}`                     |
+| `/api/auth/trainer/register` | POST  | ✅ 201 + JWT токен                       |
+| `/api/auth/trainer/login`    | POST  | ✅ 200 + токен                           |
+| `/api/rooms/`                | POST  | ✅ Создана комната `TRAIN-QR7M` + 10 PIN |
+
+### 3. Файлы деплоя в Git
+
+| Файл                                             | Описание                                    |
+| ------------------------------------------------ | ------------------------------------------- |
+| `baccarat-server/deploy/docker-compose.prod.yml` | Все сервисы: DB + Redis + API + Nginx       |
+| `baccarat-server/deploy/nginx/nginx.conf`        | Reverse proxy (API на `/api/`, сайт на `/`) |
+| `baccarat-server/deploy/.env.prod.example`       | Шаблон секретов                             |
+| `baccarat-server/deploy/deploy.sh`               | Скрипт запуска                              |
+| `baccarat-server/deploy/README.md`               | Инструкция                                  |
 
 ### 2. Сервер проверен
 
@@ -44,6 +107,7 @@
 Docker Hub ограничивает бесплатные скачивания (100 раз за 6 часов с одного IP). Сервер скачивал образы слишком много раз — получил блокировку.
 
 **Сообщение об ошибке:**
+
 ```
 Error response from daemon: error from registry: You have reached your
 unauthenticated pull rate limit.
@@ -51,6 +115,7 @@ unauthenticated pull rate limit.
 
 **Что нужно для продолжения:**
 На сервере (`ssh baccarat`) выполнить:
+
 ```bash
 docker login
 # Логин: vaaceslav
@@ -58,6 +123,7 @@ docker login
 ```
 
 После логина — запустить:
+
 ```bash
 cd /root/baccarat_new/baccarat-server/deploy
 docker compose -f docker-compose.prod.yml up -d --build
@@ -96,6 +162,7 @@ docker compose -f docker-compose.prod.yml up -d --build
 ## 📝 Следующий шаг после docker login
 
 Одна команда на сервере:
+
 ```bash
 cd /root/baccarat_new/baccarat-server/deploy
 docker compose -f docker-compose.prod.yml up -d --build

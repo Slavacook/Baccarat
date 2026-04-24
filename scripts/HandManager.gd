@@ -28,13 +28,24 @@ func deal_first_four(deck: Deck) -> void:
 		deck: Колода для взятия карт
 	
 	Note:
-		Если включён TestCardsManager, используются заданные тестовые карты
+		Если включён TestCardsManager, используются предустановленные карты
 	"""
-	# Проверяем тестовые карты (для отладки триггеров)
-	var p1 = TestCardsManager.get_test_card("player1")
-	var p2 = TestCardsManager.get_test_card("player2")
-	var b1 = TestCardsManager.get_test_card("banker1")
-	var b2 = TestCardsManager.get_test_card("banker2")
+	# В онлайн-сессии все четыре карты только из колоды — иначе RNG расходится между клиентами.
+	var use_test_presets: bool = true
+	if Engine.has_singleton("SessionManager"):
+		var sm: Node = Engine.get_singleton("SessionManager")
+		if sm.current_mode == sm.Mode.ONLINE:
+			use_test_presets = false
+
+	var p1: Card = null
+	var p2: Card = null
+	var b1: Card = null
+	var b2: Card = null
+	if use_test_presets:
+		p1 = TestCardsManager.get_test_card("player1")
+		p2 = TestCardsManager.get_test_card("player2")
+		b1 = TestCardsManager.get_test_card("banker1")
+		b2 = TestCardsManager.get_test_card("banker2")
 	
 	_player_hand = [
 		p1 if p1 else deck.draw(),
@@ -45,13 +56,6 @@ func deal_first_four(deck: Deck) -> void:
 		b2 if b2 else deck.draw()
 	]
 	
-	# Лог для отладки
-	if TestCardsManager.enabled:
-		print("🧪 Тестовые карты раздаются:")
-		print("   Player: %s, %s" % [_player_hand[0].card_to_string(), _player_hand[1].card_to_string()])
-		print("   Banker: %s, %s" % [_banker_hand[0].card_to_string(), _banker_hand[1].card_to_string()])
-
-
 func add_player_card(card: Card) -> void:
 	"""Добавить третью карту игроку
 
@@ -235,11 +239,11 @@ func restore_from_arrays(p_hand: Array[Card], b_hand: Array[Card]) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# DEBUG
+# СЛУЖЕБНОЕ ПРЕДСТАВЛЕНИЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
 func _to_string() -> String:
-	"""Строковое представление для отладки"""
+	"""Строковое представление состояния рук"""
 	return "HandManager(Player: %d карт [%d очков], Banker: %d карт [%d очков])" % [
 		_player_hand.size(),
 		get_player_score(),

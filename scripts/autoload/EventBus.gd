@@ -460,6 +460,38 @@ signal settings_opened()
 signal settings_closed()
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 🎓 РЕЖИМ ОБУЧЕНИЯ
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Режим обучения активирован (показать UI обучения, скрыть основную игру)
+@warning_ignore("unused_signal")
+signal training_mode_activated()
+
+## Режим обучения деактивирован (вернуться в основную игру)
+@warning_ignore("unused_signal")
+signal training_mode_deactivated()
+
+## Этап обучения начат (stage_id: идентификатор этапа)
+@warning_ignore("unused_signal")
+signal training_stage_started(stage_id: String)
+
+## Этап обучения завершён — прогресс 100% (stage_id: идентификатор этапа)
+@warning_ignore("unused_signal")
+signal training_stage_completed(stage_id: String)
+
+## Прогресс этапа изменился (stage_id, progress 0.0–1.0)
+@warning_ignore("unused_signal")
+signal training_progress_changed(stage_id: String, progress: float)
+
+## Ответ пользователя обработан (is_correct, explanation, progress)
+@warning_ignore("unused_signal")
+signal training_answer_processed(is_correct: bool, explanation: String, progress: float)
+
+## Запрошена подсказка (штраф −10% прогресса)
+@warning_ignore("unused_signal")
+signal training_hint_requested()
+
+# ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ИГРЫ (для проверки из RefCounted классов)
 # ═══════════════════════════════════════════════════════════════════════════
 

@@ -1,7 +1,6 @@
 """Pydantic схемы для авторизации."""
 
-from pydantic import BaseModel, EmailStr, field_validator
-import re
+from pydantic import BaseModel, EmailStr, Field, field_validator
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -21,18 +20,15 @@ class TokenResponse(BaseModel):
 
 class TrainerRegisterRequest(BaseModel):
     email: EmailStr
-    password: str
+    # MVP / тест: без сложных правил (достаточно длины). Ужесточить перед публичным релизом.
+    password: str = Field(min_length=4, max_length=128)
     full_name: str | None = None
 
     @field_validator("password")
     @classmethod
-    def password_strength(cls, v: str) -> str:
-        if len(v) < 8:
-            raise ValueError("Пароль должен содержать минимум 8 символов")
-        if not re.search(r"[A-Z]", v):
-            raise ValueError("Пароль должен содержать хотя бы одну заглавную букву")
-        if not re.search(r"\d", v):
-            raise ValueError("Пароль должен содержать хотя бы одну цифру")
+    def password_non_empty_chars(cls, v: str) -> str:
+        if not v.strip():
+            raise ValueError("Пароль не может состоять только из пробелов")
         return v
 
 

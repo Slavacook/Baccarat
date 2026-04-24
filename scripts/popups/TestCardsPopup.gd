@@ -1,6 +1,6 @@
 # res://scripts/popups/TestCardsPopup.gd
-# Попап для настройки тестовых карт
-# Позволяет задать первые 4 карты для тестирования триггеров
+# Попап для ручной настройки начальной раздачи
+# Позволяет заранее задать первые 4 карты для учебного сценария
 
 extends CanvasLayer
 
@@ -18,6 +18,7 @@ const VALUES = ["Случайная", "A", "2", "3", "4", "5", "6", "7", "8", "9
 var background: ColorRect
 var panel: PanelContainer
 var title_label: Label
+var hint_label: Label
 var enabled_checkbox: CheckBox
 
 # Карты игрока
@@ -84,14 +85,21 @@ func _create_ui():
 	
 	# Заголовок
 	title_label = Label.new()
-	title_label.text = "🧪 Тестовые карты"
+	title_label.text = Localization.t("SETTINGS_CARD_SETTINGS") if Localization else "Ручная раздача"
 	title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	title_label.add_theme_font_size_override("font_size", 24)
 	content_vbox.add_child(title_label)
+
+	# Пояснение
+	hint_label = Label.new()
+	hint_label.text = Localization.t("SETTINGS_CARD_SETTINGS_HINT") if Localization else "Позволяет заранее задать первые карты раунда для отработки конкретных игровых ситуаций."
+	hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	content_vbox.add_child(hint_label)
 	
 	# Чекбокс включения
 	enabled_checkbox = CheckBox.new()
-	enabled_checkbox.text = "Включить режим тестовых карт"
+	enabled_checkbox.text = Localization.t("SETTINGS_TEST_CARDS_ENABLED") if Localization else "Задать карты вручную"
 	content_vbox.add_child(enabled_checkbox)
 	
 	# Разделитель
@@ -168,7 +176,7 @@ func _create_ui():
 	
 	# Переключатель бессмертия
 	immortality_checkbox = CheckBox.new()
-	immortality_checkbox.text = "💀 Бессмертие (сердца не отнимаются)"
+	immortality_checkbox.text = Localization.t("SETTINGS_IMMORTALITY_HINT") if Localization else "Свободная тренировка (без потери сердец)"
 	content_vbox.add_child(immortality_checkbox)
 	
 	# Разделитель
@@ -233,12 +241,10 @@ func open_popup():
 	"""Открыть попап"""
 	_load_current_values()
 	show()
-	print("🧪 Попап тестовых карт открыт")
 
 func close_popup():
 	"""Закрыть попап"""
 	hide()
-	print("🧪 Попап тестовых карт закрыт")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРИВАТНЫЕ МЕТОДЫ
@@ -275,8 +281,6 @@ func _apply_values():
 	_apply_card("player2", player2_value, player2_suit)
 	_apply_card("banker1", banker1_value, banker1_suit)
 	_apply_card("banker2", banker2_value, banker2_suit)
-	
-	print("🧪 Тестовые карты применены")
 
 func _apply_card(position: String, value_opt: OptionButton, suit_opt: OptionButton):
 	"""Применить значения для одной карты"""
@@ -303,34 +307,28 @@ func _on_close_pressed():
 	close_popup()
 
 func _on_immortality_toggled(pressed: bool):
-	"""Обработка переключения бессмертия"""
+	"""Обработка переключения свободной тренировки"""
 	# Сохраняем сразу при изменении
 	SaveManager.instance.save_immortality_enabled(pressed)
 	
 	if pressed:
-		# При включении бессмертия добавляем +100000 чаевых
-		var tips_before = SaveManager.instance.score
+		# При включении свободной тренировки добавляем бонусные чаевые
 		SaveManager.instance.add_score(100000)
-		var tips_after = SaveManager.instance.score
-		print("💀 Бессмертие включено - добавлено +100000 чаевых: %d → %d" % [tips_before, tips_after])
 		
 		# Обновляем статистику если есть StatsManager
 		if StatsManager.instance:
 			StatsManager.instance.update_stats()
 	else:
-		# При выключении бессмертия сбрасываем чаевые на ноль
-		var tips_before = SaveManager.instance.score
+		# При выключении свободной тренировки сбрасываем чаевые на ноль
 		SaveManager.instance.score = 0
 		SaveManager.instance.save_data()
-		var tips_after = SaveManager.instance.score
-		print("💀 Бессмертие выключено - чаевые сброшены на ноль: %d → %d" % [tips_before, tips_after])
 		
 		# Обновляем статистику если есть StatsManager
 		if StatsManager.instance:
 			StatsManager.instance.update_stats()
 
 func _on_preset_natural():
-	"""Быстрая настройка: натуральная победа (для тестирования Mystery Card)"""
+	"""Быстрая настройка: натуральная победа для сценария Mystery Card"""
 	enabled_checkbox.button_pressed = true
 	
 	# Player: 9♠, K♦ = 9 (натуральная)
@@ -344,5 +342,3 @@ func _on_preset_natural():
 	banker1_suit.selected = 1    # Hearts
 	banker2_value.selected = 4   # 4
 	banker2_suit.selected = 3    # Diamonds
-	
-	print("🧪 Пресет 'Натуральная победа' установлен")

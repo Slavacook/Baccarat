@@ -330,6 +330,7 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	if instructions.get("should_reset_managers", false):
 		if winner_selection_manager:
 			winner_selection_manager.reset()
+			winner_selection_manager.unlock_markers()
 		# Очищаем TableStateManager (полное состояние стола)
 		TableStateManager.clear_state()
 		# Сбрасываем BetCollectionPhaseManager и кнопки collect/pay
@@ -366,6 +367,14 @@ func deal_first_four() -> void:
 	Делегирует логику в FirstFourDealCoordinator и другие координаторы.
 	"""
 	DebugLogger.log_game_flow("deal_first_four() вызван")
+
+	# Live-сессия: сид следующего раунда с сервера (пришёл по WS после submit предыдущего).
+	if Engine.has_singleton("SessionManager"):
+		var sm_live: Node = SessionManager
+		if sm_live.current_mode == sm_live.Mode.ONLINE and sm_live.has_method("apply_pending_live_deck_seed_to"):
+			sm_live.apply_pending_live_deck_seed_to(deck)
+
+	EventBus.round_reset.emit()
 
 	# Используем координатор для проверки ставок
 	if not first_four_deal_coordinator:
@@ -1633,6 +1642,9 @@ func _handle_winner_validation_result(result: Dictionary, actual_winner: String)
 		return
 	
 	# ✅ Правильный выбор!
+	if winner_selection_manager:
+		winner_selection_manager.lock_markers()
+
 	if instructions.get("should_emit_correct", false):
 		EventBus.action_correct.emit("winner")
 	
@@ -2222,16 +2234,6 @@ func resolve_heart_bet(actual_winner: String) -> void:
 	if not heart_bet_coordinator:
 		DebugLogger.log_error("❌ HeartBetCoordinator не инициализирован!")
 		return
-	
-	# #region agent log
-	var _hb_active = heart_bet_coordinator.has_active_heart_bet()
-	var _log_path = OS.get_user_data_dir().path_join(".cursor/debug.log")
-	var _log_file = FileAccess.open(_log_path, FileAccess.READ_WRITE)
-	if _log_file: 
-		_log_file.seek_end()
-		_log_file.store_line('{"hypothesisId":"H1","location":"GamePhaseManager.resolve_heart_bet","message":"resolve_heart_bet called","data":{"actual_winner":"%s","heart_bet_active":%s},"timestamp":%d}' % [actual_winner, str(_hb_active).to_lower(), int(Time.get_unix_time_from_system() * 1000)])
-		_log_file.close()
-	# #endregion
 	
 	if heart_bet_coordinator.resolve(actual_winner):
 		DebugLogger.log("❤️ Heart Bet разрешён (winner=%s)" % actual_winner)

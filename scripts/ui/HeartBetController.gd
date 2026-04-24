@@ -170,11 +170,6 @@ func handle_heart_bet_round_complete() -> void:
 	После Heart Bet раздачи игра возвращается в состояние ожидания.
 	Выплаты не производятся (это была особая раздача на жизнь).
 	"""
-	# #region agent log
-	var _log_file = FileAccess.open("/Users/vaaceslav/Личное Вячеслав/GitHub/Baccarat/.cursor/debug.log", FileAccess.READ_WRITE)
-	if _log_file: _log_file.seek_end(); _log_file.store_line('{"hypothesisId":"H4","location":"HeartBetController.handle_heart_bet_round_complete","message":"round complete received","data":{},"timestamp":%d}' % [int(Time.get_unix_time_from_system() * 1000)]); _log_file.close()
-	# #endregion
-	
 	DebugLogger.log("❤️ HeartBetController: Heart Bet раздача завершена, сбрасываем раунд без выплат")
 	
 	# Возвращаем обычную атмосферу

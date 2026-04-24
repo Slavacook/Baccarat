@@ -7,7 +7,7 @@ extends Node
 # НАСТРОЙКИ
 # ═══════════════════════════════════════════════════════════════
 
-@export var base_url: String = "http://147.45.103.38:8000"
+@export var base_url: String = "https://baccarat-trainer.ru"
 
 var _http_request: HTTPRequest
 var _auth_token: String = ""
@@ -16,7 +16,7 @@ var _auth_token: String = ""
 # СИГНАЛЫ
 # ═══════════════════════════════════════════════════════════════
 
-signal request_completed(request_id: int, response_code: int, body: Dictionary)
+signal request_completed(request_id: int, response_code: int, body: Variant)
 signal request_failed(request_id: int, error_code: int, error_message: String)
 
 # ═══════════════════════════════════════════════════════════════
@@ -92,7 +92,7 @@ func _build_headers() -> PackedStringArray:
 	return headers
 
 
-func _on_request_completed(result: int, response_code: int, headers: PackedStringArray, body: PackedByteArray) -> void:
+func _on_request_completed(result: int, response_code: int, _headers: PackedStringArray, body: PackedByteArray) -> void:
 	if result != HTTPRequest.RESULT_SUCCESS:
 		request_failed.emit(0, result, "Ошибка сети: %d" % result)
 		return
@@ -109,7 +109,7 @@ func _on_request_completed(result: int, response_code: int, headers: PackedStrin
 		return
 
 	var data: Variant = json_parse.data
-	if data is Dictionary:
+	if data is Dictionary or data is Array:
 		request_completed.emit(0, response_code, data)
 	else:
-		request_failed.emit(0, response_code, "Ожидался JSON-объект")
+		request_failed.emit(0, response_code, "Ожидался JSON-объект или массив")

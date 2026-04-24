@@ -1,0 +1,40 @@
+[gd_scene load_steps=2 format=3 uid="uid://c3training_question"]
+
+[ext_resource type="Script" path="res://scripts/training/ui/TrainingQuestionPopup.gd" id="1_script"]
+
+[node name="TrainingQuestionPopup" type="PopupPanel"]
+size = Vector2i(420, 260)
+script = ExtResource("1_script")
+
+[node name="MarginContainer" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="VBox" type="VBoxContainer" parent="MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="QuestionLabel" type="Label" parent="MarginContainer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Нужна ли третья карта?"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="AnswerButtonsContainer" type="VBoxContainer" parent="MarginContainer/VBox"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+alignment = 1
+
+[node name="HintButton" type="Button" parent="MarginContainer/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 14
+text = "Подсказка (-10%)"

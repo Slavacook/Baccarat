@@ -1,7 +1,7 @@
-import uuid
 from datetime import datetime
+import uuid
 
-from sqlalchemy import String, Integer, Float, Boolean, ForeignKey, DateTime, func, JSON
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -51,7 +51,7 @@ class RoundResult(Base):
     session: Mapped["Session"] = relationship("Session", back_populates="round_results", lazy="selectin")
 
     __table_args__ = (
-        # Уникальная пара: сессия + дилер + номер раунда
+        UniqueConstraint("session_id", "dealer_id", "round_number", name="uq_round_result_per_round"),
     )
 
     def __repr__(self) -> str:

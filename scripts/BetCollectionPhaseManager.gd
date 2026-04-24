@@ -534,7 +534,7 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 		var prev_sequence = payment_sequence.get(prev_group, [])
 		var prev_progress = payment_progress[prev_group]
 		
-		DebugLogger.log("🔍 DEBUG: Проверка группы '%s': progress=%d, sequence_size=%d" % [prev_group, prev_progress, prev_sequence.size()])
+		DebugLogger.log("🔍 Проверка группы '%s': progress=%d, sequence_size=%d" % [prev_group, prev_progress, prev_sequence.size()])
 		
 		if prev_progress < prev_sequence.size():
 			# Предыдущая группа не закончена
@@ -555,7 +555,7 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 	
 	# Если в группе ещё есть неоплаченные ставки, проверяем порядок
 	if expected_bet:
-		DebugLogger.log("🔍 DEBUG: Ожидаемая ставка: %s[%d], кликнута: %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
+		DebugLogger.log("🔍 Ожидаемая ставка: %s[%d], кликнута: %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
 		# Проверяем, что кликнули на правильную следующую ставку
 		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
 			DebugLogger.log("  ❌ Неправильный порядок! Ожидалась %s[%d], кликнута %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
@@ -563,7 +563,7 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 		else:
 			DebugLogger.log("  ✅ Правильная ставка!")
 	else:
-		DebugLogger.log("🔍 DEBUG: Все ставки в группе '%s' уже оплачены" % group)
+		DebugLogger.log("🔍 Все ставки в группе '%s' уже оплачены" % group)
 	
 	return _success_result("pay")
 

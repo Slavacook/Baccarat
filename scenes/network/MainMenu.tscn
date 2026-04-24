@@ -1,0 +1,212 @@
+[gd_scene load_steps=5 format=3]
+
+[ext_resource type="Script" path="res://scripts/auth/MainMenu.gd" id="1_main"]
+[ext_resource type="Script" path="res://scripts/auth/TrainerLoginScreen.gd" id="2_trainer_login"]
+[ext_resource type="Script" path="res://scripts/auth/DealerLoginScreen.gd" id="3_dealer_login"]
+
+[node name="MainMenu" type="Control"]
+script = ExtResource("1_main")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="MainMenuContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -180.0
+offset_right = 200.0
+offset_bottom = 180.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="Title" type="Label" parent="MainMenuContainer"]
+layout_mode = 2
+text = "🎰 BACCARAT TRAINER"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="MainMenuContainer"]
+layout_mode = 2
+text = "Тренажёр дилеров"
+horizontal_alignment = 1
+
+[node name="Spacer1" type="Control" parent="MainMenuContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 30)
+
+[node name="QuickPlayBtn" type="Button" parent="MainMenuContainer"]
+layout_mode = 2
+text = "🎮 Быстрая тренировка"
+
+[node name="Spacer2" type="Control" parent="MainMenuContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 10)
+
+[node name="TrainerLoginBtn" type="Button" parent="MainMenuContainer"]
+layout_mode = 2
+text = "👨‍🏫 Я ТРЕНЕР"
+
+[node name="DealerLoginBtn" type="Button" parent="MainMenuContainer"]
+layout_mode = 2
+text = "🃏 Я ДИЛЕР"
+
+[node name="TrainerLoginScreen" type="Control" parent="."]
+script = ExtResource("2_trainer_login")
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TrainerLoginBG" type="ColorRect" parent="TrainerLoginScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="TrainerLoginContainer" type="VBoxContainer" parent="TrainerLoginScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -150.0
+offset_right = 200.0
+offset_bottom = 150.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="TrainerTitle" type="Label" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+text = "👨‍🏫 Вход тренера"
+horizontal_alignment = 1
+
+[node name="EmailInput" type="LineEdit" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+placeholder_text = "Email"
+
+[node name="PasswordInput" type="LineEdit" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+placeholder_text = "Пароль"
+secret = true
+
+[node name="ErrorLabel" type="Label" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+visible = false
+text = "Ошибка"
+horizontal_alignment = 1
+autowrap_mode = 2
+add_theme_color_override("font_color", Color(1, 0.3, 0.3, 1))
+
+[node name="StatusLabel" type="Label" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="LoginBtn" type="Button" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+text = "Войти"
+
+[node name="TrainerBackBtn" type="Button" parent="TrainerLoginScreen/TrainerLoginContainer"]
+layout_mode = 2
+text = "← Назад"
+
+[node name="DealerLoginScreen" type="Control" parent="."]
+script = ExtResource("3_dealer_login")
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="DealerLoginBG" type="ColorRect" parent="DealerLoginScreen"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="DealerLoginContainer" type="VBoxContainer" parent="DealerLoginScreen"]
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -200.0
+offset_top = -170.0
+offset_right = 200.0
+offset_bottom = 170.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 15
+alignment = 1
+
+[node name="DealerTitle" type="Label" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+text = "🃏 Вход дилера"
+horizontal_alignment = 1
+
+[node name="RoomCodeInput" type="LineEdit" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+placeholder_text = "Код комнаты (например TRAIN-A7X9)"
+
+[node name="PinInput" type="LineEdit" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+placeholder_text = "PIN-код (6 цифр)"
+max_length = 6
+
+[node name="NameInput" type="LineEdit" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+placeholder_text = "Ваше имя"
+
+[node name="DealerErrorLabel" type="Label" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+visible = false
+text = "Ошибка"
+horizontal_alignment = 1
+autowrap_mode = 2
+add_theme_color_override("font_color", Color(1, 0.3, 0.3, 1))
+
+[node name="DealerStatusLabel" type="Label" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+
+[node name="DealerJoinBtn" type="Button" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+text = "Войти"
+
+[node name="DealerBackBtn" type="Button" parent="DealerLoginScreen/DealerLoginContainer"]
+layout_mode = 2
+text = "← Назад"
+
+[connection signal="pressed" from="TrainerLoginScreen/TrainerLoginContainer/TrainerBackBtn" to="." method="go_back"]
+[connection signal="pressed" from="TrainerLoginScreen/TrainerLoginContainer/LoginBtn" to="TrainerLoginScreen" method="_on_login_pressed"]
+[connection signal="pressed" from="DealerLoginScreen/DealerLoginContainer/DealerBackBtn" to="." method="go_back"]
+[connection signal="pressed" from="DealerLoginScreen/DealerLoginContainer/DealerJoinBtn" to="DealerLoginScreen" method="_on_join_pressed"]

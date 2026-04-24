@@ -55,7 +55,14 @@ func _on_quick_play_pressed() -> void:
 
 
 func _navigate_to_lobby() -> void:
-	print("🔵 Навигация в лобби")
+	print("🔵 Навигация в онлайн-сцену")
+	if Engine.has_singleton("AuthManager"):
+		var am = Engine.get_singleton("AuthManager")
+		if am and am.user_data is Dictionary:
+			var role: String = str(am.user_data.get("role", ""))
+			if role == "dealer":
+				get_tree().change_scene_to_file("res://scenes/network/DealerWaitingScreen.tscn")
+				return
 	get_tree().change_scene_to_file("res://scenes/network/LobbyScreen.tscn")
 
 

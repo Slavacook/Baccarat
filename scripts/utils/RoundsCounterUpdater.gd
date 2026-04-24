@@ -43,5 +43,4 @@ func update_counter() -> void:
 	"""Обновить отображение счетчика раздач"""
 	if rounds_counter_label and rounds_completed_callback.is_valid():
 		var rounds = rounds_completed_callback.call()
-		rounds_counter_label.text = "Раздача: %d" % rounds
-
+		rounds_counter_label.text = Localization.t("TOPBAR_ROUNDS") % rounds

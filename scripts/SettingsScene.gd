@@ -200,10 +200,8 @@ func _connect_signals() -> void:
 	if training_button and SHOW_TRAINING_MENU_ENTRY:
 		training_button.pressed.connect(_on_training_button_pressed)
 
-	# Онлайн режим (программная кнопка)
+	# Онлайн режим (программная кнопка) — сигнал подключается ВНУТРИ _create_online_mode_button()
 	_create_online_mode_button()
-	if online_mode_button:
-		online_mode_button.pressed.connect(_on_online_mode_pressed)
 	# ok_button больше не используется (убрана из UI)
 	
 	# === ПОДМЕНЮ: ЛИМИТЫ ===
@@ -1466,6 +1464,7 @@ func _update_bet_button_style(button: Button, enabled: bool) -> void:
 func _create_online_mode_button() -> void:
 	"""Создаёт кнопку «Онлайн режим» в главном меню настроек."""
 	if not main_menu_container:
+		print("⚠️ Online кнопка: main_menu_container не найден!")
 		return
 
 	online_mode_button = Button.new()
@@ -1501,13 +1500,17 @@ func _create_online_mode_button() -> void:
 	main_menu_container.add_child(online_mode_button)
 	print("🌐 Кнопка «Онлайн режим» создана")
 
+	# Подключаем сигнал напрямую
+	online_mode_button.pressed.connect(_on_online_mode_pressed)
+
 
 func _on_online_mode_pressed() -> void:
 	"""Переход в онлайн меню."""
-	print("🌐 Переход в онлайн режим...")
+	print("🌐 Кнопка нажата! Переход в онлайн режим...")
 	# Закрываем настройки
 	close_settings()
-	# Небольшая задержка для завершения анимации
-	await get_tree().create_timer(0.1).timeout
 	# Переходим на сцену онлайн меню
-	get_tree().change_scene_to_file("res://scenes/network/MainMenu.tscn")
+	var err = get_tree().change_scene_to_file("res://scenes/network/MainMenu.tscn")
+	if err != OK:
+		push_error("🌐 Ошибка перехода на MainMenu.tscn: %d" % err)
+		print("🌐 Ошибка перехода: ", err)

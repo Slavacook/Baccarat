@@ -36,7 +36,7 @@ func update_stats():
 		return
 	
 	var money = SaveManager.instance.score
-	stats_label.text = "Чаевые: %d" % money
+	stats_label.text = Localization.t("TOPBAR_TIPS") % money
 	stats_label.visible = true
 
 # ← Сбросить статистику

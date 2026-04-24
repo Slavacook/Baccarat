@@ -81,7 +81,14 @@ static func _initialize_core_managers(controller: Node2D, result: Dictionary) ->
 	var saved_lang = SaveManager.load_language()
 	Localization.set_lang(saved_lang)
 
-	result["deck"] = Deck.new()
+	var deck_rng: RandomNumberGenerator = null
+	if Engine.has_singleton("SessionManager"):
+		var sm: Node = Engine.get_singleton("SessionManager")
+		if sm.current_mode == sm.Mode.ONLINE:
+			var seed_hex: String = str(sm.live_round_seed)
+			if not seed_hex.is_empty():
+				deck_rng = LiveSeedRng.make_rng(seed_hex)
+	result["deck"] = Deck.new(deck_rng)
 	result["config"] = controller.config if controller.config else GameConfig.new()
 	result["card_manager"] = CardTextureManager.new(result["config"])
 
@@ -429,13 +436,44 @@ static func _setup_fixed_ui(controller: Node2D) -> void:
 	for button_name in buttons_to_move:
 		if controller.has_node(button_name):
 			var button: Node = controller.get_node(button_name)
-			# Сохраняем глобальную позицию
-			var global_pos: Vector2 = button.global_position
-			# Перемещаем в TopUI
-			controller.remove_child(button)
-			top_ui.add_child(button)
-			# Восстанавливаем позицию
-			button.global_position = global_pos
+
+			if button is Control:
+				var control := button as Control
+				var anchors := Vector4(
+					control.anchor_left,
+					control.anchor_top,
+					control.anchor_right,
+					control.anchor_bottom
+				)
+				var offsets := Vector4(
+					control.offset_left,
+					control.offset_top,
+					control.offset_right,
+					control.offset_bottom
+				)
+				var grow_horizontal := control.grow_horizontal
+				var grow_vertical := control.grow_vertical
+
+				controller.remove_child(control)
+				top_ui.add_child(control)
+
+				control.anchor_left = anchors.x
+				control.anchor_top = anchors.y
+				control.anchor_right = anchors.z
+				control.anchor_bottom = anchors.w
+				control.offset_left = offsets.x
+				control.offset_top = offsets.y
+				control.offset_right = offsets.z
+				control.offset_bottom = offsets.w
+				control.grow_horizontal = grow_horizontal
+				control.grow_vertical = grow_vertical
+			else:
+				# Сохраняем глобальную позицию для не-Control узлов
+				var global_pos: Vector2 = button.global_position
+				controller.remove_child(button)
+				top_ui.add_child(button)
+				button.global_position = global_pos
+
 			DebugLogger.log("✅ %s перемещён в TopUI" % button_name)
 		else:
 			DebugLogger.log("⚠️ %s не найден" % button_name)

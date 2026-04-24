@@ -49,6 +49,8 @@ func _ready() -> void:
 
 
 func _find_api_service() -> ApiService:
+	if Engine.has_singleton("ApiService"):
+		return Engine.get_singleton("ApiService") as ApiService
 	var root = get_tree().root
 	for child in root.get_children():
 		if child.name == "ApiService":
@@ -83,7 +85,7 @@ func _on_join_pressed() -> void:
 func _on_join_succeeded(_user: Dictionary) -> void:
 	print("🎉 Вход дилера успешен! Переход в лобби...")
 	_set_loading(false)
-	get_tree().change_scene_to_file("res://scenes/network/LobbyScreen.tscn")
+	get_tree().change_scene_to_file("res://scenes/network/DealerWaitingScreen.tscn")
 
 
 func _on_request_error(status_code: int, detail: String) -> void:

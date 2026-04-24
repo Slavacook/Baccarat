@@ -1,5 +1,5 @@
 # res://scripts/autoload/TestCardsManager.gd
-# Менеджер тестовых карт для отладки триггеров
+# Менеджер ручной раздачи для учебных сценариев
 # Autoload синглтон
 
 extends Node
@@ -18,10 +18,10 @@ const VALUE_NAMES = ["—", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "
 # ПЕРЕМЕННЫЕ
 # ═══════════════════════════════════════════════════════════════════════════
 
-## Включён ли режим тестовых карт
+## Включён ли режим ручной раздачи
 var enabled: bool = false
 
-## Тестовые карты (словарь с suit и value, или null = случайная)
+## Предустановленные карты (словарь с suit и value, или null = случайная)
 var _test_cards: Dictionary = {
 	"player1": null,
 	"player2": null,
@@ -34,9 +34,8 @@ var _test_cards: Dictionary = {
 # ═══════════════════════════════════════════════════════════════════════════
 
 func set_enabled(value: bool) -> void:
-	"""Включить/выключить режим тестовых карт"""
+	"""Включить/выключить режим ручной раздачи"""
 	enabled = value
-	print("🧪 Режим тестовых карт: %s" % ("ВКЛ" if enabled else "ВЫКЛ"))
 
 func set_test_card(position: String, suit: int, value: int) -> void:
 	"""Установить тестовую карту
@@ -46,12 +45,8 @@ func set_test_card(position: String, suit: int, value: int) -> void:
 	"""
 	if value <= 0:
 		_test_cards[position] = null
-		print("🧪 %s: случайная карта" % position)
 	else:
 		_test_cards[position] = {"suit": suit, "value": value}
-		var suit_name = SUIT_NAMES[suit] if suit < SUIT_NAMES.size() else "?"
-		var value_name = VALUE_NAMES[value] if value < VALUE_NAMES.size() else "?"
-		print("🧪 %s: %s %s" % [position, value_name, suit_name])
 
 func get_test_card(position: String) -> Card:
 	"""Получить тестовую карту или null если не задана/отключено"""
@@ -65,7 +60,7 @@ func get_test_card(position: String) -> Card:
 	return Card.new(card_data["suit"], card_data["value"])
 
 func clear_all() -> void:
-	"""Сбросить все тестовые карты"""
+	"""Сбросить все предустановленные карты"""
 	_test_cards = {
 		"player1": null,
 		"player2": null,
@@ -73,7 +68,6 @@ func clear_all() -> void:
 		"banker2": null
 	}
 	enabled = false
-	print("🧪 Все тестовые карты сброшены")
 
 func get_card_data(position: String) -> Dictionary:
 	"""Получить данные карты для UI (suit, value)"""
@@ -89,7 +83,7 @@ func is_position_set(position: String) -> bool:
 func get_summary() -> String:
 	"""Получить текстовое описание настроек"""
 	if not enabled:
-		return "Тестовые карты отключены"
+		return "Ручная раздача отключена"
 	
 	var parts = []
 	for pos in ["player1", "player2", "banker1", "banker2"]:
@@ -102,4 +96,3 @@ func get_summary() -> String:
 			parts.append("%s: ?" % pos)
 	
 	return "\n".join(parts)
-

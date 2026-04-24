@@ -23,6 +23,9 @@ var selected_winner: String = ""
 # Флаг: было ли последнее переключение маркера через клавиатуру (пробел)
 var was_last_toggle_by_keyboard: bool = false
 
+# Флаг блокировки маркеров после подтверждения победителя
+var _markers_locked: bool = false
+
 # Текстуры маркеров (обычные и активированные)
 const MARKER_TEXTURES = {
 	"Player": {
@@ -80,6 +83,10 @@ func toggle_winner(winner: String, by_keyboard: bool = false) -> void:
 	"""
 	if not marker_nodes.has(winner):
 		push_error("WinnerSelectionManager: неизвестный победитель '%s'" % winner)
+		return
+
+	if _markers_locked:
+		print("🔒 WinnerSelectionManager: игнорируем переключение %s, маркеры заблокированы" % winner)
 		return
 
 	# Сохраняем источник нажатия
@@ -164,11 +171,12 @@ func lock_markers() -> void:
 
 	Используется во время выплат, чтобы игрок случайно не изменил выбор
 	"""
+	_markers_locked = true
 	for winner_type in marker_nodes.keys():
 		var marker = marker_nodes[winner_type]
 		marker.disabled = true
 		# Делаем полупрозрачными для визуальной индикации
-		marker.modulate = Color(1.0, 1.0, 1.0, 0.5)
+		marker.modulate = Color(1.0, 1.0, 1.0, 1.0 if winner_type == selected_winner else 0.6)
 
 	print("🔒 WinnerSelectionManager: маркеры заблокированы")
 
@@ -178,6 +186,7 @@ func unlock_markers() -> void:
 
 	Используется при подготовке стола к новой игре
 	"""
+	_markers_locked = false
 	for winner_type in marker_nodes.keys():
 		var marker = marker_nodes[winner_type]
 		marker.disabled = false
