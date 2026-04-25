@@ -463,12 +463,12 @@ func _on_cards_dealt(_player_hand: Array[Card], _banker_hand: Array[Card]) -> vo
 
 
 func _on_player_third_drawn(_card: Card) -> void:
-	_set_last_action("player_third_drawn", null)
+	_set_last_action("action_correct", "player_third", "player_third", "player_third", "correct", {})
 	send_table_state("player_third_drawn")
 
 
 func _on_banker_third_drawn(_card: Card) -> void:
-	_set_last_action("banker_third_drawn", null)
+	_set_last_action("action_correct", "banker_third", "banker_third", "banker_third", "correct", {})
 	send_table_state("banker_third_drawn")
 
 
