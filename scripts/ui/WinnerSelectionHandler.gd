@@ -64,7 +64,7 @@ func handle_winner_selected(chosen: String) -> void:
 	
 	# Guard 2: Неправильный выбор победителя
 	if chosen != actual:
-		_handle_incorrect_winner_choice()
+		_handle_incorrect_winner_choice(chosen)
 		return
 	
 	# Правильный выбор → обработка выплат (async)
@@ -93,9 +93,14 @@ func _is_winner_selection_valid() -> bool:
 	
 	return true
 
-func _handle_incorrect_winner_choice() -> void:
+func _handle_incorrect_winner_choice(chosen: String) -> void:
 	"""Обработка неправильного выбора победителя"""
-	EventBus.action_error.emit("winner_wrong", "")
+	var actual = BaccaratRules.get_winner(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
+	
+	if chosen == "Tie" and actual != "Tie":
+		EventBus.action_error.emit("tie_wrong", "")
+	else:
+		EventBus.action_error.emit("winner_wrong", "")
 	# Жизнь отнимается автоматически через EventBus → SurvivalModeUI
 
 func _handle_correct_winner_choice(actual: String) -> void:
