@@ -475,7 +475,14 @@ func _on_banker_third_drawn(_card: Card) -> void:
 func _on_action_error(err_type: String, message: String) -> void:
 	if not _should_send():
 		return
-	_set_last_action("action_error", str(err_type))
+	
+	if err_type == "winner_wrong" or err_type == "tie_wrong":
+		var actual = _winner_label()
+		var expected = _get_expected_winner()
+		_set_last_action("action_error", str(err_type), expected, actual, "error", {})
+	else:
+		_set_last_action("action_error", str(err_type))
+	
 	_set_last_error(str(err_type), str(message))
 	var data: Dictionary = _session_meta()
 	data["error_type"] = str(err_type)
