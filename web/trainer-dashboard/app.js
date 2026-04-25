@@ -116,7 +116,10 @@ function _safeAction(state) {
   const lastAction = state && state.last_action && typeof state.last_action === "object" ? state.last_action : {};
   const actionType = lastAction.type != null && String(lastAction.type).trim() !== "" ? String(lastAction.type) : "—";
   const actionValue = lastAction.value != null ? String(lastAction.value) : "";
-  return { actionType, actionValue };
+  const result = lastAction.result || "";
+  const expected = lastAction.expected != null ? String(lastAction.expected) : "";
+  const actual = lastAction.actual != null ? String(lastAction.actual) : "";
+  return { actionType, actionValue, result, expected, actual };
 }
 
 function _safeError(state) {
@@ -146,7 +149,7 @@ function renderLiveTableView() {
     const banker = state.banker && typeof state.banker === "object" ? state.banker : {};
     const playerScore = _safeScore(player.score);
     const bankerScore = _safeScore(banker.score);
-    const { actionType, actionValue } = _safeAction(state);
+    const { actionType, actionValue, result, expected, actual } = _safeAction(state);
     const { hasError, errorType, errorMsg } = _safeError(state);
 
     const card = document.createElement("article");
@@ -173,7 +176,10 @@ function renderLiveTableView() {
         <div class="live-cards">${_renderCardCodesFromSlots(player.cards)}</div>
         <div class="live-score">${playerScore}</div>
       </div>
-      <div class="live-action small">last_action: <span class="mono">${actionType}${actionValue ? ` (${actionValue})` : ""}</span></div>
+      <div class="live-action small">
+        last_action: <span class="mono">${actionType}${actionValue ? ` (${actionValue})` : ""}</span>
+        ${result ? ` | <span class="mono">${result}${expected ? `, exp: ${expected}` : ""}${actual ? `, act: ${actual}` : ""}</span>` : ""}
+      </div>
       <div class="live-error-wrap">
         ${
           hasError
