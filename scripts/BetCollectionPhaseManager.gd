@@ -576,6 +576,15 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 		# Проверяем, что кликнули на правильную следующую ставку
 		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
 			DebugLogger.log("  ❌ Неправильный порядок! Ожидалась %s[%d], кликнута %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
+			var payload = {
+				"type": "payment_error",
+				"expected": _bet_to_payload_dict(expected_bet),
+				"actual": _bet_to_payload_dict(bet),
+				"result": "error",
+				"message": "ERR_WRONG_PAY_ORDER",
+				"reason": "wrong_order"
+			}
+			EventBus.payment_error.emit(payload)
 			return _error_result("wrong_order", "ERR_WRONG_PAY_ORDER")
 		else:
 			DebugLogger.log("  ✅ Правильная ставка!")
