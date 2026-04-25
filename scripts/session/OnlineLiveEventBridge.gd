@@ -503,7 +503,7 @@ func _on_action_correct(action_type: String) -> void:
 		var actual = _winner_label()
 		var expected = _get_expected_winner()
 		_set_last_action("action_correct", actual, expected, actual, "correct", {})
-	elif action_type in ["player_third", "banker_third", "both_third"]:
+	elif action_type in ["player_third", "banker_third", "both_third", "banker_third_after_player", "no_third"]:
 		_set_last_action("action_correct", str(action_type), str(action_type), str(action_type), "correct", {})
 	else:
 		_set_last_action("action_correct", str(action_type))
@@ -514,7 +514,7 @@ func _on_action_correct(action_type: String) -> void:
 	if action_type == "winner":
 		data["action_type"] = "winner_selection"
 		data["value"] = _winner_label()
-	elif action_type in ["player_third", "banker_third", "both_third"]:
+	elif action_type in ["player_third", "banker_third", "both_third", "banker_third_after_player", "no_third"]:
 		data["action_type"] = str(action_type)
 		data["value"] = str(action_type)
 	else:
