@@ -426,6 +426,7 @@ func build_table_state() -> Dictionary:
 
 
 func send_table_state(reason: String) -> void:
+	print("[OnlineLiveEventBridge] DEBUG send_table_state called: reason=%s" % str(reason))
 	## Commit 1: метод добавлен, массовая отправка по событиям будет на следующих шагах.
 	if not _should_send():
 		print("[OnlineLiveEventBridge] table_state skipped: reason=%s" % reason)
@@ -449,7 +450,9 @@ func send_table_state(reason: String) -> void:
 func _on_round_started() -> void:
 	if not _should_send():
 		return
-	_set_last_action("round_started", null)
+	var should_preserve_last_action = _last_action.get("type", "") in ["action_correct", "action_error"]
+	if not should_preserve_last_action:
+		_set_last_action("round_started", null)
 	_clear_last_error()
 	var data: Dictionary = _session_meta()
 	data["timestamp"] = int(Time.get_unix_time_from_system())
@@ -496,7 +499,9 @@ func _on_action_error(err_type: String, message: String) -> void:
 
 
 func _on_action_correct(action_type: String) -> void:
+	print("[OnlineLiveEventBridge] DEBUG _on_action_correct called: action_type=%s" % str(action_type))
 	if not _should_send():
+		print("[OnlineLiveEventBridge] DEBUG _on_action_correct blocked by _should_send")
 		return
 	
 	if action_type == "winner":
