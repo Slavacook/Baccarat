@@ -518,6 +518,9 @@ func draw_player_third() -> void:
 	ui.show_player_third_card(card)
 	player_third_selected = false
 	_update_game_state_manager()
+	
+	# Эмит события успешного доборa третьей карты игроку
+	EventBus.action_correct.emit("player_third")
 
 func draw_banker_third() -> void:
 	"""Раздать третью карту банкиру
@@ -543,7 +546,16 @@ func draw_banker_third() -> void:
 	ui.update_banker_third_card_ui("card", card)  # Скрываем ДО анимации!
 	ui.show_banker_third_card(card)
 	banker_third_selected = false
+	
+	# Проверяем состояние до обновления, чтобы избежать проблем с изменением состояния
+	var is_banker_after_player = GameStateManager.current_state == GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER
 	_update_game_state_manager()
+	
+	# Эмит события успешного доборa третьей карты банкиру
+	if is_banker_after_player:
+		EventBus.action_correct.emit("banker_third_after_player")
+	else:
+		EventBus.action_correct.emit("banker_third")
 
 
 func complete_game() -> void:
