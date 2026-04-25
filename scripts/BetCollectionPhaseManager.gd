@@ -767,6 +767,9 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	# ═══════════════════════════════════════════════════════════════════
 	var group = _get_bet_group(bet_type)
 	
+	# Получаем ожидаемую ставку ДО любых изменений состояния
+	var expected_bet = _get_expected_next_bet(group, false)
+	
 	# Сохраняем старое состояние для возможного rollback
 	var old_paid_state = bet.is_paid()
 	var old_progress = payment_progress.get(group, 0) if not group.is_empty() else 0
@@ -795,6 +798,16 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 		else:
 			# Критическая ошибка: оплачивается не та ставка
 			DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Оплачивается ставка %s[%d], но ожидалась %s[%d]!" % [bet_type, position_index, expected.get_bet_type(), expected.get_position_index()])
+			# Перед rollback добавляем payment_error
+			var payload = {
+				"type": "payment_error",
+				"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+				"actual": _bet_to_payload_dict(bet),
+				"result": "error",
+				"message": "ERR_WRONG_PAYMENT_ORDER",
+				"reason": "wrong_order"
+			}
+			EventBus.payment_error.emit(payload)
 			# Rollback
 			bet.set_paid(old_paid_state)
 			sequence_manager.payment_progress[group] = old_progress
@@ -802,6 +815,16 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 			return false
 	elif not group.is_empty() and old_progress >= sequence.size():
 		DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Прогресс группы '%s' (%d) >= размера последовательности (%d)!" % [group, old_progress, sequence.size()])
+		# Перед rollback добавляем payment_error
+		var payload = {
+			"type": "payment_error",
+			"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+			"actual": _bet_to_payload_dict(bet),
+			"result": "error",
+			"message": "ERR_WRONG_PAYMENT_ORDER",
+			"reason": "wrong_order"
+		}
+		EventBus.payment_error.emit(payload)
 		# Rollback
 		bet.set_paid(old_paid_state)
 		is_processing = false
@@ -824,6 +847,15 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	
 	# Проверяем, все ли ставки обработаны (после успешной оплаты)
 	_check_and_notify_if_all_processed()
+	
+	# После успешной оплаты добавляем payment_correct
+	var payload = {
+		"type": "payment_correct",
+		"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+		"actual": _bet_to_payload_dict(bet),
+		"result": "correct"
+	}
+	EventBus.payment_correct.emit(payload)
 	
 	is_processing = false
 	return true
