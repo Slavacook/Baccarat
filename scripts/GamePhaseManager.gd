@@ -640,6 +640,14 @@ func on_action_pressed() -> void:
 			DebugLogger.log_separator("РЕЗОЛВЕР → вызываем deal_first_four()")
 			deal_first_four()
 		"validate_banker_after_player":
+			# Проверка: если выбран победитель в состоянии CARD_TO_BANKER_AFTER_PLAYER, 
+			# то нужно обработать выбор победителя, а не продолжать валидацию банкира
+			if GameStateManager.get_current_state() == GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER:
+				var is_winner_selected = winner_selection_manager and winner_selection_manager.is_winner_selected()
+				if is_winner_selected:
+					_handle_choose_winner_state()
+					return
+			
 			DebugLogger.log_separator("РЕЗОЛВЕР → вызываем _validate_banker_after_player()")
 			_validate_banker_after_player()
 		"handle_choose_winner":
@@ -1910,6 +1918,12 @@ func _handle_choose_winner_state() -> void:
 	
 	var button_state = ui.get_action_button_state()
 	var can_complete = _can_complete_round()
+	
+	# DEBUG: Добавлено для диагностики проблемы с пустым winner marker
+	print("DEBUG: GameStateManager.get_state_name(GameStateManager.current_state) = %s" % GameStateManager.get_state_name(GameStateManager.current_state))
+	print("DEBUG: button_state = %s" % button_state)
+	print("DEBUG: player_third_selected = %s" % player_third_selected)
+	print("DEBUG: banker_third_selected = %s" % banker_third_selected)
 	
 	# Используем обработчик для получения инструкций
 	var instructions = winner_selection_state_handler.get_state_handling_instructions(
