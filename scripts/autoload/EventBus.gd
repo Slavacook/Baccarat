@@ -471,6 +471,18 @@ signal training_mode_activated()
 @warning_ignore("unused_signal")
 signal training_mode_deactivated()
 
+# ═══════════════════════════════════════════════════════════════════════════
+# 🎯 СБОР СТАВОК
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Сбор проигрышных ставок
+@warning_ignore("unused_signal")
+signal collection_correct(payload: Dictionary)
+
+## Ошибка при сборе проигрышных ставок
+@warning_ignore("unused_signal")
+signal collection_error(payload: Dictionary)
+
 ## Этап обучения начат (stage_id: идентификатор этапа)
 @warning_ignore("unused_signal")
 signal training_stage_started(stage_id: String)

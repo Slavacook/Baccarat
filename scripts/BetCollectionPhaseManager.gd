@@ -433,6 +433,14 @@ func validate_chip_click(bet_type: String, position_index: int = 0) -> Dictionar
 # ВНУТРЕННИЕ МЕТОДЫ ВАЛИДАЦИИ (для использования валидатором)
 # ═══════════════════════════════════════════════════════════════════════════
 
+func _bet_to_payload_dict(bet) -> Dictionary:
+	"""Преобразовать объект ставки в словарь для payload"""
+	return {
+		"bet_type": bet.get_bet_type(),
+		"position_index": bet.get_position_index(),
+		"stake": bet.get_stake()
+	}
+
 func _validate_collect_internal(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Внутренний метод валидации сбора (используется валидатором)"""
 	return _validate_collect(bet, bet_type, position_index)
@@ -499,6 +507,15 @@ func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictio
 		
 		# Проверяем, что кликнули на правильную следующую ставку
 		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
+			var payload = {
+				"type": "collection_error",
+				"expected": _bet_to_payload_dict(expected_bet),
+				"actual": _bet_to_payload_dict(bet),
+				"result": "error",
+				"message": "ERR_WRONG_COLLECT_ORDER",
+				"reason": "wrong_order"
+			}
+			EventBus.collection_error.emit(payload)
 			return _error_result("wrong_order", "ERR_WRONG_COLLECT_ORDER")
 	
 	return _success_result("collect")
@@ -638,6 +655,9 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	var bet_id = "%s_%d" % [bet_type, position_index]
 	var group = _get_bet_group(bet_type)
 	
+	# Получаем ожидаемую ставку ДО любых изменений состояния
+	var expected_bet = _get_expected_next_bet(group, true)
+	
 	# Сохраняем старое состояние для возможного rollback
 	var old_collected_state = bet.is_collected()
 	var old_progress = collection_progress.get(group, 0) if not group.is_empty() else 0
@@ -677,6 +697,15 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	
 	# Проверяем, все ли ставки обработаны (после успешного сбора)
 	_check_and_notify_if_all_processed()
+	
+	# Формируем payload для успешного сбора
+	var payload = {
+		"type": "collection_correct",
+		"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+		"actual": _bet_to_payload_dict(bet),
+		"result": "correct"
+	}
+	EventBus.collection_correct.emit(payload)
 	
 	is_processing = false
 	return true
