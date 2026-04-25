@@ -59,6 +59,8 @@ func _ready() -> void:
 	eb.payout_wrong.connect(_on_payout_wrong)
 	eb.all_bets_processed.connect(_on_all_bets_processed)
 	eb.heart_bet_round_complete.connect(_on_heart_bet_round_complete)
+	eb.collection_correct.connect(_on_collection_correct)
+	eb.collection_error.connect(_on_collection_error)
 
 
 func _exit_tree() -> void:
@@ -89,6 +91,10 @@ func _exit_tree() -> void:
 		eb.all_bets_processed.disconnect(_on_all_bets_processed)
 	if eb.heart_bet_round_complete.is_connected(_on_heart_bet_round_complete):
 		eb.heart_bet_round_complete.disconnect(_on_heart_bet_round_complete)
+	if eb.collection_correct.is_connected(_on_collection_correct):
+		eb.collection_correct.disconnect(_on_collection_correct)
+	if eb.collection_error.is_connected(_on_collection_error):
+		eb.collection_error.disconnect(_on_collection_error)
 
 
 func _on_session_started(_mode: int) -> void:
@@ -598,3 +604,21 @@ func _on_all_bets_processed() -> void:
 func _on_heart_bet_round_complete() -> void:
 	send_table_state("heart_bet_round_complete")
 	_send_round_completed()
+
+
+func _on_collection_correct(payload: Dictionary) -> void:
+	var expected = payload.get("expected", {})
+	var actual = payload.get("actual", {})
+	_set_last_action("collection_correct", actual, expected, actual, "correct", payload)
+	_clear_last_error()
+	send_table_state("collection_correct")
+
+
+func _on_collection_error(payload: Dictionary) -> void:
+	var expected = payload.get("expected", {})
+	var actual = payload.get("actual", {})
+	var reason = payload.get("reason", "collection_error")
+	var message = payload.get("message", "Ошибка сбора ставок")
+	_set_last_action("collection_error", reason, expected, actual, "error", payload)
+	_set_last_error("collection_error", message)
+	send_table_state("collection_error")
