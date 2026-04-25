@@ -175,6 +175,18 @@ signal manual_payout_requested(winner: String)
 signal payout_setting_changed(bet_type: String, enabled: bool)
 
 # ═══════════════════════════════════════════════════════════════════════════
+# 💰 ОПЛАТА СТАВОК
+# ═══════════════════════════════════════════════════════════════════════════
+
+## Оплата выигрышной ставки
+@warning_ignore("unused_signal")
+signal payment_correct(payload: Dictionary)
+
+## Ошибка при оплате выигрышной ставки
+@warning_ignore("unused_signal")
+signal payment_error(payload: Dictionary)
+
+# ═══════════════════════════════════════════════════════════════════════════
 # 📢 УВЕДОМЛЕНИЯ (TOAST)
 # ═══════════════════════════════════════════════════════════════════════════
 
