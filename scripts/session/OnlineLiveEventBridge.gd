@@ -15,6 +15,10 @@ var _current_round_id: String = ""
 var _last_action: Dictionary = {
 	"type": "",
 	"value": null,
+	"expected": null,
+	"actual": null,
+	"result": "", # "correct", "error"
+	"details": {}
 }
 ## Последняя ошибка дилера (v1, базовый каркас).
 var _last_error: Dictionary = {
@@ -94,6 +98,10 @@ func _on_session_started(_mode: int) -> void:
 	_last_action = {
 		"type": "",
 		"value": null,
+		"expected": null,
+		"actual": null,
+		"result": "",
+		"details": {}
 	}
 	_last_error = {
 		"active": false,
@@ -174,10 +182,14 @@ func _timestamp_ms() -> int:
 	return int(Time.get_unix_time_from_system() * 1000.0)
 
 
-func _set_last_action(action_type: String, action_value: Variant = null) -> void:
+func _set_last_action(action_type: String, action_value: Variant = null, expected: Variant = null, actual: Variant = null, result: String = "", details: Dictionary = {}) -> void:
 	_last_action = {
 		"type": action_type,
 		"value": action_value,
+		"expected": expected,
+		"actual": actual,
+		"result": result,
+		"details": details
 	}
 
 
