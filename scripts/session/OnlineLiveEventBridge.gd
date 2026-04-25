@@ -550,8 +550,27 @@ func _on_action_correct(action_type: String) -> void:
 	send_table_state("action_correct")
 
 
-func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
-	_set_last_action("payout_correct", null)
+func _on_payout_correct(collected: float, expected: float, bet_type: String, position_index: int) -> void:
+	## Сборка данных для payout_correct
+	var expected_dict: Dictionary = {
+		"amount": expected,
+		"bet_type": bet_type,
+		"position_index": position_index
+	}
+	var actual_dict: Dictionary = {
+		"amount": collected,
+		"bet_type": bet_type,
+		"position_index": position_index
+	}
+	var details: Dictionary = {
+		"type": "payout_correct",
+		"collected": collected,
+		"expected": expected,
+		"bet_type": bet_type,
+		"position_index": position_index,
+		"result": "correct"
+	}
+	_set_last_action("payout_correct", actual_dict, expected_dict, actual_dict, "correct", details)
 	_clear_last_error()
 	send_table_state("payout_correct")
 
@@ -559,7 +578,28 @@ func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, 
 func _on_payout_wrong(collected: float, expected: float, bet_type: String, position_index: int) -> void:
 	if not _should_send():
 		return
-	_set_last_action("payout_wrong", str(bet_type))
+	## Сборка данных для payout_wrong
+	var expected_dict: Dictionary = {
+		"amount": expected,
+		"bet_type": bet_type,
+		"position_index": position_index
+	}
+	var actual_dict: Dictionary = {
+		"amount": collected,
+		"bet_type": bet_type,
+		"position_index": position_index
+	}
+	var details: Dictionary = {
+		"type": "payout_wrong",
+		"collected": collected,
+		"expected": expected,
+		"bet_type": bet_type,
+		"position_index": position_index,
+		"result": "error",
+		"reason": "wrong_payout",
+		"message": "Неверная выплата"
+	}
+	_set_last_action("payout_wrong", "wrong_payout", expected_dict, actual_dict, "error", details)
 	_set_last_error("payout_wrong", "Неверная выплата")
 	var data: Dictionary = _session_meta()
 	data["error_type"] = "payout_wrong"
