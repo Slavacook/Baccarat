@@ -95,7 +95,21 @@ func process_payment(expected_payout: float) -> void:
 			# ← Неправильная выплата (не пустая)
 			# ВАЖНО: Эмитим событие ДО анимации, чтобы обновить сердечки
 			# В PayoutOverlay нет информации о bet_type/position_index
-			EventBus.payout_wrong.emit(collected_total, expected_payout, "", -1)
+			# Получаем bet_type и position_index аналогично _show_success_animation()
+			var bet_type = ""
+			var position_index = -1
+			
+			# Получаем bet_type из current_winner (PayoutOverlay наследуется от CanvasLayer)
+			# Используем get() с обработкой ошибки
+			var winner = owner_node.get("current_winner")
+			if winner is String:
+				bet_type = winner
+			
+			# Получаем position_index из метаданных
+			if owner_node.has_meta("current_position_index"):
+				position_index = owner_node.get_meta("current_position_index")
+			
+			EventBus.payout_wrong.emit(collected_total, expected_payout, bet_type, position_index)
 
 		# Показываем анимацию ошибки (попап не закрывается)
 		await _show_error_animation(collected_total)
