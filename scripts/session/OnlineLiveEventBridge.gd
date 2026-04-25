@@ -476,16 +476,19 @@ func _on_action_error(err_type: String, message: String) -> void:
 	if not _should_send():
 		return
 	
+	var effective_err_type = str(err_type)
 	if err_type == "winner_wrong" or err_type == "tie_wrong":
 		var actual = _winner_label()
 		var expected = _get_expected_winner()
-		_set_last_action("action_error", str(err_type), expected, actual, "error", {})
+		if actual == "Tie" and expected != "Tie":
+			effective_err_type = "tie_wrong"
+		_set_last_action("action_error", effective_err_type, expected, actual, "error", {})
 	else:
-		_set_last_action("action_error", str(err_type))
+		_set_last_action("action_error", effective_err_type)
 	
-	_set_last_error(str(err_type), str(message))
+	_set_last_error(effective_err_type, str(message))
 	var data: Dictionary = _session_meta()
-	data["error_type"] = str(err_type)
+	data["error_type"] = effective_err_type
 	data["message"] = str(message)
 	data["lives_remaining"] = _lives_remaining()
 	LiveSessionClient.send_event("error_occurred", data)
