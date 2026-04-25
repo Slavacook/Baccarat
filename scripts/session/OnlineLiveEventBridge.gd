@@ -486,6 +486,21 @@ func _on_action_error(err_type: String, message: String) -> void:
 		if actual == "Tie" and expected != "Tie":
 			effective_err_type = "tie_wrong"
 		_set_last_action("action_error", effective_err_type, expected, actual, "error", {})
+	elif err_type in ["player_wrong", "banker_wrong", "both_wrong", "natural_draw"]:
+		var actual = ""
+		match err_type:
+			"player_wrong":
+				actual = "player_third"
+			"banker_wrong":
+				actual = "banker_third"
+			"both_wrong":
+				actual = "both_third"
+			"natural_draw":
+				actual = "natural_draw"
+
+		var expected = actual
+
+		_set_last_action("action_error", effective_err_type, expected, actual, "error", {})
 	else:
 		_set_last_action("action_error", effective_err_type)
 	
