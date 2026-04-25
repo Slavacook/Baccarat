@@ -167,6 +167,26 @@ func _winner_label() -> String:
 	return str(wsm.selected_winner)
 
 
+func _get_expected_winner() -> String:
+	var gc: Node = get_parent()
+	if gc == null:
+		return ""
+	var hm: Variant = gc.get("hand_manager")
+	if hm == null:
+		return ""
+	var p_hand: Array[Card] = []
+	var b_hand: Array[Card] = []
+	if hm.has_method("get_player_hand_ref"):
+		var p_ref = hm.get_player_hand_ref()
+		if p_ref is Array:
+			p_hand.assign(p_ref)
+	if hm.has_method("get_banker_hand_ref"):
+		var b_ref = hm.get_banker_hand_ref()
+		if b_ref is Array:
+			b_hand.assign(b_ref)
+	return BaccaratRules.get_winner(p_hand, b_hand)
+
+
 func _is_game_over_hint() -> bool:
 	var gc: Node = get_parent()
 	if gc and gc.get("game_state_controller"):
@@ -468,10 +488,14 @@ func _on_action_error(err_type: String, message: String) -> void:
 func _on_action_correct(action_type: String) -> void:
 	if not _should_send():
 		return
-	var action_value: Variant = null
+	
 	if action_type == "winner":
-		action_value = _winner_label()
-	_set_last_action("action_correct", action_value if action_value != null else str(action_type))
+		var actual = _winner_label()
+		var expected = _get_expected_winner()
+		_set_last_action("action_correct", actual, expected, actual, "correct", {})
+	else:
+		_set_last_action("action_correct", str(action_type))
+	
 	_clear_last_error()
 	var data: Dictionary = _session_meta()
 	data["is_correct"] = true
