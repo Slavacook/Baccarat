@@ -254,6 +254,7 @@ func process_manual_payout_result(context: Dictionary) -> void:
 	if is_correct:
 		var payload = {
 			"type": "payout_correct",
+			"phase": "payout",
 			"expected": {
 				"amount": expected,
 				"bet_type": bet_type,
@@ -283,6 +284,7 @@ func process_manual_payout_result(context: Dictionary) -> void:
 		# Здесь нет информации о position_index, используем -1
 		var payload = {
 			"type": "payout_wrong",
+			"phase": "payout",
 			"expected": {
 				"amount": expected,
 				"bet_type": bet_type,

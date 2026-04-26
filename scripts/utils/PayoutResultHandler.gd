@@ -125,6 +125,7 @@ func _handle_wrong_payout(
 	# Эмитим событие (потеря жизни обрабатывается через EventBus в HeartBar)
 	var payload = {
 		"type": "payout_wrong",
+		"phase": "payout",
 		"expected": {
 			"amount": expected,
 			"bet_type": bet_type,

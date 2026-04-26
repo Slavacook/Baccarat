@@ -509,6 +509,7 @@ func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictio
 		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
 			var payload = {
 				"type": "collection_error",
+				"phase": "collection",
 				"expected": _bet_to_payload_dict(expected_bet),
 				"actual": _bet_to_payload_dict(bet),
 				"result": "error",
@@ -578,6 +579,7 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 			DebugLogger.log("  ❌ Неправильный порядок! Ожидалась %s[%d], кликнута %s[%d]" % [expected_bet.get_bet_type(), expected_bet.get_position_index(), bet_type, position_index])
 			var payload = {
 				"type": "payment_error",
+				"phase": "payment",
 				"expected": _bet_to_payload_dict(expected_bet),
 				"actual": _bet_to_payload_dict(bet),
 				"result": "error",
@@ -710,6 +712,7 @@ func collect_bet(bet_type: String, position_index: int = 0) -> bool:
 	# Формируем payload для успешного сбора
 	var payload = {
 		"type": "collection_correct",
+		"phase": "collection",
 		"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
 		"actual": _bet_to_payload_dict(bet),
 		"result": "correct"
@@ -810,6 +813,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 			# Перед rollback добавляем payment_error
 			var payload = {
 				"type": "payment_error",
+				"phase": "payment",
 				"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
 				"actual": _bet_to_payload_dict(bet),
 				"result": "error",
@@ -827,6 +831,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 		# Перед rollback добавляем payment_error
 		var payload = {
 			"type": "payment_error",
+			"phase": "payment",
 			"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
 			"actual": _bet_to_payload_dict(bet),
 			"result": "error",
@@ -860,6 +865,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	# После успешной оплаты добавляем payment_correct
 	var payload = {
 		"type": "payment_correct",
+		"phase": "payment",
 		"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
 		"actual": _bet_to_payload_dict(bet),
 		"result": "correct"

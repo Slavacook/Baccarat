@@ -111,6 +111,7 @@ func process_payment(expected_payout: float) -> void:
 			
 			var payload = {
 				"type": "payout_wrong",
+				"phase": "payout",
 				"expected": {
 					"amount": expected_payout,
 					"bet_type": bet_type,
@@ -156,6 +157,7 @@ func _show_success_animation(is_correct: bool, collected: float, expected: float
 	
 	var payload = {
 		"type": "payout_correct",
+		"phase": "payout",
 		"expected": {
 			"amount": expected,
 			"bet_type": bet_type,

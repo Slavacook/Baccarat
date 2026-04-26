@@ -332,6 +332,7 @@ func process_automatic_payout_result() -> void:
 		# Передаем пустые значения - StatsManager пропустит такие случаи
 		var payload = {
 			"type": "payout_correct",
+			"phase": "payout",
 			"expected": {
 				"amount": expected,
 				"bet_type": "",
@@ -351,6 +352,7 @@ func process_automatic_payout_result() -> void:
 		# Для старого метода нет информации о bet_type/position_index
 		var payload = {
 			"type": "payout_wrong",
+			"phase": "payout",
 			"expected": {
 				"amount": expected,
 				"bet_type": "",
