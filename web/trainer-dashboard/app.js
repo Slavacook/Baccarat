@@ -156,7 +156,7 @@ function renderLiveTableView() {
     const eventSeq = state.event_seq != null ? String(state.event_seq) : entry.lastSeq != null ? String(entry.lastSeq) : "—";
 
     const card = document.createElement("article");
-    card.className = "live-dealer-card";
+    card.className = "live-dealer-card" + (hasError ? " live-dealer-card-error" : "");
     card.innerHTML = `
       <div class="live-dealer-header">
         <div class="live-title">
