@@ -324,14 +324,14 @@ func _on_action_error(_type: String, _message: String):
 	# Режим выживания теперь всегда активен, поэтому action_error всегда приводит к life_lost
 	pass
 
-func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, _position_index: int):
+func _on_payout_correct(_payload: Dictionary):
 	"""Обработчик правильной выплаты"""
 	play_sound(payout_correct_sound)
 	
 	# Звук чаевых теперь воспроизводится через событие tip_received
 	# с задержкой 0.5 сек после правильной выплаты
 
-func _on_payout_wrong(_collected: float, _expected: float, _bet_type: String, _position_index: int):
+func _on_payout_wrong(_payload: Dictionary):
 	play_sound(payout_wrong_sound)
 
 func _on_hint_used():

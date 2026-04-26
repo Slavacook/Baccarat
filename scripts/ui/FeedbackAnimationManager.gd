@@ -356,7 +356,7 @@ func _on_life_lost(_remaining_lives: int):
 	"""Обработчик потери жизни - показываем оповещение"""
 	show_heart()
 
-func _on_payout_correct(_collected: float, _expected: float, _bet_type: String, _position_index: int):
+func _on_payout_correct(_payload: Dictionary):
 	"""Обработчик правильной выплаты
 	
 	ПРИМЕЧАНИЕ: Оповещение о чаевых теперь показывается через событие tip_received

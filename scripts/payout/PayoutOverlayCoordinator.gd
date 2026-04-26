@@ -252,7 +252,21 @@ func process_manual_payout_result(context: Dictionary) -> void:
 	var expected = GameDataManager.get_payout_expected()
 	
 	if is_correct:
-		EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
+		var payload = {
+			"type": "payout_correct",
+			"expected": {
+				"amount": expected,
+				"bet_type": bet_type,
+				"position_index": position_index
+			},
+			"actual": {
+				"amount": collected,
+				"bet_type": bet_type,
+				"position_index": position_index
+			},
+			"result": "correct"
+		}
+		EventBus.payout_correct.emit(payload)
 		DebugLogger.log("✅ Правильная выплата для %s: %.1f" % [bet_type, expected])
 		
 		# Отмечаем ставку как оплаченную в обоих менеджерах
@@ -267,7 +281,23 @@ func process_manual_payout_result(context: Dictionary) -> void:
 		DebugLogger.log_init("Все выплаты оплачены! Можно начинать новый раунд")
 	else:
 		# Здесь нет информации о position_index, используем -1
-		EventBus.payout_wrong.emit(collected, expected, bet_type, -1)
+		var payload = {
+			"type": "payout_wrong",
+			"expected": {
+				"amount": expected,
+				"bet_type": bet_type,
+				"position_index": -1
+			},
+			"actual": {
+				"amount": collected,
+				"bet_type": bet_type,
+				"position_index": -1
+			},
+			"result": "error",
+			"reason": "wrong_amount",
+			"message": "Неверная выплата"
+		}
+		EventBus.payout_wrong.emit(payload)
 		DebugLogger.log("❌ Неправильная выплата для %s: собрано=%.1f, ожидалось=%.1f" % [
 			bet_type, collected, expected
 		])

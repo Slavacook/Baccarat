@@ -115,12 +115,42 @@ func on_payout_confirmed(is_correct: bool, collected: float, expected: float) ->
 	if is_correct:
 		# Для старого метода нет информации о bet_type/position_index
 		# Передаем пустые значения - StatsManager пропустит такие случаи
-		EventBus.payout_correct.emit(collected, expected, "", -1)
+		var payload = {
+			"type": "payout_correct",
+			"expected": {
+				"amount": expected,
+				"bet_type": "",
+				"position_index": -1
+			},
+			"actual": {
+				"amount": collected,
+				"bet_type": "",
+				"position_index": -1
+			},
+			"result": "correct"
+		}
+		EventBus.payout_correct.emit(payload)
 		DebugLogger.log("✅ Правильно! Выплата: %s" % expected)
 		# ВАЖНО: Счетчик раздач НЕ увеличивается здесь - он увеличивается при открытии первых 4 карт
 	else:
 		# Для старого метода нет информации о bet_type/position_index
-		EventBus.payout_wrong.emit(collected, expected, "", -1)
+		var payload = {
+			"type": "payout_wrong",
+			"expected": {
+				"amount": expected,
+				"bet_type": "",
+				"position_index": -1
+			},
+			"actual": {
+				"amount": collected,
+				"bet_type": "",
+				"position_index": -1
+			},
+			"result": "error",
+			"reason": "wrong_amount",
+			"message": "Неверная выплата"
+		}
+		EventBus.payout_wrong.emit(payload)
 		DebugLogger.log("❌ Ошибка! Собрано: %s, ожидалось: %s" % [collected, expected])
 		# ← Жизни отнимаются в PayoutScene, здесь ничего не делаем
 	if is_correct and phase_manager:

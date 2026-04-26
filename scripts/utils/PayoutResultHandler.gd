@@ -123,7 +123,23 @@ func _handle_wrong_payout(
 		return  # НЕ эмитим payout_wrong для отмены
 	
 	# Эмитим событие (потеря жизни обрабатывается через EventBus в HeartBar)
-	EventBus.payout_wrong.emit(collected, expected, bet_type, position_index)
+	var payload = {
+		"type": "payout_wrong",
+		"expected": {
+			"amount": expected,
+			"bet_type": bet_type,
+			"position_index": position_index
+		},
+		"actual": {
+			"amount": collected,
+			"bet_type": bet_type,
+			"position_index": position_index
+		},
+		"result": "error",
+		"reason": "wrong_amount",
+		"message": "Неверная выплата"
+	}
+	EventBus.payout_wrong.emit(payload)
 	DebugLogger.log("  ❌ Неправильная выплата %s[%d]: собрано=%.1f, ожидалось=%.1f" % [
 		bet_type, position_index, collected, expected
 	])

@@ -180,7 +180,7 @@ func _on_action_correct(type: String) -> void:
 	correct_answers += 1
 
 
-func _on_payout_correct(collected: float, expected: float, bet_type: String, position_index: int) -> void:
+func _on_payout_correct(_payload: Dictionary) -> void:
 	correct_answers += 1
 
 

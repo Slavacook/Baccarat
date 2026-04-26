@@ -556,65 +556,31 @@ func _on_action_correct(action_type: String) -> void:
 	send_table_state("action_correct")
 
 
-func _on_payout_correct(collected: float, expected: float, bet_type: String, position_index: int) -> void:
-	## Сборка данных для payout_correct
-	var expected_dict: Dictionary = {
-		"amount": expected,
-		"bet_type": bet_type,
-		"position_index": position_index
-	}
-	var actual_dict: Dictionary = {
-		"amount": collected,
-		"bet_type": bet_type,
-		"position_index": position_index
-	}
-	var details: Dictionary = {
-		"type": "payout_correct",
-		"collected": collected,
-		"expected": expected,
-		"bet_type": bet_type,
-		"position_index": position_index,
-		"result": "correct"
-	}
-	_set_last_action("payout_correct", actual_dict, expected_dict, actual_dict, "correct", details)
+func _on_payout_correct(payload: Dictionary) -> void:
+	var expected_dict: Dictionary = payload.get("expected", {})
+	var actual_dict: Dictionary = payload.get("actual", {})
+	_set_last_action("payout_correct", actual_dict, expected_dict, actual_dict, "correct", payload)
 	_clear_last_error()
 	send_table_state("payout_correct")
 
 
-func _on_payout_wrong(collected: float, expected: float, bet_type: String, position_index: int) -> void:
+func _on_payout_wrong(payload: Dictionary) -> void:
 	if not _should_send():
 		return
-	## Сборка данных для payout_wrong
-	var expected_dict: Dictionary = {
-		"amount": expected,
-		"bet_type": bet_type,
-		"position_index": position_index
-	}
-	var actual_dict: Dictionary = {
-		"amount": collected,
-		"bet_type": bet_type,
-		"position_index": position_index
-	}
-	var details: Dictionary = {
-		"type": "payout_wrong",
-		"collected": collected,
-		"expected": expected,
-		"bet_type": bet_type,
-		"position_index": position_index,
-		"result": "error",
-		"reason": "wrong_payout",
-		"message": "Неверная выплата"
-	}
-	_set_last_action("payout_wrong", "wrong_payout", expected_dict, actual_dict, "error", details)
-	_set_last_error("payout_wrong", "Неверная выплата")
+	var expected_dict: Dictionary = payload.get("expected", {})
+	var actual_dict: Dictionary = payload.get("actual", {})
+	var reason: String = str(payload.get("reason", "wrong_amount"))
+	var message: String = str(payload.get("message", "Неверная выплата"))
+	_set_last_action("payout_wrong", reason, expected_dict, actual_dict, "error", payload)
+	_set_last_error("payout_wrong", message)
 	var data: Dictionary = _session_meta()
 	data["error_type"] = "payout_wrong"
-	data["message"] = "Неверная выплата"
+	data["message"] = message
 	data["lives_remaining"] = _lives_remaining()
-	data["bet_type"] = str(bet_type)
-	data["collected"] = collected
-	data["expected"] = expected
-	data["position_index"] = position_index
+	data["bet_type"] = str(expected_dict.get("bet_type", ""))
+	data["collected"] = float(actual_dict.get("amount", 0.0))
+	data["expected"] = float(expected_dict.get("amount", 0.0))
+	data["position_index"] = int(expected_dict.get("position_index", -1))
 	LiveSessionClient.send_event("error_occurred", data)
 	send_table_state("payout_wrong")
 

@@ -48,7 +48,7 @@ func reset():
 # ОБРАБОТЧИКИ СОБЫТИЙ EventBus
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _on_payout_correct(_collected: float, expected: float, bet_type: String, position_index: int):
+func _on_payout_correct(payload: Dictionary):
 	"""Обработка правильной выплаты - начисление чаевых как процент от выигрыша гостя
 	
 	Использует TipCalculator для расчета чаевых с учетом терпения гостя.
@@ -60,6 +60,11 @@ func _on_payout_correct(_collected: float, expected: float, bet_type: String, po
 		bet_type: Тип ставки ("Player", "Banker", "Tie", "PairPlayer", "PairBanker")
 		position_index: Индекс позиции ставки (для определения гостевых ставок)
 	"""
+	var expected_data: Dictionary = payload.get("expected", {})
+	var expected: float = float(expected_data.get("amount", 0.0))
+	var bet_type: String = str(expected_data.get("bet_type", ""))
+	var position_index: int = int(expected_data.get("position_index", -1))
+	
 	# Проверяем, является ли ставка гостевой
 	if bet_type.is_empty() or position_index < 0:
 		# Нет информации о ставке - пропускаем (старая логика для обратной совместимости)

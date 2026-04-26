@@ -575,13 +575,17 @@ func reset_all_patience() -> void:
 # ОБРАБОТЧИКИ СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _on_payout_wrong(_collected: float, _expected: float, bet_type: String, position_index: int) -> void:
+func _on_payout_wrong(payload: Dictionary) -> void:
 	"""Обработчик неправильной выплаты - уменьшаем терпение гостя
 	
 	Терпение уменьшается когда:
 	- Дилер пытается забрать не проигравшую ставку гостя
 	- Дилер нажал неправильную выплату для ставки гостя
 	"""
+	var expected_data: Dictionary = payload.get("expected", {})
+	var bet_type: String = str(expected_data.get("bet_type", ""))
+	var position_index: int = int(expected_data.get("position_index", -1))
+	
 	# Проверяем, является ли ставка гостевой
 	if bet_type.is_empty() or position_index < 0:
 		# Нет информации о ставке - пропускаем

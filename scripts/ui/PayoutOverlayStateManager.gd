@@ -81,7 +81,7 @@ func update_score_display() -> void:
 # ПУБЛИЧНЫЕ МЕТОДЫ - ОБРАБОТКА СОБЫТИЙ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func handle_payout_wrong_event(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
+func handle_payout_wrong_event(_payload: Dictionary) -> void:
 	"""Обработчик события неправильной выплаты
 	
 	Вызывается когда EventBus.payout_wrong эмитится.

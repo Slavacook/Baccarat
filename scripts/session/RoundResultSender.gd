@@ -21,7 +21,7 @@ func _ready() -> void:
 		eb.payout_correct.connect(_on_round_complete)
 
 
-func _on_round_complete(_collected: float, _expected: float, _bet_type: String, _position_index: int) -> void:
+func _on_round_complete(_payload: Dictionary) -> void:
 	if not _session_manager or _session_manager.current_mode != SessionManager.Mode.ONLINE:
 		return
 

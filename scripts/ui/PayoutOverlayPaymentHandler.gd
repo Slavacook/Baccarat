@@ -109,7 +109,23 @@ func process_payment(expected_payout: float) -> void:
 			if owner_node.has_meta("current_position_index"):
 				position_index = owner_node.get_meta("current_position_index")
 			
-			EventBus.payout_wrong.emit(collected_total, expected_payout, bet_type, position_index)
+			var payload = {
+				"type": "payout_wrong",
+				"expected": {
+					"amount": expected_payout,
+					"bet_type": bet_type,
+					"position_index": position_index
+				},
+				"actual": {
+					"amount": collected_total,
+					"bet_type": bet_type,
+					"position_index": position_index
+				},
+				"result": "error",
+				"reason": "wrong_amount",
+				"message": "Неверная выплата"
+			}
+			EventBus.payout_wrong.emit(payload)
 
 		# Показываем анимацию ошибки (попап не закрывается)
 		await _show_error_animation(collected_total)
@@ -138,7 +154,21 @@ func _show_success_animation(is_correct: bool, collected: float, expected: float
 	if owner_node.has_meta("current_position_index"):
 		position_index = owner_node.get_meta("current_position_index")
 	
-	EventBus.payout_correct.emit(collected, expected, bet_type, position_index)
+	var payload = {
+		"type": "payout_correct",
+		"expected": {
+			"amount": expected,
+			"bet_type": bet_type,
+			"position_index": position_index
+		},
+		"actual": {
+			"amount": collected,
+			"bet_type": bet_type,
+			"position_index": position_index
+		},
+		"result": "correct"
+	}
+	EventBus.payout_correct.emit(payload)
 	
 	# Ждем время показа
 	await owner_node.get_tree().create_timer(GameConstants.SUCCESS_ANIMATION_DURATION).timeout
