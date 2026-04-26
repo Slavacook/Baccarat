@@ -126,22 +126,25 @@ tr.row-live-error {
 
 #live-table-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
 }
 
 .live-dealer-card {
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   background: #0b1220;
-  padding: 12px;
+  padding: 16px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.live-head {
+.live-dealer-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  gap: 8px;
+  gap: 12px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
 }
 
 .live-title {
@@ -151,11 +154,12 @@ tr.row-live-error {
 
 .live-phase {
   display: inline-block;
-  padding: 3px 8px;
+  padding: 4px 10px;
   border-radius: 999px;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 700;
   border: 1px solid var(--border);
+  margin-top: 2px;
 }
 
 .live-phase.phase-waiting {
@@ -176,39 +180,73 @@ tr.row-live-error {
   background: rgba(34, 197, 94, 0.12);
 }
 
-.live-meta {
+.live-status {
   display: flex;
-  gap: 10px;
-  margin-top: 6px;
-}
-
-.live-row {
-  display: grid;
-  grid-template-columns: 56px 1fr 26px;
-  align-items: center;
   gap: 8px;
-  margin-top: 8px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.live-side-label {
+.live-lives {
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.live-game-over {
+  background: rgba(248, 113, 113, 0.2);
+  color: var(--danger);
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.live-table-area {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.live-zone {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  background: #111827;
+}
+
+.live-zone-header {
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 8px;
   color: var(--muted);
-  font-size: 0.82rem;
+  text-align: center;
+}
+
+.live-zone-banker {
+  border-color: #7f1d1d;
+}
+
+.live-zone-player {
+  border-color: #166534;
 }
 
 .live-cards {
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
+  justify-content: center;
+  margin-bottom: 8px;
 }
 
 .live-card {
-  min-width: 36px;
+  min-width: 40px;
   text-align: center;
-  padding: 4px 6px;
+  padding: 6px 8px;
   border-radius: 6px;
   border: 1px solid #334155;
   background: #111827;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
@@ -224,16 +262,37 @@ tr.row-live-error {
 
 .live-score {
   font-weight: 700;
-  text-align: right;
+  text-align: center;
+  font-size: 1.1rem;
 }
 
-.live-action {
-  margin-top: 8px;
+.live-action-section,
+.live-error-section {
+  margin-bottom: 12px;
+}
+
+.live-action-title,
+.live-error-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.live-action-content,
+.live-error-content {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #0f172a;
+  font-size: 0.9rem;
+}
+
+.live-action-content {
   color: var(--muted);
 }
 
-.live-error-wrap {
-  margin-top: 8px;
+.live-error-content {
+  color: var(--text);
 }
 
 .live-error-badge {
@@ -243,7 +302,7 @@ tr.row-live-error {
   color: var(--danger);
   background: rgba(248, 113, 113, 0.12);
   border: 1px solid #7f1d1d;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 .live-ok-badge {
@@ -253,7 +312,7 @@ tr.row-live-error {
   color: var(--accent2);
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.35);
-  font-size: 0.8rem;
+  font-size: 0.85rem;
 }
 
 label {

@@ -151,41 +151,59 @@ function renderLiveTableView() {
     const bankerScore = _safeScore(banker.score);
     const { actionType, actionValue, result, expected, actual } = _safeAction(state);
     const { hasError, errorType, errorMsg } = _safeError(state);
+    const lives = state.lives != null ? String(state.lives) : "";
+    const gameOver = state.game_over === true;
+    const eventSeq = state.event_seq != null ? String(state.event_seq) : entry.lastSeq != null ? String(entry.lastSeq) : "—";
 
     const card = document.createElement("article");
     card.className = "live-dealer-card";
     card.innerHTML = `
-      <div class="live-head">
+      <div class="live-dealer-header">
         <div class="live-title">
           <strong>${dealerName}</strong>
           <span class="muted small mono">${dealerId}</span>
         </div>
         <span class="live-phase ${_phaseClass(phase)}">${phase}</span>
       </div>
+      
       <div class="live-meta muted small">
         <span>Раунд: ${roundNumber}</span>
-        <span>seq: ${entry.lastSeq}</span>
+        <span>seq: ${eventSeq}</span>
+        ${lives ? `<span>Lives: ${lives}</span>` : ""}
+        ${gameOver ? `<span class="live-game-over">Game Over</span>` : ""}
       </div>
-      <div class="live-row">
-        <div class="live-side-label">Banker</div>
-        <div class="live-cards">${_renderCardCodesFromSlots(banker.cards)}</div>
-        <div class="live-score">${bankerScore}</div>
+      
+      <div class="live-table-area">
+        <div class="live-zone live-zone-banker">
+          <div class="live-zone-header">Banker</div>
+          <div class="live-cards">${_renderCardCodesFromSlots(banker.cards)}</div>
+          <div class="live-score">${bankerScore}</div>
+        </div>
+        
+        <div class="live-zone live-zone-player">
+          <div class="live-zone-header">Player</div>
+          <div class="live-cards">${_renderCardCodesFromSlots(player.cards)}</div>
+          <div class="live-score">${playerScore}</div>
+        </div>
       </div>
-      <div class="live-row">
-        <div class="live-side-label">Player</div>
-        <div class="live-cards">${_renderCardCodesFromSlots(player.cards)}</div>
-        <div class="live-score">${playerScore}</div>
+      
+      <div class="live-action-section">
+        <div class="live-action-title">Last Action:</div>
+        <div class="live-action-content">
+          ${actionType !== "—" ? `<span class="mono">${actionType}${actionValue ? ` (${actionValue})` : ""}</span>` : "No action recorded"}
+          ${result ? ` | <span class="mono">${result}${expected ? `, exp: ${expected}` : ""}${actual ? `, act: ${actual}` : ""}</span>` : ""}
+        </div>
       </div>
-      <div class="live-action small">
-        last_action: <span class="mono">${actionType}${actionValue ? ` (${actionValue})` : ""}</span>
-        ${result ? ` | <span class="mono">${result}${expected ? `, exp: ${expected}` : ""}${actual ? `, act: ${actual}` : ""}</span>` : ""}
-      </div>
-      <div class="live-error-wrap">
-        ${
-          hasError
-            ? `<span class="live-error-badge">Ошибка: ${errorType || "unknown"}${errorMsg ? ` — ${errorMsg}` : ""}</span>`
-            : `<span class="live-ok-badge">Без активной ошибки</span>`
-        }
+      
+      <div class="live-error-section">
+        <div class="live-error-title">Error:</div>
+        <div class="live-error-content">
+          ${
+            hasError
+              ? `<span class="live-error-badge">Ошибка: ${errorType || "unknown"}${errorMsg ? ` — ${errorMsg}` : ""}</span>`
+              : `<span class="live-ok-badge">OK</span>`
+          }
+        </div>
       </div>
     `;
     root.appendChild(card);
