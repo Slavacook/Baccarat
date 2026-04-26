@@ -176,6 +176,47 @@ function _safeError(state) {
   return { hasError, errorType, errorMsg };
 }
 
+function _getLastActionText(lastAction) {
+  const actionType = lastAction.type != null ? String(lastAction.type) : "";
+  const actionValue = lastAction.value != null ? String(lastAction.value) : "";
+  
+  switch (actionType) {
+    case "round_started":
+      return "Старт раздачи";
+    case "cards_dealt":
+      return "Карты розданы";
+    case "player_third_drawn":
+      return "Третья карта Player";
+    case "banker_third_drawn":
+      return "Третья карта Banker";
+    case "both_third_drawn":
+      return "Третьи карты Player и Banker";
+    case "winner_selected":
+      return "Выбор победителя";
+    default:
+      return actionType ? `Действие: ${actionType}` : "Нет действий";
+  }
+}
+
+function _getLastActionStatus(lastAction, hasError) {
+  const result = lastAction.result != null ? String(lastAction.result) : "";
+  let isError = false;
+  
+  // Приоритет: используем result если доступен
+  if (result === "wrong") {
+    isError = true;
+  } else if (result === "correct") {
+    isError = false;
+  } else {
+    // fallback на error.active
+    isError = hasError;
+  }
+  
+  return isError 
+    ? '<span class="live-last-action-badge live-last-action-error">Ошибка</span>'
+    : '<span class="live-last-action-badge live-last-action-success">OK</span>';
+}
+
 function renderLiveTableView() {
   const root = el("live-table-view");
   if (!root) return;
@@ -222,25 +263,27 @@ function renderLiveTableView() {
       <div class="live-table-area">
         <div class="live-zone live-zone-banker">
           <div class="live-zone-header">Banker</div>
-          <div class="live-cards">${_renderCardCodesFromSlots(banker.cards)}</div>
+          <div class="live-cards">${_renderCardCodesFromSlots(banker.cards.length >= 3 ? [banker.cards[2], banker.cards[0], banker.cards[1]] : banker.cards)}</div>
           <div class="live-score">${bankerScore}</div>
         </div>
         
         <div class="live-zone live-zone-player">
           <div class="live-zone-header">Player</div>
-          <div class="live-cards">${_renderCardCodesFromSlots(player.cards)}</div>
+          <div class="live-cards">${_renderCardCodesFromSlots(player.cards.length >= 3 ? [player.cards[0], player.cards[1], player.cards[2]] : player.cards)}</div>
           <div class="live-score">${playerScore}</div>
         </div>
       </div>
-      
-      <div class="live-action-section">
-        <div class="live-action-title">Last Action:</div>
-        <div class="live-action-content">
-          ${actionType !== "—" ? `<span class="mono">${actionType}${actionValue ? ` (${actionValue})` : ""}</span>` : "No action recorded"}
-          ${result ? ` | <span class="mono">${result}${expected ? `, exp: ${expected}` : ""}${actual ? `, act: ${actual}` : ""}</span>` : ""}
+        
+      <div class="live-last-action-section">
+        <div class="live-last-action-title">Last Action:</div>
+        <div class="live-last-action-content">
+          ${_getLastActionText({type: actionType, value: actionValue, result: result})}
+        </div>
+        <div class="live-last-action-status">
+          ${_getLastActionStatus({type: actionType, value: actionValue, result: result}, hasError)}
         </div>
       </div>
-      
+        
       <div class="live-error-section">
         <div class="live-error-title">Error:</div>
         <div class="live-error-content">

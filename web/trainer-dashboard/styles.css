@@ -213,8 +213,8 @@ tr.row-live-error {
   gap: 12px;
   margin-bottom: 16px;
   background-image: url("assets/table.png");
-  background-size: cover;
-  background-position: center;
+  background-size: 180%;
+  background-position: center 52%;
   border-radius: 12px;
   padding: 20px;
 }
@@ -288,10 +288,12 @@ tr.row-live-error {
 }
 
 .live-action-section,
-.live-error-section {
+.live-error-section,
+.live-last-action-section {
   margin-bottom: 12px;
 }
 
+.live-last-action-title,
 .live-action-title,
 .live-error-title {
   font-size: 0.85rem;
@@ -300,6 +302,7 @@ tr.row-live-error {
   margin-bottom: 4px;
 }
 
+.live-last-action-content,
 .live-action-content,
 .live-error-content {
   padding: 8px 12px;
@@ -308,32 +311,76 @@ tr.row-live-error {
   font-size: 0.9rem;
 }
 
-.live-action-content {
+.live-last-action-content {
   color: var(--muted);
 }
 
-.live-error-content {
-  color: var(--text);
+.live-last-action-status {
+  margin-top: 4px;
 }
 
-.live-error-badge {
+.live-last-action-badge {
   display: inline-block;
   padding: 4px 8px;
   border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.live-last-action-error {
   color: var(--danger);
   background: rgba(248, 113, 113, 0.12);
   border: 1px solid #7f1d1d;
-  font-size: 0.85rem;
 }
 
-.live-ok-badge {
-  display: inline-block;
-  padding: 4px 8px;
-  border-radius: 8px;
+.live-last-action-success {
   color: var(--accent2);
   background: rgba(34, 197, 94, 0.1);
   border: 1px solid rgba(34, 197, 94, 0.35);
+}
+
+.live-last-action-title,
+.live-action-title,
+.live-error-title {
   font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.live-last-action-content,
+.live-action-content,
+.live-error-content {
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: #0f172a;
+  font-size: 0.9rem;
+}
+
+.live-last-action-content {
+  color: var(--muted);
+}
+
+.live-last-action-status {
+  margin-top: 4px;
+}
+
+.live-last-action-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.live-last-action-error {
+  color: var(--danger);
+  background: rgba(248, 113, 113, 0.12);
+  border: 1px solid #7f1d1d;
+}
+
+.live-last-action-success {
+  color: var(--accent2);
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.35);
 }
 
 label {
