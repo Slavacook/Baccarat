@@ -557,8 +557,8 @@ func _on_action_correct(action_type: String) -> void:
 
 
 func _on_payout_correct(payload: Dictionary) -> void:
-	var expected_dict: Dictionary = payload.get("expected", {})
-	var actual_dict: Dictionary = payload.get("actual", {})
+	var expected_dict: Dictionary = _payload_expected(payload)
+	var actual_dict: Dictionary = _payload_actual(payload)
 	_set_last_action("payout_correct", actual_dict, expected_dict, actual_dict, "correct", payload)
 	_clear_last_error()
 	send_table_state("payout_correct")
@@ -567,10 +567,10 @@ func _on_payout_correct(payload: Dictionary) -> void:
 func _on_payout_wrong(payload: Dictionary) -> void:
 	if not _should_send():
 		return
-	var expected_dict: Dictionary = payload.get("expected", {})
-	var actual_dict: Dictionary = payload.get("actual", {})
-	var reason: String = str(payload.get("reason", "wrong_amount"))
-	var message: String = str(payload.get("message", "Неверная выплата"))
+	var expected_dict: Dictionary = _payload_expected(payload)
+	var actual_dict: Dictionary = _payload_actual(payload)
+	var reason: String = _payload_reason(payload, "wrong_amount")
+	var message: String = _payload_message(payload, "Неверная выплата")
 	_set_last_action("payout_wrong", reason, expected_dict, actual_dict, "error", payload)
 	_set_last_error("payout_wrong", message)
 	var data: Dictionary = _session_meta()
@@ -619,36 +619,52 @@ func _on_heart_bet_round_complete() -> void:
 
 
 func _on_collection_correct(payload: Dictionary) -> void:
-	var expected = payload.get("expected", {})
-	var actual = payload.get("actual", {})
+	var expected = _payload_expected(payload)
+	var actual = _payload_actual(payload)
 	_set_last_action("collection_correct", actual, expected, actual, "correct", payload)
 	_clear_last_error()
 	send_table_state("collection_correct")
 
 
 func _on_collection_error(payload: Dictionary) -> void:
-	var expected = payload.get("expected", {})
-	var actual = payload.get("actual", {})
-	var reason = payload.get("reason", "collection_error")
-	var message = payload.get("message", "Ошибка сбора ставок")
+	var expected = _payload_expected(payload)
+	var actual = _payload_actual(payload)
+	var reason = _payload_reason(payload, "collection_error")
+	var message = _payload_message(payload, "Ошибка сбора ставок")
 	_set_last_action("collection_error", reason, expected, actual, "error", payload)
 	_set_last_error("collection_error", message)
 	send_table_state("collection_error")
 
 
 func _on_payment_correct(payload: Dictionary) -> void:
-	var expected = payload.get("expected", {})
-	var actual = payload.get("actual", {})
+	var expected = _payload_expected(payload)
+	var actual = _payload_actual(payload)
 	_set_last_action("payment_correct", actual, expected, actual, "correct", payload)
 	_clear_last_error()
 	send_table_state("payment_correct")
 
 
 func _on_payment_error(payload: Dictionary) -> void:
-	var expected = payload.get("expected", {})
-	var actual = payload.get("actual", {})
-	var reason = payload.get("reason", "payment_error")
-	var message = payload.get("message", "Ошибка оплаты ставок")
+	var expected = _payload_expected(payload)
+	var actual = _payload_actual(payload)
+	var reason = _payload_reason(payload, "payment_error")
+	var message = _payload_message(payload, "Ошибка оплаты ставок")
 	_set_last_action("payment_error", reason, expected, actual, "error", payload)
 	_set_last_error("payment_error", message)
 	send_table_state("payment_error")
+
+
+# === Helper functions for payload access ===
+func _payload_expected(payload: Dictionary) -> Dictionary:
+	return payload.get("expected", {})
+
+func _payload_actual(payload: Dictionary) -> Dictionary:
+	return payload.get("actual", {})
+
+func _payload_reason(payload: Dictionary, fallback: String) -> String:
+	return payload.get("reason", fallback)
+
+func _payload_message(payload: Dictionary, fallback: String) -> String:
+	return payload.get("message", fallback)
+
+
