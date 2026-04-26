@@ -212,13 +212,18 @@ tr.row-live-error {
   grid-template-columns: 1fr 1fr;
   gap: 12px;
   margin-bottom: 16px;
+  background-image: url("assets/table.png");
+  background-size: cover;
+  background-position: center;
+  border-radius: 12px;
+  padding: 20px;
 }
 
 .live-zone {
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
-  background: #111827;
+  background: rgba(17, 24, 39, 0.7);
 }
 
 .live-zone-header {
