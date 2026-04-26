@@ -79,17 +79,39 @@ function applyTableStateSync(states) {
   return applied;
 }
 
-// POC: Mapping for card images
-const CARD_IMAGE_MAPPING = {
-  "8H": "assets/cards/8_hearts.png",
-  "AC": "assets/cards/ace_clubs.png",
-  "KD": "assets/cards/king_diamonds.png",
-  "10S": "assets/cards/10_spades.png"
+const CARD_RANK_NAMES = {
+  A: "ace",
+  J: "jack",
+  Q: "queen",
+  K: "king"
 };
+
+const CARD_SUIT_NAMES = {
+  C: "clubs",
+  D: "diamonds",
+  H: "hearts",
+  S: "spades"
+};
+
+function _cardImagePath(code) {
+  const normalized = String(code || "").trim().toUpperCase();
+  if (normalized.length < 2) return "";
+
+  const suitCode = normalized.slice(-1);
+  const rankCode = normalized.slice(0, -1);
+  const suitName = CARD_SUIT_NAMES[suitCode];
+  const rankName = CARD_RANK_NAMES[rankCode] || rankCode.toLowerCase();
+
+  if (!suitName || !rankName) return "";
+
+  return `assets/cards/${rankName}_${suitName}.png`;
+}
 
 function _renderCardCodesFromSlots(slots) {
   if (!Array.isArray(slots)) return "<span class=\"live-card is-hidden\">??</span>";
+
   const out = [];
+
   for (const slot of slots) {
     if (!slot || typeof slot !== "object") {
       out.push("<span class=\"live-card is-empty\">--</span>");
@@ -101,14 +123,22 @@ function _renderCardCodesFromSlots(slots) {
 
     if (!code) {
       out.push("<span class=\"live-card is-empty\">--</span>");
-    } else if (!isVisible) {
+      continue;
+    }
+
+    if (!isVisible) {
       out.push(`<img src="assets/cards/card_back.png" class="live-card-img" alt="back" />`);
-    } else if (CARD_IMAGE_MAPPING[code]) {
-      out.push(`<img src="${CARD_IMAGE_MAPPING[code]}" class="live-card-img" alt="${code}" />`);
+      continue;
+    }
+
+    const imagePath = _cardImagePath(code);
+    if (imagePath) {
+      out.push(`<img src="${imagePath}" class="live-card-img" alt="${code}" />`);
     } else {
       out.push(`<span class=\"live-card\">${code}</span>`);
     }
   }
+
   return out.join("");
 }
 
