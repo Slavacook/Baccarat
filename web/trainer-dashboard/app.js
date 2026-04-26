@@ -79,6 +79,14 @@ function applyTableStateSync(states) {
   return applied;
 }
 
+// POC: Mapping for card images
+const CARD_IMAGE_MAPPING = {
+  "8H": "assets/cards/8_hearts.png",
+  "AC": "assets/cards/ace_clubs.png",
+  "KD": "assets/cards/king_diamonds.png",
+  "10S": "assets/cards/10_spades.png"
+};
+
 function _renderCardCodesFromSlots(slots) {
   if (!Array.isArray(slots)) return "<span class=\"live-card is-hidden\">??</span>";
   const out = [];
@@ -89,9 +97,20 @@ function _renderCardCodesFromSlots(slots) {
     }
     const isVisible = slot.visible === true;
     const code = slot.code != null ? String(slot.code) : "";
-    if (!isVisible) out.push("<span class=\"live-card is-hidden\">??</span>");
-    else if (!code) out.push("<span class=\"live-card is-empty\">--</span>");
-    else out.push(`<span class=\"live-card\">${code}</span>`);
+    
+    // POC: Render card images for mapped codes
+    if (isVisible && code && CARD_IMAGE_MAPPING[code]) {
+      out.push(`<img src="${CARD_IMAGE_MAPPING[code]}" class="live-card-img" alt="${code}" />`);
+    } else if (!isVisible) {
+      // Show back card for hidden cards
+      out.push(`<img src="assets/cards/card_back.png" class="live-card-img" alt="back" />`);
+    } else if (!code) {
+      // Empty slot
+      out.push("<span class=\"live-card is-empty\">--</span>");
+    } else {
+      // Fallback to original text rendering for unmapped codes
+      out.push(`<span class=\"live-card\">${code}</span>`);
+    }
   }
   return out.join("");
 }

@@ -256,6 +256,16 @@ tr.row-live-error {
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
+.live-card-img {
+  width: 40px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid #334155;
+  background: #111827;
+  display: inline-block;
+}
+
 .live-card.is-hidden {
   color: var(--muted);
   background: #1f2937;
