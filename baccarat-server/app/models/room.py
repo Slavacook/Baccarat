@@ -30,7 +30,7 @@ class Room(Base):
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     settings: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     status: Mapped[RoomStatus] = mapped_column(
-        Enum(RoomStatus), default=RoomStatus.ACTIVE, index=True
+        Enum(RoomStatus, values_callable=lambda obj: [e.value for e in obj]), default=RoomStatus.ACTIVE, index=True
     )
     max_dealers: Mapped[int] = mapped_column(Integer, default=20)
     total_dealers: Mapped[int] = mapped_column(Integer, default=0)

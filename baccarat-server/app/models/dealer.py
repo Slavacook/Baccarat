@@ -25,6 +25,10 @@ class Dealer(Base):
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+    
+    # Device fields
+    device_id: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    device_claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # ─── Relationships ───
     room: Mapped["Room"] = relationship("Room", back_populates="dealers", lazy="selectin")

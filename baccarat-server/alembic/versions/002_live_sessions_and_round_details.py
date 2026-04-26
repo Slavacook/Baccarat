@@ -1,6 +1,6 @@
 """add live session fields and detailed round results
 
-Revision ID: 002_live_sessions_and_round_details
+Revision ID: 002_live_sessions
 Revises: 001_initial
 Create Date: 2026-04-21
 """
@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 
-revision = "002_live_sessions_and_round_details"
+revision = "002_live_sessions"
 down_revision = "001_initial"
 branch_labels = None
 depends_on = None

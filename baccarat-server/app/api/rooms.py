@@ -22,7 +22,7 @@ from app.schemas.room import (
     RoomCreateResponse,
     RoomResponse,
 )
-from app.schemas.auth import DealerJoinRequest, DealerJoinResponse
+from app.schemas.auth import DealerJoinRequest, DealerJoinResponse, DealerInviteJoinRequest
 from app.utils.auth import create_access_token, create_refresh_token
 
 router = APIRouter(prefix="/rooms")
@@ -42,6 +42,11 @@ def generate_room_code() -> str:
 def generate_pin() -> str:
     """Генерирует 6-значный PIN."""
     return "".join(secrets.choice(string.digits) for _ in range(6))
+
+
+def generate_invite_token() -> str:
+    """Генерирует secure invite token для ссылки приглашения."""
+    return secrets.token_urlsafe(32)
 
 
 def hash_pin(pin: str) -> str:
@@ -91,6 +96,8 @@ async def create_room(
             room_id=room.id,
             pin_hash=hash_pin(pin),
             dealer_slot=slot,
+            invite_token=generate_invite_token(),
+            invite_status="unused",
         )
         db.add(pin_entry)
         pins.append({"pin": pin, "dealer_slot": slot})
@@ -209,6 +216,8 @@ async def add_room_pin_slot(
         pin_hash=hash_pin(pin),
         dealer_slot=next_slot,
         is_active=True,
+        invite_token=generate_invite_token(),
+        invite_status="unused",
     )
     db.add(pin_entry)
     room.max_dealers = max(int(room.max_dealers or 0), next_slot)
@@ -415,6 +424,116 @@ async def dealer_join_room(
     await db.commit()
     await db.refresh(dealer)
 
+    # 4. Создать токены
+    access_token = create_access_token(str(dealer.id), "dealer", str(room.id))
+    refresh_token = create_refresh_token(str(dealer.id), "dealer", str(dealer.id))
+
+    return DealerJoinResponse(
+        access_token=access_token,
+        refresh_token=refresh_token,
+        token_type="Bearer",
+        user={
+            "id": str(dealer.id),
+            "display_name": dealer.display_name,
+            "room_id": str(room.id),
+            "room_code": room.room_code,
+            "role": "dealer",
+            "is_first_login": is_first_login,
+        },
+    )
+
+
+@router.post("/dealer/join-invite", response_model=DealerJoinResponse, status_code=status.HTTP_200_OK)
+async def dealer_join_room_invite(
+    body: DealerInviteJoinRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Вход дилера в комнату по invite token."""
+    # 1. Найти RoomPin по invite_token
+    result = await db.execute(
+        select(RoomPin).where(
+            RoomPin.invite_token == body.invite_token,
+            RoomPin.is_active == True,
+        )
+    )
+    matched_pin = result.scalar_one_or_none()
+    
+    if not matched_pin or not matched_pin.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "INVITE_INVALID", "message": "Неверный или просроченный токен приглашения"},
+        )
+        
+    if matched_pin.invite_status == "revoked":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "INVITE_REVOKED", "message": "Токен приглашения был отозван"},
+        )
+
+    # 2. Найти Room
+    result = await db.execute(select(Room).where(Room.id == matched_pin.room_id))
+    room = result.scalar_one_or_none()
+    
+    if not room:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "ROOM_NOT_FOUND", "message": "Комната не найдена"},
+        )
+        
+    if room.status == RoomStatus.CLOSED:
+        raise HTTPException(
+            status_code=status.HTTP_410_GONE,
+            detail={"code": "ROOM_CLOSED", "message": "Эта комната закрыта"},
+        )
+
+    # 3. Обработать дилера
+    is_first_login = False
+    
+    if matched_pin.dealer_id:
+        # Дилер уже существует
+        result = await db.execute(select(Dealer).where(Dealer.id == matched_pin.dealer_id))
+        dealer = result.scalar_one_or_none()
+        
+        if not dealer or not dealer.is_active:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={"code": "DEALER_INACTIVE", "message": "Дилер неактивен"},
+            )
+            
+        # Проверка устройства
+        if dealer.device_id is None:
+            dealer.device_id = body.device_id
+            dealer.device_claimed_at = datetime.now(timezone.utc)
+            matched_pin.device_reset_at = None
+        elif dealer.device_id != body.device_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail={"code": "DEVICE_MISMATCH", "message": "Устройство не соответствует"},
+            )
+    else:
+        # Новый дилер
+        is_first_login = True
+        dealer = Dealer(
+            room_id=room.id,
+            display_name=body.display_name,
+            device_id=body.device_id,
+            device_claimed_at=datetime.now(timezone.utc),
+        )
+        db.add(dealer)
+        await db.flush()
+        
+        # Привязать PIN к дилеру
+        matched_pin.dealer_id = dealer.id
+        matched_pin.invite_status = "claimed"
+        matched_pin.claimed_at = datetime.now(timezone.utc)
+        room.total_dealers += 1
+
+    # Обновить last_seen_at
+    dealer.last_seen_at = datetime.now(timezone.utc)
+    
+    await db.commit()
+    await db.refresh(dealer)
+    
     # 4. Создать токены
     access_token = create_access_token(str(dealer.id), "dealer", str(room.id))
     refresh_token = create_refresh_token(str(dealer.id), "dealer", str(dealer.id))

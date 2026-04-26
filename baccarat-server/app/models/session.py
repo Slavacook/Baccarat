@@ -36,10 +36,10 @@ class Session(Base):
         UUID(as_uuid=True), ForeignKey("trainers.id"), nullable=False, index=True
     )
     status: Mapped[SessionStatus] = mapped_column(
-        Enum(SessionStatus), default=SessionStatus.CREATED, index=True
+        Enum(SessionStatus, values_callable=lambda obj: [e.value for e in obj]), default=SessionStatus.CREATED, index=True
     )
     type: Mapped[SessionType] = mapped_column(
-        "type", Enum(SessionType), default=SessionType.LIVE
+        "session_type", Enum(SessionType, values_callable=lambda obj: [e.value for e in obj]), default=SessionType.LIVE
     )
     master_seed: Mapped[str] = mapped_column(String(255), nullable=False)
     duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False)

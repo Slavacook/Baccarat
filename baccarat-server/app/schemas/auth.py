@@ -66,6 +66,16 @@ class DealerJoinResponse(TokenResponse):
     pass
 
 
+# ═══════════════════════════════════════════════════════════════
+# ДИЛЕР — Вход по инвайту
+# ═══════════════════════════════════════════════════════════════
+
+class DealerInviteJoinRequest(BaseModel):
+    invite_token: str
+    device_id: str
+    display_name: str
+
+
 class RefreshTokenRequest(BaseModel):
     refresh_token: str
 
