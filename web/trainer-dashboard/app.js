@@ -41,6 +41,74 @@ function resetLiveCounters() {
   liveTableStore.byDealerId.clear();
 }
 
+function deleteRoomPinsCache(roomCode) {
+  const code = String(roomCode || "").trim();
+  if (!code) return;
+  const cache = _loadPinsCache();
+  if (!(code in cache)) return;
+  delete cache[code];
+  _savePinsCache(cache);
+}
+
+function setRoomScopedVisibility() {
+  const hasRoom = Boolean(selectedRoomCode());
+  el("rooms-empty-state")?.classList.toggle("hidden", hasRoom);
+  el("room-details-section")?.classList.toggle("hidden", !hasRoom);
+  el("btn-open-room-dashboard")?.classList.toggle("hidden", !hasRoom);
+  el("btn-delete-current-room")?.classList.toggle("hidden", !hasRoom);
+}
+
+function clearRoomAccessState() {
+  roomAccessesSnapshot = [];
+  generatedRoomAccesses = [];
+  clearRoomAccessMessages();
+  renderRoomAccesses([]);
+  renderGeneratedRoomAccesses([]);
+}
+
+function clearLiveDashboardState() {
+  stopLiveWatch();
+  clearLiveFeed();
+  currentSessionId = null;
+  currentSessionInfoBase = "";
+  latestDealersSnapshot = [];
+  dealerRoundsCache = [];
+  resetLiveCounters();
+  renderDealerRounds([]);
+  renderSessionInfo();
+  setTrainingButtons(false);
+  renderResultsEmpty("Тренировка ещё не запущена");
+  renderLiveTableView();
+}
+
+function clearRoomScopedState(options = {}) {
+  const {
+    keepCurrentRoom = false,
+    preservePinsCacheForCurrentRoom = false,
+    preserveActionError = false,
+  } = options;
+
+  const previousRoomCode = currentRoomCode;
+  if (!keepCurrentRoom && previousRoomCode && !preservePinsCacheForCurrentRoom) {
+    deleteRoomPinsCache(previousRoomCode);
+  }
+
+  roomPinsSnapshot = [];
+  clearRoomAccessState();
+  clearLiveDashboardState();
+
+  if (!keepCurrentRoom) {
+    setCurrentRoom("", "");
+  }
+
+  renderRoomPins([]);
+  setDashboardStage("rooms");
+  if (!preserveActionError) {
+    showError("action-error", "");
+  }
+  setRoomScopedVisibility();
+}
+
 function applyTableState(snapshot) {
   if (!snapshot || typeof snapshot !== "object") return false;
   const dealerId = String(snapshot.dealer_id || "").trim();
@@ -528,12 +596,7 @@ function clearTokens() {
 
 function handleAuthExpired(message = "Сессия истекла. Войдите снова.") {
   clearTokens();
-  stopLiveWatch();
-  clearLiveFeed();
-  currentSessionId = null;
-  currentSessionInfoBase = "";
-  resetLiveCounters();
-  renderSessionInfo();
+  clearRoomScopedState({ preserveActionError: true });
   setDashboardVisible(false);
   setAuthTab("login");
   showError("login-error", message);
@@ -783,6 +846,7 @@ function setCurrentRoom(code, roomName = "") {
   if (label) {
     label.textContent = currentRoomCode ? `Комната: ${roomName || currentRoomCode}` : "Комната: —";
   }
+  setRoomScopedVisibility();
 }
 
 function formatApiError(data) {
@@ -827,26 +891,32 @@ function setAuthTab(which) {
 async function refreshRooms() {
   const { ok, status, data } = await api("GET", "/api/rooms/");
   if (!ok) {
+    clearRoomScopedState({ preserveActionError: true });
+    renderRoomsList([]);
     showError("action-error", (data && data.detail) || `Ошибка списка комнат (${status})`);
     return;
   }
+  showError("action-error", "");
   const rooms = Array.isArray(data) ? data.filter((r) => String(r.status || "").toLowerCase() !== "closed") : [];
   if (rooms.length === 0) {
-    setCurrentRoom("", "");
+    clearRoomScopedState({ preserveActionError: true });
     renderRoomsList([]);
-    roomAccessesSnapshot = [];
-    renderRoomAccesses([]);
     return;
   }
-  if (!currentRoomCode || !rooms.some((r) => r.room_code === currentRoomCode)) {
-    currentRoomCode = String(rooms[0].room_code || "");
+  const previousRoomCode = currentRoomCode;
+  const nextRoomCode =
+    !currentRoomCode || !rooms.some((r) => r.room_code === currentRoomCode)
+      ? String(rooms[0].room_code || "")
+      : currentRoomCode;
+  if (nextRoomCode !== previousRoomCode) {
+    clearLiveDashboardState();
   }
-  const selected = rooms.find((r) => r.room_code === currentRoomCode) || rooms[0];
+  const selected = rooms.find((r) => r.room_code === nextRoomCode) || rooms[0];
   setCurrentRoom(selected.room_code, `${selected.name} (${selected.room_code})`);
   renderRoomsList(rooms);
   await fetchRoomPinsOnce();
   await loadRoomAccesses();
-  fetchRoomDealersOnce();
+  await fetchRoomDealersOnce();
 }
 
 function selectedRoomCode() {
@@ -1057,12 +1127,14 @@ function renderRoomAccesses(items) {
 async function loadRoomAccesses(roomCode = selectedRoomCode()) {
   const code = String(roomCode || "");
   if (!code) {
-    roomAccessesSnapshot = [];
-    renderRoomAccesses([]);
+    clearRoomAccessState();
     return;
   }
+  clearRoomAccessMessages();
   const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/accesses`);
   if (!ok || !Array.isArray(data)) {
+    roomAccessesSnapshot = [];
+    renderRoomAccesses([]);
     showError("room-accesses-error", (data && formatApiError(data)) || `Не удалось загрузить access-коды (${status})`);
     return;
   }
@@ -1197,9 +1269,33 @@ function cacheRoomPins(roomCode, roomName, pins) {
 
 function showPinsForSelectedRoom() {}
 
+async function deleteCurrentRoom() {
+  const code = selectedRoomCode();
+  if (!code) return;
+  const okDel = window.confirm(`Удалить комнату ${code}?`);
+  if (!okDel) return;
+  const { ok, status, data } = await api("DELETE", `/api/rooms/${encodeURIComponent(code)}`);
+  if (!ok) {
+    showError("action-error", (data && formatApiError(data)) || `Не удалось удалить комнату (${status})`);
+    return;
+  }
+  clearRoomScopedState({ preserveActionError: true });
+  await refreshRooms();
+}
+
 function renderRoomsList(rooms) {
   const tbody = el("rooms-list-table").querySelector("tbody");
   tbody.innerHTML = "";
+  if (!Array.isArray(rooms) || rooms.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "Комнат пока нет.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
   for (const room of rooms) {
     const tr = document.createElement("tr");
     const n = document.createElement("td");
@@ -1213,6 +1309,7 @@ function renderRoomsList(rooms) {
     pick.textContent = room.room_code === currentRoomCode ? "Выбрана" : "Выбрать";
     pick.disabled = room.room_code === currentRoomCode;
     pick.addEventListener("click", async () => {
+      clearLiveDashboardState();
       setCurrentRoom(room.room_code, `${room.name} (${room.room_code})`);
       await fetchRoomPinsOnce();
       await loadRoomAccesses();
@@ -1229,8 +1326,16 @@ function renderRoomsList(rooms) {
     del.addEventListener("click", async () => {
       const okDel = window.confirm(`Удалить комнату ${room.room_code}?`);
       if (!okDel) return;
-      const { ok } = await api("DELETE", `/api/rooms/${encodeURIComponent(room.room_code)}`);
-      if (!ok) return;
+      const { ok, status, data } = await api("DELETE", `/api/rooms/${encodeURIComponent(room.room_code)}`);
+      if (!ok) {
+        showError("action-error", (data && formatApiError(data)) || `Не удалось удалить комнату (${status})`);
+        return;
+      }
+      if (String(room.room_code || "") === selectedRoomCode()) {
+        clearRoomScopedState({ preserveActionError: true });
+      } else {
+        deleteRoomPinsCache(room.room_code);
+      }
       await refreshRooms();
     });
     a.appendChild(del);
@@ -1270,11 +1375,31 @@ function renderRoomPins(items) {
   const code = selectedRoomCode();
   const roomLabel = el("current-room-label") ? el("current-room-label").textContent.replace("Комната: ", "") : code;
   const titleNode = el("room-access-title");
-  if (titleNode) titleNode.textContent = `Доступ в комнату: ${roomLabel || "—"}`;
+  if (titleNode) titleNode.textContent = roomLabel ? `Доступ в комнату: ${roomLabel}` : "Доступ в комнату";
   const tbody = el("room-access-table").querySelector("tbody");
   tbody.innerHTML = "";
+  if (!code) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "Сначала выберите комнату.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
   const cacheItem = _loadPinsCache()[selectedRoomCode()] || {};
   const pinMap = new Map((cacheItem.pins || []).map((p) => [Number(p.dealer_slot), String(p.pin)]));
+  if (!Array.isArray(items) || items.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "PIN-слоты ещё не созданы.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
   for (const row of items) {
     const tr = document.createElement("tr");
     const cSlot = document.createElement("td");
@@ -1326,8 +1451,15 @@ async function fetchRoomPinsOnce() {
     renderRoomPins([]);
     return;
   }
-  const { ok, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/pins`);
-  if (!ok || !Array.isArray(data)) return;
+  const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/pins`);
+  if (!ok || !Array.isArray(data)) {
+    roomPinsSnapshot = [];
+    renderRoomPins([]);
+    if (status !== 404) {
+      showError("action-error", (data && formatApiError(data)) || `Не удалось загрузить PIN-доступы (${status})`);
+    }
+    return;
+  }
   roomPinsSnapshot = data;
   renderRoomPins(data);
 }
@@ -1349,12 +1481,14 @@ async function createRoom() {
   cacheRoomPins(room && room.room_code, room && room.name, pins);
   el("new-room-name").value = "";
   closeCreateRoomModal();
+  clearRoomScopedState({ preserveActionError: true });
   await refreshRooms();
   if (room && room.room_code) {
     setCurrentRoom(room.room_code, `${room.name || room.room_code} (${room.room_code})`);
     await fetchRoomPinsOnce();
     await loadRoomAccesses();
     await fetchRoomDealersOnce();
+    await loadTrainerLiveSession();
   }
   showError("action-error", "");
 }
@@ -1369,22 +1503,17 @@ async function loadTrainerLiveSession() {
   showError("action-error", "");
   const code = selectedRoomCode();
   if (!code) {
-    showError("action-error", "Выберите комнату");
+    clearLiveDashboardState();
     return;
   }
   const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/trainer-live-session`);
   if (!ok) {
-    stopLiveWatch();
-    clearLiveFeed();
-    currentSessionId = null;
-    resetLiveCounters();
-    setTrainingButtons(false);
-    renderSessionInfo();
+    clearLiveDashboardState();
     if (status === 404) {
-      renderResultsEmpty();
+      renderResultsEmpty("Тренировка ещё не запущена");
       return;
     }
-    showError("action-error", (data && data.detail) || `Ошибка ${status}`);
+    showError("action-error", (data && formatApiError(data)) || `Ошибка ${status}`);
     return;
   }
   const prevSessionId = currentSessionId;
@@ -1400,7 +1529,7 @@ async function loadTrainerLiveSession() {
   } else {
     stopLiveWatch();
     clearLiveFeed();
-    renderResultsEmpty();
+    renderResultsEmpty("Тренировка ещё не запущена");
   }
 }
 
@@ -1443,13 +1572,7 @@ async function endLiveSession() {
     showError("action-error", (data && data.detail) || `Завершение не удалось (${status})`);
     return;
   }
-  stopLiveWatch();
-  clearLiveFeed();
-  currentSessionId = null;
-  resetLiveCounters();
-  setTrainingButtons(false);
-  renderSessionInfo();
-  renderResultsEmpty();
+  clearLiveDashboardState();
 }
 
 async function fetchResultsOnce() {
@@ -1502,11 +1625,14 @@ async function fetchResultsOnce() {
 async function fetchRoomDealersOnce() {
   const code = selectedRoomCode();
   if (!code) {
-    renderResultsEmpty();
+    latestDealersSnapshot = [];
+    renderResultsEmpty("Тренировка ещё не запущена");
     return;
   }
   const { ok, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/dealers`);
   if (!ok || !Array.isArray(data)) {
+    latestDealersSnapshot = [];
+    renderResultsEmpty("Тренировка ещё не запущена");
     return;
   }
   const mapped = data.map((d) => ({
@@ -1607,10 +1733,12 @@ function renderDealers(dealers) {
   }
 }
 
-function renderResultsEmpty() {
+function renderResultsEmpty(message = "Тренировка ещё не запущена") {
   const tbody = el("dealers-table").querySelector("tbody");
   tbody.innerHTML = "";
-  el("results-empty").hidden = false;
+  const empty = el("results-empty");
+  empty.textContent = message;
+  empty.hidden = false;
 }
 
 async function onLogin() {
@@ -1662,9 +1790,7 @@ async function onRegister() {
 
 function onLogout() {
   clearTokens();
-  stopLiveWatch();
-  clearLiveFeed();
-  currentSessionId = null;
+  clearRoomScopedState({ preserveActionError: true });
   setDashboardVisible(false);
   setDashboardStage("rooms");
   el("password").value = "";
@@ -1684,6 +1810,7 @@ function wire() {
     if (ev.target === el("create-room-modal")) closeCreateRoomModal();
   });
   el("btn-create-room").addEventListener("click", () => createRoom());
+  el("btn-delete-current-room").addEventListener("click", () => deleteCurrentRoom());
   el("btn-open-room-dashboard").addEventListener("click", async () => {
     setDashboardStage("live");
     await loadTrainerLiveSession();
@@ -1711,6 +1838,10 @@ function wire() {
 
 function boot() {
   wire();
+  setRoomScopedVisibility();
+  renderRoomPins([]);
+  renderRoomAccesses([]);
+  renderResultsEmpty("Тренировка ещё не запущена");
   if (getToken()) {
     setDashboardVisible(true);
     setDashboardStage("rooms");

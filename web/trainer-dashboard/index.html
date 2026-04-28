@@ -47,6 +47,8 @@
         <div class="row toolbar-compact">
           <button type="button" id="btn-logout" class="ghost">Выйти</button>
           <button type="button" id="btn-open-create-room-modal" class="secondary">+ Комната</button>
+          <button type="button" id="btn-open-room-dashboard" class="primary">Открыть live dashboard</button>
+          <button type="button" id="btn-delete-current-room" class="danger">Удалить комнату</button>
           <span id="current-room-label" class="muted">Комната: —</span>
           <span id="user-label" class="muted"></span>
         </div>
@@ -69,54 +71,64 @@
         <p id="action-error" class="error" hidden></p>
       </div>
 
-      <div class="card">
-        <h2 id="room-access-title">Доступ в комнату</h2>
-        <div class="row wrap">
-          <button type="button" id="btn-add-pin-slot" class="secondary">+ Добавить участника</button>
-          <button type="button" id="btn-open-room-dashboard" class="primary">Открыть дашборд комнаты</button>
-        </div>
-        <div class="table-wrap">
-          <table id="room-access-table">
-            <thead>
-              <tr>
-                <th>Слот</th>
-                <th>Имя</th>
-                <th>PIN</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+      <div id="rooms-empty-state" class="card empty-state hidden">
+        <h2>У вас пока нет комнат</h2>
+        <p class="muted">Создайте комнату, чтобы открыть доступы и live dashboard.</p>
       </div>
 
-      <div class="card" id="room-accesses-card">
-        <h2>Персональные access-коды</h2>
-        <p class="muted small">
-          Новый способ входа: один персональный код для конкретного участника.
-          Код показывается полностью только после создания.
-        </p>
-        <div class="row wrap">
-          <button type="button" id="btn-create-room-access" class="secondary">Создать access-код</button>
+      <div id="room-details-section" class="hidden">
+        <div class="card" id="room-accesses-card">
+          <h2>Персональные access-коды</h2>
+          <p class="muted small">
+            Новый способ входа: один персональный код для конкретного участника.
+            Код показывается полностью только после создания.
+          </p>
+          <div class="row wrap">
+            <button type="button" id="btn-create-room-access" class="secondary">Создать access-код</button>
+          </div>
+          <div id="new-room-access-codes" class="generated-access-panel hidden" aria-live="polite"></div>
+          <p id="room-accesses-error" class="error" hidden></p>
+          <p id="room-accesses-message" class="access-message" hidden></p>
+          <div class="table-wrap">
+            <table id="room-accesses-table">
+              <thead>
+                <tr>
+                  <th>Слот</th>
+                  <th>Внутреннее имя</th>
+                  <th>Публичное имя</th>
+                  <th>Статус</th>
+                  <th>Суффикс кода</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
         </div>
-        <div id="new-room-access-codes" class="generated-access-panel hidden" aria-live="polite"></div>
-        <p id="room-accesses-error" class="error" hidden></p>
-        <p id="room-accesses-message" class="access-message" hidden></p>
-        <div class="table-wrap">
-          <table id="room-accesses-table">
-            <thead>
-              <tr>
-                <th>Слот</th>
-                <th>Внутреннее имя</th>
-                <th>Публичное имя</th>
-                <th>Статус</th>
-                <th>Суффикс кода</th>
-                <th>Действия</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
+
+        <details class="card" id="legacy-pins-card">
+          <summary>Legacy PIN-доступы</summary>
+          <p class="muted small">
+            Старый способ входа. Оставлен для совместимости и ручного тестирования.
+          </p>
+          <h2 id="room-access-title">Доступ в комнату</h2>
+          <div class="row wrap">
+            <button type="button" id="btn-add-pin-slot" class="secondary">+ Добавить участника</button>
+          </div>
+          <div class="table-wrap">
+            <table id="room-access-table">
+              <thead>
+                <tr>
+                  <th>Слот</th>
+                  <th>Имя</th>
+                  <th>PIN</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </details>
       </div>
       </div>
 

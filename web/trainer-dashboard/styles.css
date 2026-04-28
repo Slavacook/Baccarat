@@ -455,6 +455,28 @@ button:disabled {
   flex-wrap: wrap;
 }
 
+.empty-state {
+  text-align: center;
+}
+
+.empty-state h2 {
+  margin-bottom: 8px;
+}
+
+#room-details-section {
+  display: grid;
+  gap: 20px;
+}
+
+#legacy-pins-card summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+#legacy-pins-card[open] summary {
+  margin-bottom: 12px;
+}
+
 .muted {
   color: var(--muted);
 }
