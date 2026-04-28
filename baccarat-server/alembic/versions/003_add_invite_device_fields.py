@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 revision = "003_invite_device"
-down_revision = "002_live_sessions"
+down_revision = "002_live_sessions_and_round_details"
 branch_labels = None
 depends_on = None
 
