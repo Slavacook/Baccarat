@@ -5,6 +5,8 @@ from .session import Session, SessionParticipant, SessionStatus, SessionType
 from .round_result import RoundResult
 from .async_session import AsyncSession as AsyncSessionModel, AsyncSessionStatus
 from .room_pin import RoomPin
+from .room_access import RoomAccess, RoomAccessStatus
+from .participant_token import ParticipantToken, ParticipantTokenStatus
 from .achievement import Achievement, DealerAchievement
 from .assignment import Assignment, AssignmentCompletion, AssignmentProgress
 from .push_device import PushDevice
@@ -26,6 +28,10 @@ __all__ = [
     "AsyncSessionStatus",
     "RoundResult",
     "RoomPin",
+    "RoomAccess",
+    "RoomAccessStatus",
+    "ParticipantToken",
+    "ParticipantTokenStatus",
     "Achievement",
     "DealerAchievement",
     "Assignment",

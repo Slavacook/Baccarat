@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baccarat Trainer — дашборд тренера</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <h1>Baccarat Trainer</h1>
+      <p class="subtitle">Панель тренера (MVP)</p>
+    </header>
+
+    <section id="auth-panel" class="card">
+      <div class="auth-tabs" role="tablist">
+        <button type="button" id="tab-login" class="tab active" role="tab" aria-selected="true">Вход</button>
+        <button type="button" id="tab-register" class="tab" role="tab" aria-selected="false">Регистрация</button>
+      </div>
+
+      <div id="pane-login" class="auth-pane">
+        <label for="email">Email</label>
+        <input type="email" id="email" autocomplete="username" />
+        <label for="password">Пароль</label>
+        <input type="password" id="password" autocomplete="current-password" />
+        <button type="button" id="btn-login" class="primary">Войти</button>
+        <p id="login-error" class="error" hidden></p>
+      </div>
+
+      <div id="pane-register" class="auth-pane hidden">
+        <label for="reg-full-name">Имя (необязательно)</label>
+        <input type="text" id="reg-full-name" autocomplete="name" placeholder="Как к вам обращаться" />
+        <label for="reg-email">Email</label>
+        <input type="email" id="reg-email" autocomplete="email" />
+        <label for="reg-password">Пароль</label>
+        <input type="password" id="reg-password" autocomplete="new-password" />
+        <p class="muted small">Пока для теста: любой пароль от 4 символов (например <code>00000000</code>).</p>
+        <button type="button" id="btn-register" class="primary">Создать аккаунт</button>
+        <p id="register-error" class="error" hidden></p>
+      </div>
+    </section>
+
+    <section id="dashboard" class="hidden">
+      <div id="room-stage">
+      <div class="toolbar card">
+        <div class="row toolbar-compact">
+          <button type="button" id="btn-logout" class="ghost">Выйти</button>
+          <button type="button" id="btn-open-create-room-modal" class="secondary">+ Комната</button>
+          <span id="current-room-label" class="muted">Комната: —</span>
+          <span id="user-label" class="muted"></span>
+        </div>
+        <details class="card help-details">
+          <summary>Список всех комнат</summary>
+          <div class="table-wrap">
+            <table id="rooms-list-table">
+              <thead>
+                <tr>
+                  <th>Комната</th>
+                  <th>Код</th>
+                  <th>Выбрать</th>
+                  <th>Действие</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </details>
+        <p id="action-error" class="error" hidden></p>
+      </div>
+
+      <div class="card">
+        <h2 id="room-access-title">Доступ в комнату</h2>
+        <div class="row wrap">
+          <button type="button" id="btn-add-pin-slot" class="secondary">+ Добавить участника</button>
+          <button type="button" id="btn-open-room-dashboard" class="primary">Открыть дашборд комнаты</button>
+        </div>
+        <div class="table-wrap">
+          <table id="room-access-table">
+            <thead>
+              <tr>
+                <th>Слот</th>
+                <th>Имя</th>
+                <th>PIN</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="card" id="room-accesses-card">
+        <h2>Персональные access-коды</h2>
+        <p class="muted small">
+          Новый способ входа: один персональный код для конкретного участника.
+          Код показывается полностью только после создания.
+        </p>
+        <div class="row wrap">
+          <button type="button" id="btn-create-room-access" class="secondary">Создать access-код</button>
+        </div>
+        <div id="new-room-access-codes" class="generated-access-panel hidden" aria-live="polite"></div>
+        <p id="room-accesses-error" class="error" hidden></p>
+        <p id="room-accesses-message" class="access-message" hidden></p>
+        <div class="table-wrap">
+          <table id="room-accesses-table">
+            <thead>
+              <tr>
+                <th>Слот</th>
+                <th>Внутреннее имя</th>
+                <th>Публичное имя</th>
+                <th>Статус</th>
+                <th>Суффикс кода</th>
+                <th>Действия</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      </div>
+
+      <div id="live-stage" class="hidden">
+      <div class="toolbar card">
+        <div class="row wrap">
+          <button type="button" id="btn-back" class="ghost">← Назад</button>
+          <button type="button" id="btn-toggle-training" class="primary">Начать тренировку</button>
+        </div>
+        <p id="session-info" class="mono muted"></p>
+      </div>
+
+      <div class="card" id="live-feed-card">
+        <h2>События в реальном времени</h2>
+        <p class="muted small">Ошибки и ключевые действия дилеров по WebSocket (пока активна тренировка).</p>
+        <div class="row wrap">
+          <label class="inline-check">
+            <input type="checkbox" id="live-feed-errors-only" />
+            Только ошибки
+          </label>
+        </div>
+        <ul id="live-feed-list" class="live-feed" aria-live="polite"></ul>
+        <p id="live-feed-empty" class="muted small">Пока нет событий — дождитесь действий ученика в игре.</p>
+      </div>
+
+      <div class="card" id="live-table-card">
+        <h2>Live View стола (MVP)</h2>
+        <div id="live-table-view"></div>
+      </div>
+
+      <div class="card">
+        <h2>Live-дашборд</h2>
+        <div class="table-wrap">
+          <table id="dealers-table">
+            <thead>
+              <tr>
+                <th>Имя</th>
+                <th>Онлайн</th>
+                <th>Ошибки</th>
+                <th>В сессии</th>
+                <th>Раундов</th>
+                <th>Точность</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+        <p id="results-empty" class="muted">Нет данных — запустите live-сессию.</p>
+      </div>
+      </div>
+    </section>
+  </div>
+  <div id="dealer-details-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dealer-details-title">
+    <div class="modal-card">
+      <div class="row wrap">
+        <h3 id="dealer-details-title">Дилер</h3>
+        <button type="button" id="btn-close-dealer-details" class="ghost">Закрыть</button>
+      </div>
+      <p id="dealer-details-subtitle" class="muted small"></p>
+      <div class="row wrap">
+        <label for="dealer-rounds-filter">Показать</label>
+        <select id="dealer-rounds-filter">
+          <option value="all">Все раунды</option>
+          <option value="errors">Только ошибки</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table id="dealer-rounds-table">
+          <thead>
+            <tr>
+              <th>Раунд</th>
+              <th>Статус</th>
+              <th>Точность</th>
+              <th>Детали</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="dealer-rounds-empty" class="muted small">Пока нет данных по раундам.</p>
+    </div>
+  </div>
+  <div id="create-room-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-room-title">
+    <div class="modal-card">
+      <div class="row wrap">
+        <h3 id="create-room-title">Новая комната</h3>
+        <button type="button" id="btn-close-create-room-modal" class="ghost">Закрыть</button>
+      </div>
+      <label for="new-room-name">Название комнаты</label>
+      <input type="text" id="new-room-name" maxlength="100" placeholder="Например: Смена 1" />
+      <p class="muted small">Комната создается на 5 участников. Потом можно добавить еще.</p>
+      <button type="button" id="btn-create-room" class="primary">Создать</button>
+    </div>
+  </div>
+  <script src="./app.js" type="module"></script>
+</body>
+</html>
