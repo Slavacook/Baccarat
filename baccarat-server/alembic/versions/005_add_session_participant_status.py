@@ -15,12 +15,20 @@ branch_labels = None
 depends_on = None
 
 
+def _has_column(table_name: str, column_name: str) -> bool:
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    return column_name in [col["name"] for col in inspector.get_columns(table_name)]
+
+
 def upgrade() -> None:
-    op.add_column(
-        "session_participants",
-        sa.Column("status", sa.String(20), nullable=False, server_default="joined"),
-    )
+    if not _has_column("session_participants", "status"):
+        op.add_column(
+            "session_participants",
+            sa.Column("status", sa.String(20), nullable=False, server_default="joined"),
+        )
 
 
 def downgrade() -> None:
-    op.drop_column("session_participants", "status")
+    if _has_column("session_participants", "status"):
+        op.drop_column("session_participants", "status")
