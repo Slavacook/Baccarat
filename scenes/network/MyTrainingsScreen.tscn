@@ -1,0 +1,96 @@
+[gd_scene load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/network/MyTrainingsScreen.gd" id="1_my_trainings"]
+
+[node name="MyTrainingsScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_my_trainings")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Panel" type="PanelContainer" parent="CenterContainer"]
+custom_minimum_size = Vector2(560, 480)
+layout_mode = 2
+
+[node name="MainContainer" type="MarginContainer" parent="CenterContainer/Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 24
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 24
+
+[node name="Content" type="VBoxContainer" parent="CenterContainer/Panel/MainContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(480, 0)
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Title" type="Label" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+text = "Мои тренировки"
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ErrorLabel" type="Label" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+visible = false
+text = "Ошибка"
+horizontal_alignment = 1
+autowrap_mode = 2
+add_theme_color_override("font_color", Color(1, 0.3, 0.3, 1))
+
+[node name="EmptyStateContainer" type="VBoxContainer" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TrainingsScroll" type="ScrollContainer" parent="CenterContainer/Panel/MainContainer/Content"]
+visible = false
+custom_minimum_size = Vector2(0, 220)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="TrainingsList" type="VBoxContainer" parent="CenterContainer/Panel/MainContainer/Content/TrainingsScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="RefreshButton" type="Button" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+text = "Обновить"
+
+[node name="AddTrainingButton" type="Button" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+text = "Добавить тренировку"
+
+[node name="LegacyPinButton" type="Button" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+text = "Войти по PIN"
+
+[node name="BackButton" type="Button" parent="CenterContainer/Panel/MainContainer/Content"]
+layout_mode = 2
+text = "← Назад"

@@ -55,6 +55,13 @@ func post(path: String, body: Dictionary) -> int:
 	return _http_request.request(url, headers, HTTPClient.METHOD_POST, json)
 
 
+func post_public(path: String, body: Dictionary) -> int:
+	var url = _build_url(path)
+	var headers = _build_headers(false)
+	var json = JSON.stringify(body)
+	return _http_request.request(url, headers, HTTPClient.METHOD_POST, json)
+
+
 func patch(path: String, body: Dictionary) -> int:
 	var url = _build_url(path)
 	var headers = _build_headers()
@@ -82,12 +89,12 @@ func _build_url(path: String, query_params: Dictionary = {}) -> String:
 	return url
 
 
-func _build_headers() -> PackedStringArray:
+func _build_headers(include_auth: bool = true) -> PackedStringArray:
 	var headers = PackedStringArray([
 		"Content-Type: application/json",
 		"Accept: application/json"
 	])
-	if _auth_token != "":
+	if include_auth and _auth_token != "":
 		headers.append("Authorization: Bearer %s" % _auth_token)
 	return headers
 

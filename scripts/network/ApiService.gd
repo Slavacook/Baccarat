@@ -81,6 +81,74 @@ func dealer_join(room_code: String, pin: String, display_name: String) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════
+# ACCESS-ДОСТУПЫ ДИЛЕРА
+# ═══════════════════════════════════════════════════════════════
+
+func activate_dealer_access(access_code: String, display_name: String) -> Dictionary:
+	_http_op = "activate_dealer_access"
+	api_client.post_public("/api/dealer/accesses/activate", {
+		"access_code": access_code,
+		"display_name": display_name
+	})
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
+func get_dealer_my_rooms(participant_tokens: Array) -> Dictionary:
+	_http_op = "dealer_my_rooms"
+	api_client.post_public("/api/dealer/my-rooms", {
+		"participant_tokens": participant_tokens
+	})
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
+func exchange_participant_token(participant_token: String) -> Dictionary:
+	_http_op = "exchange_participant_token"
+	api_client.post_public("/api/dealer/tokens/exchange", {
+		"participant_token": participant_token
+	})
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
+func apply_exchanged_dealer_session(exchange_body: Dictionary, fallback_record: Dictionary = {}) -> Dictionary:
+	if not (exchange_body is Dictionary):
+		return {"ok": false, "error": "Сервер вернул неверный ответ"}
+
+	var access_token: String = str(exchange_body.get("access_token", "")).strip_edges()
+	if access_token.is_empty():
+		return {"ok": false, "error": "Сервер не вернул токен входа"}
+
+	var dealer: Dictionary = {}
+	if exchange_body.get("dealer", null) is Dictionary:
+		dealer = exchange_body.get("dealer", {}) as Dictionary
+
+	var dealer_id: String = str(dealer.get("id", "")).strip_edges()
+	var display_name: String = str(dealer.get("display_name", "")).strip_edges()
+	var room_id: String = str(dealer.get("room_id", "")).strip_edges()
+	var room_code: String = str(dealer.get("room_code", "")).strip_edges()
+
+	if room_code.is_empty():
+		room_code = str(fallback_record.get("room_code", "")).strip_edges()
+
+	if dealer_id.is_empty() or display_name.is_empty() or room_code.is_empty():
+		return {"ok": false, "error": "Сервер не вернул данные дилера для входа"}
+
+	var user_data: Dictionary = {
+		"id": dealer_id,
+		"role": "dealer",
+		"display_name": display_name,
+		"room_id": room_id,
+		"room_code": room_code
+	}
+
+	api_client.set_auth_token(access_token)
+	auth_manager.save_tokens(access_token, "", user_data)
+	return {"ok": true, "user": user_data}
+
+
+# ═══════════════════════════════════════════════════════════════
 # КОМНАТЫ
 # ═══════════════════════════════════════════════════════════════
 

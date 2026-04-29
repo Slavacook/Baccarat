@@ -11,7 +11,7 @@ config_version=5
 [application]
 
 config/name="Baccarat Trainer"
-run/main_scene="res://scenes/Game.tscn"
+run/main_scene="res://scenes/StartScreen.tscn"
 config/features=PackedStringArray("4.5", "GL Compatibility")
 boot_splash/bg_color=Color(0.117647, 0.0745098, 0.0588235, 1)
 boot_splash/image="res://assets/branding/launch/launch_screen_source.png"
@@ -46,6 +46,7 @@ TestCardsManager="*res://scripts/autoload/TestCardsManager.gd"
 FeedbackAnimationManager="*res://scripts/ui/FeedbackAnimationManager.gd"
 SoundManager="*res://scripts/SoundManager.gd"
 ApiService="*res://scripts/network/ApiService.gd"
+DealerAccessStore="*res://scripts/network/DealerAccessStore.gd"
 SessionManager="*res://scripts/session/SessionManager.gd"
 LiveSessionClient="*res://scripts/network/LiveSessionClient.gd"
 
