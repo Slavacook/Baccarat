@@ -29,6 +29,8 @@ var _last_error: Dictionary = {
 ## Подавление legacy third-card action_performed после нового решения "карта каждому".
 var _suppress_legacy_third_card_actions: bool = false
 var _suppressed_legacy_third_card_count: int = 0
+var _dealer_player_third_selected: bool = false
+var _dealer_banker_third_selected: bool = false
 
 
 func _resolve_session_manager() -> Node:
@@ -134,6 +136,8 @@ func _on_session_started(_mode: int) -> void:
 	}
 	_suppress_legacy_third_card_actions = false
 	_suppressed_legacy_third_card_count = 0
+	_dealer_player_third_selected = false
+	_dealer_banker_third_selected = false
 	print("[OnlineLiveEventBridge] session_started: counters reset")
 
 
@@ -293,6 +297,47 @@ func _set_last_error(error_type: String, message: String) -> void:
 		"error_type": error_type,
 		"message": message,
 	}
+
+
+func _resolve_phase_manager() -> Variant:
+	var gc: Node = get_parent()
+	if gc == null or not gc.get("phase_manager"):
+		return null
+	return gc.phase_manager
+
+
+func _sync_third_card_selection_from_phase_manager() -> void:
+	var pm: Variant = _resolve_phase_manager()
+	if pm == null:
+		return
+	_dealer_player_third_selected = bool(pm.get("player_third_selected"))
+	_dealer_banker_third_selected = bool(pm.get("banker_third_selected"))
+
+
+func _current_third_card_actual_action() -> String:
+	if _dealer_player_third_selected and _dealer_banker_third_selected:
+		return "third_card_decision_each"
+	if _dealer_player_third_selected:
+		return "third_card_decision_player"
+	if _dealer_banker_third_selected:
+		return "third_card_decision_banker"
+	return ""
+
+
+func _current_third_card_expected_action() -> String:
+	var gsm: Node = get_node_or_null("/root/GameStateManager")
+	if gsm == null or not gsm.has_method("get_current_state"):
+		return ""
+	var state: int = int(gsm.get_current_state())
+	match state:
+		GameStateManager.GameState.CARD_TO_EACH:
+			return "third_card_decision_each"
+		GameStateManager.GameState.CARD_TO_PLAYER:
+			return "third_card_decision_player"
+		GameStateManager.GameState.CARD_TO_BANKER, GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER:
+			return "third_card_decision_banker"
+		_:
+			return ""
 
 
 func _clear_last_error() -> void:
@@ -524,6 +569,8 @@ func send_table_state(reason: String) -> void:
 func _on_round_started() -> void:
 	if not _should_send():
 		return
+	_dealer_player_third_selected = false
+	_dealer_banker_third_selected = false
 	var should_preserve_last_action = _last_action.get("type", "") in ["action_correct", "action_error"]
 	if not should_preserve_last_action:
 		_set_last_action("round_started", null)
@@ -550,6 +597,10 @@ func _on_banker_third_drawn(_card: Card) -> void:
 
 
 func _on_dealer_third_card_toggled(side: String, selected: bool) -> void:
+	if side == "player":
+		_dealer_player_third_selected = selected
+	elif side == "banker":
+		_dealer_banker_third_selected = selected
 	var technical_name: String = _map_third_card_toggle_action(side, selected)
 	_emit_dealer_action_event(technical_name, technical_name, {
 		"side": side,
@@ -586,21 +637,12 @@ func _on_action_error(err_type: String, message: String) -> void:
 		if actual == "Tie" and expected != "Tie":
 			effective_err_type = "tie_wrong"
 		_set_last_action("action_error", effective_err_type, expected, actual, "error", {})
-	elif err_type in ["player_wrong", "banker_wrong", "both_wrong", "natural_draw"]:
-		var actual = ""
-		match err_type:
-			"player_wrong":
-				actual = "player_third"
-			"banker_wrong":
-				actual = "banker_third"
-			"both_wrong":
-				actual = "both_third"
-			"natural_draw":
-				actual = "natural_draw"
-
-		var expected = actual
-
-		_set_last_action("action_error", effective_err_type, expected, actual, "error", {})
+	elif err_type in ["player_wrong", "banker_wrong", "both_wrong"]:
+		var actual_action = _current_third_card_actual_action()
+		var expected_action = _current_third_card_expected_action()
+		_set_last_action("action_error", effective_err_type, expected_action, actual_action, "error", {})
+	elif err_type == "natural_draw":
+		_set_last_action("action_error", effective_err_type, "natural_draw", "natural_draw", "error", {})
 	else:
 		_set_last_action("action_error", effective_err_type)
 	
@@ -609,8 +651,16 @@ func _on_action_error(err_type: String, message: String) -> void:
 	data["error_type"] = effective_err_type
 	data["message"] = str(message)
 	data["lives_remaining"] = _lives_remaining()
+	if err_type in ["player_wrong", "banker_wrong", "both_wrong"]:
+		var actual_action = _current_third_card_actual_action()
+		var expected_action = _current_third_card_expected_action()
+		if not actual_action.is_empty():
+			data["actual_action"] = actual_action
+		if not expected_action.is_empty():
+			data["expected_action"] = expected_action
 	LiveSessionClient.send_event("error_occurred", data)
 	send_table_state("action_error")
+	_sync_third_card_selection_from_phase_manager()
 
 
 func _on_action_correct(action_type: String) -> void:
@@ -624,6 +674,7 @@ func _on_action_correct(action_type: String) -> void:
 		if _suppressed_legacy_third_card_count >= 2:
 			_suppress_legacy_third_card_actions = false
 			_suppressed_legacy_third_card_count = 0
+		_sync_third_card_selection_from_phase_manager()
 		send_table_state("action_correct_suppressed")
 		return
 	
@@ -650,6 +701,7 @@ func _on_action_correct(action_type: String) -> void:
 		data["value"] = ""
 	LiveSessionClient.send_event("action_performed", data)
 	send_table_state("action_correct")
+	_sync_third_card_selection_from_phase_manager()
 
 	if _suppress_legacy_third_card_actions:
 		_suppress_legacy_third_card_actions = false
