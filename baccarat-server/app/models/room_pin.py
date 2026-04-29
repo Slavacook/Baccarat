@@ -29,6 +29,13 @@ class RoomPin(Base):
         DateTime(timezone=True), server_default=func.now()
     )
 
+    # Invite/device fields from migration 003
+    invite_token: Mapped[str | None] = mapped_column(String(255), nullable=True, unique=True)
+    invite_status: Mapped[str] = mapped_column(String(255), nullable=False, default="unused")
+    claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    device_reset_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
     # ─── Relationships ───
     room: Mapped["Room"] = relationship("Room", back_populates="pins", lazy="selectin")
 
