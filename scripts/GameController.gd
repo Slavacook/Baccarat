@@ -1544,6 +1544,7 @@ func camera_zoom_area(area_index: int) -> void:
 # Большая часть логики делегирована в специализированные обработчики
 
 func _on_winner_toggled(winner: String, selected: bool):
+	EventBus.dealer_winner_marker_toggled.emit(winner, selected)
 	if selected:
 		DebugLogger.log("🎯 Выбран: %s" % winner)
 		# TieMarker всегда виден (не деактивируется)

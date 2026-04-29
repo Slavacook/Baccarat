@@ -685,10 +685,13 @@ func on_player_third_toggled(_selected: bool) -> void:
 		# Деактивация
 		if SoundManager:
 			SoundManager.play_focus_deactivate_sound()
+
+	if was_selected != player_third_selected:
+		EventBus.dealer_third_card_toggled.emit("player", player_third_selected)
 	
 	# Дезактивируем маркер при нажатии на toggle третьей карты
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
-		winner_selection_manager.deselect_winner()
+		winner_selection_manager.deselect_winner(false, false)
 
 func on_banker_third_toggled(_selected: bool) -> void:
 	"""Обработчик переключения toggle третьей карты банкира
@@ -713,10 +716,13 @@ func on_banker_third_toggled(_selected: bool) -> void:
 		# Деактивация
 		if SoundManager:
 			SoundManager.play_focus_deactivate_sound()
+
+	if was_selected != banker_third_selected:
+		EventBus.dealer_third_card_toggled.emit("banker", banker_third_selected)
 	
 	# Дезактивируем маркер при нажатии на toggle третьей карты
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
-		winner_selection_manager.deselect_winner()
+		winner_selection_manager.deselect_winner(false, false)
 
 func cancel_third_card_orders(play_sound: bool = true) -> void:
 	"""Отменить заказ всех третьих карт (игрока и банкира)
@@ -892,7 +898,7 @@ func _validate_and_execute_third_cards() -> void:
 			EventBus.action_error.emit("winner_early", error_msg)
 			DebugLogger.log("🚫 Ошибка: выбран маркер победителя, но нужны третьи карты. %s" % error_msg)
 			# Сбрасываем выбор маркера после ошибки
-			winner_selection_manager.deselect_winner()
+			winner_selection_manager.deselect_winner(false, false)
 			return
 	
 	# Проверка: если ничего не изменено (обе кнопки не активированы), то подтверждать нечего
@@ -969,10 +975,12 @@ func _handle_validation_result(result: Dictionary, player_score: int, banker_sco
 	var action = instructions.get("action", "complete")
 	match action:
 		"draw_both":
+			EventBus.dealer_third_card_decision.emit("each")
 			draw_player_third()
 			draw_banker_third()
 			complete_game()
 		"draw_player":
+			EventBus.dealer_third_card_decision.emit("player")
 			draw_player_third()
 			# Проверяем нужно ли ждать решения банкира (сценарий 3.2: банкир 3-6)
 			if instructions.get("needs_banker_decision", false):
@@ -980,6 +988,7 @@ func _handle_validation_result(result: Dictionary, player_score: int, banker_sco
 			else:
 				complete_game()
 		"draw_banker":
+			EventBus.dealer_third_card_decision.emit("banker")
 			draw_banker_third()
 			complete_game()
 		"wait_banker":
@@ -1174,6 +1183,7 @@ func _handle_banker_validation_result(result: Dictionary, banker_score: int) -> 
 	var action = instructions.get("action", "complete")
 	match action:
 		"draw_banker":
+			EventBus.dealer_third_card_decision.emit("banker")
 			draw_banker_third()
 			complete_game()
 		"complete":
@@ -1913,7 +1923,7 @@ func _handle_choose_winner_state() -> void:
 			EventBus.action_error.emit("winner_early", error_msg)
 			DebugLogger.log("🚫 Ошибка: выбран маркер победителя, но нужны третьи карты. %s" % error_msg)
 			# Сбрасываем выбор маркера после ошибки
-			winner_selection_manager.deselect_winner()
+			winner_selection_manager.deselect_winner(false, false)
 			return
 	
 	var button_state = ui.get_action_button_state()

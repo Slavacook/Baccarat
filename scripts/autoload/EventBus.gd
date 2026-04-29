@@ -127,6 +127,21 @@ signal camera_first_deal_set_requested(value: bool)
 @warning_ignore("unused_signal")
 signal action_correct(type: String)
 
+## Дилер вручную отметил/снял чекбокс третьей карты
+## side: "player" | "banker"
+@warning_ignore("unused_signal")
+signal dealer_third_card_toggled(side: String, selected: bool)
+
+## Дилер подтвердил итоговое решение по третьим картам
+## decision: "player" | "banker" | "each"
+@warning_ignore("unused_signal")
+signal dealer_third_card_decision(decision: String)
+
+## Дилер вручную выбрал/снял маркер победителя
+## winner: "Player" | "Banker" | "Tie"
+@warning_ignore("unused_signal")
+signal dealer_winner_marker_toggled(winner: String, selected: bool)
+
 ## Победитель определён правильно
 @warning_ignore("unused_signal")
 signal winner_correct(winner: String, player_hand: Array[Card], banker_hand: Array[Card])

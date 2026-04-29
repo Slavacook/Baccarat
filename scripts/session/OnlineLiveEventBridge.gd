@@ -26,6 +26,9 @@ var _last_error: Dictionary = {
 	"error_type": null,
 	"message": null,
 }
+## Подавление legacy third-card action_performed после нового решения "карта каждому".
+var _suppress_legacy_third_card_actions: bool = false
+var _suppressed_legacy_third_card_count: int = 0
 
 
 func _resolve_session_manager() -> Node:
@@ -55,6 +58,9 @@ func _ready() -> void:
 	eb.banker_third_drawn.connect(_on_banker_third_drawn)
 	eb.action_error.connect(_on_action_error)
 	eb.action_correct.connect(_on_action_correct)
+	eb.dealer_third_card_toggled.connect(_on_dealer_third_card_toggled)
+	eb.dealer_third_card_decision.connect(_on_dealer_third_card_decision)
+	eb.dealer_winner_marker_toggled.connect(_on_dealer_winner_marker_toggled)
 	eb.payout_correct.connect(_on_payout_correct)
 	eb.payout_wrong.connect(_on_payout_wrong)
 	eb.all_bets_processed.connect(_on_all_bets_processed)
@@ -85,6 +91,12 @@ func _exit_tree() -> void:
 		eb.action_error.disconnect(_on_action_error)
 	if eb.action_correct.is_connected(_on_action_correct):
 		eb.action_correct.disconnect(_on_action_correct)
+	if eb.dealer_third_card_toggled.is_connected(_on_dealer_third_card_toggled):
+		eb.dealer_third_card_toggled.disconnect(_on_dealer_third_card_toggled)
+	if eb.dealer_third_card_decision.is_connected(_on_dealer_third_card_decision):
+		eb.dealer_third_card_decision.disconnect(_on_dealer_third_card_decision)
+	if eb.dealer_winner_marker_toggled.is_connected(_on_dealer_winner_marker_toggled):
+		eb.dealer_winner_marker_toggled.disconnect(_on_dealer_winner_marker_toggled)
 	if eb.payout_correct.is_connected(_on_payout_correct):
 		eb.payout_correct.disconnect(_on_payout_correct)
 	if eb.payout_wrong.is_connected(_on_payout_wrong):
@@ -120,6 +132,8 @@ func _on_session_started(_mode: int) -> void:
 		"error_type": null,
 		"message": null,
 	}
+	_suppress_legacy_third_card_actions = false
+	_suppressed_legacy_third_card_count = 0
 	print("[OnlineLiveEventBridge] session_started: counters reset")
 
 
@@ -223,6 +237,54 @@ func _set_last_action(action_type: String, action_value: Variant = null, expecte
 		"result": result,
 		"details": details
 	}
+
+
+func _map_third_card_toggle_action(side: String, selected: bool) -> String:
+	match side:
+		"player":
+			return "third_card_player_checked" if selected else "third_card_player_unchecked"
+		"banker":
+			return "third_card_banker_checked" if selected else "third_card_banker_unchecked"
+		_:
+			return ""
+
+
+func _map_third_card_decision_action(decision: String) -> String:
+	match decision:
+		"player":
+			return "third_card_decision_player"
+		"banker":
+			return "third_card_decision_banker"
+		"each":
+			return "third_card_decision_each"
+		_:
+			return ""
+
+
+func _map_winner_marker_action(winner: String, selected: bool) -> String:
+	match winner:
+		"Player":
+			return "winner_marker_player_selected" if selected else "winner_marker_player_unselected"
+		"Banker":
+			return "winner_marker_banker_selected" if selected else "winner_marker_banker_unselected"
+		"Tie":
+			return "winner_marker_tie_selected" if selected else "winner_marker_tie_unselected"
+		_:
+			return ""
+
+
+func _emit_dealer_action_event(technical_name: String, reason: String, details: Dictionary = {}) -> void:
+	if technical_name.is_empty() or not _should_send():
+		return
+	_set_last_action("action_performed", technical_name, technical_name, technical_name, "", details)
+	_clear_last_error()
+	var data: Dictionary = _session_meta()
+	data["action_type"] = technical_name
+	data["value"] = technical_name
+	for key in details.keys():
+		data[key] = details[key]
+	LiveSessionClient.send_event("action_performed", data)
+	send_table_state(reason)
 
 
 func _set_last_error(error_type: String, message: String) -> void:
@@ -487,6 +549,32 @@ func _on_banker_third_drawn(_card: Card) -> void:
 	send_table_state("banker_third_drawn")
 
 
+func _on_dealer_third_card_toggled(side: String, selected: bool) -> void:
+	var technical_name: String = _map_third_card_toggle_action(side, selected)
+	_emit_dealer_action_event(technical_name, technical_name, {
+		"side": side,
+		"selected": selected,
+	})
+
+
+func _on_dealer_third_card_decision(decision: String) -> void:
+	var technical_name: String = _map_third_card_decision_action(decision)
+	if decision == "each":
+		_suppress_legacy_third_card_actions = true
+		_suppressed_legacy_third_card_count = 0
+	_emit_dealer_action_event(technical_name, technical_name, {
+		"decision": decision,
+	})
+
+
+func _on_dealer_winner_marker_toggled(winner: String, selected: bool) -> void:
+	var technical_name: String = _map_winner_marker_action(winner, selected)
+	_emit_dealer_action_event(technical_name, technical_name, {
+		"winner": winner,
+		"selected": selected,
+	})
+
+
 func _on_action_error(err_type: String, message: String) -> void:
 	if not _should_send():
 		return
@@ -530,6 +618,14 @@ func _on_action_correct(action_type: String) -> void:
 	if not _should_send():
 		print("[OnlineLiveEventBridge] DEBUG _on_action_correct blocked by _should_send")
 		return
+
+	if _suppress_legacy_third_card_actions and action_type in ["player_third", "banker_third"]:
+		_suppressed_legacy_third_card_count += 1
+		if _suppressed_legacy_third_card_count >= 2:
+			_suppress_legacy_third_card_actions = false
+			_suppressed_legacy_third_card_count = 0
+		send_table_state("action_correct_suppressed")
+		return
 	
 	if action_type == "winner":
 		var actual = _winner_label()
@@ -554,6 +650,10 @@ func _on_action_correct(action_type: String) -> void:
 		data["value"] = ""
 	LiveSessionClient.send_event("action_performed", data)
 	send_table_state("action_correct")
+
+	if _suppress_legacy_third_card_actions:
+		_suppress_legacy_third_card_actions = false
+		_suppressed_legacy_third_card_count = 0
 
 
 func _on_payout_correct(payload: Dictionary) -> void:
@@ -666,5 +766,3 @@ func _payload_reason(payload: Dictionary, fallback: String) -> String:
 
 func _payload_message(payload: Dictionary, fallback: String) -> String:
 	return payload.get("message", fallback)
-
-

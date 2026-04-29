@@ -375,6 +375,19 @@ function _actionPerformedLabel(actionType, actionValue) {
     const winner = _winnerLabel(value);
     return winner ? `Победитель: ${winner}` : "Выбор победителя";
   }
+  if (type === "third_card_player_checked") return "Отметил третью карту игроку";
+  if (type === "third_card_player_unchecked") return "Снял отметку третьей карты игроку";
+  if (type === "third_card_banker_checked") return "Отметил третью карту банкиру";
+  if (type === "third_card_banker_unchecked") return "Снял отметку третьей карты банкиру";
+  if (type === "third_card_decision_player") return "Карта игроку";
+  if (type === "third_card_decision_banker") return "Карта банкиру";
+  if (type === "third_card_decision_each") return "Карта каждому";
+  if (type === "winner_marker_player_selected") return "Выбрал маркер Игрока";
+  if (type === "winner_marker_player_unselected") return "Отменил маркер Игрока";
+  if (type === "winner_marker_banker_selected") return "Выбрал маркер Банкира";
+  if (type === "winner_marker_banker_unselected") return "Отменил маркер Банкира";
+  if (type === "winner_marker_tie_selected") return "Выбрал маркер Эгалите";
+  if (type === "winner_marker_tie_unselected") return "Отменил маркер Эгалите";
   if (type === "player_third") return "Карта игроку";
   if (type === "banker_third" || type === "banker_third_after_player") return "Карта банкиру";
   if (type === "both_third") return "Карта каждому";
@@ -396,6 +409,8 @@ function _lastActionLabel(lastAction) {
       if (winner) return `Победитель: ${winner}`;
       return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
     }
+    case "action_performed":
+      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
     case "action_error":
       return _errorLabel(actionValue, "");
     case "payment_correct":
