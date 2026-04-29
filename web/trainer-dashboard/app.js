@@ -339,7 +339,8 @@ function _safeAction(state) {
   const result = lastAction.result || "";
   const expected = lastAction.expected != null ? String(lastAction.expected) : "";
   const actual = lastAction.actual != null ? String(lastAction.actual) : "";
-  return { actionType, actionValue, result, expected, actual };
+  const details = lastAction.details && typeof lastAction.details === "object" ? lastAction.details : {};
+  return { actionType, actionValue, result, expected, actual, details };
 }
 
 function _safeError(state) {
@@ -347,7 +348,8 @@ function _safeError(state) {
   const hasError = error.active === true;
   const errorType = error.error_type != null ? String(error.error_type) : "";
   const errorMsg = error.message != null ? String(error.message) : "";
-  return { hasError, errorType, errorMsg };
+  const errorDetails = error.details && typeof error.details === "object" ? error.details : {};
+  return { hasError, errorType, errorMsg, errorDetails };
 }
 
 function _winnerLabel(value) {
@@ -365,6 +367,138 @@ function _errorLabel(errorType, fallbackMessage = "") {
   if (EVENT_ERROR_LABELS[key]) return EVENT_ERROR_LABELS[key];
   const text = String(fallbackMessage || "").trim();
   return text || "Ошибка";
+}
+
+function _formatAmount(value) {
+  const num = Number(value);
+  if (!Number.isFinite(num)) return "0";
+  return num.toFixed(2).replace(/\.?0+$/, "").replace(".", ",");
+}
+
+function _betTypeLabel(betType) {
+  const key = String(betType || "").trim();
+  switch (key) {
+    case "Player":
+      return "Игрока";
+    case "Banker":
+      return "Банкира";
+    case "Tie":
+      return "Эгалите";
+    case "PairPlayer":
+    case "PlayerPair":
+      return "пару Игрока";
+    case "PairBanker":
+    case "BankerPair":
+      return "пару Банкира";
+    default:
+      return "";
+  }
+}
+
+function _betActionLabel(eventCode, details = {}) {
+  const code = String(eventCode || "").trim();
+  const amount = details.actual_amount ?? details.expected_amount;
+
+  switch (code) {
+    case "take_player_bet":
+      return "Забрал ставку на Игрока";
+    case "take_banker_bet":
+      return "Забрал ставку на Банкира";
+    case "take_tie_bet":
+      return "Забрал ставку на Эгалите";
+    case "take_player_pair_bet":
+      return "Забрал ставку на пару Игрока";
+    case "take_banker_pair_bet":
+      return "Забрал ставку на пару Банкира";
+    case "pay_player_bet_correct":
+      return `Оплатил ставку на Игрока правильно: ${_formatAmount(amount)}`;
+    case "pay_banker_bet_correct":
+      return `Оплатил ставку на Банкира правильно: ${_formatAmount(amount)}`;
+    case "pay_tie_bet_correct":
+      return `Оплатил ставку на Эгалите правильно: ${_formatAmount(amount)}`;
+    case "pay_player_pair_bet_correct":
+      return `Оплатил ставку на пару Игрока правильно: ${_formatAmount(amount)}`;
+    case "pay_banker_pair_bet_correct":
+      return `Оплатил ставку на пару Банкира правильно: ${_formatAmount(amount)}`;
+    default:
+      return "";
+  }
+}
+
+function _betActionFallback(details = {}) {
+  const category = String(details.category || "").trim();
+  const reason = String(details.reason || "").trim();
+  const betLabel = _betTypeLabel(details.bet_type);
+  const actualAmount = details.actual_amount;
+  const expectedAmount = details.expected_amount;
+
+  if (category === "collection" && !reason && betLabel) {
+    return `Забрал ставку на ${betLabel}`;
+  }
+  if (category === "payment" && !reason && betLabel) {
+    return `Оплатил ставку на ${betLabel} правильно: ${_formatAmount(actualAmount ?? expectedAmount)}`;
+  }
+  if (category === "collection" && reason === "collect_winning" && betLabel) {
+    return { primary: `Ошибка: забрал выигрышную ставку на ${betLabel}`, detail: "" };
+  }
+  if (category === "collection" && reason === "wrong_order" && betLabel) {
+    return { primary: `Ошибка: забрал ставку на ${betLabel} не по порядку`, detail: "" };
+  }
+  if (category === "collection" && reason === "complete_before_collect") {
+    return { primary: "Ошибка: не все проигрышные ставки забраны", detail: "" };
+  }
+  if (category === "payment" && reason === "complete_before_pay") {
+    return { primary: "Ошибка: не все выигрышные ставки оплачены", detail: "" };
+  }
+  if (category === "payment" && reason === "pay_losing" && betLabel) {
+    return { primary: `Ошибка: оплатил проигрышную ставку на ${betLabel}`, detail: "" };
+  }
+  if (category === "payment" && reason === "wrong_order" && betLabel) {
+    return { primary: `Ошибка: оплатил ставку на ${betLabel} не по порядку`, detail: "" };
+  }
+  return null;
+}
+
+function _formatBetError(data) {
+  const fallback = _betActionFallback(data && typeof data === "object" ? data : {});
+  if (fallback && typeof fallback === "object") return fallback;
+  const code = String(data && data.event_code ? data.event_code : "").trim();
+  if (!code) return null;
+
+  switch (code) {
+    case "error_took_winning_player_bet":
+      return { primary: "Ошибка: забрал выигрышную ставку на Игрока", detail: "" };
+    case "error_took_winning_banker_bet":
+      return { primary: "Ошибка: забрал выигрышную ставку на Банкира", detail: "" };
+    case "error_took_winning_tie_bet":
+      return { primary: "Ошибка: забрал выигрышную ставку на Эгалите", detail: "" };
+    case "error_took_winning_player_pair_bet":
+      return { primary: "Ошибка: забрал выигрышную ставку на пару Игрока", detail: "" };
+    case "error_took_winning_banker_pair_bet":
+      return { primary: "Ошибка: забрал выигрышную ставку на пару Банкира", detail: "" };
+    case "error_paid_losing_player_bet":
+      return { primary: "Ошибка: оплатил проигрышную ставку на Игрока", detail: "" };
+    case "error_paid_losing_banker_bet":
+      return { primary: "Ошибка: оплатил проигрышную ставку на Банкира", detail: "" };
+    case "error_paid_losing_tie_bet":
+      return { primary: "Ошибка: оплатил проигрышную ставку на Эгалите", detail: "" };
+    case "error_paid_losing_player_pair_bet":
+      return { primary: "Ошибка: оплатил проигрышную ставку на пару Игрока", detail: "" };
+    case "error_paid_losing_banker_pair_bet":
+      return { primary: "Ошибка: оплатил проигрышную ставку на пару Банкира", detail: "" };
+    case "error_pay_player_bet_amount":
+      return { primary: `Ошибка: оплатил ставку на Игрока: ${_formatAmount(data.actual_amount)}`, detail: `Ожидалось: ${_formatAmount(data.expected_amount)}` };
+    case "error_pay_banker_bet_amount":
+      return { primary: `Ошибка: оплатил ставку на Банкира: ${_formatAmount(data.actual_amount)}`, detail: `Ожидалось: ${_formatAmount(data.expected_amount)}` };
+    case "error_pay_tie_bet_amount":
+      return { primary: `Ошибка: оплатил ставку на Эгалите: ${_formatAmount(data.actual_amount)}`, detail: `Ожидалось: ${_formatAmount(data.expected_amount)}` };
+    case "error_pay_player_pair_bet_amount":
+      return { primary: `Ошибка: оплатил ставку на пару Игрока: ${_formatAmount(data.actual_amount)}`, detail: `Ожидалось: ${_formatAmount(data.expected_amount)}` };
+    case "error_pay_banker_pair_bet_amount":
+      return { primary: `Ошибка: оплатил ставку на пару Банкира: ${_formatAmount(data.actual_amount)}`, detail: `Ожидалось: ${_formatAmount(data.expected_amount)}` };
+    default:
+      return null;
+  }
 }
 
 function _lowercaseFirst(text) {
@@ -385,6 +519,8 @@ function _expectedActionLine(actionType) {
 }
 
 function _formatLiveError(data) {
+  const betError = _formatBetError(data && typeof data === "object" ? data : {});
+  if (betError) return betError;
   const actualAction = String(data && data.actual_action ? data.actual_action : "").trim();
   const expectedAction = String(data && data.expected_action ? data.expected_action : "").trim();
   if (actualAction || expectedAction) {
@@ -404,12 +540,18 @@ function _errorStatusLabel(errorType, fallbackMessage = "", expectedAction = "")
   if (expected) {
     return _expectedActionLine(expected);
   }
+  const betError = _formatBetError({ error_type: errorType, message: fallbackMessage });
+  if (betError) return betError.primary || "Ошибка";
   return _errorLabel(errorType, fallbackMessage);
 }
 
-function _actionPerformedLabel(actionType, actionValue) {
+function _actionPerformedLabel(actionType, actionValue, details = {}) {
   const type = String(actionType || "").trim();
   const value = String(actionValue || "").trim();
+  const betLabel = _betActionLabel(type, details && typeof details === "object" ? details : {});
+  if (betLabel) return betLabel;
+  const betFallback = _betActionFallback(details && typeof details === "object" ? details : {});
+  if (typeof betFallback === "string" && betFallback) return betFallback;
 
   if (type === "winner_selection") {
     const winner = _winnerLabel(value);
@@ -440,6 +582,7 @@ function _lastActionLabel(lastAction) {
   const actionValue = lastAction.value;
   const expected = String(lastAction.expected || "").trim();
   const actual = String(lastAction.actual || "").trim();
+  const details = lastAction.details && typeof lastAction.details === "object" ? lastAction.details : {};
 
   switch (actionType) {
     case "round_started":
@@ -449,24 +592,29 @@ function _lastActionLabel(lastAction) {
     case "action_correct": {
       const winner = _winnerLabel(actionValue);
       if (winner) return `Победитель: ${winner}`;
-      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
+      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""), details);
     }
     case "action_performed":
-      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
+      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""), details);
+    case "error_occurred": {
+      const line = _formatLiveError(details);
+      if (typeof line === "object") return line.primary || "Ошибка";
+      return line || "Ошибка";
+    }
     case "action_error":
       if (actual) return _actionPerformedLabel(actual, actual) || "Ошибка";
       if (expected) return _expectedActionLine(expected);
       return _errorLabel(actionValue, "");
     case "payment_correct":
     case "payout_correct":
-      return "Оплата сыгравшей ставки";
+      return _actionPerformedLabel(String(details.event_code || ""), String(details.event_code || ""), details) || "Оплата сыгравшей ставки";
     case "payment_error":
     case "payout_wrong":
-      return "Ошибка оплаты ставки";
+      return (_formatBetError(details) || {}).primary || "Ошибка оплаты ставки";
     case "collection_correct":
-      return "Сбор проигрышной ставки";
+      return _actionPerformedLabel(String(details.event_code || ""), String(details.event_code || ""), details) || "Сбор проигрышной ставки";
     case "collection_error":
-      return "Ошибка сбора ставки";
+      return (_formatBetError(details) || {}).primary || "Ошибка сбора ставки";
     case "round_completed":
       return "Конец раздачи";
     default:
@@ -517,12 +665,14 @@ function renderLiveTableView() {
     const banker = state.banker && typeof state.banker === "object" ? state.banker : {};
     const playerScore = _safeScore(player.score);
     const bankerScore = _safeScore(banker.score);
-    const { actionType, actionValue, result, expected, actual } = _safeAction(state);
-    const { hasError, errorType, errorMsg } = _safeError(state);
+    const { actionType, actionValue, result, expected, actual, details } = _safeAction(state);
+    const { hasError, errorType, errorMsg, errorDetails } = _safeError(state);
     const lives = state.lives_remaining != null ? String(state.lives_remaining) : "";
     const gameOver = state.is_game_over === true;
-    const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result, expected, actual });
-    const errorLabel = hasError ? _errorStatusLabel(errorType, errorMsg, expected) : "Без ошибок";
+    const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result, expected, actual, details });
+    const errorLabel = hasError
+      ? ((_formatBetError(errorDetails) || {}).primary || _errorStatusLabel(errorType, errorMsg, expected))
+      : "Без ошибок";
 
     const card = document.createElement("article");
     card.className = "live-dealer-card" + (hasError ? " live-dealer-card-error" : "");
@@ -598,7 +748,7 @@ function formatLiveEventLine(t, data) {
     return _formatLiveError(data);
   }
   if (t === "action_performed") {
-    return _actionPerformedLabel(data.action_type, data.value);
+    return _actionPerformedLabel(data.action_type, data.value, data);
   }
   if (t === "round_started") {
     return "Новая раздача";
