@@ -23,6 +23,8 @@ class Settings(BaseSettings):
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
     JWT_REFRESH_TOKEN_EXPIRE_DAYS_TRAINER: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS_DEALER: int = 7
+    ROOM_ACCESS_CODE_PEPPER: str | None = None
+    PARTICIPANT_TOKEN_PEPPER: str | None = None
 
     @field_validator("JWT_SECRET_KEY")
     @classmethod

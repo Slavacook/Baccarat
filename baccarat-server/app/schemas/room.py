@@ -82,3 +82,76 @@ class RoomResponse(BaseModel):
 class RoomCreateResponse(BaseModel):
     room: RoomResponse
     pins: list[PinResponse]
+
+
+# ═══════════════════════════════════════════════════════════════
+# Room Access slots
+# ═══════════════════════════════════════════════════════════════
+
+class RoomAccessResponse(BaseModel):
+    id: str
+    slot_number: int
+    access_code_suffix: str
+    trainer_internal_name: str | None = None
+    status: str
+    dealer_id: str | None = None
+    dealer_display_name: str | None = None
+    activated_at: datetime | None = None
+    revoked_at: datetime | None = None
+    last_used_at: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    @classmethod
+    def from_model(cls, access, dealer=None) -> "RoomAccessResponse":
+        return cls(
+            id=str(access.id),
+            slot_number=access.slot_number,
+            access_code_suffix=access.access_code_suffix,
+            trainer_internal_name=access.trainer_internal_name,
+            status=access.status,
+            dealer_id=str(access.dealer_id) if access.dealer_id else None,
+            dealer_display_name=dealer.display_name if dealer else None,
+            activated_at=access.activated_at,
+            revoked_at=access.revoked_at,
+            last_used_at=access.last_used_at,
+            created_at=access.created_at,
+            updated_at=access.updated_at,
+        )
+
+
+class RoomAccessCreatedResponse(RoomAccessResponse):
+    access_code: str
+
+
+class RoomAccessCreateRequest(BaseModel):
+    count: int = 1
+
+    @field_validator("count")
+    @classmethod
+    def count_range(cls, value: int) -> int:
+        if value < 1:
+            raise ValueError("Нужно создать минимум один access slot")
+        if value > 100:
+            raise ValueError("За один запрос можно создать не больше 100 access slots")
+        return value
+
+
+class RoomAccessCreateResponse(BaseModel):
+    accesses: list[RoomAccessCreatedResponse]
+
+
+class RoomAccessUpdateRequest(BaseModel):
+    trainer_internal_name: str | None = None
+
+    @field_validator("trainer_internal_name")
+    @classmethod
+    def trainer_internal_name_length(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        value = value.strip()
+        if not value:
+            return None
+        if len(value) > 255:
+            raise ValueError("Внутреннее имя не должно превышать 255 символов")
+        return value

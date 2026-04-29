@@ -11,6 +11,9 @@ const el = (id) => document.getElementById(id);
 
 let pollTimer = null;
 let sessionWs = null;
+let sessionWsSessionId = "";
+let sessionWsGeneration = 0;
+let resultsFetchInFlight = false;
 let currentSessionId = null;
 let currentSessionInfoBase = "";
 let onlineDealers = null;
@@ -20,6 +23,8 @@ let refreshInFlight = null;
 let latestDealersSnapshot = [];
 let dealerRoundsCache = [];
 let roomPinsSnapshot = [];
+let roomAccessesSnapshot = [];
+let generatedRoomAccesses = [];
 let currentRoomCode = "";
 const liveTableStore = {
   byDealerId: new Map(),
@@ -31,6 +36,32 @@ const LIVE_MONITOR_TYPES = new Set([
   "action_performed",
   "round_completed",
 ]);
+const WINNER_LABELS = {
+  Player: "Игрок",
+  Banker: "Банкир",
+  Tie: "Эгалите",
+};
+const PHASE_LABELS = {
+  waiting: "Ожидание",
+  dealing_initial: "Карты открываются",
+  third_card_player: "Карта игроку",
+  third_card_banker: "Карта банкиру",
+  winner_selection: "Выбор победителя",
+  payout: "Оплата сыгравших ставок",
+  round_completed: "Конец раздачи",
+};
+const EVENT_ERROR_LABELS = {
+  player_wrong: "Ошибка: карта игроку",
+  banker_wrong: "Ошибка: карта банкиру",
+  both_wrong: "Ошибка: карта каждому",
+  winner_wrong: "Ошибка: неверный победитель",
+  tie_wrong: "Ошибка: неверный маркер Эгалите",
+  natural_draw: "Ошибка: натуральная комбинация",
+  winner_early: "Ошибка: победитель выбран слишком рано",
+  collection_error: "Ошибка сбора ставки",
+  payment_error: "Ошибка оплаты ставки",
+  payout_wrong: "Ошибка оплаты ставки",
+};
 
 function resetLiveCounters() {
   onlineDealers = null;
@@ -39,8 +70,96 @@ function resetLiveCounters() {
   liveTableStore.byDealerId.clear();
 }
 
+function resetLiveSessionView(options = {}) {
+  const {
+    clearFeed = false,
+    refreshDealersTable = true,
+  } = options;
+
+  resetLiveCounters();
+  if (clearFeed) {
+    clearLiveFeed();
+  }
+  if (refreshDealersTable) {
+    renderDealers(Array.isArray(latestDealersSnapshot) ? latestDealersSnapshot : []);
+  }
+  renderSessionInfo();
+  renderLiveTableView();
+}
+
+function deleteRoomPinsCache(roomCode) {
+  const code = String(roomCode || "").trim();
+  if (!code) return;
+  const cache = _loadPinsCache();
+  if (!(code in cache)) return;
+  delete cache[code];
+  _savePinsCache(cache);
+}
+
+function setRoomScopedVisibility() {
+  const hasRoom = Boolean(selectedRoomCode());
+  el("rooms-empty-state")?.classList.toggle("hidden", hasRoom);
+  el("room-details-section")?.classList.toggle("hidden", !hasRoom);
+  el("btn-open-room-dashboard")?.classList.toggle("hidden", !hasRoom);
+  el("btn-delete-current-room")?.classList.toggle("hidden", !hasRoom);
+}
+
+function clearRoomAccessState() {
+  roomAccessesSnapshot = [];
+  generatedRoomAccesses = [];
+  clearRoomAccessMessages();
+  renderRoomAccesses([]);
+  renderGeneratedRoomAccesses([]);
+}
+
+function clearLiveDashboardState() {
+  stopLiveWatch();
+  currentSessionId = null;
+  currentSessionInfoBase = "";
+  latestDealersSnapshot = [];
+  dealerRoundsCache = [];
+  resetLiveSessionView({ clearFeed: true, refreshDealersTable: false });
+  renderDealerRounds([]);
+  setTrainingButtons(false);
+  renderResultsEmpty("Тренировка ещё не запущена");
+}
+
+function clearRoomScopedState(options = {}) {
+  const {
+    keepCurrentRoom = false,
+    preservePinsCacheForCurrentRoom = false,
+    preserveActionError = false,
+  } = options;
+
+  const previousRoomCode = currentRoomCode;
+  if (!keepCurrentRoom && previousRoomCode && !preservePinsCacheForCurrentRoom) {
+    deleteRoomPinsCache(previousRoomCode);
+  }
+
+  roomPinsSnapshot = [];
+  clearRoomAccessState();
+  clearLiveDashboardState();
+
+  if (!keepCurrentRoom) {
+    setCurrentRoom("", "");
+  }
+
+  renderRoomPins([]);
+  setDashboardStage("rooms");
+  if (!preserveActionError) {
+    showError("action-error", "");
+  }
+  setRoomScopedVisibility();
+}
+
 function applyTableState(snapshot) {
   if (!snapshot || typeof snapshot !== "object") return false;
+  const snapshotSessionId = String(snapshot.session_id || "").trim();
+  const activeSessionId = String(currentSessionId || "").trim();
+  if (snapshotSessionId && activeSessionId && snapshotSessionId !== activeSessionId) {
+    return false;
+  }
+
   const dealerId = String(snapshot.dealer_id || "").trim();
   if (!dealerId) return false;
 
@@ -49,11 +168,19 @@ function applyTableState(snapshot) {
 
   const roundId = String(snapshot.round_id || "").trim();
   const prev = liveTableStore.byDealerId.get(dealerId);
-  const lastSeq = prev && Number.isInteger(prev.lastSeq) ? prev.lastSeq : -1;
+  const prevState = prev && prev.currentState && typeof prev.currentState === "object" ? prev.currentState : {};
+  const incomingRoundNumber = Number.isInteger(snapshot.round_number) ? snapshot.round_number : null;
+  const prevRoundNumber = Number.isInteger(prevState.round_number) ? prevState.round_number : null;
+  if (incomingRoundNumber != null && prevRoundNumber != null && incomingRoundNumber < prevRoundNumber) {
+    return false;
+  }
+  const isNewerRound = incomingRoundNumber != null && prevRoundNumber != null && incomingRoundNumber > prevRoundNumber;
+  const lastSeq = isNewerRound ? -1 : prev && Number.isInteger(prev.lastSeq) ? prev.lastSeq : -1;
   if (seqRaw <= lastSeq) return false;
 
   liveTableStore.byDealerId.set(dealerId, {
     lastSeq: seqRaw,
+    sessionId: snapshotSessionId || activeSessionId || (prev ? prev.sessionId : ""),
     currentRoundId: roundId || (prev ? prev.currentRoundId : ""),
     currentState: snapshot,
   });
@@ -67,6 +194,53 @@ function applyTableState(snapshot) {
     });
   }
   return true;
+}
+
+function resetDealerLiveState(dealerId, options = {}) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  const { clearReady = false } = options;
+  liveTableStore.byDealerId.delete(id);
+  connectedDealerIds.delete(id);
+  if (clearReady) {
+    readyDealerIds.delete(id);
+  }
+  renderSessionInfo();
+  renderLiveTableView();
+  renderDealers(Array.isArray(latestDealersSnapshot) ? latestDealersSnapshot : []);
+}
+
+function markDealerRoundStarted(dealerId, data = {}) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  const prev = liveTableStore.byDealerId.get(id);
+  const prevState = prev && prev.currentState && typeof prev.currentState === "object" ? prev.currentState : {};
+  const nextRoundNumber = Number.isInteger(data.round_number)
+    ? data.round_number
+    : Number.isInteger(prevState.round_number)
+      ? prevState.round_number + 1
+      : prevState.round_number;
+
+  liveTableStore.byDealerId.set(id, {
+    lastSeq: -1,
+    sessionId: String(currentSessionId || "").trim() || String(prev?.sessionId || "").trim(),
+    currentRoundId: "",
+    currentState: {
+      dealer_id: id,
+      display_name: String(data.display_name || prevState.display_name || dealerDisplayName(id)),
+      session_id: String(currentSessionId || "").trim() || String(prevState.session_id || "").trim(),
+      round_number: nextRoundNumber,
+      round_id: "",
+      phase: "dealing_initial",
+      player: { cards: [], score: null },
+      banker: { cards: [], score: null },
+      last_action: { type: "round_started", value: null, result: "" },
+      error: { active: false, error_type: null, message: null },
+      lives_remaining: prevState.lives_remaining ?? null,
+      is_game_over: false,
+    },
+  });
+  renderLiveTableView();
 }
 
 function applyTableStateSync(states) {
@@ -176,26 +350,73 @@ function _safeError(state) {
   return { hasError, errorType, errorMsg };
 }
 
-function _getLastActionText(lastAction) {
-  const actionType = lastAction.type != null ? String(lastAction.type) : "";
-  const actionValue = lastAction.value != null ? String(lastAction.value) : "";
-  
+function _winnerLabel(value) {
+  const key = String(value || "").trim();
+  return WINNER_LABELS[key] || "";
+}
+
+function _phaseLabel(phase) {
+  const key = String(phase || "").trim();
+  return PHASE_LABELS[key] || "Ожидание";
+}
+
+function _errorLabel(errorType, fallbackMessage = "") {
+  const key = String(errorType || "").trim();
+  if (EVENT_ERROR_LABELS[key]) return EVENT_ERROR_LABELS[key];
+  const text = String(fallbackMessage || "").trim();
+  return text ? `Ошибка: ${text}` : "Ошибка";
+}
+
+function _actionPerformedLabel(actionType, actionValue) {
+  const type = String(actionType || "").trim();
+  const value = String(actionValue || "").trim();
+
+  if (type === "winner_selection") {
+    const winner = _winnerLabel(value);
+    return winner ? `Победитель: ${winner}` : "Выбор победителя";
+  }
+  if (type === "player_third") return "Карта игроку";
+  if (type === "banker_third" || type === "banker_third_after_player") return "Карта банкиру";
+  if (type === "both_third") return "Карта каждому";
+  if (type === "no_third") return "";
+  return "Действие дилера";
+}
+
+function _lastActionLabel(lastAction) {
+  const actionType = String(lastAction.type || "").trim();
+  const actionValue = lastAction.value;
+
   switch (actionType) {
     case "round_started":
-      return "Старт раздачи";
+      return "Новая раздача";
     case "cards_dealt":
-      return "Карты розданы";
-    case "player_third_drawn":
-      return "Третья карта Player";
-    case "banker_third_drawn":
-      return "Третья карта Banker";
-    case "both_third_drawn":
-      return "Третьи карты Player и Banker";
-    case "winner_selected":
-      return "Выбор победителя";
+      return "Карты открыты";
+    case "action_correct": {
+      const winner = _winnerLabel(actionValue);
+      if (winner) return `Победитель: ${winner}`;
+      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
+    }
+    case "action_error":
+      return _errorLabel(actionValue, "");
+    case "payment_correct":
+    case "payout_correct":
+      return "Оплата сыгравшей ставки";
+    case "payment_error":
+    case "payout_wrong":
+      return "Ошибка оплаты ставки";
+    case "collection_correct":
+      return "Сбор проигрышной ставки";
+    case "collection_error":
+      return "Ошибка сбора ставки";
+    case "round_completed":
+      return "Конец раздачи";
     default:
-      return actionType ? `Действие: ${actionType}` : "Нет действий";
+      return "Событие";
   }
+}
+
+function _getLastActionText(lastAction) {
+  return _lastActionLabel(lastAction || {});
 }
 
 function _getLastActionStatus(lastAction, hasError) {
@@ -203,7 +424,7 @@ function _getLastActionStatus(lastAction, hasError) {
   let isError = false;
   
   // Приоритет: используем result если доступен
-  if (result === "wrong") {
+  if (result === "wrong" || result === "error") {
     isError = true;
   } else if (result === "correct") {
     isError = false;
@@ -232,15 +453,17 @@ function renderLiveTableView() {
     const dealerName = state.display_name ? String(state.display_name) : dealerDisplayName(dealerId);
     const roundNumber = state.round_number != null ? String(state.round_number) : "—";
     const phase = _safePhase(state.phase);
+    const phaseLabel = _phaseLabel(phase);
     const player = state.player && typeof state.player === "object" ? state.player : {};
     const banker = state.banker && typeof state.banker === "object" ? state.banker : {};
     const playerScore = _safeScore(player.score);
     const bankerScore = _safeScore(banker.score);
-    const { actionType, actionValue, result, expected, actual } = _safeAction(state);
+    const { actionType, actionValue, result } = _safeAction(state);
     const { hasError, errorType, errorMsg } = _safeError(state);
-    const lives = state.lives != null ? String(state.lives) : "";
-    const gameOver = state.game_over === true;
-    const eventSeq = state.event_seq != null ? String(state.event_seq) : entry.lastSeq != null ? String(entry.lastSeq) : "—";
+    const lives = state.lives_remaining != null ? String(state.lives_remaining) : "";
+    const gameOver = state.is_game_over === true;
+    const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result });
+    const errorLabel = hasError ? _errorLabel(errorType, errorMsg) : "Без ошибок";
 
     const card = document.createElement("article");
     card.className = "live-dealer-card" + (hasError ? " live-dealer-card-error" : "");
@@ -248,36 +471,34 @@ function renderLiveTableView() {
       <div class="live-dealer-header">
         <div class="live-title">
           <strong>${dealerName}</strong>
-          <span class="muted small mono">${dealerId}</span>
         </div>
-        <span class="live-phase ${_phaseClass(phase)}">${phase}</span>
+        <span class="live-phase ${_phaseClass(phase)}">${phaseLabel}</span>
       </div>
       
       <div class="live-meta muted small">
         <span>Раунд: ${roundNumber}</span>
-        <span>seq: ${eventSeq}</span>
-        ${lives ? `<span>Lives: ${lives}</span>` : ""}
-        ${gameOver ? `<span class="live-game-over">Game Over</span>` : ""}
+        ${lives ? `<span>Жизни: ${lives}</span>` : ""}
+        ${gameOver ? `<span class="live-game-over">Раунд завершён</span>` : ""}
       </div>
       
       <div class="live-table-area">
         <div class="live-zone live-zone-banker">
-          <div class="live-zone-header">Banker</div>
+          <div class="live-zone-header">Банкир</div>
           <div class="live-cards">${_renderCardCodesFromSlots(banker.cards.length >= 3 ? [banker.cards[2], banker.cards[0], banker.cards[1]] : banker.cards)}</div>
           <div class="live-score">${bankerScore}</div>
         </div>
         
         <div class="live-zone live-zone-player">
-          <div class="live-zone-header">Player</div>
+          <div class="live-zone-header">Игрок</div>
           <div class="live-cards">${_renderCardCodesFromSlots(player.cards.length >= 3 ? [player.cards[0], player.cards[1], player.cards[2]] : player.cards)}</div>
           <div class="live-score">${playerScore}</div>
         </div>
       </div>
         
       <div class="live-last-action-section">
-        <div class="live-last-action-title">Last Action:</div>
+        <div class="live-last-action-title">Последнее событие</div>
         <div class="live-last-action-content">
-          ${_getLastActionText({type: actionType, value: actionValue, result: result})}
+          ${actionLabel}
         </div>
         <div class="live-last-action-status">
           ${_getLastActionStatus({type: actionType, value: actionValue, result: result}, hasError)}
@@ -285,12 +506,12 @@ function renderLiveTableView() {
       </div>
         
       <div class="live-error-section">
-        <div class="live-error-title">Error:</div>
+        <div class="live-error-title">Статус</div>
         <div class="live-error-content">
           ${
             hasError
-              ? `<span class="live-error-badge">Ошибка: ${errorType || "unknown"}${errorMsg ? ` — ${errorMsg}` : ""}</span>`
-              : `<span class="live-ok-badge">OK</span>`
+              ? `<span class="live-error-badge">${errorLabel}</span>`
+              : `<span class="live-ok-badge">Без ошибок</span>`
           }
         </div>
       </div>
@@ -314,27 +535,19 @@ function dealerDisplayName(dealerId) {
 }
 
 function formatLiveEventLine(t, data) {
-  const name = dealerDisplayName(data.dealer_id);
-  const r = data.round_number != null ? `#${data.round_number}` : "";
   if (t === "error_occurred") {
-    const et = data.error_type || "ошибка";
-    const msg = data.message ? String(data.message) : "";
-    return `${name} ${r} — ${et}${msg ? `: ${msg}` : ""}`;
+    return _errorLabel(data.error_type, data.message || "");
   }
   if (t === "action_performed") {
-    const at = data.action_type || "действие";
-    const val = data.value != null && String(data.value) !== "" ? ` → ${data.value}` : "";
-    return `${name} ${r} — ${at}${val}`;
+    return _actionPerformedLabel(data.action_type, data.value);
   }
   if (t === "round_started") {
-    return `${name} ${r} — раздача`;
+    return "Новая раздача";
   }
   if (t === "round_completed") {
-    const acc = typeof data.accuracy === "number" ? `${(data.accuracy <= 1 ? data.accuracy * 100 : data.accuracy).toFixed(0)}%` : "—";
-    const go = data.is_game_over ? " (game over)" : "";
-    return `${name} ${r} — раунд завершён, точность ${acc}${go}`;
+    return "Конец раздачи";
   }
-  return `${name} — ${t}`;
+  return "Событие";
 }
 
 function pushLiveFeedEntry(msgType, data) {
@@ -357,7 +570,9 @@ function pushLiveFeedEntry(msgType, data) {
     msgType === "error_occurred" ? "Ошибка" : msgType === "action_performed" ? "Действие" : msgType === "round_started" ? "Старт" : "Конец";
 
   const text = document.createElement("span");
-  text.textContent = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
+  const line = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
+  if (!line) return;
+  text.textContent = line;
 
   li.appendChild(ts);
   li.appendChild(tag);
@@ -399,7 +614,9 @@ function setTrainingButtons(active) {
 
 function renderSessionInfo() {
   const parts = [];
-  if (onlineDealers != null) parts.push(`онлайн дилеров: ${onlineDealers}`);
+  if (currentSessionId) {
+    parts.push(`дилеров в сети: ${connectedDealerIds.size}`);
+  }
   if (readyDealerIds.size > 0) parts.push(`готовы: ${readyDealerIds.size}`);
   el("session-info").textContent = parts.join(" | ");
 }
@@ -526,12 +743,7 @@ function clearTokens() {
 
 function handleAuthExpired(message = "Сессия истекла. Войдите снова.") {
   clearTokens();
-  stopLiveWatch();
-  clearLiveFeed();
-  currentSessionId = null;
-  currentSessionInfoBase = "";
-  resetLiveCounters();
-  renderSessionInfo();
+  clearRoomScopedState({ preserveActionError: true });
   setDashboardVisible(false);
   setAuthTab("login");
   showError("login-error", message);
@@ -630,18 +842,23 @@ function stopPoll() {
   }
 }
 
-function closeSessionWs() {
-  if (!sessionWs) return;
+function closeSessionWs(targetWs = sessionWs) {
+  if (!targetWs) return;
+  const isCurrentWs = targetWs === sessionWs;
   try {
-    sessionWs.onopen = null;
-    sessionWs.onmessage = null;
-    sessionWs.onerror = null;
-    sessionWs.onclose = null;
-    sessionWs.close();
+    targetWs.onopen = null;
+    targetWs.onmessage = null;
+    targetWs.onerror = null;
+    targetWs.onclose = null;
+    targetWs.close();
   } catch (_) {
     /* ignore */
   }
-  sessionWs = null;
+  if (isCurrentWs) {
+    sessionWs = null;
+    sessionWsSessionId = "";
+    sessionWsGeneration += 1;
+  }
 }
 
 function stopLiveWatch() {
@@ -664,22 +881,48 @@ function startPollResults() {
 }
 
 function startTrainerSessionWebSocket() {
-  stopLiveWatch();
-  const url = sessionWsUrl(currentSessionId);
+  const targetSessionId = String(currentSessionId || "").trim();
+  if (
+    sessionWs &&
+    sessionWsSessionId === targetSessionId &&
+    typeof WebSocket !== "undefined" &&
+    (sessionWs.readyState === WebSocket.CONNECTING || sessionWs.readyState === WebSocket.OPEN)
+  ) {
+    return;
+  }
+
+  stopPoll();
+  if (sessionWs) {
+    closeSessionWs(sessionWs);
+  }
+
+  const url = sessionWsUrl(targetSessionId);
   if (!url || typeof WebSocket === "undefined") {
     startPollResults();
     return;
   }
+
+  const generation = sessionWsGeneration + 1;
+  sessionWsGeneration = generation;
+  let nextWs = null;
   try {
-    sessionWs = new WebSocket(url);
+    nextWs = new WebSocket(url);
   } catch (_) {
+    sessionWs = null;
+    sessionWsSessionId = "";
     startPollResults();
     return;
   }
-  sessionWs.onopen = () => {
+
+  sessionWs = nextWs;
+  sessionWsSessionId = targetSessionId;
+
+  nextWs.onopen = () => {
+    if (sessionWs !== nextWs || sessionWsGeneration !== generation) return;
     fetchResultsOnce();
   };
-  sessionWs.onmessage = (ev) => {
+  nextWs.onmessage = (ev) => {
+    if (sessionWs !== nextWs || sessionWsGeneration !== generation) return;
     let msg = null;
     try {
       msg = JSON.parse(ev.data);
@@ -688,17 +931,19 @@ function startTrainerSessionWebSocket() {
     }
     const t = msg.type || "";
     const data = msg.data && typeof msg.data === "object" ? msg.data : {};
+    console.debug("[WS]", t, data);
     if (t === "dealer_joined" || t === "dealer_left") {
       if (typeof data.online_count === "number") {
         onlineDealers = data.online_count;
       }
       if (data.dealer_id) {
         const did = String(data.dealer_id);
-        if (t === "dealer_joined") connectedDealerIds.add(did);
-        else connectedDealerIds.delete(did);
-      }
-      if (t === "dealer_left" && data.dealer_id) {
-        readyDealerIds.delete(String(data.dealer_id));
+        if (t === "dealer_joined") {
+          resetDealerLiveState(did, { clearReady: true });
+          connectedDealerIds.add(did);
+        } else {
+          resetDealerLiveState(did, { clearReady: true });
+        }
       }
       renderSessionInfo();
     }
@@ -722,6 +967,9 @@ function startTrainerSessionWebSocket() {
       fetchResultsOnce();
     }
     if (LIVE_MONITOR_TYPES.has(t)) {
+      if (t === "round_started" && data.dealer_id) {
+        markDealerRoundStarted(data.dealer_id, data);
+      }
       pushLiveFeedEntry(t, data);
       if (t === "error_occurred") {
         pulseDealerRow(data.dealer_id);
@@ -736,15 +984,21 @@ function startTrainerSessionWebSocket() {
       applyTableStateSync(states);
     }
   };
-  sessionWs.onerror = () => {
+  nextWs.onerror = () => {
+    if (sessionWs !== nextWs || sessionWsGeneration !== generation) return;
     try {
-      sessionWs.close();
+      nextWs.close();
     } catch (_) {
       /* ignore */
     }
   };
-  sessionWs.onclose = () => {
-    sessionWs = null;
+  nextWs.onclose = () => {
+    const isCurrentWs = sessionWs === nextWs && sessionWsGeneration === generation;
+    if (isCurrentWs) {
+      sessionWs = null;
+      sessionWsSessionId = "";
+    }
+    if (!isCurrentWs) return;
     if (!currentSessionId) return;
     if (pollTimer) return;
     startPollResults();
@@ -770,11 +1024,17 @@ function formatDuration(seconds) {
 }
 
 function setCurrentRoom(code, roomName = "") {
-  currentRoomCode = String(code || "");
+  const nextRoomCode = String(code || "");
+  if (nextRoomCode !== currentRoomCode) {
+    generatedRoomAccesses = [];
+    renderGeneratedRoomAccesses();
+  }
+  currentRoomCode = nextRoomCode;
   const label = el("current-room-label");
   if (label) {
     label.textContent = currentRoomCode ? `Комната: ${roomName || currentRoomCode}` : "Комната: —";
   }
+  setRoomScopedVisibility();
 }
 
 function formatApiError(data) {
@@ -791,6 +1051,15 @@ function formatApiError(data) {
         return JSON.stringify(item);
       })
       .join(" ");
+  }
+  if (d && typeof d === "object") {
+    if ("message" in d) return String(d.message);
+    if ("code" in d) return String(d.code);
+    try {
+      return JSON.stringify(d);
+    } catch {
+      return "Ошибка сервера";
+    }
   }
   return String(d);
 }
@@ -810,27 +1079,350 @@ function setAuthTab(which) {
 async function refreshRooms() {
   const { ok, status, data } = await api("GET", "/api/rooms/");
   if (!ok) {
+    clearRoomScopedState({ preserveActionError: true });
+    renderRoomsList([]);
     showError("action-error", (data && data.detail) || `Ошибка списка комнат (${status})`);
     return;
   }
+  showError("action-error", "");
   const rooms = Array.isArray(data) ? data.filter((r) => String(r.status || "").toLowerCase() !== "closed") : [];
   if (rooms.length === 0) {
-    setCurrentRoom("", "");
+    clearRoomScopedState({ preserveActionError: true });
     renderRoomsList([]);
     return;
   }
-  if (!currentRoomCode || !rooms.some((r) => r.room_code === currentRoomCode)) {
-    currentRoomCode = String(rooms[0].room_code || "");
+  const previousRoomCode = currentRoomCode;
+  const nextRoomCode =
+    !currentRoomCode || !rooms.some((r) => r.room_code === currentRoomCode)
+      ? String(rooms[0].room_code || "")
+      : currentRoomCode;
+  if (nextRoomCode !== previousRoomCode) {
+    clearLiveDashboardState();
   }
-  const selected = rooms.find((r) => r.room_code === currentRoomCode) || rooms[0];
+  const selected = rooms.find((r) => r.room_code === nextRoomCode) || rooms[0];
   setCurrentRoom(selected.room_code, `${selected.name} (${selected.room_code})`);
   renderRoomsList(rooms);
   await fetchRoomPinsOnce();
-  fetchRoomDealersOnce();
+  await loadRoomAccesses();
+  await fetchRoomDealersOnce();
 }
 
 function selectedRoomCode() {
   return currentRoomCode || "";
+}
+
+function roomAccessStatusLabel(status) {
+  const value = String(status || "").toLowerCase();
+  const labels = {
+    created: "Не активирован",
+    activated: "Активирован",
+    revoked: "Отозван",
+    closed: "Закрыт",
+  };
+  return labels[value] || status || "Неизвестно";
+}
+
+function roomAccessStatusClass(status) {
+  const value = String(status || "").toLowerCase();
+  if (value === "created") return "status-created";
+  if (value === "activated") return "status-activated";
+  if (value === "revoked") return "status-revoked";
+  if (value === "closed") return "status-closed";
+  return "status-unknown";
+}
+
+function showRoomAccessMessage(message) {
+  const node = el("room-accesses-message");
+  if (!node) return;
+  if (!message) {
+    node.hidden = true;
+    node.textContent = "";
+    return;
+  }
+  node.hidden = false;
+  node.textContent = message;
+}
+
+function clearRoomAccessMessages() {
+  showError("room-accesses-error", "");
+  showRoomAccessMessage("");
+}
+
+function renderGeneratedRoomAccesses(items = generatedRoomAccesses) {
+  const panel = el("new-room-access-codes");
+  if (!panel) return;
+  panel.innerHTML = "";
+  if (!Array.isArray(items) || items.length === 0) {
+    panel.classList.add("hidden");
+    return;
+  }
+
+  panel.classList.remove("hidden");
+  const title = document.createElement("h3");
+  title.textContent = "Новые access-коды";
+  const note = document.createElement("p");
+  note.className = "muted small";
+  note.textContent = "Код показывается только сейчас. Скопируйте его перед обновлением страницы.";
+  const list = document.createElement("div");
+  list.className = "generated-access-list";
+
+  for (const item of items) {
+    const code = String(item.access_code || "");
+    if (!code) continue;
+
+    const row = document.createElement("div");
+    row.className = "generated-access-row";
+
+    const codeNode = document.createElement("span");
+    codeNode.className = "generated-access-code";
+    codeNode.textContent = code;
+
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.className = "ghost table-action-button";
+    copyBtn.textContent = "Скопировать";
+    copyBtn.addEventListener("click", () => copyAccessCode(code, copyBtn));
+
+    row.appendChild(codeNode);
+    row.appendChild(copyBtn);
+    list.appendChild(row);
+  }
+
+  panel.appendChild(title);
+  panel.appendChild(note);
+  panel.appendChild(list);
+}
+
+async function copyAccessCode(code, button) {
+  clearRoomAccessMessages();
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(code);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = code;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (!copied) throw new Error("copy_failed");
+    }
+    if (button) {
+      const prev = button.textContent;
+      button.textContent = "Скопировано";
+      setTimeout(() => {
+        button.textContent = prev || "Скопировать";
+      }, 1400);
+    }
+  } catch {
+    showError("room-accesses-error", "Не удалось скопировать код. Скопируйте его вручную.");
+  }
+}
+
+function renderRoomAccesses(items) {
+  const table = el("room-accesses-table");
+  if (!table) return;
+  const tbody = table.querySelector("tbody");
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 6;
+    td.className = "muted";
+    td.textContent = "Access-коды ещё не созданы.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const access of items) {
+    const tr = document.createElement("tr");
+
+    const cSlot = document.createElement("td");
+    cSlot.textContent = String(access.slot_number ?? "—");
+
+    const cInternal = document.createElement("td");
+    const nameInput = document.createElement("input");
+    nameInput.type = "text";
+    nameInput.maxLength = 255;
+    nameInput.className = "access-name-input";
+    nameInput.value = access.trainer_internal_name || "";
+    nameInput.placeholder = "Имя для тренера";
+    cInternal.appendChild(nameInput);
+
+    const cPublic = document.createElement("td");
+    cPublic.textContent = access.dealer_display_name || "—";
+
+    const cStatus = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = `status-badge ${roomAccessStatusClass(access.status)}`;
+    badge.textContent = roomAccessStatusLabel(access.status);
+    cStatus.appendChild(badge);
+
+    const cSuffix = document.createElement("td");
+    cSuffix.className = "mono";
+    cSuffix.textContent = access.access_code_suffix ? `...${access.access_code_suffix}` : "—";
+
+    const cActions = document.createElement("td");
+    const actions = document.createElement("div");
+    actions.className = "access-actions";
+
+    const saveBtn = document.createElement("button");
+    saveBtn.type = "button";
+    saveBtn.className = "ghost table-action-button";
+    saveBtn.textContent = "Сохранить имя";
+    saveBtn.addEventListener("click", () => updateRoomAccessInternalName(access.id, nameInput.value));
+    actions.appendChild(saveBtn);
+
+    const statusValue = String(access.status || "").toLowerCase();
+    const isClosed = statusValue === "closed";
+    const isRevoked = statusValue === "revoked";
+
+    const revokeBtn = document.createElement("button");
+    revokeBtn.type = "button";
+    revokeBtn.className = "danger table-action-button";
+    revokeBtn.textContent = "Отозвать";
+    revokeBtn.disabled = isRevoked || isClosed;
+    revokeBtn.title = isRevoked ? "Доступ уже отозван" : isClosed ? "Комната закрыта" : "";
+    revokeBtn.addEventListener("click", () => revokeRoomAccess(access.id));
+    actions.appendChild(revokeBtn);
+
+    const resetBtn = document.createElement("button");
+    resetBtn.type = "button";
+    resetBtn.className = "secondary table-action-button";
+    resetBtn.textContent = "Сбросить";
+    resetBtn.disabled = isClosed;
+    resetBtn.title = isClosed ? "Комната закрыта" : "";
+    resetBtn.addEventListener("click", () => resetRoomAccess(access.id));
+    actions.appendChild(resetBtn);
+
+    cActions.appendChild(actions);
+
+    tr.appendChild(cSlot);
+    tr.appendChild(cInternal);
+    tr.appendChild(cPublic);
+    tr.appendChild(cStatus);
+    tr.appendChild(cSuffix);
+    tr.appendChild(cActions);
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadRoomAccesses(roomCode = selectedRoomCode()) {
+  const code = String(roomCode || "");
+  if (!code) {
+    clearRoomAccessState();
+    return;
+  }
+  clearRoomAccessMessages();
+  const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/accesses`);
+  if (!ok || !Array.isArray(data)) {
+    roomAccessesSnapshot = [];
+    renderRoomAccesses([]);
+    showError("room-accesses-error", (data && formatApiError(data)) || `Не удалось загрузить access-коды (${status})`);
+    return;
+  }
+  roomAccessesSnapshot = data;
+  renderRoomAccesses(data);
+}
+
+async function createRoomAccess() {
+  const code = selectedRoomCode();
+  if (!code) return;
+
+  clearRoomAccessMessages();
+  const btn = el("btn-create-room-access");
+  if (btn) btn.disabled = true;
+  try {
+    const { ok, status, data } = await api("POST", `/api/rooms/${encodeURIComponent(code)}/accesses`, {});
+    const created = data && Array.isArray(data.accesses) ? data.accesses : [];
+    if (!ok || created.length === 0) {
+      showError("room-accesses-error", (data && formatApiError(data)) || `Не удалось создать access-код (${status})`);
+      return;
+    }
+    generatedRoomAccesses = created.filter((item) => item && item.access_code);
+    renderGeneratedRoomAccesses();
+    showRoomAccessMessage("Access-код создан. Скопируйте полный код сейчас.");
+    await loadRoomAccesses(code);
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+async function updateRoomAccessInternalName(accessId, value) {
+  const code = selectedRoomCode();
+  if (!code || !accessId) return;
+
+  clearRoomAccessMessages();
+  const body = {
+    trainer_internal_name: String(value || "").trim() || null,
+  };
+  const { ok, status, data } = await api(
+    "PATCH",
+    `/api/rooms/${encodeURIComponent(code)}/accesses/${encodeURIComponent(accessId)}`,
+    body,
+  );
+  if (!ok) {
+    showError("room-accesses-error", (data && formatApiError(data)) || `Не удалось сохранить имя (${status})`);
+    return;
+  }
+  showRoomAccessMessage("Внутреннее имя сохранено.");
+  await loadRoomAccesses(code);
+}
+
+async function revokeRoomAccess(accessId) {
+  const code = selectedRoomCode();
+  if (!code || !accessId) return;
+
+  const confirmed = window.confirm("Отозвать доступ? Участник больше не сможет использовать эту комнату.");
+  if (!confirmed) return;
+
+  clearRoomAccessMessages();
+  generatedRoomAccesses = [];
+  renderGeneratedRoomAccesses();
+
+  const { ok, status, data } = await api(
+    "POST",
+    `/api/rooms/${encodeURIComponent(code)}/accesses/${encodeURIComponent(accessId)}/revoke`,
+    {},
+  );
+  if (!ok) {
+    showError("room-accesses-error", (data && formatApiError(data)) || `Не удалось отозвать доступ (${status})`);
+    return;
+  }
+
+  showRoomAccessMessage("Доступ отозван.");
+  await loadRoomAccesses(code);
+}
+
+async function resetRoomAccess(accessId) {
+  const code = selectedRoomCode();
+  if (!code || !accessId) return;
+
+  const confirmed = window.confirm(
+    "Сбросить доступ? Старый код и токены перестанут работать. Будет создан новый код для этого слота.",
+  );
+  if (!confirmed) return;
+
+  clearRoomAccessMessages();
+  const { ok, status, data } = await api(
+    "POST",
+    `/api/rooms/${encodeURIComponent(code)}/accesses/${encodeURIComponent(accessId)}/reset`,
+    {},
+  );
+  if (!ok || !data || !data.access_code) {
+    showError("room-accesses-error", (data && formatApiError(data)) || `Не удалось сбросить доступ (${status})`);
+    return;
+  }
+
+  generatedRoomAccesses = [data];
+  renderGeneratedRoomAccesses();
+  showRoomAccessMessage("Доступ сброшен. Новый код показан ниже, скопируйте его сейчас.");
+  await loadRoomAccesses(code);
 }
 
 function _loadPinsCache() {
@@ -865,9 +1457,33 @@ function cacheRoomPins(roomCode, roomName, pins) {
 
 function showPinsForSelectedRoom() {}
 
+async function deleteCurrentRoom() {
+  const code = selectedRoomCode();
+  if (!code) return;
+  const okDel = window.confirm(`Удалить комнату ${code}?`);
+  if (!okDel) return;
+  const { ok, status, data } = await api("DELETE", `/api/rooms/${encodeURIComponent(code)}`);
+  if (!ok) {
+    showError("action-error", (data && formatApiError(data)) || `Не удалось удалить комнату (${status})`);
+    return;
+  }
+  clearRoomScopedState({ preserveActionError: true });
+  await refreshRooms();
+}
+
 function renderRoomsList(rooms) {
   const tbody = el("rooms-list-table").querySelector("tbody");
   tbody.innerHTML = "";
+  if (!Array.isArray(rooms) || rooms.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "Комнат пока нет.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
   for (const room of rooms) {
     const tr = document.createElement("tr");
     const n = document.createElement("td");
@@ -881,8 +1497,10 @@ function renderRoomsList(rooms) {
     pick.textContent = room.room_code === currentRoomCode ? "Выбрана" : "Выбрать";
     pick.disabled = room.room_code === currentRoomCode;
     pick.addEventListener("click", async () => {
+      clearLiveDashboardState();
       setCurrentRoom(room.room_code, `${room.name} (${room.room_code})`);
       await fetchRoomPinsOnce();
+      await loadRoomAccesses();
       await fetchRoomDealersOnce();
       await loadTrainerLiveSession();
       renderRoomsList(rooms);
@@ -896,8 +1514,16 @@ function renderRoomsList(rooms) {
     del.addEventListener("click", async () => {
       const okDel = window.confirm(`Удалить комнату ${room.room_code}?`);
       if (!okDel) return;
-      const { ok } = await api("DELETE", `/api/rooms/${encodeURIComponent(room.room_code)}`);
-      if (!ok) return;
+      const { ok, status, data } = await api("DELETE", `/api/rooms/${encodeURIComponent(room.room_code)}`);
+      if (!ok) {
+        showError("action-error", (data && formatApiError(data)) || `Не удалось удалить комнату (${status})`);
+        return;
+      }
+      if (String(room.room_code || "") === selectedRoomCode()) {
+        clearRoomScopedState({ preserveActionError: true });
+      } else {
+        deleteRoomPinsCache(room.room_code);
+      }
       await refreshRooms();
     });
     a.appendChild(del);
@@ -937,11 +1563,31 @@ function renderRoomPins(items) {
   const code = selectedRoomCode();
   const roomLabel = el("current-room-label") ? el("current-room-label").textContent.replace("Комната: ", "") : code;
   const titleNode = el("room-access-title");
-  if (titleNode) titleNode.textContent = `Доступ в комнату: ${roomLabel || "—"}`;
+  if (titleNode) titleNode.textContent = roomLabel ? `Доступ в комнату: ${roomLabel}` : "Доступ в комнату";
   const tbody = el("room-access-table").querySelector("tbody");
   tbody.innerHTML = "";
+  if (!code) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "Сначала выберите комнату.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
   const cacheItem = _loadPinsCache()[selectedRoomCode()] || {};
   const pinMap = new Map((cacheItem.pins || []).map((p) => [Number(p.dealer_slot), String(p.pin)]));
+  if (!Array.isArray(items) || items.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 4;
+    td.className = "muted";
+    td.textContent = "PIN-слоты ещё не созданы.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
   for (const row of items) {
     const tr = document.createElement("tr");
     const cSlot = document.createElement("td");
@@ -993,8 +1639,15 @@ async function fetchRoomPinsOnce() {
     renderRoomPins([]);
     return;
   }
-  const { ok, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/pins`);
-  if (!ok || !Array.isArray(data)) return;
+  const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/pins`);
+  if (!ok || !Array.isArray(data)) {
+    roomPinsSnapshot = [];
+    renderRoomPins([]);
+    if (status !== 404) {
+      showError("action-error", (data && formatApiError(data)) || `Не удалось загрузить PIN-доступы (${status})`);
+    }
+    return;
+  }
   roomPinsSnapshot = data;
   renderRoomPins(data);
 }
@@ -1016,11 +1669,14 @@ async function createRoom() {
   cacheRoomPins(room && room.room_code, room && room.name, pins);
   el("new-room-name").value = "";
   closeCreateRoomModal();
+  clearRoomScopedState({ preserveActionError: true });
   await refreshRooms();
   if (room && room.room_code) {
     setCurrentRoom(room.room_code, `${room.name || room.room_code} (${room.room_code})`);
     await fetchRoomPinsOnce();
+    await loadRoomAccesses();
     await fetchRoomDealersOnce();
+    await loadTrainerLiveSession();
   }
   showError("action-error", "");
 }
@@ -1035,38 +1691,34 @@ async function loadTrainerLiveSession() {
   showError("action-error", "");
   const code = selectedRoomCode();
   if (!code) {
-    showError("action-error", "Выберите комнату");
+    clearLiveDashboardState();
     return;
   }
   const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/trainer-live-session`);
   if (!ok) {
-    stopLiveWatch();
-    clearLiveFeed();
-    currentSessionId = null;
-    resetLiveCounters();
-    setTrainingButtons(false);
-    renderSessionInfo();
+    clearLiveDashboardState();
     if (status === 404) {
-      renderResultsEmpty();
+      renderResultsEmpty("Тренировка ещё не запущена");
       return;
     }
-    showError("action-error", (data && data.detail) || `Ошибка ${status}`);
+    showError("action-error", (data && formatApiError(data)) || `Ошибка ${status}`);
     return;
   }
-  const prevSessionId = currentSessionId;
-  currentSessionId = data.session_id;
-  resetLiveCounters();
-  if (String(prevSessionId || "") !== String(currentSessionId || "")) {
-    clearLiveFeed();
+  const prevSessionId = String(currentSessionId || "");
+  currentSessionId = String(data.session_id || "");
+  const sessionChanged = prevSessionId !== String(currentSessionId || "");
+  if (sessionChanged) {
+    resetLiveSessionView({ clearFeed: true });
+  } else {
+    renderSessionInfo();
   }
-  renderSessionInfo();
   setTrainingButtons(data.status === "active");
   if (data.status === "active") {
     startTrainerSessionWebSocket();
   } else {
     stopLiveWatch();
-    clearLiveFeed();
-    renderResultsEmpty();
+    resetLiveSessionView({ clearFeed: true });
+    renderResultsEmpty("Тренировка ещё не запущена");
   }
 }
 
@@ -1109,70 +1761,80 @@ async function endLiveSession() {
     showError("action-error", (data && data.detail) || `Завершение не удалось (${status})`);
     return;
   }
-  stopLiveWatch();
-  clearLiveFeed();
-  currentSessionId = null;
-  resetLiveCounters();
-  setTrainingButtons(false);
-  renderSessionInfo();
-  renderResultsEmpty();
+  clearLiveDashboardState();
 }
 
 async function fetchResultsOnce() {
-  if (!currentSessionId) return;
-  const { ok, data } = await api("GET", `/api/sessions/${encodeURIComponent(currentSessionId)}/results`);
-  if (!ok || !data || !Array.isArray(data.dealers)) {
-    return;
+  const activeSessionId = String(currentSessionId || "").trim();
+  if (!activeSessionId || !getToken() || resultsFetchInFlight) return;
+
+  resultsFetchInFlight = true;
+  try {
+    const { ok, data } = await api("GET", `/api/sessions/${encodeURIComponent(activeSessionId)}/results`);
+    if (!ok || !data || !Array.isArray(data.dealers)) {
+      return;
+    }
+    if (String(currentSessionId || "").trim() !== activeSessionId) {
+      return;
+    }
+    if (data.status === "completed" || data.status === "aborted") {
+      clearLiveDashboardState();
+      renderResultsEmpty("Тренировка завершена");
+      return;
+    }
+    const roomCode = selectedRoomCode();
+    const roomResp = await api("GET", `/api/rooms/${encodeURIComponent(roomCode)}/dealers`);
+    const roomDealers = roomResp.ok && Array.isArray(roomResp.data) ? roomResp.data : [];
+    const byId = new Map();
+    for (const d of roomDealers) {
+      byId.set(String(d.dealer_id), {
+        dealer_id: String(d.dealer_id),
+        display_name: d.display_name || "—",
+        rounds_completed: 0,
+        errors_total: 0,
+        cards_errors: 0,
+        payout_errors: 0,
+        chips_errors: 0,
+        live_seconds: 0,
+        avg_accuracy: 0,
+      });
+    }
+    for (const d of data.dealers) {
+      const id = String(d.dealer_id || "");
+      if (!id) continue;
+      const prev = byId.get(id) || { dealer_id: id, display_name: d.display_name || "—" };
+      byId.set(id, {
+        ...prev,
+        display_name: d.display_name || prev.display_name || "—",
+        rounds_completed: Number(d.rounds_completed || 0),
+        errors_total: Number(d.errors_total || 0),
+        cards_errors: Number(d.cards_errors || 0),
+        payout_errors: Number(d.payout_errors || 0),
+        chips_errors: Number(d.chips_errors || 0),
+        live_seconds: Number(d.live_seconds || 0),
+        avg_accuracy: Number(d.avg_accuracy || 0),
+      });
+    }
+    if (String(currentSessionId || "").trim() !== activeSessionId) {
+      return;
+    }
+    renderDealers(Array.from(byId.values()));
+  } finally {
+    resultsFetchInFlight = false;
   }
-  if (data.status === "completed" || data.status === "aborted") {
-    stopLiveWatch();
-    setTrainingButtons(false);
-    renderSessionInfo();
-  }
-  const roomCode = selectedRoomCode();
-  const roomResp = await api("GET", `/api/rooms/${encodeURIComponent(roomCode)}/dealers`);
-  const roomDealers = roomResp.ok && Array.isArray(roomResp.data) ? roomResp.data : [];
-  const byId = new Map();
-  for (const d of roomDealers) {
-    byId.set(String(d.dealer_id), {
-      dealer_id: String(d.dealer_id),
-      display_name: d.display_name || "—",
-      rounds_completed: 0,
-      errors_total: 0,
-      cards_errors: 0,
-      payout_errors: 0,
-      chips_errors: 0,
-      live_seconds: 0,
-      avg_accuracy: 0,
-    });
-  }
-  for (const d of data.dealers) {
-    const id = String(d.dealer_id || "");
-    if (!id) continue;
-    const prev = byId.get(id) || { dealer_id: id, display_name: d.display_name || "—" };
-    byId.set(id, {
-      ...prev,
-      display_name: d.display_name || prev.display_name || "—",
-      rounds_completed: Number(d.rounds_completed || 0),
-      errors_total: Number(d.errors_total || 0),
-      cards_errors: Number(d.cards_errors || 0),
-      payout_errors: Number(d.payout_errors || 0),
-      chips_errors: Number(d.chips_errors || 0),
-      live_seconds: Number(d.live_seconds || 0),
-      avg_accuracy: Number(d.avg_accuracy || 0),
-    });
-  }
-  renderDealers(Array.from(byId.values()));
 }
 
 async function fetchRoomDealersOnce() {
   const code = selectedRoomCode();
   if (!code) {
-    renderResultsEmpty();
+    latestDealersSnapshot = [];
+    renderResultsEmpty("Тренировка ещё не запущена");
     return;
   }
   const { ok, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/dealers`);
   if (!ok || !Array.isArray(data)) {
+    latestDealersSnapshot = [];
+    renderResultsEmpty("Тренировка ещё не запущена");
     return;
   }
   const mapped = data.map((d) => ({
@@ -1273,10 +1935,12 @@ function renderDealers(dealers) {
   }
 }
 
-function renderResultsEmpty() {
+function renderResultsEmpty(message = "Тренировка ещё не запущена") {
   const tbody = el("dealers-table").querySelector("tbody");
   tbody.innerHTML = "";
-  el("results-empty").hidden = false;
+  const empty = el("results-empty");
+  empty.textContent = message;
+  empty.hidden = false;
 }
 
 async function onLogin() {
@@ -1328,9 +1992,7 @@ async function onRegister() {
 
 function onLogout() {
   clearTokens();
-  stopLiveWatch();
-  clearLiveFeed();
-  currentSessionId = null;
+  clearRoomScopedState({ preserveActionError: true });
   setDashboardVisible(false);
   setDashboardStage("rooms");
   el("password").value = "";
@@ -1350,6 +2012,7 @@ function wire() {
     if (ev.target === el("create-room-modal")) closeCreateRoomModal();
   });
   el("btn-create-room").addEventListener("click", () => createRoom());
+  el("btn-delete-current-room").addEventListener("click", () => deleteCurrentRoom());
   el("btn-open-room-dashboard").addEventListener("click", async () => {
     setDashboardStage("live");
     await loadTrainerLiveSession();
@@ -1364,6 +2027,7 @@ function wire() {
     cachePinUpdate(code, data.dealer_slot, data.pin);
     await fetchRoomPinsOnce();
   });
+  el("btn-create-room-access").addEventListener("click", () => createRoomAccess());
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());
   el("btn-close-dealer-details").addEventListener("click", () => closeDealerDetailsModal());
   el("dealer-rounds-filter").addEventListener("change", () => renderDealerRounds(dealerRoundsCache));
@@ -1376,6 +2040,10 @@ function wire() {
 
 function boot() {
   wire();
+  setRoomScopedVisibility();
+  renderRoomPins([]);
+  renderRoomAccesses([]);
+  renderResultsEmpty("Тренировка ещё не запущена");
   if (getToken()) {
     setDashboardVisible(true);
     setDashboardStage("rooms");

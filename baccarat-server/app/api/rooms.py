@@ -1,28 +1,41 @@
 """API роутер для комнат."""
 
+import uuid
 from datetime import datetime, timezone
 import secrets
 import string
 from typing import Any
 
 import bcrypt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
 from app.database import get_db
 from app.dependencies import get_current_trainer, require_trainer
+from app.models.participant_token import ParticipantToken, ParticipantTokenStatus
 from app.models.room import Room, RoomStatus
+from app.models.room_access import RoomAccess, RoomAccessStatus
 from app.models.room_pin import RoomPin
 from app.models.dealer import Dealer
 from app.models.trainer import Trainer
 from app.schemas.room import (
+    RoomAccessCreateRequest,
+    RoomAccessCreateResponse,
+    RoomAccessCreatedResponse,
+    RoomAccessResponse,
+    RoomAccessUpdateRequest,
     RoomCreateRequest,
     RoomCreateResponse,
     RoomResponse,
 )
 from app.schemas.auth import DealerJoinRequest, DealerJoinResponse, DealerInviteJoinRequest
+from app.utils.access_codes import (
+    generate_room_access_code,
+    hash_room_access_code,
+    room_access_code_suffix,
+)
 from app.utils.auth import create_access_token, create_refresh_token
 
 router = APIRouter(prefix="/rooms")
@@ -57,6 +70,122 @@ def hash_pin(pin: str) -> str:
 def verify_pin(pin: str, pin_hash: str) -> bool:
     """Проверяет PIN."""
     return bcrypt.checkpw(pin.encode("utf-8"), pin_hash.encode("utf-8"))
+
+
+async def get_owned_room_or_404(
+    room_code: str,
+    trainer: Trainer,
+    db: AsyncSession,
+) -> Room:
+    """Return room only when it belongs to current trainer."""
+    room_res = await db.execute(select(Room).where(Room.room_code == room_code))
+    room = room_res.scalar_one_or_none()
+    if not room:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room not found")
+    if room.trainer_id != trainer.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not room owner")
+    return room
+
+
+async def generate_unique_room_access_code(db: AsyncSession) -> tuple[str, str]:
+    """Generate plaintext access code and deterministic hash unique in DB."""
+    for _ in range(20):
+        access_code = generate_room_access_code()
+        access_code_hash = hash_room_access_code(access_code)
+        exists_res = await db.execute(
+            select(RoomAccess.id).where(RoomAccess.access_code_hash == access_code_hash)
+        )
+        if not exists_res.scalar_one_or_none():
+            return access_code, access_code_hash
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Could not generate unique access code",
+    )
+
+
+def room_access_response(access: RoomAccess, dealer: Dealer | None = None) -> RoomAccessResponse:
+    return RoomAccessResponse.from_model(access, dealer)
+
+
+def created_room_access_response(access: RoomAccess, access_code: str) -> RoomAccessCreatedResponse:
+    base = RoomAccessResponse.from_model(access)
+    return RoomAccessCreatedResponse(**base.model_dump(), access_code=access_code)
+
+
+def room_access_error(status_code: int, code: str, message: str) -> HTTPException:
+    return HTTPException(status_code=status_code, detail={"code": code, "message": message})
+
+
+async def get_room_access_or_404(
+    access_id: uuid.UUID,
+    room_id: uuid.UUID,
+    db: AsyncSession,
+) -> RoomAccess:
+    access_res = await db.execute(
+        select(RoomAccess).where(RoomAccess.id == access_id, RoomAccess.room_id == room_id)
+    )
+    access = access_res.scalar_one_or_none()
+    if not access:
+        raise room_access_error(
+            status.HTTP_404_NOT_FOUND,
+            "ACCESS_NOT_FOUND",
+            "Room access not found",
+        )
+    return access
+
+
+async def revoke_active_participant_tokens(
+    room_access_id: uuid.UUID,
+    now: datetime,
+    db: AsyncSession,
+) -> None:
+    tokens_res = await db.execute(
+        select(ParticipantToken).where(
+            ParticipantToken.room_access_id == room_access_id,
+            ParticipantToken.status == ParticipantTokenStatus.ACTIVE,
+        )
+    )
+    for token in tokens_res.scalars().all():
+        token.status = ParticipantTokenStatus.REVOKED
+        token.revoked_at = now
+
+
+async def revoke_all_participant_tokens(
+    room_access_id: uuid.UUID,
+    now: datetime,
+    db: AsyncSession,
+) -> None:
+    tokens_res = await db.execute(
+        select(ParticipantToken).where(ParticipantToken.room_access_id == room_access_id)
+    )
+    for token in tokens_res.scalars().all():
+        token.status = ParticipantTokenStatus.REVOKED
+        token.revoked_at = now
+
+
+async def deactivate_access_dealer(
+    access: RoomAccess,
+    room: Room,
+    now: datetime,
+    db: AsyncSession,
+) -> Dealer | None:
+    if not access.dealer_id:
+        return None
+
+    dealer_res = await db.execute(select(Dealer).where(Dealer.id == access.dealer_id))
+    dealer = dealer_res.scalar_one_or_none()
+    if not dealer:
+        return None
+
+    if dealer.is_active:
+        dealer.is_active = False
+        dealer.last_seen_at = now
+        active_dealers_count = int(room.total_dealers or 0)
+        if active_dealers_count > 0:
+            room.total_dealers = active_dealers_count - 1
+
+    return dealer
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -304,6 +433,184 @@ async def delete_room_pin_slot(
     pin_entry.is_active = False
     await db.commit()
     return {"deleted": True, "dealer_slot": dealer_slot}
+
+
+@router.get("/{room_code}/accesses", response_model=list[RoomAccessResponse])
+async def list_room_accesses(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """List personal room access slots for the room owner."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+
+    accesses_res = await db.execute(
+        select(RoomAccess, Dealer)
+        .outerjoin(Dealer, Dealer.id == RoomAccess.dealer_id)
+        .where(RoomAccess.room_id == room.id)
+        .order_by(RoomAccess.slot_number.asc())
+    )
+    return [
+        room_access_response(access, dealer)
+        for access, dealer in accesses_res.all()
+    ]
+
+
+@router.post(
+    "/{room_code}/accesses",
+    response_model=RoomAccessCreateResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_room_accesses(
+    room_code: str,
+    body: RoomAccessCreateRequest = Body(default_factory=RoomAccessCreateRequest),
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create new personal access slots without touching legacy PIN slots."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    if room.status == RoomStatus.CLOSED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "ROOM_CLOSED", "message": "Cannot create access slots for closed room"},
+        )
+
+    slots_res = await db.execute(
+        select(RoomAccess.slot_number).where(RoomAccess.room_id == room.id)
+    )
+    used_slots = set(slots_res.scalars().all())
+    max_dealers = int(room.max_dealers or 0)
+    available_slots = [
+        slot_number
+        for slot_number in range(1, max_dealers + 1)
+        if slot_number not in used_slots
+    ]
+
+    if not available_slots:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "ROOM_ACCESS_LIMIT_REACHED",
+                "message": "Room already has access slots for all dealer seats",
+            },
+        )
+
+    if body.count > len(available_slots):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={
+                "code": "ROOM_ACCESS_LIMIT_EXCEEDED",
+                "message": f"Only {len(available_slots)} access slots are available",
+            },
+        )
+
+    created: list[tuple[RoomAccess, str]] = []
+    for slot_number in available_slots[: body.count]:
+        access_code, access_code_hash = await generate_unique_room_access_code(db)
+        access = RoomAccess(
+            room_id=room.id,
+            slot_number=slot_number,
+            access_code_hash=access_code_hash,
+            access_code_suffix=room_access_code_suffix(access_code),
+            status=RoomAccessStatus.CREATED,
+        )
+        db.add(access)
+        created.append((access, access_code))
+
+    await db.commit()
+    for access, _ in created:
+        await db.refresh(access)
+
+    return RoomAccessCreateResponse(
+        accesses=[
+            created_room_access_response(access, access_code)
+            for access, access_code in created
+        ]
+    )
+
+
+@router.patch("/{room_code}/accesses/{access_id}", response_model=RoomAccessResponse)
+async def update_room_access(
+    room_code: str,
+    access_id: uuid.UUID,
+    body: RoomAccessUpdateRequest,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update trainer-only metadata for an access slot."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    access_res = await db.execute(
+        select(RoomAccess, Dealer)
+        .outerjoin(Dealer, Dealer.id == RoomAccess.dealer_id)
+        .where(RoomAccess.id == access_id, RoomAccess.room_id == room.id)
+    )
+    row = access_res.one_or_none()
+    if not row:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Room access not found")
+
+    access, dealer = row
+    access.trainer_internal_name = body.trainer_internal_name
+    await db.commit()
+    await db.refresh(access)
+
+    return room_access_response(access, dealer)
+
+
+@router.post("/{room_code}/accesses/{access_id}/revoke", response_model=RoomAccessResponse)
+async def revoke_room_access(
+    room_code: str,
+    access_id: uuid.UUID,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Revoke a personal room access slot and its active participant tokens."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    access = await get_room_access_or_404(access_id, room.id, db)
+    now = datetime.now(timezone.utc)
+
+    dealer = await deactivate_access_dealer(access, room, now, db)
+    await revoke_active_participant_tokens(access.id, now, db)
+
+    access.status = RoomAccessStatus.REVOKED
+    access.revoked_at = access.revoked_at or now
+    access.last_used_at = now
+
+    await db.commit()
+    await db.refresh(access)
+    if dealer:
+        await db.refresh(dealer)
+
+    return room_access_response(access, dealer)
+
+
+@router.post("/{room_code}/accesses/{access_id}/reset", response_model=RoomAccessCreatedResponse)
+async def reset_room_access(
+    room_code: str,
+    access_id: uuid.UUID,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Regenerate a personal access code for the same slot."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    access = await get_room_access_or_404(access_id, room.id, db)
+    now = datetime.now(timezone.utc)
+
+    await deactivate_access_dealer(access, room, now, db)
+    await revoke_all_participant_tokens(access.id, now, db)
+
+    access_code, access_code_hash = await generate_unique_room_access_code(db)
+    access.access_code_hash = access_code_hash
+    access.access_code_suffix = room_access_code_suffix(access_code)
+    access.status = RoomAccessStatus.CREATED
+    access.dealer_id = None
+    access.activated_at = None
+    access.revoked_at = None
+    access.last_used_at = None
+
+    await db.commit()
+    await db.refresh(access)
+
+    return created_room_access_response(access, access_code)
 
 
 @router.get("/{room_code}", response_model=RoomResponse)

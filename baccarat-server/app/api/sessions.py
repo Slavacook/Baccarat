@@ -102,6 +102,15 @@ def _get_cached_table_states_for_session(session_id: str) -> list[dict]:
     return states
 
 
+def _clear_cached_table_state_for_dealer(session_id: str, dealer_id: str) -> None:
+    by_dealer = _LATEST_TABLE_STATE_BY_SESSION.get(session_id)
+    if not isinstance(by_dealer, dict):
+        return
+    by_dealer.pop(dealer_id, None)
+    if not by_dealer:
+        _LATEST_TABLE_STATE_BY_SESSION.pop(session_id, None)
+
+
 def _merge_live_payload_with_listener_dealer(data: dict, listener_id: str) -> dict:
     """dealer_id из токена — единственный источник правды."""
     return {**data, "dealer_id": listener_id}
@@ -677,6 +686,18 @@ async def session_ws(
         if not session_obj:
             await websocket.close(code=1008, reason="Session not found")
             return
+        if session_obj.status not in [SessionStatus.CREATED, SessionStatus.ACTIVE]:
+            await websocket.close(code=1008, reason="Session is not joinable")
+            return
+
+        room_res = await db.execute(select(Room).where(Room.id == session_obj.room_id))
+        room = room_res.scalar_one_or_none()
+        if not room:
+            await websocket.close(code=1008, reason="Room not found")
+            return
+        if room.status == RoomStatus.CLOSED:
+            await websocket.close(code=1008, reason="Room is closed")
+            return
 
         if role == "trainer":
             try:
@@ -686,7 +707,7 @@ async def session_ws(
                 return
             trainer_res = await db.execute(select(Trainer).where(Trainer.id == trainer_uuid))
             trainer_row = trainer_res.scalar_one_or_none()
-            if trainer_row is None or trainer_row.id != session_obj.trainer_id:
+            if trainer_row is None or not trainer_row.is_active or trainer_row.id != session_obj.trainer_id:
                 await websocket.close(code=1008, reason="Not session owner")
                 return
         else:
@@ -697,7 +718,7 @@ async def session_ws(
                 return
             dealer_res = await db.execute(select(Dealer).where(Dealer.id == dealer_uuid))
             dealer_row = dealer_res.scalar_one_or_none()
-            if dealer_row is None or dealer_row.room_id != session_obj.room_id:
+            if dealer_row is None or not dealer_row.is_active or dealer_row.room_id != session_obj.room_id:
                 await websocket.close(code=1008, reason="Dealer not in session room")
                 return
 
@@ -715,6 +736,7 @@ async def session_ws(
             }
         )
     if listener_role == "dealer":
+        _clear_cached_table_state_for_dealer(session_id, listener_id)
         await ws_manager.broadcast(
             session_id=session_id,
             event_type="dealer_joined",
