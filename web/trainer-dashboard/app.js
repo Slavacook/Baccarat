@@ -13,6 +13,7 @@ let pollTimer = null;
 let sessionWs = null;
 let sessionWsSessionId = "";
 let sessionWsGeneration = 0;
+let resultsFetchInFlight = false;
 let currentSessionId = null;
 let currentSessionInfoBase = "";
 let onlineDealers = null;
@@ -1721,50 +1722,63 @@ async function endLiveSession() {
 }
 
 async function fetchResultsOnce() {
-  if (!currentSessionId) return;
-  const { ok, data } = await api("GET", `/api/sessions/${encodeURIComponent(currentSessionId)}/results`);
-  if (!ok || !data || !Array.isArray(data.dealers)) {
-    return;
+  const activeSessionId = String(currentSessionId || "").trim();
+  if (!activeSessionId || !getToken() || resultsFetchInFlight) return;
+
+  resultsFetchInFlight = true;
+  try {
+    const { ok, data } = await api("GET", `/api/sessions/${encodeURIComponent(activeSessionId)}/results`);
+    if (!ok || !data || !Array.isArray(data.dealers)) {
+      return;
+    }
+    if (String(currentSessionId || "").trim() !== activeSessionId) {
+      return;
+    }
+    if (data.status === "completed" || data.status === "aborted") {
+      clearLiveDashboardState();
+      renderResultsEmpty("Тренировка завершена");
+      return;
+    }
+    const roomCode = selectedRoomCode();
+    const roomResp = await api("GET", `/api/rooms/${encodeURIComponent(roomCode)}/dealers`);
+    const roomDealers = roomResp.ok && Array.isArray(roomResp.data) ? roomResp.data : [];
+    const byId = new Map();
+    for (const d of roomDealers) {
+      byId.set(String(d.dealer_id), {
+        dealer_id: String(d.dealer_id),
+        display_name: d.display_name || "—",
+        rounds_completed: 0,
+        errors_total: 0,
+        cards_errors: 0,
+        payout_errors: 0,
+        chips_errors: 0,
+        live_seconds: 0,
+        avg_accuracy: 0,
+      });
+    }
+    for (const d of data.dealers) {
+      const id = String(d.dealer_id || "");
+      if (!id) continue;
+      const prev = byId.get(id) || { dealer_id: id, display_name: d.display_name || "—" };
+      byId.set(id, {
+        ...prev,
+        display_name: d.display_name || prev.display_name || "—",
+        rounds_completed: Number(d.rounds_completed || 0),
+        errors_total: Number(d.errors_total || 0),
+        cards_errors: Number(d.cards_errors || 0),
+        payout_errors: Number(d.payout_errors || 0),
+        chips_errors: Number(d.chips_errors || 0),
+        live_seconds: Number(d.live_seconds || 0),
+        avg_accuracy: Number(d.avg_accuracy || 0),
+      });
+    }
+    if (String(currentSessionId || "").trim() !== activeSessionId) {
+      return;
+    }
+    renderDealers(Array.from(byId.values()));
+  } finally {
+    resultsFetchInFlight = false;
   }
-  if (data.status === "completed" || data.status === "aborted") {
-    clearLiveDashboardState();
-    renderResultsEmpty("Тренировка завершена");
-    return;
-  }
-  const roomCode = selectedRoomCode();
-  const roomResp = await api("GET", `/api/rooms/${encodeURIComponent(roomCode)}/dealers`);
-  const roomDealers = roomResp.ok && Array.isArray(roomResp.data) ? roomResp.data : [];
-  const byId = new Map();
-  for (const d of roomDealers) {
-    byId.set(String(d.dealer_id), {
-      dealer_id: String(d.dealer_id),
-      display_name: d.display_name || "—",
-      rounds_completed: 0,
-      errors_total: 0,
-      cards_errors: 0,
-      payout_errors: 0,
-      chips_errors: 0,
-      live_seconds: 0,
-      avg_accuracy: 0,
-    });
-  }
-  for (const d of data.dealers) {
-    const id = String(d.dealer_id || "");
-    if (!id) continue;
-    const prev = byId.get(id) || { dealer_id: id, display_name: d.display_name || "—" };
-    byId.set(id, {
-      ...prev,
-      display_name: d.display_name || prev.display_name || "—",
-      rounds_completed: Number(d.rounds_completed || 0),
-      errors_total: Number(d.errors_total || 0),
-      cards_errors: Number(d.cards_errors || 0),
-      payout_errors: Number(d.payout_errors || 0),
-      chips_errors: Number(d.chips_errors || 0),
-      live_seconds: Number(d.live_seconds || 0),
-      avg_accuracy: Number(d.avg_accuracy || 0),
-    });
-  }
-  renderDealers(Array.from(byId.values()));
 }
 
 async function fetchRoomDealersOnce() {
