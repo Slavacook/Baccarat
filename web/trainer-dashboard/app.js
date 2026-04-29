@@ -51,13 +51,13 @@ const PHASE_LABELS = {
   round_completed: "Конец раздачи",
 };
 const EVENT_ERROR_LABELS = {
-  player_wrong: "Ошибка: карта игроку",
-  banker_wrong: "Ошибка: карта банкиру",
-  both_wrong: "Ошибка: карта каждому",
-  winner_wrong: "Ошибка: неверный победитель",
-  tie_wrong: "Ошибка: неверный маркер Эгалите",
-  natural_draw: "Ошибка: натуральная комбинация",
-  winner_early: "Ошибка: победитель выбран слишком рано",
+  player_wrong: "Карта игроку",
+  banker_wrong: "Карта банкиру",
+  both_wrong: "Карта каждому",
+  winner_wrong: "Неверный победитель",
+  tie_wrong: "Неверный маркер Эгалите",
+  natural_draw: "Натуральная комбинация",
+  winner_early: "Победитель выбран слишком рано",
   collection_error: "Ошибка сбора ставки",
   payment_error: "Ошибка оплаты ставки",
   payout_wrong: "Ошибка оплаты ставки",
@@ -364,7 +364,47 @@ function _errorLabel(errorType, fallbackMessage = "") {
   const key = String(errorType || "").trim();
   if (EVENT_ERROR_LABELS[key]) return EVENT_ERROR_LABELS[key];
   const text = String(fallbackMessage || "").trim();
-  return text ? `Ошибка: ${text}` : "Ошибка";
+  return text || "Ошибка";
+}
+
+function _lowercaseFirst(text) {
+  const raw = String(text || "").trim();
+  if (!raw) return "";
+  return raw.charAt(0).toLowerCase() + raw.slice(1);
+}
+
+function _errorActionLine(actionType) {
+  const label = _actionPerformedLabel(actionType, actionType);
+  if (!label) return "Ошибка";
+  return `Ошибка: ${_lowercaseFirst(label)}`;
+}
+
+function _expectedActionLine(actionType) {
+  const label = _actionPerformedLabel(actionType, actionType);
+  return label ? `Ожидалось: ${label}` : "";
+}
+
+function _formatLiveError(data) {
+  const actualAction = String(data && data.actual_action ? data.actual_action : "").trim();
+  const expectedAction = String(data && data.expected_action ? data.expected_action : "").trim();
+  if (actualAction || expectedAction) {
+    return {
+      primary: actualAction ? _errorActionLine(actualAction) : "Ошибка",
+      detail: expectedAction ? _expectedActionLine(expectedAction) : "",
+    };
+  }
+  const label = _errorLabel(data && data.error_type, data && data.message ? data.message : "");
+  if (!label) return "Ошибка";
+  if (label.startsWith("Ошибка")) return label;
+  return `Ошибка: ${_lowercaseFirst(label)}`;
+}
+
+function _errorStatusLabel(errorType, fallbackMessage = "", expectedAction = "") {
+  const expected = String(expectedAction || "").trim();
+  if (expected) {
+    return _expectedActionLine(expected);
+  }
+  return _errorLabel(errorType, fallbackMessage);
 }
 
 function _actionPerformedLabel(actionType, actionValue) {
@@ -398,6 +438,8 @@ function _actionPerformedLabel(actionType, actionValue) {
 function _lastActionLabel(lastAction) {
   const actionType = String(lastAction.type || "").trim();
   const actionValue = lastAction.value;
+  const expected = String(lastAction.expected || "").trim();
+  const actual = String(lastAction.actual || "").trim();
 
   switch (actionType) {
     case "round_started":
@@ -412,6 +454,8 @@ function _lastActionLabel(lastAction) {
     case "action_performed":
       return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
     case "action_error":
+      if (actual) return _actionPerformedLabel(actual, actual) || "Ошибка";
+      if (expected) return _expectedActionLine(expected);
       return _errorLabel(actionValue, "");
     case "payment_correct":
     case "payout_correct":
@@ -473,12 +517,12 @@ function renderLiveTableView() {
     const banker = state.banker && typeof state.banker === "object" ? state.banker : {};
     const playerScore = _safeScore(player.score);
     const bankerScore = _safeScore(banker.score);
-    const { actionType, actionValue, result } = _safeAction(state);
+    const { actionType, actionValue, result, expected, actual } = _safeAction(state);
     const { hasError, errorType, errorMsg } = _safeError(state);
     const lives = state.lives_remaining != null ? String(state.lives_remaining) : "";
     const gameOver = state.is_game_over === true;
-    const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result });
-    const errorLabel = hasError ? _errorLabel(errorType, errorMsg) : "Без ошибок";
+    const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result, expected, actual });
+    const errorLabel = hasError ? _errorStatusLabel(errorType, errorMsg, expected) : "Без ошибок";
 
     const card = document.createElement("article");
     card.className = "live-dealer-card" + (hasError ? " live-dealer-card-error" : "");
@@ -551,7 +595,7 @@ function dealerDisplayName(dealerId) {
 
 function formatLiveEventLine(t, data) {
   if (t === "error_occurred") {
-    return _errorLabel(data.error_type, data.message || "");
+    return _formatLiveError(data);
   }
   if (t === "action_performed") {
     return _actionPerformedLabel(data.action_type, data.value);
@@ -587,7 +631,21 @@ function pushLiveFeedEntry(msgType, data) {
   const text = document.createElement("span");
   const line = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
   if (!line) return;
-  text.textContent = line;
+  if (typeof line === "object") {
+    const primary = document.createElement("span");
+    primary.textContent = line.primary || "";
+    text.appendChild(primary);
+    if (line.detail) {
+      primary.style.display = "block";
+      const detail = document.createElement("span");
+      detail.textContent = line.detail;
+      detail.className = "muted small";
+      detail.style.display = "block";
+      text.appendChild(detail);
+    }
+  } else {
+    text.textContent = line;
+  }
 
   li.appendChild(ts);
   li.appendChild(tag);
