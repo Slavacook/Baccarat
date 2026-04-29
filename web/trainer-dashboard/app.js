@@ -168,7 +168,14 @@ function applyTableState(snapshot) {
 
   const roundId = String(snapshot.round_id || "").trim();
   const prev = liveTableStore.byDealerId.get(dealerId);
-  const lastSeq = prev && Number.isInteger(prev.lastSeq) ? prev.lastSeq : -1;
+  const prevState = prev && prev.currentState && typeof prev.currentState === "object" ? prev.currentState : {};
+  const incomingRoundNumber = Number.isInteger(snapshot.round_number) ? snapshot.round_number : null;
+  const prevRoundNumber = Number.isInteger(prevState.round_number) ? prevState.round_number : null;
+  if (incomingRoundNumber != null && prevRoundNumber != null && incomingRoundNumber < prevRoundNumber) {
+    return false;
+  }
+  const isNewerRound = incomingRoundNumber != null && prevRoundNumber != null && incomingRoundNumber > prevRoundNumber;
+  const lastSeq = isNewerRound ? -1 : prev && Number.isInteger(prev.lastSeq) ? prev.lastSeq : -1;
   if (seqRaw <= lastSeq) return false;
 
   liveTableStore.byDealerId.set(dealerId, {
@@ -201,6 +208,39 @@ function resetDealerLiveState(dealerId, options = {}) {
   renderSessionInfo();
   renderLiveTableView();
   renderDealers(Array.isArray(latestDealersSnapshot) ? latestDealersSnapshot : []);
+}
+
+function markDealerRoundStarted(dealerId, data = {}) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  const prev = liveTableStore.byDealerId.get(id);
+  const prevState = prev && prev.currentState && typeof prev.currentState === "object" ? prev.currentState : {};
+  const nextRoundNumber = Number.isInteger(data.round_number)
+    ? data.round_number
+    : Number.isInteger(prevState.round_number)
+      ? prevState.round_number + 1
+      : prevState.round_number;
+
+  liveTableStore.byDealerId.set(id, {
+    lastSeq: -1,
+    sessionId: String(currentSessionId || "").trim() || String(prev?.sessionId || "").trim(),
+    currentRoundId: "",
+    currentState: {
+      dealer_id: id,
+      display_name: String(data.display_name || prevState.display_name || dealerDisplayName(id)),
+      session_id: String(currentSessionId || "").trim() || String(prevState.session_id || "").trim(),
+      round_number: nextRoundNumber,
+      round_id: "",
+      phase: "dealing_initial",
+      player: { cards: [], score: null },
+      banker: { cards: [], score: null },
+      last_action: { type: "round_started", value: null, result: "" },
+      error: { active: false, error_type: null, message: null },
+      lives_remaining: prevState.lives_remaining ?? null,
+      is_game_over: false,
+    },
+  });
+  renderLiveTableView();
 }
 
 function applyTableStateSync(states) {
@@ -927,6 +967,9 @@ function startTrainerSessionWebSocket() {
       fetchResultsOnce();
     }
     if (LIVE_MONITOR_TYPES.has(t)) {
+      if (t === "round_started" && data.dealer_id) {
+        markDealerRoundStarted(data.dealer_id, data);
+      }
       pushLiveFeedEntry(t, data);
       if (t === "error_occurred") {
         pulseDealerRow(data.dealer_id);
