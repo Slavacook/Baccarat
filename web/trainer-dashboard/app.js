@@ -67,6 +67,23 @@ function resetLiveCounters() {
   liveTableStore.byDealerId.clear();
 }
 
+function resetLiveSessionView(options = {}) {
+  const {
+    clearFeed = false,
+    refreshDealersTable = true,
+  } = options;
+
+  resetLiveCounters();
+  if (clearFeed) {
+    clearLiveFeed();
+  }
+  if (refreshDealersTable) {
+    renderDealers(Array.isArray(latestDealersSnapshot) ? latestDealersSnapshot : []);
+  }
+  renderSessionInfo();
+  renderLiveTableView();
+}
+
 function deleteRoomPinsCache(roomCode) {
   const code = String(roomCode || "").trim();
   if (!code) return;
@@ -94,17 +111,14 @@ function clearRoomAccessState() {
 
 function clearLiveDashboardState() {
   stopLiveWatch();
-  clearLiveFeed();
   currentSessionId = null;
   currentSessionInfoBase = "";
   latestDealersSnapshot = [];
   dealerRoundsCache = [];
-  resetLiveCounters();
+  resetLiveSessionView({ clearFeed: true, refreshDealersTable: false });
   renderDealerRounds([]);
-  renderSessionInfo();
   setTrainingButtons(false);
   renderResultsEmpty("Тренировка ещё не запущена");
-  renderLiveTableView();
 }
 
 function clearRoomScopedState(options = {}) {
@@ -137,6 +151,12 @@ function clearRoomScopedState(options = {}) {
 
 function applyTableState(snapshot) {
   if (!snapshot || typeof snapshot !== "object") return false;
+  const snapshotSessionId = String(snapshot.session_id || "").trim();
+  const activeSessionId = String(currentSessionId || "").trim();
+  if (snapshotSessionId && activeSessionId && snapshotSessionId !== activeSessionId) {
+    return false;
+  }
+
   const dealerId = String(snapshot.dealer_id || "").trim();
   if (!dealerId) return false;
 
@@ -150,6 +170,7 @@ function applyTableState(snapshot) {
 
   liveTableStore.byDealerId.set(dealerId, {
     lastSeq: seqRaw,
+    sessionId: snapshotSessionId || activeSessionId || (prev ? prev.sessionId : ""),
     currentRoundId: roundId || (prev ? prev.currentRoundId : ""),
     currentState: snapshot,
   });
@@ -536,7 +557,9 @@ function setTrainingButtons(active) {
 
 function renderSessionInfo() {
   const parts = [];
-  if (onlineDealers != null) parts.push(`онлайн дилеров: ${onlineDealers}`);
+  if (currentSessionId) {
+    parts.push(`дилеров в сети: ${connectedDealerIds.size}`);
+  }
   if (readyDealerIds.size > 0) parts.push(`готовы: ${readyDealerIds.size}`);
   el("session-info").textContent = parts.join(" | ");
 }
@@ -1583,19 +1606,20 @@ async function loadTrainerLiveSession() {
     showError("action-error", (data && formatApiError(data)) || `Ошибка ${status}`);
     return;
   }
-  const prevSessionId = currentSessionId;
-  currentSessionId = data.session_id;
-  resetLiveCounters();
-  if (String(prevSessionId || "") !== String(currentSessionId || "")) {
-    clearLiveFeed();
+  const prevSessionId = String(currentSessionId || "");
+  currentSessionId = String(data.session_id || "");
+  const sessionChanged = prevSessionId !== String(currentSessionId || "");
+  if (sessionChanged) {
+    resetLiveSessionView({ clearFeed: true });
+  } else {
+    renderSessionInfo();
   }
-  renderSessionInfo();
   setTrainingButtons(data.status === "active");
   if (data.status === "active") {
     startTrainerSessionWebSocket();
   } else {
     stopLiveWatch();
-    clearLiveFeed();
+    resetLiveSessionView({ clearFeed: true });
     renderResultsEmpty("Тренировка ещё не запущена");
   }
 }
@@ -1649,9 +1673,9 @@ async function fetchResultsOnce() {
     return;
   }
   if (data.status === "completed" || data.status === "aborted") {
-    stopLiveWatch();
-    setTrainingButtons(false);
-    renderSessionInfo();
+    clearLiveDashboardState();
+    renderResultsEmpty("Тренировка завершена");
+    return;
   }
   const roomCode = selectedRoomCode();
   const roomResp = await api("GET", `/api/rooms/${encodeURIComponent(roomCode)}/dealers`);
