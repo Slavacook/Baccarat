@@ -3,3 +3,4 @@
 .kilo/
 .playwright-mcp/
 web/trainer-dashboard/assets/**/*.import
+.godot/
