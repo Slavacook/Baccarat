@@ -11,6 +11,8 @@ const el = (id) => document.getElementById(id);
 
 let pollTimer = null;
 let sessionWs = null;
+let sessionWsSessionId = "";
+let sessionWsGeneration = 0;
 let currentSessionId = null;
 let currentSessionInfoBase = "";
 let onlineDealers = null;
@@ -799,18 +801,23 @@ function stopPoll() {
   }
 }
 
-function closeSessionWs() {
-  if (!sessionWs) return;
+function closeSessionWs(targetWs = sessionWs) {
+  if (!targetWs) return;
+  const isCurrentWs = targetWs === sessionWs;
   try {
-    sessionWs.onopen = null;
-    sessionWs.onmessage = null;
-    sessionWs.onerror = null;
-    sessionWs.onclose = null;
-    sessionWs.close();
+    targetWs.onopen = null;
+    targetWs.onmessage = null;
+    targetWs.onerror = null;
+    targetWs.onclose = null;
+    targetWs.close();
   } catch (_) {
     /* ignore */
   }
-  sessionWs = null;
+  if (isCurrentWs) {
+    sessionWs = null;
+    sessionWsSessionId = "";
+    sessionWsGeneration += 1;
+  }
 }
 
 function stopLiveWatch() {
@@ -833,22 +840,48 @@ function startPollResults() {
 }
 
 function startTrainerSessionWebSocket() {
-  stopLiveWatch();
-  const url = sessionWsUrl(currentSessionId);
+  const targetSessionId = String(currentSessionId || "").trim();
+  if (
+    sessionWs &&
+    sessionWsSessionId === targetSessionId &&
+    typeof WebSocket !== "undefined" &&
+    (sessionWs.readyState === WebSocket.CONNECTING || sessionWs.readyState === WebSocket.OPEN)
+  ) {
+    return;
+  }
+
+  stopPoll();
+  if (sessionWs) {
+    closeSessionWs(sessionWs);
+  }
+
+  const url = sessionWsUrl(targetSessionId);
   if (!url || typeof WebSocket === "undefined") {
     startPollResults();
     return;
   }
+
+  const generation = sessionWsGeneration + 1;
+  sessionWsGeneration = generation;
+  let nextWs = null;
   try {
-    sessionWs = new WebSocket(url);
+    nextWs = new WebSocket(url);
   } catch (_) {
+    sessionWs = null;
+    sessionWsSessionId = "";
     startPollResults();
     return;
   }
-  sessionWs.onopen = () => {
+
+  sessionWs = nextWs;
+  sessionWsSessionId = targetSessionId;
+
+  nextWs.onopen = () => {
+    if (sessionWs !== nextWs || sessionWsGeneration !== generation) return;
     fetchResultsOnce();
   };
-  sessionWs.onmessage = (ev) => {
+  nextWs.onmessage = (ev) => {
+    if (sessionWs !== nextWs || sessionWsGeneration !== generation) return;
     let msg = null;
     try {
       msg = JSON.parse(ev.data);
@@ -907,15 +940,21 @@ function startTrainerSessionWebSocket() {
       applyTableStateSync(states);
     }
   };
-  sessionWs.onerror = () => {
+  nextWs.onerror = () => {
+    if (sessionWs !== nextWs || sessionWsGeneration !== generation) return;
     try {
-      sessionWs.close();
+      nextWs.close();
     } catch (_) {
       /* ignore */
     }
   };
-  sessionWs.onclose = () => {
-    sessionWs = null;
+  nextWs.onclose = () => {
+    const isCurrentWs = sessionWs === nextWs && sessionWsGeneration === generation;
+    if (isCurrentWs) {
+      sessionWs = null;
+      sessionWsSessionId = "";
+    }
+    if (!isCurrentWs) return;
     if (!currentSessionId) return;
     if (pollTimer) return;
     startPollResults();
