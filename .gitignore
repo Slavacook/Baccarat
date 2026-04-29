@@ -1,0 +1,5 @@
+.DS_Store
+._*
+.kilo/
+.playwright-mcp/
+web/trainer-dashboard/assets/**/*.import
