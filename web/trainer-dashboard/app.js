@@ -186,6 +186,20 @@ function applyTableState(snapshot) {
   return true;
 }
 
+function resetDealerLiveState(dealerId, options = {}) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  const { clearReady = false } = options;
+  liveTableStore.byDealerId.delete(id);
+  connectedDealerIds.delete(id);
+  if (clearReady) {
+    readyDealerIds.delete(id);
+  }
+  renderSessionInfo();
+  renderLiveTableView();
+  renderDealers(Array.isArray(latestDealersSnapshot) ? latestDealersSnapshot : []);
+}
+
 function applyTableStateSync(states) {
   if (!Array.isArray(states)) return 0;
   let applied = 0;
@@ -850,11 +864,12 @@ function startTrainerSessionWebSocket() {
       }
       if (data.dealer_id) {
         const did = String(data.dealer_id);
-        if (t === "dealer_joined") connectedDealerIds.add(did);
-        else connectedDealerIds.delete(did);
-      }
-      if (t === "dealer_left" && data.dealer_id) {
-        readyDealerIds.delete(String(data.dealer_id));
+        if (t === "dealer_joined") {
+          resetDealerLiveState(did, { clearReady: true });
+          connectedDealerIds.add(did);
+        } else {
+          resetDealerLiveState(did, { clearReady: true });
+        }
       }
       renderSessionInfo();
     }

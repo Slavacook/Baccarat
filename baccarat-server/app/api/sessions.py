@@ -102,6 +102,15 @@ def _get_cached_table_states_for_session(session_id: str) -> list[dict]:
     return states
 
 
+def _clear_cached_table_state_for_dealer(session_id: str, dealer_id: str) -> None:
+    by_dealer = _LATEST_TABLE_STATE_BY_SESSION.get(session_id)
+    if not isinstance(by_dealer, dict):
+        return
+    by_dealer.pop(dealer_id, None)
+    if not by_dealer:
+        _LATEST_TABLE_STATE_BY_SESSION.pop(session_id, None)
+
+
 def _merge_live_payload_with_listener_dealer(data: dict, listener_id: str) -> dict:
     """dealer_id из токена — единственный источник правды."""
     return {**data, "dealer_id": listener_id}
@@ -727,6 +736,7 @@ async def session_ws(
             }
         )
     if listener_role == "dealer":
+        _clear_cached_table_state_for_dealer(session_id, listener_id)
         await ws_manager.broadcast(
             session_id=session_id,
             event_type="dealer_joined",
