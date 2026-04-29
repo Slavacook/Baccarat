@@ -141,26 +141,37 @@
         <p id="session-info" class="mono muted"></p>
       </div>
 
-      <div class="card" id="live-feed-card">
-        <h2>События в реальном времени</h2>
-        <p class="muted small">Ошибки и ключевые действия дилеров по WebSocket (пока активна тренировка).</p>
-        <div class="row wrap">
-          <label class="inline-check">
-            <input type="checkbox" id="live-feed-errors-only" />
-            Только ошибки
-          </label>
+      <div class="card live-workspace-card">
+        <div class="live-workspace">
+          <section class="live-pane live-pane-table" id="live-table-card">
+            <div class="live-pane-head">
+              <div>
+                <h2>Live View стола</h2>
+                <p class="muted small">Текущее состояние карт, фазы и последнего действия по каждому дилеру.</p>
+              </div>
+            </div>
+            <div id="live-table-view"></div>
+          </section>
+
+          <section class="live-pane live-pane-feed" id="live-feed-card">
+            <div class="live-pane-head">
+              <div>
+                <h2>Лог событий дилера</h2>
+                <p class="muted small">Короткие действия, решения и ошибки в реальном времени.</p>
+              </div>
+              <label class="inline-check">
+                <input type="checkbox" id="live-feed-errors-only" />
+                Только ошибки
+              </label>
+            </div>
+            <ul id="live-feed-list" class="live-feed" aria-live="polite"></ul>
+            <p id="live-feed-empty" class="muted small">Пока нет событий — дождитесь действий ученика в игре.</p>
+          </section>
         </div>
-        <ul id="live-feed-list" class="live-feed" aria-live="polite"></ul>
-        <p id="live-feed-empty" class="muted small">Пока нет событий — дождитесь действий ученика в игре.</p>
       </div>
 
-      <div class="card" id="live-table-card">
-        <h2>Live View стола (MVP)</h2>
-        <div id="live-table-view"></div>
-      </div>
-
-      <div class="card">
-        <h2>Live-дашборд</h2>
+      <details class="card live-secondary-card">
+        <summary>Сводка по дилерам</summary>
         <div class="table-wrap">
           <table id="dealers-table">
             <thead>
@@ -177,7 +188,7 @@
           </table>
         </div>
         <p id="results-empty" class="muted">Нет данных — запустите live-сессию.</p>
-      </div>
+      </details>
       </div>
     </section>
   </div>

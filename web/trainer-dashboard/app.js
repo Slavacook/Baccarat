@@ -33,6 +33,32 @@ const LIVE_MONITOR_TYPES = new Set([
   "action_performed",
   "round_completed",
 ]);
+const WINNER_LABELS = {
+  Player: "Игрок",
+  Banker: "Банкир",
+  Tie: "Эгалите",
+};
+const PHASE_LABELS = {
+  waiting: "Ожидание",
+  dealing_initial: "Карты открываются",
+  third_card_player: "Карта игроку",
+  third_card_banker: "Карта банкиру",
+  winner_selection: "Выбор победителя",
+  payout: "Оплата сыгравших ставок",
+  round_completed: "Конец раздачи",
+};
+const EVENT_ERROR_LABELS = {
+  player_wrong: "Ошибка: карта игроку",
+  banker_wrong: "Ошибка: карта банкиру",
+  both_wrong: "Ошибка: карта каждому",
+  winner_wrong: "Ошибка: неверный победитель",
+  tie_wrong: "Ошибка: неверный маркер Эгалите",
+  natural_draw: "Ошибка: натуральная комбинация",
+  winner_early: "Ошибка: победитель выбран слишком рано",
+  collection_error: "Ошибка сбора ставки",
+  payment_error: "Ошибка оплаты ставки",
+  payout_wrong: "Ошибка оплаты ставки",
+};
 
 function resetLiveCounters() {
   onlineDealers = null;
@@ -246,26 +272,73 @@ function _safeError(state) {
   return { hasError, errorType, errorMsg };
 }
 
-function _getLastActionText(lastAction) {
-  const actionType = lastAction.type != null ? String(lastAction.type) : "";
-  const actionValue = lastAction.value != null ? String(lastAction.value) : "";
-  
+function _winnerLabel(value) {
+  const key = String(value || "").trim();
+  return WINNER_LABELS[key] || "";
+}
+
+function _phaseLabel(phase) {
+  const key = String(phase || "").trim();
+  return PHASE_LABELS[key] || "Ожидание";
+}
+
+function _errorLabel(errorType, fallbackMessage = "") {
+  const key = String(errorType || "").trim();
+  if (EVENT_ERROR_LABELS[key]) return EVENT_ERROR_LABELS[key];
+  const text = String(fallbackMessage || "").trim();
+  return text ? `Ошибка: ${text}` : "Ошибка";
+}
+
+function _actionPerformedLabel(actionType, actionValue) {
+  const type = String(actionType || "").trim();
+  const value = String(actionValue || "").trim();
+
+  if (type === "winner_selection") {
+    const winner = _winnerLabel(value);
+    return winner ? `Победитель: ${winner}` : "Выбор победителя";
+  }
+  if (type === "player_third") return "Карта игроку";
+  if (type === "banker_third" || type === "banker_third_after_player") return "Карта банкиру";
+  if (type === "both_third") return "Карта каждому";
+  if (type === "no_third") return "";
+  return "Действие дилера";
+}
+
+function _lastActionLabel(lastAction) {
+  const actionType = String(lastAction.type || "").trim();
+  const actionValue = lastAction.value;
+
   switch (actionType) {
     case "round_started":
-      return "Старт раздачи";
+      return "Новая раздача";
     case "cards_dealt":
-      return "Карты розданы";
-    case "player_third_drawn":
-      return "Третья карта Player";
-    case "banker_third_drawn":
-      return "Третья карта Banker";
-    case "both_third_drawn":
-      return "Третьи карты Player и Banker";
-    case "winner_selected":
-      return "Выбор победителя";
+      return "Карты открыты";
+    case "action_correct": {
+      const winner = _winnerLabel(actionValue);
+      if (winner) return `Победитель: ${winner}`;
+      return _actionPerformedLabel(String(actionValue || ""), String(actionValue || ""));
+    }
+    case "action_error":
+      return _errorLabel(actionValue, "");
+    case "payment_correct":
+    case "payout_correct":
+      return "Оплата сыгравшей ставки";
+    case "payment_error":
+    case "payout_wrong":
+      return "Ошибка оплаты ставки";
+    case "collection_correct":
+      return "Сбор проигрышной ставки";
+    case "collection_error":
+      return "Ошибка сбора ставки";
+    case "round_completed":
+      return "Конец раздачи";
     default:
-      return actionType ? `Действие: ${actionType}` : "Нет действий";
+      return "Событие";
   }
+}
+
+function _getLastActionText(lastAction) {
+  return _lastActionLabel(lastAction || {});
 }
 
 function _getLastActionStatus(lastAction, hasError) {
@@ -273,7 +346,7 @@ function _getLastActionStatus(lastAction, hasError) {
   let isError = false;
   
   // Приоритет: используем result если доступен
-  if (result === "wrong") {
+  if (result === "wrong" || result === "error") {
     isError = true;
   } else if (result === "correct") {
     isError = false;
@@ -302,15 +375,17 @@ function renderLiveTableView() {
     const dealerName = state.display_name ? String(state.display_name) : dealerDisplayName(dealerId);
     const roundNumber = state.round_number != null ? String(state.round_number) : "—";
     const phase = _safePhase(state.phase);
+    const phaseLabel = _phaseLabel(phase);
     const player = state.player && typeof state.player === "object" ? state.player : {};
     const banker = state.banker && typeof state.banker === "object" ? state.banker : {};
     const playerScore = _safeScore(player.score);
     const bankerScore = _safeScore(banker.score);
-    const { actionType, actionValue, result, expected, actual } = _safeAction(state);
+    const { actionType, actionValue, result } = _safeAction(state);
     const { hasError, errorType, errorMsg } = _safeError(state);
-    const lives = state.lives != null ? String(state.lives) : "";
-    const gameOver = state.game_over === true;
-    const eventSeq = state.event_seq != null ? String(state.event_seq) : entry.lastSeq != null ? String(entry.lastSeq) : "—";
+    const lives = state.lives_remaining != null ? String(state.lives_remaining) : "";
+    const gameOver = state.is_game_over === true;
+    const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result });
+    const errorLabel = hasError ? _errorLabel(errorType, errorMsg) : "Без ошибок";
 
     const card = document.createElement("article");
     card.className = "live-dealer-card" + (hasError ? " live-dealer-card-error" : "");
@@ -318,36 +393,34 @@ function renderLiveTableView() {
       <div class="live-dealer-header">
         <div class="live-title">
           <strong>${dealerName}</strong>
-          <span class="muted small mono">${dealerId}</span>
         </div>
-        <span class="live-phase ${_phaseClass(phase)}">${phase}</span>
+        <span class="live-phase ${_phaseClass(phase)}">${phaseLabel}</span>
       </div>
       
       <div class="live-meta muted small">
         <span>Раунд: ${roundNumber}</span>
-        <span>seq: ${eventSeq}</span>
-        ${lives ? `<span>Lives: ${lives}</span>` : ""}
-        ${gameOver ? `<span class="live-game-over">Game Over</span>` : ""}
+        ${lives ? `<span>Жизни: ${lives}</span>` : ""}
+        ${gameOver ? `<span class="live-game-over">Раунд завершён</span>` : ""}
       </div>
       
       <div class="live-table-area">
         <div class="live-zone live-zone-banker">
-          <div class="live-zone-header">Banker</div>
+          <div class="live-zone-header">Банкир</div>
           <div class="live-cards">${_renderCardCodesFromSlots(banker.cards.length >= 3 ? [banker.cards[2], banker.cards[0], banker.cards[1]] : banker.cards)}</div>
           <div class="live-score">${bankerScore}</div>
         </div>
         
         <div class="live-zone live-zone-player">
-          <div class="live-zone-header">Player</div>
+          <div class="live-zone-header">Игрок</div>
           <div class="live-cards">${_renderCardCodesFromSlots(player.cards.length >= 3 ? [player.cards[0], player.cards[1], player.cards[2]] : player.cards)}</div>
           <div class="live-score">${playerScore}</div>
         </div>
       </div>
         
       <div class="live-last-action-section">
-        <div class="live-last-action-title">Last Action:</div>
+        <div class="live-last-action-title">Последнее событие</div>
         <div class="live-last-action-content">
-          ${_getLastActionText({type: actionType, value: actionValue, result: result})}
+          ${actionLabel}
         </div>
         <div class="live-last-action-status">
           ${_getLastActionStatus({type: actionType, value: actionValue, result: result}, hasError)}
@@ -355,12 +428,12 @@ function renderLiveTableView() {
       </div>
         
       <div class="live-error-section">
-        <div class="live-error-title">Error:</div>
+        <div class="live-error-title">Статус</div>
         <div class="live-error-content">
           ${
             hasError
-              ? `<span class="live-error-badge">Ошибка: ${errorType || "unknown"}${errorMsg ? ` — ${errorMsg}` : ""}</span>`
-              : `<span class="live-ok-badge">OK</span>`
+              ? `<span class="live-error-badge">${errorLabel}</span>`
+              : `<span class="live-ok-badge">Без ошибок</span>`
           }
         </div>
       </div>
@@ -384,27 +457,19 @@ function dealerDisplayName(dealerId) {
 }
 
 function formatLiveEventLine(t, data) {
-  const name = dealerDisplayName(data.dealer_id);
-  const r = data.round_number != null ? `#${data.round_number}` : "";
   if (t === "error_occurred") {
-    const et = data.error_type || "ошибка";
-    const msg = data.message ? String(data.message) : "";
-    return `${name} ${r} — ${et}${msg ? `: ${msg}` : ""}`;
+    return _errorLabel(data.error_type, data.message || "");
   }
   if (t === "action_performed") {
-    const at = data.action_type || "действие";
-    const val = data.value != null && String(data.value) !== "" ? ` → ${data.value}` : "";
-    return `${name} ${r} — ${at}${val}`;
+    return _actionPerformedLabel(data.action_type, data.value);
   }
   if (t === "round_started") {
-    return `${name} ${r} — раздача`;
+    return "Новая раздача";
   }
   if (t === "round_completed") {
-    const acc = typeof data.accuracy === "number" ? `${(data.accuracy <= 1 ? data.accuracy * 100 : data.accuracy).toFixed(0)}%` : "—";
-    const go = data.is_game_over ? " (game over)" : "";
-    return `${name} ${r} — раунд завершён, точность ${acc}${go}`;
+    return "Конец раздачи";
   }
-  return `${name} — ${t}`;
+  return "Событие";
 }
 
 function pushLiveFeedEntry(msgType, data) {
@@ -427,7 +492,9 @@ function pushLiveFeedEntry(msgType, data) {
     msgType === "error_occurred" ? "Ошибка" : msgType === "action_performed" ? "Действие" : msgType === "round_started" ? "Старт" : "Конец";
 
   const text = document.createElement("span");
-  text.textContent = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
+  const line = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
+  if (!line) return;
+  text.textContent = line;
 
   li.appendChild(ts);
   li.appendChild(tag);
