@@ -22,7 +22,7 @@ body {
 }
 
 .layout {
-  max-width: 1360px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 24px 16px 48px;
 }
@@ -57,7 +57,7 @@ body {
 
 .live-workspace {
   display: grid;
-  grid-template-columns: minmax(0, 1.65fr) minmax(320px, 0.95fr);
+  grid-template-columns: minmax(720px, 2fr) minmax(300px, 1fr);
   align-items: start;
 }
 
@@ -164,7 +164,7 @@ tr.row-live-error {
 
 #live-table-view {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
   gap: 16px;
 }
 
@@ -258,6 +258,7 @@ tr.row-live-error {
 }
 
 .live-zone {
+  min-width: 0;
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 12px;
@@ -282,13 +283,14 @@ tr.row-live-error {
 
 .live-cards {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 6px;
   justify-content: center;
   margin-bottom: 8px;
 }
 
 .live-card {
+  flex: 0 0 auto;
   min-width: 40px;
   text-align: center;
   padding: 6px 8px;
@@ -300,6 +302,7 @@ tr.row-live-error {
 }
 
 .live-card-img {
+  flex: 0 0 auto;
   width: 40px;
   height: 56px;
   object-fit: cover;
@@ -708,5 +711,15 @@ th {
 
   .live-feed {
     max-height: 420px;
+  }
+}
+
+@media (max-width: 700px) {
+  #live-table-view {
+    grid-template-columns: 1fr;
+  }
+
+  .live-cards {
+    flex-wrap: wrap;
   }
 }
