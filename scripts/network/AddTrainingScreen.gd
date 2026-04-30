@@ -12,12 +12,14 @@ var connect_btn: Button
 var back_btn: Button
 var error_label: Label
 var status_label: Label
+var form_scroll: ScrollContainer
 
 var _api_service = null
 var _access_store = null
 
 
 func _ready() -> void:
+	form_scroll = find_child("FormScroll", true, false)
 	access_code_input = find_child("AccessCodeInput", true, false)
 	display_name_input = find_child("DisplayNameInput", true, false)
 	connect_btn = find_child("ConnectBtn", true, false)
@@ -34,6 +36,10 @@ func _ready() -> void:
 		back_btn.pressed.connect(_on_back_pressed)
 	if access_code_input and not access_code_input.text_changed.is_connected(_on_access_code_changed):
 		access_code_input.text_changed.connect(_on_access_code_changed)
+	if access_code_input and not access_code_input.focus_entered.is_connected(_on_input_focus_entered.bind(access_code_input)):
+		access_code_input.focus_entered.connect(_on_input_focus_entered.bind(access_code_input))
+	if display_name_input and not display_name_input.focus_entered.is_connected(_on_input_focus_entered.bind(display_name_input)):
+		display_name_input.focus_entered.connect(_on_input_focus_entered.bind(display_name_input))
 
 	_hide_error()
 	_set_status("")
@@ -162,6 +168,12 @@ func _format_access_code(value: String) -> String:
 
 func _normalize_access_code(value: String) -> String:
 	return _format_access_code(value.strip_edges())
+
+
+func _on_input_focus_entered(target: Control) -> void:
+	if form_scroll == null or target == null:
+		return
+	form_scroll.call_deferred("ensure_control_visible", target)
 
 
 func _dictionary_or_empty(value: Variant) -> Dictionary:

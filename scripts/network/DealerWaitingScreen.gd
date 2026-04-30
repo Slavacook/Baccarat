@@ -140,7 +140,7 @@ func _on_back_pressed() -> void:
 	_stop_polling()
 	if Engine.has_singleton("LiveSessionClient"):
 		LiveSessionClient.disconnect_live()
-	get_tree().change_scene_to_file("res://scenes/network/MainMenu.tscn")
+	get_tree().change_scene_to_file("res://scenes/network/MyTrainingsScreen.tscn")
 
 
 func _exit_tree() -> void:
