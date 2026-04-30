@@ -307,9 +307,9 @@ func _display_room_code(record: Dictionary) -> String:
 
 
 func _display_dealer_name(record: Dictionary) -> String:
-	var name := str(record.get("dealer_display_name", "")).strip_edges()
-	if name != "":
-		return name
+	var display_name := str(record.get("dealer_display_name", "")).strip_edges()
+	if display_name != "":
+		return display_name
 	return "—"
 
 

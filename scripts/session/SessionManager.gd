@@ -176,7 +176,7 @@ func _on_round_reset() -> void:
 	_last_banker_cards.clear()
 
 
-func _on_action_correct(type: String) -> void:
+func _on_action_correct(_type: String) -> void:
 	correct_answers += 1
 
 

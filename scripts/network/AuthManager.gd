@@ -17,7 +17,6 @@ const SAVE_PATH = "user://auth_save.json"
 # ═══════════════════════════════════════════════════════════════
 
 signal login_succeeded(user: Dictionary)
-signal login_failed(error: String)
 signal logout()
 
 # ═══════════════════════════════════════════════════════════════

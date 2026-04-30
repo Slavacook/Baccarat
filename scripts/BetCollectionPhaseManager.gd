@@ -832,7 +832,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 			# Критическая ошибка: оплачивается не та ставка
 			DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Оплачивается ставка %s[%d], но ожидалась %s[%d]!" % [bet_type, position_index, expected.get_bet_type(), expected.get_position_index()])
 			# Перед rollback добавляем payment_error
-			var payload = {
+			var payment_error_payload = {
 				"type": "payment_error",
 				"phase": "payment",
 				"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
@@ -841,7 +841,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 				"message": "ERR_WRONG_PAYMENT_ORDER",
 				"reason": "wrong_order"
 			}
-			EventBus.payment_error.emit(payload)
+			EventBus.payment_error.emit(payment_error_payload)
 			# Rollback
 			bet.set_paid(old_paid_state)
 			sequence_manager.payment_progress[group] = old_progress
@@ -850,7 +850,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 	elif not group.is_empty() and old_progress >= sequence.size():
 		DebugLogger.log_error("КРИТИЧЕСКАЯ ОШИБКА: Прогресс группы '%s' (%d) >= размера последовательности (%d)!" % [group, old_progress, sequence.size()])
 		# Перед rollback добавляем payment_error
-		var payload = {
+		var payment_error_payload = {
 			"type": "payment_error",
 			"phase": "payment",
 			"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
@@ -859,7 +859,7 @@ func pay_bet(bet_type: String, position_index: int = 0) -> bool:
 			"message": "ERR_WRONG_PAYMENT_ORDER",
 			"reason": "wrong_order"
 		}
-		EventBus.payment_error.emit(payload)
+		EventBus.payment_error.emit(payment_error_payload)
 		# Rollback
 		bet.set_paid(old_paid_state)
 		is_processing = false
