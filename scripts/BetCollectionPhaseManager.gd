@@ -438,7 +438,8 @@ func _bet_to_payload_dict(bet) -> Dictionary:
 	return {
 		"bet_type": bet.get_bet_type(),
 		"position_index": bet.get_position_index(),
-		"stake": bet.get_stake()
+		"stake": bet.get_stake(),
+		"amount": bet.get_payout()
 	}
 
 func _validate_collect_internal(bet, bet_type: String, position_index: int = 0) -> Dictionary:
@@ -455,11 +456,31 @@ func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictio
 	# Сначала проверяем Tie push (более специфичный случай)
 	# При Tie: Player и Banker - это push ставки (не выиграли, но и не проиграли)
 	if is_tie_push_bet(bet_type):
+		var push_payload = {
+			"type": "collection_error",
+			"phase": "collection",
+			"expected": {},
+			"actual": _bet_to_payload_dict(bet),
+			"result": "error",
+			"message": "ERR_COLLECT_TIE_PUSH",
+			"reason": "collect_winning"
+		}
+		EventBus.collection_error.emit(push_payload)
 		return _error_result("collect_winning", "ERR_COLLECT_TIE_PUSH")
 	
 	# Потом проверяем реально выигрышные ставки
 	# Например: Player выиграл, пытаемся собрать выигрышную ставку Player
 	if bet.is_won():
+		var winning_payload = {
+			"type": "collection_error",
+			"phase": "collection",
+			"expected": {},
+			"actual": _bet_to_payload_dict(bet),
+			"result": "error",
+			"message": "ERR_COLLECT_WINNING",
+			"reason": "collect_winning"
+		}
+		EventBus.collection_error.emit(winning_payload)
 		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
 	
 	# Проверяем, не собрана ли уже (используем bet.is_collected как единственный источник истины)
@@ -526,6 +547,16 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 	
 	# Нельзя оплачивать проигрышные
 	if not bet.is_won():
+		var losing_payload = {
+			"type": "payment_error",
+			"phase": "payment",
+			"expected": {},
+			"actual": _bet_to_payload_dict(bet),
+			"result": "error",
+			"message": "Нельзя оплачивать проигрышные ставки",
+			"reason": "pay_losing"
+		}
+		EventBus.payment_error.emit(losing_payload)
 		return _error_result("pay_losing", "Нельзя оплачивать проигрышные ставки")
 	
 	# Проверяем, не оплачена ли уже

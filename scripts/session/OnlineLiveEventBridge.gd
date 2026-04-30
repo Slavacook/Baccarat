@@ -25,12 +25,14 @@ var _last_error: Dictionary = {
 	"active": false,
 	"error_type": null,
 	"message": null,
+	"details": {},
 }
 ## Подавление legacy third-card action_performed после нового решения "карта каждому".
 var _suppress_legacy_third_card_actions: bool = false
 var _suppressed_legacy_third_card_count: int = 0
 var _dealer_player_third_selected: bool = false
 var _dealer_banker_third_selected: bool = false
+var _suppress_next_payment_correct: bool = false
 
 
 func _resolve_session_manager() -> Node:
@@ -133,11 +135,13 @@ func _on_session_started(_mode: int) -> void:
 		"active": false,
 		"error_type": null,
 		"message": null,
+		"details": {},
 	}
 	_suppress_legacy_third_card_actions = false
 	_suppressed_legacy_third_card_count = 0
 	_dealer_player_third_selected = false
 	_dealer_banker_third_selected = false
+	_suppress_next_payment_correct = false
 	print("[OnlineLiveEventBridge] session_started: counters reset")
 
 
@@ -291,11 +295,12 @@ func _emit_dealer_action_event(technical_name: String, reason: String, details: 
 	send_table_state(reason)
 
 
-func _set_last_error(error_type: String, message: String) -> void:
+func _set_last_error(error_type: String, message: String, details: Dictionary = {}) -> void:
 	_last_error = {
 		"active": true,
 		"error_type": error_type,
 		"message": message,
+		"details": details.duplicate(true),
 	}
 
 
@@ -340,11 +345,148 @@ func _current_third_card_expected_action() -> String:
 			return ""
 
 
+func _bet_type_code(bet_type: String) -> String:
+	match bet_type:
+		"Player":
+			return "player"
+		"Banker":
+			return "banker"
+		"Tie":
+			return "tie"
+		"PlayerPair", "PairPlayer":
+			return "player_pair"
+		"BankerPair", "PairBanker":
+			return "banker_pair"
+		_:
+			return ""
+
+
+func _map_collection_event_code(actual_dict: Dictionary) -> String:
+	var bet_code: String = _bet_type_code(str(actual_dict.get("bet_type", "")))
+	if bet_code.is_empty():
+		return ""
+	return "take_%s_bet" % bet_code
+
+
+func _map_collection_error_code(actual_dict: Dictionary, reason: String) -> String:
+	if reason != "collect_winning":
+		return ""
+	var bet_code: String = _bet_type_code(str(actual_dict.get("bet_type", "")))
+	if bet_code.is_empty():
+		return ""
+	return "error_took_winning_%s_bet" % bet_code
+
+
+func _map_payment_success_code(actual_dict: Dictionary) -> String:
+	var bet_code: String = _bet_type_code(str(actual_dict.get("bet_type", "")))
+	if bet_code.is_empty():
+		return ""
+	return "pay_%s_bet_correct" % bet_code
+
+
+func _map_payment_error_code(actual_dict: Dictionary, reason: String) -> String:
+	var bet_code: String = _bet_type_code(str(actual_dict.get("bet_type", "")))
+	if bet_code.is_empty():
+		return ""
+	if reason == "pay_losing":
+		return "error_paid_losing_%s_bet" % bet_code
+	return ""
+
+
+func _map_payout_error_code(expected_dict: Dictionary, reason: String) -> String:
+	if reason != "wrong_amount":
+		return ""
+	var bet_code: String = _bet_type_code(str(expected_dict.get("bet_type", "")))
+	if bet_code.is_empty():
+		return ""
+	return "error_pay_%s_bet_amount" % bet_code
+
+
+func _build_bet_event_details(event_code: String, expected_dict: Dictionary, actual_dict: Dictionary, reason: String = "", message: String = "") -> Dictionary:
+	var details: Dictionary = {
+		"event_code": event_code,
+		"category": "payment",
+		"bet_type": str(actual_dict.get("bet_type", expected_dict.get("bet_type", ""))),
+		"position_index": int(actual_dict.get("position_index", expected_dict.get("position_index", -1))),
+		"actual_amount": float(actual_dict.get("amount", 0.0)),
+		"expected_amount": float(expected_dict.get("amount", 0.0)),
+		"stake": float(actual_dict.get("stake", expected_dict.get("stake", 0.0))),
+	}
+	if not reason.is_empty():
+		details["reason"] = reason
+	if not message.is_empty():
+		details["message"] = message
+	return details
+
+
+func _emit_structured_action_event(event_code: String, reason: String, details: Dictionary = {}) -> void:
+	if event_code.is_empty() or not _should_send():
+		return
+	var safe_details: Dictionary = details.duplicate(true)
+	safe_details["event_code"] = event_code
+	_set_last_action("action_performed", event_code, event_code, event_code, "correct", safe_details)
+	_clear_last_error()
+	var data: Dictionary = _session_meta()
+	data["action_type"] = event_code
+	data["value"] = event_code
+	for key in safe_details.keys():
+		data[key] = safe_details[key]
+	LiveSessionClient.send_event("action_performed", data)
+	send_table_state(reason)
+
+
+func _emit_structured_error_event(event_code: String, reason: String, message: String, details: Dictionary = {}) -> void:
+	if not _should_send():
+		return
+	var safe_details: Dictionary = details.duplicate(true)
+	if not event_code.is_empty():
+		safe_details["event_code"] = event_code
+	_set_last_action("error_occurred", event_code if not event_code.is_empty() else reason, "", "", "error", safe_details)
+	_set_last_error(reason if not reason.is_empty() else event_code, message, safe_details)
+	var data: Dictionary = _session_meta()
+	data["error_type"] = reason if not reason.is_empty() else event_code
+	data["message"] = message
+	data["lives_remaining"] = _lives_remaining()
+	if not event_code.is_empty():
+		data["event_code"] = event_code
+	for key in safe_details.keys():
+		data[key] = safe_details[key]
+	LiveSessionClient.send_event("error_occurred", data)
+	send_table_state(reason if not reason.is_empty() else "error_occurred")
+
+
 func _clear_last_error() -> void:
 	_last_error = {
 		"active": false,
 		"error_type": null,
 		"message": null,
+		"details": {},
+	}
+
+
+func _collection_details(expected_dict: Dictionary, actual_dict: Dictionary, reason: String = "", message: String = "") -> Dictionary:
+	var details: Dictionary = _build_bet_event_details("", expected_dict, actual_dict, reason, message)
+	details["category"] = "collection"
+	return details
+
+
+func _payment_details(expected_dict: Dictionary, actual_dict: Dictionary, reason: String = "", message: String = "") -> Dictionary:
+	var details: Dictionary = _build_bet_event_details("", expected_dict, actual_dict, reason, message)
+	details["category"] = "payment"
+	return details
+
+
+func _manual_error_details(category: String, reason: String, message: String) -> Dictionary:
+	return {
+		"event_code": "",
+		"category": category,
+		"reason": reason,
+		"message": message,
+		"bet_type": "",
+		"position_index": -1,
+		"actual_amount": 0.0,
+		"expected_amount": 0.0,
+		"stake": 0.0,
 	}
 
 
@@ -631,6 +773,15 @@ func _on_action_error(err_type: String, message: String) -> void:
 		return
 	
 	var effective_err_type = str(err_type)
+	if err_type == "incomplete_bets":
+		if message == "ERR_COMPLETE_BEFORE_COLLECT":
+			var collect_details: Dictionary = _manual_error_details("collection", "complete_before_collect", message)
+			_emit_structured_error_event("", "incomplete_bets", message, collect_details)
+			return
+		if message == "ERR_COMPLETE_BEFORE_PAY":
+			var pay_details: Dictionary = _manual_error_details("payment", "complete_before_pay", message)
+			_emit_structured_error_event("", "incomplete_bets", message, pay_details)
+			return
 	if err_type == "winner_wrong" or err_type == "tie_wrong":
 		var actual = _winner_label()
 		var expected = _get_expected_winner()
@@ -711,6 +862,13 @@ func _on_action_correct(action_type: String) -> void:
 func _on_payout_correct(payload: Dictionary) -> void:
 	var expected_dict: Dictionary = _payload_expected(payload)
 	var actual_dict: Dictionary = _payload_actual(payload)
+	var event_code: String = _map_payment_success_code(actual_dict)
+	if not event_code.is_empty():
+		_suppress_next_payment_correct = true
+		var details: Dictionary = _payment_details(expected_dict, actual_dict)
+		details["event_code"] = event_code
+		_emit_structured_action_event(event_code, "payout_correct", details)
+		return
 	_set_last_action("payout_correct", actual_dict, expected_dict, actual_dict, "correct", payload)
 	_clear_last_error()
 	send_table_state("payout_correct")
@@ -723,6 +881,12 @@ func _on_payout_wrong(payload: Dictionary) -> void:
 	var actual_dict: Dictionary = _payload_actual(payload)
 	var reason: String = _payload_reason(payload, "wrong_amount")
 	var message: String = _payload_message(payload, "Неверная выплата")
+	var event_code: String = _map_payout_error_code(expected_dict, reason)
+	if not event_code.is_empty():
+		var details: Dictionary = _payment_details(expected_dict, actual_dict, reason, message)
+		details["event_code"] = event_code
+		_emit_structured_error_event(event_code, "payout_wrong", message, details)
+		return
 	_set_last_action("payout_wrong", reason, expected_dict, actual_dict, "error", payload)
 	_set_last_error("payout_wrong", message)
 	var data: Dictionary = _session_meta()
@@ -773,6 +937,12 @@ func _on_heart_bet_round_complete() -> void:
 func _on_collection_correct(payload: Dictionary) -> void:
 	var expected = _payload_expected(payload)
 	var actual = _payload_actual(payload)
+	var event_code: String = _map_collection_event_code(actual)
+	if not event_code.is_empty():
+		var details: Dictionary = _collection_details(expected, actual)
+		details["event_code"] = event_code
+		_emit_structured_action_event(event_code, "collection_correct", details)
+		return
 	_set_last_action("collection_correct", actual, expected, actual, "correct", payload)
 	_clear_last_error()
 	send_table_state("collection_correct")
@@ -783,6 +953,15 @@ func _on_collection_error(payload: Dictionary) -> void:
 	var actual = _payload_actual(payload)
 	var reason = _payload_reason(payload, "collection_error")
 	var message = _payload_message(payload, "Ошибка сбора ставок")
+	var event_code: String = _map_collection_error_code(actual, reason)
+	var details: Dictionary = _collection_details(expected, actual, reason, message)
+	if not event_code.is_empty():
+		details["event_code"] = event_code
+		_emit_structured_error_event(event_code, "collection_error", message, details)
+		return
+	if reason == "wrong_order":
+		_emit_structured_error_event("", "collection_error", message, details)
+		return
 	_set_last_action("collection_error", reason, expected, actual, "error", payload)
 	_set_last_error("collection_error", message)
 	send_table_state("collection_error")
@@ -791,6 +970,16 @@ func _on_collection_error(payload: Dictionary) -> void:
 func _on_payment_correct(payload: Dictionary) -> void:
 	var expected = _payload_expected(payload)
 	var actual = _payload_actual(payload)
+	if _suppress_next_payment_correct:
+		_suppress_next_payment_correct = false
+		send_table_state("payment_correct_suppressed")
+		return
+	var event_code: String = _map_payment_success_code(actual)
+	if not event_code.is_empty():
+		var details: Dictionary = _payment_details(expected, actual)
+		details["event_code"] = event_code
+		_emit_structured_action_event(event_code, "payment_correct", details)
+		return
 	_set_last_action("payment_correct", actual, expected, actual, "correct", payload)
 	_clear_last_error()
 	send_table_state("payment_correct")
@@ -801,6 +990,15 @@ func _on_payment_error(payload: Dictionary) -> void:
 	var actual = _payload_actual(payload)
 	var reason = _payload_reason(payload, "payment_error")
 	var message = _payload_message(payload, "Ошибка оплаты ставок")
+	var event_code: String = _map_payment_error_code(actual, reason)
+	var details: Dictionary = _payment_details(expected, actual, reason, message)
+	if not event_code.is_empty():
+		details["event_code"] = event_code
+		_emit_structured_error_event(event_code, "payment_error", message, details)
+		return
+	if reason == "wrong_order":
+		_emit_structured_error_event("", "payment_error", message, details)
+		return
 	_set_last_action("payment_error", reason, expected, actual, "error", payload)
 	_set_last_error("payment_error", message)
 	send_table_state("payment_error")
