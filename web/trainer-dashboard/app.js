@@ -444,6 +444,9 @@ function _betActionFallback(details = {}) {
   if (category === "collection" && reason === "wrong_order" && betLabel) {
     return { primary: `Ошибка: забрал ставку на ${betLabel} не по порядку`, detail: "" };
   }
+  if (category === "collection" && reason === "pay_before_collect") {
+    return { primary: "Ошибка: сначала забери все проигрышные ставки", detail: "" };
+  }
   if (category === "collection" && reason === "complete_before_collect") {
     return { primary: "Ошибка: не все проигрышные ставки забраны", detail: "" };
   }
@@ -455,6 +458,12 @@ function _betActionFallback(details = {}) {
   }
   if (category === "payment" && reason === "wrong_order" && betLabel) {
     return { primary: `Ошибка: оплатил ставку на ${betLabel} не по порядку`, detail: "" };
+  }
+  if (category === "payment" && reason === "wrong_amount" && betLabel) {
+    return {
+      primary: `Ошибка: оплатил ставку на ${betLabel}: ${_formatAmount(actualAmount)}`,
+      detail: `Ожидалось: ${_formatAmount(expectedAmount)}`,
+    };
   }
   return null;
 }
@@ -535,12 +544,15 @@ function _formatLiveError(data) {
   return `Ошибка: ${_lowercaseFirst(label)}`;
 }
 
-function _errorStatusLabel(errorType, fallbackMessage = "", expectedAction = "") {
+function _errorStatusLabel(errorType, fallbackMessage = "", expectedAction = "", details = {}) {
   const expected = String(expectedAction || "").trim();
   if (expected) {
     return _expectedActionLine(expected);
   }
-  const betError = _formatBetError({ error_type: errorType, message: fallbackMessage });
+  const fullDetails = details && typeof details === "object" ? { ...details } : {};
+  if (!fullDetails.error_type) fullDetails.error_type = errorType;
+  if (!fullDetails.message) fullDetails.message = fallbackMessage;
+  const betError = _formatBetError(fullDetails);
   if (betError) return betError.primary || "Ошибка";
   return _errorLabel(errorType, fallbackMessage);
 }
@@ -671,7 +683,7 @@ function renderLiveTableView() {
     const gameOver = state.is_game_over === true;
     const actionLabel = _getLastActionText({ type: actionType, value: actionValue, result, expected, actual, details });
     const errorLabel = hasError
-      ? ((_formatBetError(errorDetails) || {}).primary || _errorStatusLabel(errorType, errorMsg, expected))
+      ? ((_formatBetError(errorDetails) || {}).primary || _errorStatusLabel(errorType, errorMsg, expected, errorDetails))
       : "Без ошибок";
 
     const card = document.createElement("article");

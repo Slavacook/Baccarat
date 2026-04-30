@@ -442,6 +442,19 @@ func _bet_to_payload_dict(bet) -> Dictionary:
 		"amount": bet.get_payout()
 	}
 
+func _emit_collection_error_payload(reason: String, message: String, actual_bet = null, expected_bet = null) -> void:
+	"""Отправить structured payload для ошибок Stage 8."""
+	var payload = {
+		"type": "collection_error",
+		"phase": "collection",
+		"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+		"actual": _bet_to_payload_dict(actual_bet) if actual_bet else {},
+		"result": "error",
+		"message": message,
+		"reason": reason
+	}
+	EventBus.collection_error.emit(payload)
+
 func _validate_collect_internal(bet, bet_type: String, position_index: int = 0) -> Dictionary:
 	"""Внутренний метод валидации сбора (используется валидатором)"""
 	return _validate_collect(bet, bet_type, position_index)
@@ -456,31 +469,13 @@ func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictio
 	# Сначала проверяем Tie push (более специфичный случай)
 	# При Tie: Player и Banker - это push ставки (не выиграли, но и не проиграли)
 	if is_tie_push_bet(bet_type):
-		var push_payload = {
-			"type": "collection_error",
-			"phase": "collection",
-			"expected": {},
-			"actual": _bet_to_payload_dict(bet),
-			"result": "error",
-			"message": "ERR_COLLECT_TIE_PUSH",
-			"reason": "collect_winning"
-		}
-		EventBus.collection_error.emit(push_payload)
+		_emit_collection_error_payload("collect_winning", "ERR_COLLECT_TIE_PUSH", bet)
 		return _error_result("collect_winning", "ERR_COLLECT_TIE_PUSH")
 	
 	# Потом проверяем реально выигрышные ставки
 	# Например: Player выиграл, пытаемся собрать выигрышную ставку Player
 	if bet.is_won():
-		var winning_payload = {
-			"type": "collection_error",
-			"phase": "collection",
-			"expected": {},
-			"actual": _bet_to_payload_dict(bet),
-			"result": "error",
-			"message": "ERR_COLLECT_WINNING",
-			"reason": "collect_winning"
-		}
-		EventBus.collection_error.emit(winning_payload)
+		_emit_collection_error_payload("collect_winning", "ERR_COLLECT_WINNING", bet)
 		return _error_result("collect_winning", "ERR_COLLECT_WINNING")
 	
 	# Проверяем, не собрана ли уже (используем bet.is_collected как единственный источник истины)
@@ -519,25 +514,19 @@ func _validate_collect(bet, bet_type: String, position_index: int = 0) -> Dictio
 				# Предыдущая группа не закончена
 				match prev_group:
 					"main":
+						_emit_collection_error_payload("wrong_order", "ERR_COLLECT_MAIN_FIRST", bet, expected_bet)
 						return _error_result("wrong_order", "ERR_COLLECT_MAIN_FIRST")
 					"tie":
+						_emit_collection_error_payload("wrong_order", "ERR_COLLECT_TIE_FIRST", bet, expected_bet)
 						return _error_result("wrong_order", "ERR_COLLECT_TIE_FIRST")
 					"pairs":
 						# Пары собираются последними, это не должно произойти
+						_emit_collection_error_payload("wrong_order", "ERR_WRONG_COLLECT_ORDER", bet, expected_bet)
 						return _error_result("wrong_order", "ERR_WRONG_COLLECT_ORDER")
 		
 		# Проверяем, что кликнули на правильную следующую ставку
 		if expected_bet.get_bet_type() != bet_type or expected_bet.get_position_index() != position_index:
-			var payload = {
-				"type": "collection_error",
-				"phase": "collection",
-				"expected": _bet_to_payload_dict(expected_bet),
-				"actual": _bet_to_payload_dict(bet),
-				"result": "error",
-				"message": "ERR_WRONG_COLLECT_ORDER",
-				"reason": "wrong_order"
-			}
-			EventBus.collection_error.emit(payload)
+			_emit_collection_error_payload("wrong_order", "ERR_WRONG_COLLECT_ORDER", bet, expected_bet)
 			return _error_result("wrong_order", "ERR_WRONG_COLLECT_ORDER")
 	
 	return _success_result("collect")
@@ -565,6 +554,7 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 	
 	# Проверяем, все ли проигрышные собраны
 	if has_uncollected_losing_bets():
+		_emit_collection_error_payload("pay_before_collect", "ERR_PAY_BEFORE_COLLECT", bet)
 		return _error_result("uncollected_losing", "ERR_PAY_BEFORE_COLLECT")
 	
 	# Проверяем порядок оплаты

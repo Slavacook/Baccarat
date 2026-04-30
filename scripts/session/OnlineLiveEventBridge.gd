@@ -941,7 +941,20 @@ func _on_collection_correct(payload: Dictionary) -> void:
 	if not event_code.is_empty():
 		var details: Dictionary = _collection_details(expected, actual)
 		details["event_code"] = event_code
-		_emit_structured_action_event(event_code, "collection_correct", details)
+		if _should_send():
+			_set_last_action("action_performed", event_code, event_code, event_code, "correct", details)
+			_clear_last_error()
+			var data: Dictionary = _session_meta()
+			data["action_type"] = event_code
+			data["value"] = event_code
+			for key in details.keys():
+				data[key] = details[key]
+			LiveSessionClient.send_event("action_performed", data)
+			send_table_state("collection_correct")
+			return
+		_set_last_action("collection_correct", actual, expected, actual, "correct", payload)
+		_clear_last_error()
+		send_table_state("collection_correct")
 		return
 	_set_last_action("collection_correct", actual, expected, actual, "correct", payload)
 	_clear_last_error()
@@ -955,12 +968,20 @@ func _on_collection_error(payload: Dictionary) -> void:
 	var message = _payload_message(payload, "Ошибка сбора ставок")
 	var event_code: String = _map_collection_error_code(actual, reason)
 	var details: Dictionary = _collection_details(expected, actual, reason, message)
-	if not event_code.is_empty():
-		details["event_code"] = event_code
-		_emit_structured_error_event(event_code, "collection_error", message, details)
-		return
-	if reason == "wrong_order":
-		_emit_structured_error_event("", "collection_error", message, details)
+	var should_emit_live_error: bool = (not event_code.is_empty()) or reason == "wrong_order" or reason == "pay_before_collect"
+	if should_emit_live_error and _should_send():
+		if not event_code.is_empty():
+			details["event_code"] = event_code
+		_set_last_action("error_occurred", event_code if not event_code.is_empty() else "collection_error", "", "", "error", details)
+		_set_last_error("collection_error", message, details)
+		var data: Dictionary = _session_meta()
+		data["error_type"] = "collection_error"
+		data["message"] = message
+		data["lives_remaining"] = _lives_remaining()
+		for key in details.keys():
+			data[key] = details[key]
+		LiveSessionClient.send_event("error_occurred", data)
+		send_table_state("collection_error")
 		return
 	_set_last_action("collection_error", reason, expected, actual, "error", payload)
 	_set_last_error("collection_error", message)
