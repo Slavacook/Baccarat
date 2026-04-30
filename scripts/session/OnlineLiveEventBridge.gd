@@ -160,10 +160,10 @@ func _should_send() -> bool:
 	if not lsc.has_method("is_live_connected"):
 		print("[OnlineLiveEventBridge] _should_send=false: lsc has no is_live_connected()")
 		return false
-	var is_connected: bool = bool(lsc.is_live_connected())
-	if not is_connected:
+	var is_live_connected: bool = bool(lsc.is_live_connected())
+	if not is_live_connected:
 		print("[OnlineLiveEventBridge] _should_send=false: WS not connected")
-	return is_connected
+	return is_live_connected
 
 
 func _session_meta() -> Dictionary:

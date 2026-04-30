@@ -31,8 +31,8 @@ signal language_changed(lang: String)  # "ru" или "en"
 @onready var training_button: Button = find_child("TrainingButton", true, false)
 # ok_button больше не используется (убрана из UI)
 
-# Онлайн режим (создаётся программно)
-var online_mode_button: Button = null
+# Кнопка выхода (создаётся программно)
+var exit_button: Button = null
 
 # === ОБЛАСТЬ КОНТЕНТА ===
 @onready var content_area: VBoxContainer = find_child("ContentArea", true, false)
@@ -200,8 +200,8 @@ func _connect_signals() -> void:
 	if training_button and SHOW_TRAINING_MENU_ENTRY:
 		training_button.pressed.connect(_on_training_button_pressed)
 
-	# Онлайн режим (программная кнопка) — сигнал подключается ВНУТРИ _create_online_mode_button()
-	_create_online_mode_button()
+	# Кнопка выхода (программная кнопка) — сигнал подключается внутри _create_exit_button()
+	_create_exit_button()
 	# ok_button больше не используется (убрана из UI)
 	
 	# === ПОДМЕНЮ: ЛИМИТЫ ===
@@ -1458,59 +1458,63 @@ func _update_bet_button_style(button: Button, enabled: bool) -> void:
 
 
 # ═══════════════════════════════════════════════════════════════════════════
-# ОНЛАЙН РЕЖИМ
+# ВЫХОД ИЗ ИГРЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
-func _create_online_mode_button() -> void:
-	"""Создаёт кнопку «Онлайн режим» в главном меню настроек."""
-	if not main_menu_container:
-		print("⚠️ Online кнопка: main_menu_container не найден!")
+func _create_exit_button() -> void:
+	"""Создаёт кнопку «Выйти» в главном меню настроек."""
+	var target_parent: Node = null
+	if advanced_settings_button:
+		target_parent = advanced_settings_button.get_parent()
+	elif main_menu_container:
+		target_parent = main_menu_container
+	if not target_parent:
+		print("⚠️ Exit кнопка: контейнер не найден!")
 		return
 
-	online_mode_button = Button.new()
-	online_mode_button.name = "OnlineModeButton"
-	online_mode_button.text = "🌐 Онлайн режим"
-	online_mode_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	online_mode_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	online_mode_button.custom_minimum_size = Vector2(180, 40)
+	exit_button = Button.new()
+	exit_button.name = "ExitButton"
+	exit_button.text = "Выйти"
+	exit_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	exit_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	exit_button.custom_minimum_size = Vector2(0, 75)
+	exit_button.add_theme_font_size_override("font_size", 27)
 
-	# Стиль под остальные кнопки
-	var style_normal = StyleBoxFlat.new()
-	style_normal.bg_color = Color(0.1, 0.25, 0.4, 0.8)
-	style_normal.border_color = Color(0.3, 0.6, 0.9, 0.9)
-	style_normal.border_width_left = 2
-	style_normal.border_width_right = 2
-	style_normal.border_width_top = 2
-	style_normal.border_width_bottom = 2
-	style_normal.corner_radius_top_left = 8
-	style_normal.corner_radius_top_right = 8
-	style_normal.corner_radius_bottom_left = 8
-	style_normal.corner_radius_bottom_right = 8
+	if advanced_settings_button:
+		var normal_style = advanced_settings_button.get_theme_stylebox("normal")
+		var hover_style = advanced_settings_button.get_theme_stylebox("hover")
+		var pressed_style = advanced_settings_button.get_theme_stylebox("pressed")
+		var disabled_style = advanced_settings_button.get_theme_stylebox("disabled")
+		if normal_style:
+			exit_button.add_theme_stylebox_override("normal", normal_style)
+		if hover_style:
+			exit_button.add_theme_stylebox_override("hover", hover_style)
+		if pressed_style:
+			exit_button.add_theme_stylebox_override("pressed", pressed_style)
+		if disabled_style:
+			exit_button.add_theme_stylebox_override("disabled", disabled_style)
 
-	var style_hover = style_normal.duplicate()
-	style_hover.bg_color = Color(0.15, 0.35, 0.5, 0.9)
-
-	var style_pressed = style_normal.duplicate()
-	style_pressed.bg_color = Color(0.08, 0.2, 0.35, 0.9)
-
-	online_mode_button.add_theme_stylebox_override("normal", style_normal)
-	online_mode_button.add_theme_stylebox_override("hover", style_hover)
-	online_mode_button.add_theme_stylebox_override("pressed", style_pressed)
-
-	main_menu_container.add_child(online_mode_button)
-	print("🌐 Кнопка «Онлайн режим» создана")
+	target_parent.add_child(exit_button)
+	print("🚪 Кнопка «Выйти» создана")
 
 	# Подключаем сигнал напрямую
-	online_mode_button.pressed.connect(_on_online_mode_pressed)
+	exit_button.pressed.connect(_on_exit_pressed)
 
 
-func _on_online_mode_pressed() -> void:
-	"""Переход в онлайн меню."""
-	print("🌐 Кнопка нажата! Переход в онлайн режим...")
-	# Закрываем настройки
-	close_settings()
-	# Переходим на сцену онлайн меню
-	var err = get_tree().change_scene_to_file("res://scenes/network/MainMenu.tscn")
+func _on_exit_pressed() -> void:
+	"""Безопасный выход из игры на стартовый экран."""
+	print("🚪 Кнопка «Выйти» нажата")
+	await close_settings()
+
+	var session_manager: Node = null
+	if Engine.has_singleton("SessionManager"):
+		session_manager = Engine.get_singleton("SessionManager") as Node
+	else:
+		session_manager = get_node_or_null("/root/SessionManager")
+	if session_manager and session_manager.has_method("end_session"):
+		session_manager.end_session()
+
+	var err = get_tree().change_scene_to_file("res://scenes/StartScreen.tscn")
 	if err != OK:
-		push_error("🌐 Ошибка перехода на MainMenu.tscn: %d" % err)
-		print("🌐 Ошибка перехода: ", err)
+		push_error("🚪 Ошибка перехода на StartScreen.tscn: %d" % err)
+		print("🚪 Ошибка перехода: ", err)
