@@ -1,6 +1,7 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/network/AddTrainingScreen.gd" id="1_add_training"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/start_screen_bg.png" id="2_add_training_bg"]
 
 [node name="AddTrainingScreen" type="Control"]
 script = ExtResource("1_add_training")
@@ -11,12 +12,16 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 
-[node name="Background" type="ColorRect" parent="."]
+[node name="Background" type="TextureRect" parent="."]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.1, 0.1, 0.15, 1)
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_add_training_bg")
+expand_mode = 1
+stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -45,11 +50,16 @@ alignment = 1
 [node name="Title" type="Label" parent="Margin/FormScroll/Container"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 8
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "Онлайн-тренировка"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="Margin/FormScroll/Container"]
 layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
 text = "Введите код доступа, который вам выдал тренер"
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -68,15 +78,11 @@ size_flags_horizontal = 3
 placeholder_text = "Ваше имя"
 max_length = 100
 
-[node name="HintLabel" type="Label" parent="Margin/FormScroll/Container"]
-layout_mode = 2
-text = "Код выдаёт тренер. Имя будет видно тренеру во время тренировки."
-horizontal_alignment = 1
-autowrap_mode = 2
-
 [node name="ErrorLabel" type="Label" parent="Margin/FormScroll/Container"]
 layout_mode = 2
 visible = false
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
 text = "Ошибка"
 horizontal_alignment = 1
 autowrap_mode = 2
@@ -84,6 +90,8 @@ add_theme_color_override("font_color", Color(1, 0.3, 0.3, 1))
 
 [node name="StatusLabel" type="Label" parent="Margin/FormScroll/Container"]
 layout_mode = 2
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
 text = ""
 horizontal_alignment = 1
 autowrap_mode = 2

@@ -21,16 +21,7 @@ grow_horizontal = 2
 grow_vertical = 2
 texture = ExtResource("2_start_screen_bg")
 expand_mode = 1
-stretch_mode = 5
-
-[node name="BackgroundOverlay" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-grow_horizontal = 2
-grow_vertical = 2
-color = Color(0.03, 0.04, 0.07, 0.58)
+stretch_mode = 6
 
 [node name="Margin" type="MarginContainer" parent="."]
 layout_mode = 1
@@ -48,52 +39,35 @@ offset_bottom = -20.0
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 18
+theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Panel" type="PanelContainer" parent="Margin/ContentShell"]
-custom_minimum_size = Vector2(0, 420)
-layout_mode = 2
-size_flags_horizontal = 3
-
-[node name="Margin" type="MarginContainer" parent="Margin/ContentShell/Panel"]
-layout_mode = 2
-theme_override_constants/margin_left = 32
-theme_override_constants/margin_top = 32
-theme_override_constants/margin_right = 32
-theme_override_constants/margin_bottom = 32
-
-[node name="Content" type="VBoxContainer" parent="Margin/ContentShell/Panel/Margin"]
+[node name="Content" type="VBoxContainer" parent="Margin/ContentShell"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Title" type="Label" parent="Margin/ContentShell/Panel/Margin/Content"]
+[node name="Title" type="Label" parent="Margin/ContentShell/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
+theme_override_constants/outline_size = 8
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "Baccarat Trainer"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Margin/ContentShell/Panel/Margin/Content"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 20
-text = "Выберите режим запуска"
-horizontal_alignment = 1
-autowrap_mode = 2
-
-[node name="Spacer" type="Control" parent="Margin/ContentShell/Panel/Margin/Content"]
+[node name="Spacer" type="Control" parent="Margin/ContentShell/Content"]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
-[node name="PlayButton" type="Button" parent="Margin/ContentShell/Panel/Margin/Content"]
+[node name="PlayButton" type="Button" parent="Margin/ContentShell/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Игра"
 
-[node name="OnlineButton" type="Button" parent="Margin/ContentShell/Panel/Margin/Content"]
+[node name="OnlineButton" type="Button" parent="Margin/ContentShell/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3

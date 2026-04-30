@@ -10,6 +10,15 @@ const STATUS_LABELS := {
 	"unknown": "Статус неизвестен"
 }
 
+const CARD_STATUS_LABELS := {
+	"online": "Идёт",
+	"offline": "Не началась",
+	"closed": "Закрыта",
+	"revoked": "Отозван",
+	"expired": "Истёк",
+	"unknown": "Неизвестно"
+}
+
 var status_label: Label
 var error_label: Label
 var empty_container: Control
@@ -17,7 +26,6 @@ var list_scroll: ScrollContainer
 var trainings_list: VBoxContainer
 var refresh_button: Button
 var add_button: Button
-var legacy_pin_button: Button
 var back_button: Button
 var _enter_in_progress: bool = false
 
@@ -33,7 +41,6 @@ func _ready() -> void:
 	trainings_list = find_child("TrainingsList", true, false)
 	refresh_button = find_child("RefreshButton", true, false)
 	add_button = find_child("AddTrainingButton", true, false)
-	legacy_pin_button = find_child("LegacyPinButton", true, false)
 	back_button = find_child("BackButton", true, false)
 
 	_api_service = _find_api_service()
@@ -43,12 +50,14 @@ func _ready() -> void:
 		refresh_button.pressed.connect(_on_refresh_pressed)
 	if add_button and not add_button.pressed.is_connected(_on_add_training_pressed):
 		add_button.pressed.connect(_on_add_training_pressed)
-	if legacy_pin_button and not legacy_pin_button.pressed.is_connected(_on_legacy_pin_pressed):
-		legacy_pin_button.pressed.connect(_on_legacy_pin_pressed)
 	if back_button and not back_button.pressed.is_connected(_on_back_pressed):
 		back_button.pressed.connect(_on_back_pressed)
 
 	_hide_error()
+	if empty_container:
+		empty_container.visible = false
+	if list_scroll:
+		list_scroll.visible = false
 	await _load_trainings()
 
 
@@ -226,60 +235,39 @@ func _render_records(records: Array[Dictionary]) -> void:
 		trainings_list.add_child(_create_training_card(record))
 
 
-func _create_training_card(record: Dictionary) -> PanelContainer:
-	var panel := PanelContainer.new()
-	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	var margin := MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 14)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_bottom", 14)
-	panel.add_child(margin)
-
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 10)
-	margin.add_child(root)
-
-	var title := Label.new()
-	title.text = _display_room_title(record)
-	root.add_child(title)
-
-	var room_code := Label.new()
-	room_code.text = "Код комнаты: %s" % _display_room_code(record)
-	root.add_child(room_code)
-
-	var dealer_name := Label.new()
-	dealer_name.text = "Ваше имя: %s" % _display_dealer_name(record)
-	root.add_child(dealer_name)
-
-	var status := Label.new()
-	status.text = _status_text(str(record.get("availability", "unknown")))
-	root.add_child(status)
-
-	var buttons := HBoxContainer.new()
-	buttons.add_theme_constant_override("separation", 8)
-	root.add_child(buttons)
-
+func _create_training_card(record: Dictionary) -> Button:
 	var action_button := Button.new()
+	action_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	action_button.custom_minimum_size = Vector2(0, 62)
+	action_button.add_theme_font_size_override("font_size", 20)
+
 	var action := str(record.get("action", "refresh"))
 	match action:
 		"delete":
-			action_button.text = "Удалить"
+			action_button.text = "%s · Удалить" % _display_room_title(record)
 			action_button.pressed.connect(_on_delete_record.bind(str(record.get("participant_token", ""))))
 		"enter":
-			action_button.text = "Войти"
+			action_button.text = "%s · %s" % [
+				_display_room_title(record),
+				_card_status_text(str(record.get("availability", "unknown")))
+			]
 			action_button.pressed.connect(_on_enter_training_pressed.bind(record, action_button))
 		_:
-			action_button.text = "Обновить"
+			action_button.text = "%s · %s" % [
+				_display_room_title(record),
+				_card_status_text(str(record.get("availability", "unknown")))
+			]
 			action_button.pressed.connect(_on_refresh_pressed)
-	buttons.add_child(action_button)
 
-	return panel
+	return action_button
 
 
 func _status_text(availability: String) -> String:
 	return STATUS_LABELS.get(availability, "Статус неизвестен")
+
+
+func _card_status_text(availability: String) -> String:
+	return CARD_STATUS_LABELS.get(availability, "Неизвестно")
 
 
 func _action_for_availability(availability: String) -> String:
@@ -297,20 +285,6 @@ func _display_room_title(record: Dictionary) -> String:
 	if title != "":
 		return title
 	return "Тренировка"
-
-
-func _display_room_code(record: Dictionary) -> String:
-	var room_code := str(record.get("room_code", "")).strip_edges()
-	if room_code != "":
-		return room_code
-	return "—"
-
-
-func _display_dealer_name(record: Dictionary) -> String:
-	var display_name := str(record.get("dealer_display_name", "")).strip_edges()
-	if display_name != "":
-		return display_name
-	return "—"
 
 
 func _clear_trainings_list() -> void:
@@ -370,10 +344,6 @@ func _on_add_training_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/network/AddTrainingScreen.tscn")
 
 
-func _on_legacy_pin_pressed() -> void:
-	get_tree().change_scene_to_file("res://scenes/network/MainMenu.tscn")
-
-
 func _on_back_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/StartScreen.tscn")
 
@@ -405,8 +375,6 @@ func _set_loading(loading: bool) -> void:
 		refresh_button.disabled = loading
 	if add_button:
 		add_button.disabled = loading
-	if legacy_pin_button:
-		legacy_pin_button.disabled = loading
 	if back_button:
 		back_button.disabled = loading
 	_set_status("Загружаем тренировки..." if loading else "")
