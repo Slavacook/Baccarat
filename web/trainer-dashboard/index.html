@@ -77,6 +77,20 @@
       </div>
 
       <div id="room-details-section" class="hidden">
+        <div class="card" id="room-invite-card">
+          <h2>Общее приглашение</h2>
+          <p class="muted small">
+            Создайте общий код и отправьте его дилерам. Код действует 1 час.
+          </p>
+          <div class="row wrap invite-toolbar">
+            <button type="button" id="btn-create-room-invite" class="secondary">Создать приглашение</button>
+            <span id="room-invite-status" class="muted">Нет активного приглашения</span>
+          </div>
+          <div id="room-invite-manual" class="invite-manual hidden" aria-live="polite"></div>
+          <p id="room-invite-error" class="error" hidden></p>
+          <p id="room-invite-message" class="access-message" hidden></p>
+        </div>
+
         <div class="card" id="room-participants-card">
           <h2>Участники</h2>
           <p class="muted small">

@@ -613,6 +613,33 @@ button:disabled {
   color: var(--accent2);
 }
 
+.invite-toolbar {
+  align-items: center;
+  gap: 12px;
+}
+
+.invite-manual {
+  margin-top: 14px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(56, 189, 248, 0.35);
+  background: rgba(56, 189, 248, 0.08);
+  display: grid;
+  gap: 8px;
+}
+
+.invite-manual-code {
+  display: inline-block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #0b1220;
+  border: 1px solid var(--border);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  word-break: break-all;
+}
+
 .participant-name-cell {
   display: flex;
   flex-direction: column;

@@ -26,6 +26,7 @@ let roomPinsSnapshot = [];
 let roomAccessesSnapshot = [];
 let roomParticipantsSnapshot = [];
 let roomPersonalInvitesSnapshot = [];
+let roomInviteSnapshot = null;
 let generatedRoomAccesses = [];
 let currentRoomCode = "";
 const liveTableStore = {
@@ -114,6 +115,67 @@ function clearRoomAccessState() {
   renderGeneratedRoomAccesses([]);
 }
 
+function formatInviteExpiresAt(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function showRoomInviteMessage(message) {
+  const node = el("room-invite-message");
+  if (!node) return;
+  if (!message) {
+    node.hidden = true;
+    node.textContent = "";
+    return;
+  }
+  node.hidden = false;
+  node.textContent = message;
+}
+
+function renderRoomInvite(invite, options = {}) {
+  const { manualCode = "", manualNote = "" } = options;
+  const statusNode = el("room-invite-status");
+  if (statusNode) {
+    if (invite && String(invite.status || "").toLowerCase() === "active") {
+      statusNode.textContent = `Активно до: ${formatInviteExpiresAt(invite.expires_at)}`;
+    } else {
+      statusNode.textContent = "Нет активного приглашения";
+    }
+  }
+
+  const manualNode = el("room-invite-manual");
+  if (!manualNode) return;
+  manualNode.innerHTML = "";
+  if (!manualCode) {
+    manualNode.classList.add("hidden");
+    return;
+  }
+
+  manualNode.classList.remove("hidden");
+  const note = document.createElement("p");
+  note.className = "muted small";
+  note.textContent = manualNote || "Скопируйте код вручную.";
+  const codeNode = document.createElement("div");
+  codeNode.className = "invite-manual-code";
+  codeNode.textContent = manualCode;
+  manualNode.appendChild(note);
+  manualNode.appendChild(codeNode);
+}
+
+function clearRoomInviteState() {
+  roomInviteSnapshot = null;
+  showError("room-invite-error", "");
+  showRoomInviteMessage("");
+  renderRoomInvite(null);
+}
+
 function clearRoomParticipantsState() {
   roomParticipantsSnapshot = [];
   roomPersonalInvitesSnapshot = [];
@@ -146,6 +208,7 @@ function clearRoomScopedState(options = {}) {
   }
 
   roomPinsSnapshot = [];
+  clearRoomInviteState();
   clearRoomParticipantsState();
   clearRoomAccessState();
   clearLiveDashboardState();
@@ -1347,6 +1410,7 @@ async function refreshRooms() {
   const selected = rooms.find((r) => r.room_code === nextRoomCode) || rooms[0];
   setCurrentRoom(selected.room_code, `${selected.name} (${selected.room_code})`);
   renderRoomsList(rooms);
+  await loadRoomInvite();
   await loadRoomParticipants();
   await fetchRoomPinsOnce();
   await loadRoomAccesses();
@@ -1355,6 +1419,82 @@ async function refreshRooms() {
 
 function selectedRoomCode() {
   return currentRoomCode || "";
+}
+
+async function copyRoomInviteCode(code, button) {
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    await navigator.clipboard.writeText(code);
+    if (button) {
+      const prev = button.textContent;
+      button.textContent = "Скопировано";
+      setTimeout(() => {
+        button.textContent = prev || "Создать приглашение";
+      }, 1400);
+    }
+    return true;
+  }
+  return false;
+}
+
+async function loadRoomInvite(roomCode = selectedRoomCode()) {
+  const code = String(roomCode || "");
+  if (!code) {
+    clearRoomInviteState();
+    return;
+  }
+
+  showError("room-invite-error", "");
+  showRoomInviteMessage("");
+  const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/invite`);
+  if (!ok) {
+    roomInviteSnapshot = null;
+    renderRoomInvite(null);
+    showError("room-invite-error", (data && formatApiError(data)) || `Не удалось загрузить приглашение (${status})`);
+    return;
+  }
+
+  roomInviteSnapshot = data || null;
+  renderRoomInvite(roomInviteSnapshot);
+}
+
+async function createRoomInvite() {
+  const code = selectedRoomCode();
+  if (!code) return;
+
+  showError("room-invite-error", "");
+  showRoomInviteMessage("");
+  renderRoomInvite(roomInviteSnapshot);
+
+  const button = el("btn-create-room-invite");
+  if (button) button.disabled = true;
+  try {
+    const { ok, status, data } = await api("POST", `/api/rooms/${encodeURIComponent(code)}/invite`, {});
+    if (!ok || !data || !data.invite_code) {
+      showError("room-invite-error", (data && formatApiError(data)) || `Не удалось создать приглашение (${status})`);
+      return;
+    }
+
+    roomInviteSnapshot = data;
+    let copied = false;
+    try {
+      copied = await copyRoomInviteCode(String(data.invite_code || ""), button);
+    } catch {
+      copied = false;
+    }
+
+    if (copied) {
+      renderRoomInvite(roomInviteSnapshot);
+      showRoomInviteMessage("Приглашение создано и скопировано");
+    } else {
+      renderRoomInvite(roomInviteSnapshot, {
+        manualCode: String(data.invite_code || ""),
+        manualNote: "Буфер обмена недоступен. Скопируйте код вручную сейчас.",
+      });
+      showRoomInviteMessage("Приглашение создано");
+    }
+  } finally {
+    if (button) button.disabled = false;
+  }
 }
 
 function participantStatusLabel(status, kind = "participant") {
@@ -1879,6 +2019,7 @@ function renderRoomsList(rooms) {
     pick.addEventListener("click", async () => {
       clearLiveDashboardState();
       setCurrentRoom(room.room_code, `${room.name} (${room.room_code})`);
+      await loadRoomInvite();
       await loadRoomParticipants();
       await fetchRoomPinsOnce();
       await loadRoomAccesses();
@@ -2054,6 +2195,7 @@ async function createRoom() {
   await refreshRooms();
   if (room && room.room_code) {
     setCurrentRoom(room.room_code, `${room.name || room.room_code} (${room.room_code})`);
+    await loadRoomInvite();
     await loadRoomParticipants();
     await fetchRoomPinsOnce();
     await loadRoomAccesses();
@@ -2410,6 +2552,7 @@ function wire() {
     await fetchRoomPinsOnce();
   });
   el("btn-create-room-access").addEventListener("click", () => createRoomAccess());
+  el("btn-create-room-invite").addEventListener("click", () => createRoomInvite());
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());
   el("btn-close-dealer-details").addEventListener("click", () => closeDealerDetailsModal());
   el("dealer-rounds-filter").addEventListener("change", () => renderDealerRounds(dealerRoundsCache));
@@ -2423,6 +2566,7 @@ function wire() {
 function boot() {
   wire();
   setRoomScopedVisibility();
+  renderRoomInvite(null);
   renderRoomParticipants([], []);
   renderRoomPins([]);
   renderRoomAccesses([]);
