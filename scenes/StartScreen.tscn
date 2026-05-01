@@ -42,13 +42,17 @@ size_flags_vertical = 3
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Content" type="VBoxContainer" parent="Margin/ContentShell"]
+[node name="Center" type="CenterContainer" parent="Margin/ContentShell"]
 layout_mode = 2
 size_flags_horizontal = 3
+
+[node name="Content" type="VBoxContainer" parent="Margin/ContentShell/Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="Title" type="Label" parent="Margin/ContentShell/Content"]
+[node name="Title" type="Label" parent="Margin/ContentShell/Center/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 theme_override_constants/outline_size = 8
@@ -56,18 +60,18 @@ theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "Baccarat Trainer"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Margin/ContentShell/Content"]
+[node name="Spacer" type="Control" parent="Margin/ContentShell/Center/Content"]
 custom_minimum_size = Vector2(0, 16)
 layout_mode = 2
 
-[node name="PlayButton" type="Button" parent="Margin/ContentShell/Content"]
+[node name="PlayButton" type="Button" parent="Margin/ContentShell/Center/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Игра"
 
-[node name="OnlineButton" type="Button" parent="Margin/ContentShell/Content"]
+[node name="OnlineButton" type="Button" parent="Margin/ContentShell/Center/Content"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3

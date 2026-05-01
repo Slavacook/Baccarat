@@ -39,15 +39,19 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="MainContainer" type="VBoxContainer" parent="Margin/ContentScroll"]
-custom_minimum_size = Vector2(0, 460)
+[node name="Center" type="CenterContainer" parent="Margin/ContentScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="MainContainer" type="VBoxContainer" parent="Margin/ContentScroll/Center"]
+custom_minimum_size = Vector2(420, 460)
+layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 16
 alignment = 1
 
-[node name="TitleLabel" type="Label" parent="Margin/ContentScroll/MainContainer"]
+[node name="TitleLabel" type="Label" parent="Margin/ContentScroll/Center/MainContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 theme_override_constants/outline_size = 8
@@ -55,7 +59,7 @@ theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "🃏 Дилер"
 horizontal_alignment = 1
 
-[node name="RoomLabel" type="Label" parent="Margin/ContentScroll/MainContainer"]
+[node name="RoomLabel" type="Label" parent="Margin/ContentScroll/Center/MainContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
@@ -65,7 +69,7 @@ text = "Комната: —"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="StatusLabel" type="Label" parent="Margin/ContentScroll/MainContainer"]
+[node name="StatusLabel" type="Label" parent="Margin/ContentScroll/Center/MainContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
@@ -75,7 +79,7 @@ text = "Ожидание старта тренировки..."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="ErrorLabel" type="Label" parent="Margin/ContentScroll/MainContainer"]
+[node name="ErrorLabel" type="Label" parent="Margin/ContentScroll/Center/MainContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 visible = false
@@ -87,9 +91,8 @@ horizontal_alignment = 1
 autowrap_mode = 2
 theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
 
-[node name="BackBtn" type="Button" parent="Margin/ContentScroll/MainContainer"]
+[node name="BackBtn" type="Button" parent="Margin/ContentScroll/Center/MainContainer"]
 unique_name_in_owner = true
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(420, 56)
 layout_mode = 2
-size_flags_horizontal = 3
 text = "Выйти из онлайн-тренировки"

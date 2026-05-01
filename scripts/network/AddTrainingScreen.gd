@@ -8,11 +8,15 @@ const ACCESS_CODE_ALLOWED_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 var access_code_input: LineEdit
 var display_name_input: LineEdit
+var paste_code_btn: Button
 var connect_btn: Button
 var back_btn: Button
 var error_label: Label
 var status_label: Label
 var form_scroll: ScrollContainer
+var keyboard_spacer: Control
+var _active_input: Control
+var _keyboard_focus_version: int = 0
 
 var _api_service = null
 var _access_store = null
@@ -22,24 +26,32 @@ func _ready() -> void:
 	form_scroll = find_child("FormScroll", true, false)
 	access_code_input = find_child("AccessCodeInput", true, false)
 	display_name_input = find_child("DisplayNameInput", true, false)
+	paste_code_btn = find_child("PasteCodeBtn", true, false)
 	connect_btn = find_child("ConnectBtn", true, false)
 	back_btn = find_child("BackBtn", true, false)
 	error_label = find_child("ErrorLabel", true, false)
 	status_label = find_child("StatusLabel", true, false)
+	keyboard_spacer = find_child("KeyboardSpacer", true, false)
 
 	_api_service = _find_api_service()
 	_access_store = _find_dealer_access_store()
 
 	if connect_btn and not connect_btn.pressed.is_connected(_on_connect_pressed):
 		connect_btn.pressed.connect(_on_connect_pressed)
+	if paste_code_btn and not paste_code_btn.pressed.is_connected(_on_paste_code_pressed):
+		paste_code_btn.pressed.connect(_on_paste_code_pressed)
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
 	if access_code_input and not access_code_input.text_changed.is_connected(_on_access_code_changed):
 		access_code_input.text_changed.connect(_on_access_code_changed)
 	if access_code_input and not access_code_input.focus_entered.is_connected(_on_input_focus_entered.bind(access_code_input)):
 		access_code_input.focus_entered.connect(_on_input_focus_entered.bind(access_code_input))
+	if access_code_input and not access_code_input.focus_exited.is_connected(_on_input_focus_exited):
+		access_code_input.focus_exited.connect(_on_input_focus_exited)
 	if display_name_input and not display_name_input.focus_entered.is_connected(_on_input_focus_entered.bind(display_name_input)):
 		display_name_input.focus_entered.connect(_on_input_focus_entered.bind(display_name_input))
+	if display_name_input and not display_name_input.focus_exited.is_connected(_on_input_focus_exited):
+		display_name_input.focus_exited.connect(_on_input_focus_exited)
 
 	_hide_error()
 	_set_status("")
@@ -152,6 +164,30 @@ func _on_access_code_changed(text: String) -> void:
 	access_code_input.caret_column = formatted.length()
 
 
+func _on_paste_code_pressed() -> void:
+	if access_code_input == null:
+		return
+
+	var clipboard_text := str(DisplayServer.clipboard_get()).strip_edges()
+	if clipboard_text == "":
+		_show_error("Буфер обмена пуст")
+		return
+
+	_hide_error()
+	var normalized_code := _normalize_access_code(clipboard_text)
+	if normalized_code == "":
+		_show_error("В буфере обмена нет кода доступа")
+		return
+
+	access_code_input.text = normalized_code
+	access_code_input.caret_column = normalized_code.length()
+	_set_status("Код вставлен из буфера обмена")
+
+	if display_name_input:
+		display_name_input.grab_focus()
+		_on_input_focus_entered(display_name_input)
+
+
 func _format_access_code(value: String) -> String:
 	var cleaned := ""
 	for ch in value.to_upper():
@@ -173,7 +209,62 @@ func _normalize_access_code(value: String) -> String:
 func _on_input_focus_entered(target: Control) -> void:
 	if form_scroll == null or target == null:
 		return
+	_active_input = target
+	_keyboard_focus_version += 1
+	var focus_version := _keyboard_focus_version
 	form_scroll.call_deferred("ensure_control_visible", target)
+	_run_keyboard_focus_adjustment(target, focus_version)
+
+
+func _on_input_focus_exited() -> void:
+	_handle_input_focus_exit()
+
+
+func _run_keyboard_focus_adjustment(target: Control, focus_version: int) -> void:
+	if target == null or form_scroll == null:
+		return
+
+	var keyboard_height := 0.0
+	for _i in range(4):
+		if get_tree() == null:
+			return
+		await get_tree().create_timer(0.08).timeout
+		if focus_version != _keyboard_focus_version or target != _active_input:
+			return
+		keyboard_height = DisplayServer.virtual_keyboard_get_height()
+		if keyboard_height > 0.0:
+			break
+
+	if focus_version != _keyboard_focus_version or target != _active_input:
+		return
+
+	var spacer_height := int(keyboard_height) if keyboard_height > 0.0 else 220
+	_set_keyboard_spacer_height(spacer_height)
+	form_scroll.call_deferred("ensure_control_visible", target)
+
+
+func _handle_input_focus_exit() -> void:
+	if get_tree() == null:
+		return
+
+	await get_tree().create_timer(0.12).timeout
+	if _has_input_focus():
+		return
+
+	_keyboard_focus_version += 1
+	_active_input = null
+	_set_keyboard_spacer_height(0)
+
+
+func _has_input_focus() -> bool:
+	return (access_code_input != null and access_code_input.has_focus()) \
+		or (display_name_input != null and display_name_input.has_focus())
+
+
+func _set_keyboard_spacer_height(height: int) -> void:
+	if keyboard_spacer == null:
+		return
+	keyboard_spacer.custom_minimum_size = Vector2(0, max(height, 0))
 
 
 func _dictionary_or_empty(value: Variant) -> Dictionary:
@@ -221,6 +312,8 @@ func _set_loading(loading: bool) -> void:
 	if connect_btn:
 		connect_btn.disabled = loading
 		connect_btn.text = "Подключение..." if loading else "Подключиться"
+	if paste_code_btn:
+		paste_code_btn.disabled = loading
 	if back_btn:
 		back_btn.disabled = loading
 	_set_status("Проверяем код..." if loading else "")

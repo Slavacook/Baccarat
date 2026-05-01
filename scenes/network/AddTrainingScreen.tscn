@@ -39,15 +39,19 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Container" type="VBoxContainer" parent="Margin/FormScroll"]
-custom_minimum_size = Vector2(0, 520)
+[node name="Center" type="CenterContainer" parent="Margin/FormScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Container" type="VBoxContainer" parent="Margin/FormScroll/Center"]
+custom_minimum_size = Vector2(420, 520)
+layout_mode = 2
 size_flags_vertical = 4
 theme_override_constants/separation = 14
 alignment = 1
 
-[node name="Title" type="Label" parent="Margin/FormScroll/Container"]
+[node name="Title" type="Label" parent="Margin/FormScroll/Center/Container"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 28
 theme_override_constants/outline_size = 8
@@ -55,7 +59,8 @@ theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "Онлайн-тренировка"
 horizontal_alignment = 1
 
-[node name="Description" type="Label" parent="Margin/FormScroll/Container"]
+[node name="Description" type="Label" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_constants/outline_size = 6
@@ -64,21 +69,35 @@ text = "Введите код доступа, который вам выдал �
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="AccessCodeInput" type="LineEdit" parent="Margin/FormScroll/Container"]
+[node name="CodeRow" type="HBoxContainer" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="AccessCodeInput" type="LineEdit" parent="Margin/FormScroll/Center/Container/CodeRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
+alignment = 1
 placeholder_text = "Код доступа: XXXX-XXXX-XXXX"
 max_length = 14
 
-[node name="DisplayNameInput" type="LineEdit" parent="Margin/FormScroll/Container"]
-custom_minimum_size = Vector2(0, 56)
+[node name="PasteCodeBtn" type="Button" parent="Margin/FormScroll/Center/Container/CodeRow"]
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+text = "Вставить"
+
+[node name="DisplayNameInput" type="LineEdit" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(420, 56)
 layout_mode = 2
 size_flags_horizontal = 3
+alignment = 1
 placeholder_text = "Ваше имя"
 max_length = 100
 
-[node name="ErrorLabel" type="Label" parent="Margin/FormScroll/Container"]
+[node name="ErrorLabel" type="Label" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 visible = false
 theme_override_constants/outline_size = 6
@@ -88,7 +107,8 @@ horizontal_alignment = 1
 autowrap_mode = 2
 add_theme_color_override("font_color", Color(1, 0.3, 0.3, 1))
 
-[node name="StatusLabel" type="Label" parent="Margin/FormScroll/Container"]
+[node name="StatusLabel" type="Label" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 theme_override_constants/outline_size = 6
 theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
@@ -96,14 +116,24 @@ text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="ConnectBtn" type="Button" parent="Margin/FormScroll/Container"]
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BackBtn" type="Button" parent="Margin/FormScroll/Center/Container/ActionsRow"]
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+size_flags_horizontal = 1
+text = "← Назад"
+
+[node name="ConnectBtn" type="Button" parent="Margin/FormScroll/Center/Container/ActionsRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Подключиться"
 
-[node name="BackBtn" type="Button" parent="Margin/FormScroll/Container"]
-custom_minimum_size = Vector2(0, 52)
+[node name="KeyboardSpacer" type="Control" parent="Margin/FormScroll/Center/Container"]
+custom_minimum_size = Vector2(0, 0)
 layout_mode = 2
-size_flags_horizontal = 3
-text = "← Назад"
