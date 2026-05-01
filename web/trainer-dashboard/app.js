@@ -365,6 +365,7 @@ function clearRoomScopedState(options = {}) {
   }
 
   stopRoomModelPolling();
+  closeAddParticipantModal();
   roomPinsSnapshot = [];
   clearRoomInviteState();
   clearRoomParticipantsState();
@@ -1164,6 +1165,14 @@ function openCreateRoomModal() {
 
 function closeCreateRoomModal() {
   el("create-room-modal").classList.add("hidden");
+}
+
+function openAddParticipantModal() {
+  el("add-participant-modal")?.classList.remove("hidden");
+}
+
+function closeAddParticipantModal() {
+  el("add-participant-modal")?.classList.add("hidden");
 }
 
 function renderDealerRounds(items) {
@@ -3071,6 +3080,10 @@ function wire() {
   el("create-room-modal").addEventListener("click", (ev) => {
     if (ev.target === el("create-room-modal")) closeCreateRoomModal();
   });
+  el("btn-close-add-participant-modal").addEventListener("click", () => closeAddParticipantModal());
+  el("add-participant-modal").addEventListener("click", (ev) => {
+    if (ev.target === el("add-participant-modal")) closeAddParticipantModal();
+  });
   el("btn-create-room").addEventListener("click", () => createRoom());
   el("btn-delete-current-room").addEventListener("click", () => deleteCurrentRoom());
   const openRoomDashboardBtn = el("btn-open-room-dashboard");
@@ -3093,6 +3106,7 @@ function wire() {
   el("btn-create-room-access").addEventListener("click", () => createRoomAccess());
   el("btn-create-room-invite").addEventListener("click", () => createRoomInvite());
   el("btn-create-personal-invite").addEventListener("click", () => createPersonalInviteFromParticipants());
+  el("btn-open-room-settings")?.addEventListener("click", () => openAddParticipantModal());
   el("btn-save-room-invite-limit").addEventListener("click", () => onSaveRoomInviteLimit());
   el("btn-clear-room-invite-limit").addEventListener("click", () => clearRoomInviteLimit());
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());

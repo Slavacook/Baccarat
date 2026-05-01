@@ -47,6 +47,7 @@
         <div class="row toolbar-compact">
           <button type="button" id="btn-logout" class="ghost">Выйти</button>
           <button type="button" id="btn-open-create-room-modal" class="secondary">+ Комната</button>
+          <button type="button" id="btn-open-room-settings" class="secondary">Настройки комнаты</button>
           <button type="button" id="btn-open-room-dashboard" class="primary hidden">Открыть live dashboard</button>
           <button type="button" id="btn-toggle-training" class="primary">Начать тренировку</button>
           <button type="button" id="btn-delete-current-room" class="danger">Удалить комнату</button>
@@ -78,31 +79,6 @@
       </div>
 
       <div id="room-details-section" class="hidden">
-        <div class="card" id="room-invite-card">
-          <h2>Общее приглашение</h2>
-          <p class="muted small">Общий код для входа дилеров. Действует 1 час.</p>
-          <div class="row wrap invite-toolbar">
-            <button type="button" id="btn-create-room-invite" class="secondary">Создать приглашение</button>
-            <span id="room-invite-status" class="muted">Нет активного приглашения</span>
-          </div>
-          <p id="room-invite-participants" class="muted small">Участники: 0 / без лимита</p>
-          <div class="row wrap invite-limit-controls">
-            <input
-              type="number"
-              id="room-invite-limit-input"
-              min="1"
-              step="1"
-              class="invite-limit-input"
-              placeholder="Без лимита"
-            />
-            <button type="button" id="btn-save-room-invite-limit" class="secondary">Сохранить лимит</button>
-            <button type="button" id="btn-clear-room-invite-limit" class="ghost">Без лимита</button>
-          </div>
-          <div id="room-invite-manual" class="invite-manual hidden" aria-live="polite"></div>
-          <p id="room-invite-error" class="error" hidden></p>
-          <p id="room-invite-message" class="access-message" hidden></p>
-        </div>
-
         <div class="card" id="room-participants-card">
           <h2>Участники</h2>
           <div class="row wrap">
@@ -282,6 +258,39 @@
       <input type="text" id="new-room-name" maxlength="100" placeholder="Например: Смена 1" />
       <p class="muted small">Комната создается на 5 участников. Потом можно добавить еще.</p>
       <button type="button" id="btn-create-room" class="primary">Создать</button>
+    </div>
+  </div>
+  <div id="add-participant-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="add-participant-title">
+    <div class="modal-card add-participant-modal-card">
+      <div class="row wrap add-participant-modal-head">
+        <h3 id="add-participant-title">Настройки комнаты</h3>
+        <button type="button" id="btn-close-add-participant-modal" class="ghost">Закрыть</button>
+      </div>
+
+      <section class="add-participant-section" id="room-invite-card">
+        <h4>Общее приглашение</h4>
+        <p class="muted small">Общий код для входа дилеров. Код показывается после создания нового приглашения.</p>
+        <div class="row wrap invite-toolbar">
+          <button type="button" id="btn-create-room-invite" class="secondary">Создать новое приглашение</button>
+          <span id="room-invite-status" class="muted">Нет активного приглашения</span>
+        </div>
+        <p id="room-invite-participants" class="muted small">Участники: 0 / без лимита</p>
+        <div class="row wrap invite-limit-controls">
+          <input
+            type="number"
+            id="room-invite-limit-input"
+            min="1"
+            step="1"
+            class="invite-limit-input"
+            placeholder="Без лимита"
+          />
+          <button type="button" id="btn-save-room-invite-limit" class="secondary">Сохранить лимит</button>
+          <button type="button" id="btn-clear-room-invite-limit" class="ghost">Без лимита</button>
+        </div>
+        <div id="room-invite-manual" class="invite-manual hidden" aria-live="polite"></div>
+        <p id="room-invite-error" class="error" hidden></p>
+        <p id="room-invite-message" class="access-message" hidden></p>
+      </section>
     </div>
   </div>
   <script src="./app.js" type="module"></script>

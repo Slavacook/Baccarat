@@ -791,6 +791,26 @@ th {
   padding: 16px;
 }
 
+.add-participant-modal-card {
+  width: min(760px, 100%);
+}
+
+.add-participant-modal-head {
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.add-participant-section + .add-participant-section {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--border);
+}
+
+.add-participant-section h4 {
+  margin: 0 0 8px;
+  font-size: 1rem;
+}
+
 @media (max-width: 1024px) {
   .live-workspace {
     grid-template-columns: 1fr;
