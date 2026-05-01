@@ -30,6 +30,7 @@ from app.schemas.room import (
     RoomParticipantResponse,
     RoomPersonalInviteResponse,
     RoomInviteCreatedResponse,
+    RoomInviteLimitUpdateRequest,
     RoomInviteResponse,
     RoomCreateRequest,
     RoomCreateResponse,
@@ -156,6 +157,70 @@ def room_invite_response(invite: RoomInvite) -> RoomInviteResponse:
 
 def created_room_invite_response(invite: RoomInvite, invite_code: str) -> RoomInviteCreatedResponse:
     base = RoomInviteResponse.from_model(invite)
+    return RoomInviteCreatedResponse(**base.model_dump(), invite_code=invite_code)
+
+
+def get_room_invite_participant_limit(room: Room) -> int | None:
+    settings_data = room.settings if isinstance(room.settings, dict) else {}
+    raw_value = settings_data.get("invite_participant_limit")
+    if raw_value is None:
+        return None
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return value if value >= 1 else None
+
+
+def set_room_invite_participant_limit(room: Room, participant_limit: int | None) -> None:
+    settings_data = dict(room.settings) if isinstance(room.settings, dict) else {}
+    if participant_limit is None:
+        settings_data.pop("invite_participant_limit", None)
+    else:
+        settings_data["invite_participant_limit"] = int(participant_limit)
+    room.settings = settings_data
+
+
+async def count_active_room_participants(room_id: uuid.UUID, db: AsyncSession) -> int:
+    result = await db.execute(
+        select(func.count())
+        .select_from(Dealer)
+        .where(
+            Dealer.room_id == room_id,
+            Dealer.is_active.is_(True),
+        )
+    )
+    return int(result.scalar() or 0)
+
+
+def room_invite_metadata_response(
+    invite: RoomInvite | None,
+    participant_limit: int | None,
+    active_participants_count: int,
+) -> RoomInviteResponse:
+    if invite is None:
+        return RoomInviteResponse.empty(
+            active_participants_count=active_participants_count,
+            participant_limit=participant_limit,
+        )
+    return RoomInviteResponse.from_model(
+        invite,
+        active_participants_count=active_participants_count,
+        participant_limit=participant_limit,
+    )
+
+
+def created_room_invite_metadata_response(
+    invite: RoomInvite,
+    invite_code: str,
+    participant_limit: int | None,
+    active_participants_count: int,
+) -> RoomInviteCreatedResponse:
+    base = RoomInviteResponse.from_model(
+        invite,
+        active_participants_count=active_participants_count,
+        participant_limit=participant_limit,
+    )
     return RoomInviteCreatedResponse(**base.model_dump(), invite_code=invite_code)
 
 
@@ -677,10 +742,17 @@ async def create_room_invite(
     await db.commit()
     await db.refresh(invite)
 
-    return created_room_invite_response(invite, invite_code)
+    active_participants_count = await count_active_room_participants(room.id, db)
+    participant_limit = get_room_invite_participant_limit(room)
+    return created_room_invite_metadata_response(
+        invite,
+        invite_code,
+        participant_limit,
+        active_participants_count,
+    )
 
 
-@router.get("/{room_code}/invite", response_model=RoomInviteResponse | None)
+@router.get("/{room_code}/invite", response_model=RoomInviteResponse)
 async def get_room_invite(
     room_code: str,
     trainer: Trainer = Depends(get_current_trainer),
@@ -689,6 +761,8 @@ async def get_room_invite(
     """Return current shared room invite metadata without plaintext code."""
     room = await get_owned_room_or_404(room_code, trainer, db)
     now = datetime.now(timezone.utc)
+    participant_limit = get_room_invite_participant_limit(room)
+    active_participants_count = await count_active_room_participants(room.id, db)
 
     invite_res = await db.execute(
         select(RoomInvite)
@@ -703,11 +777,62 @@ async def get_room_invite(
             if changed:
                 await db.commit()
                 await db.refresh(invite)
-            return room_invite_response(invite)
+            return room_invite_metadata_response(
+                invite,
+                participant_limit,
+                active_participants_count,
+            )
 
     if changed:
         await db.commit()
-    return None
+    return room_invite_metadata_response(
+        None,
+        participant_limit,
+        active_participants_count,
+    )
+
+
+@router.patch("/{room_code}/invite-limit", response_model=RoomInviteResponse)
+async def update_room_invite_limit(
+    room_code: str,
+    body: RoomInviteLimitUpdateRequest,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update shared invite participant limit stored in room settings."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    set_room_invite_participant_limit(room, body.participant_limit)
+    await db.commit()
+    await db.refresh(room)
+
+    now = datetime.now(timezone.utc)
+    participant_limit = get_room_invite_participant_limit(room)
+    active_participants_count = await count_active_room_participants(room.id, db)
+
+    invite_res = await db.execute(
+        select(RoomInvite)
+        .where(RoomInvite.room_id == room.id)
+        .order_by(RoomInvite.created_at.desc())
+    )
+    invites = invite_res.scalars().all()
+    changed = False
+    active_invite: RoomInvite | None = None
+    for invite in invites:
+        changed = sync_room_invite_status(invite, now) or changed
+        if invite.status == RoomInviteStatus.ACTIVE:
+            active_invite = invite
+            break
+
+    if changed:
+        await db.commit()
+        if active_invite:
+            await db.refresh(active_invite)
+
+    return room_invite_metadata_response(
+        active_invite,
+        participant_limit,
+        active_participants_count,
+    )
 
 
 @router.post(

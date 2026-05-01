@@ -196,26 +196,66 @@ class RoomPersonalInviteResponse(BaseModel):
 
 
 class RoomInviteResponse(BaseModel):
-    id: str
+    id: str | None = None
     status: str
-    invite_code_suffix: str
-    expires_at: datetime
+    invite_code_suffix: str | None = None
+    expires_at: datetime | None = None
+    active_participants_count: int = 0
+    participant_limit: int | None = None
     created_at: datetime | None = None
     updated_at: datetime | None = None
     revoked_at: datetime | None = None
 
     @classmethod
-    def from_model(cls, invite) -> "RoomInviteResponse":
+    def from_model(
+        cls,
+        invite,
+        active_participants_count: int = 0,
+        participant_limit: int | None = None,
+    ) -> "RoomInviteResponse":
         return cls(
             id=str(invite.id),
             status=invite.status,
             invite_code_suffix=invite.invite_code_suffix,
             expires_at=invite.expires_at,
+            active_participants_count=active_participants_count,
+            participant_limit=participant_limit,
             created_at=invite.created_at,
             updated_at=invite.updated_at,
             revoked_at=invite.revoked_at,
         )
 
+    @classmethod
+    def empty(
+        cls,
+        active_participants_count: int = 0,
+        participant_limit: int | None = None,
+    ) -> "RoomInviteResponse":
+        return cls(
+            id=None,
+            status="inactive",
+            invite_code_suffix=None,
+            expires_at=None,
+            active_participants_count=active_participants_count,
+            participant_limit=participant_limit,
+            created_at=None,
+            updated_at=None,
+            revoked_at=None,
+        )
+
 
 class RoomInviteCreatedResponse(RoomInviteResponse):
     invite_code: str
+
+
+class RoomInviteLimitUpdateRequest(BaseModel):
+    participant_limit: int | None = None
+
+    @field_validator("participant_limit")
+    @classmethod
+    def participant_limit_range(cls, value: int | None) -> int | None:
+        if value is None:
+            return None
+        if value < 1:
+            raise ValueError("Лимит участников должен быть не меньше 1")
+        return value

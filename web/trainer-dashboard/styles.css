@@ -623,6 +623,16 @@ button:disabled {
   gap: 12px;
 }
 
+.invite-limit-controls {
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.invite-limit-input {
+  width: 160px;
+}
+
 .invite-manual {
   margin-top: 14px;
   padding: 12px;

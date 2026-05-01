@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import settings
@@ -100,6 +100,30 @@ def sync_room_invite_status(invite: RoomInvite, now: datetime) -> bool:
         invite.status = RoomInviteStatus.EXPIRED
         return True
     return False
+
+
+def get_room_invite_participant_limit(room: Room) -> int | None:
+    settings_data = room.settings if isinstance(room.settings, dict) else {}
+    raw_value = settings_data.get("invite_participant_limit")
+    if raw_value is None:
+        return None
+    try:
+        value = int(raw_value)
+    except (TypeError, ValueError):
+        return None
+    return value if value >= 1 else None
+
+
+async def count_active_room_participants(db: AsyncSession, room_id) -> int:
+    count_res = await db.execute(
+        select(func.count())
+        .select_from(Dealer)
+        .where(
+            Dealer.room_id == room_id,
+            Dealer.is_active.is_(True),
+        )
+    )
+    return int(count_res.scalar() or 0)
 
 
 def invite_item_availability(
@@ -338,7 +362,7 @@ async def activate_room_invite(
             "This invite is not active",
         )
 
-    room_res = await db.execute(select(Room).where(Room.id == invite.room_id))
+    room_res = await db.execute(select(Room).where(Room.id == invite.room_id).with_for_update())
     room = room_res.scalar_one_or_none()
     if not room:
         raise activation_error(
@@ -352,6 +376,16 @@ async def activate_room_invite(
             "ROOM_CLOSED",
             "This room is closed",
         )
+
+    participant_limit = get_room_invite_participant_limit(room)
+    if participant_limit is not None:
+        active_participants_count = await count_active_room_participants(db, room.id)
+        if active_participants_count >= participant_limit:
+            raise activation_error(
+                status.HTTP_409_CONFLICT,
+                "ROOM_PARTICIPANT_LIMIT_REACHED",
+                "Room participant limit reached",
+            )
 
     dealer = Dealer(
         room_id=room.id,

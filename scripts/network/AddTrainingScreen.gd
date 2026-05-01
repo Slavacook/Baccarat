@@ -180,6 +180,8 @@ func _activation_error_message(status_code: int, body: Variant) -> String:
 			return "Срок действия приглашения истёк"
 		"INVITE_NOT_ACTIVE":
 			return "Это приглашение недоступно"
+		"ROOM_PARTICIPANT_LIMIT_REACHED":
+			return "Лимит участников комнаты достигнут"
 		"ACCESS_CLOSED", "ROOM_CLOSED":
 			return "Эта тренировка закрыта"
 		"DISPLAY_NAME_REQUIRED":

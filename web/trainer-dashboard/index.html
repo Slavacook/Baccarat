@@ -86,6 +86,19 @@
             <button type="button" id="btn-create-room-invite" class="secondary">Создать приглашение</button>
             <span id="room-invite-status" class="muted">Нет активного приглашения</span>
           </div>
+          <p id="room-invite-participants" class="muted small">Участники: 0 / без лимита</p>
+          <div class="row wrap invite-limit-controls">
+            <input
+              type="number"
+              id="room-invite-limit-input"
+              min="1"
+              step="1"
+              class="invite-limit-input"
+              placeholder="Без лимита"
+            />
+            <button type="button" id="btn-save-room-invite-limit" class="secondary">Сохранить лимит</button>
+            <button type="button" id="btn-clear-room-invite-limit" class="ghost">Без лимита</button>
+          </div>
           <div id="room-invite-manual" class="invite-manual hidden" aria-live="polite"></div>
           <p id="room-invite-error" class="error" hidden></p>
           <p id="room-invite-message" class="access-message" hidden></p>

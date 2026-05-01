@@ -139,6 +139,10 @@ function showRoomInviteMessage(message) {
   node.textContent = message;
 }
 
+function formatInviteParticipantLimit(limit) {
+  return limit == null ? "без лимита" : String(limit);
+}
+
 function renderRoomInvite(invite, options = {}) {
   const { manualCode = "", manualNote = "" } = options;
   const statusNode = el("room-invite-status");
@@ -148,6 +152,19 @@ function renderRoomInvite(invite, options = {}) {
     } else {
       statusNode.textContent = "Нет активного приглашения";
     }
+  }
+
+  const participantsNode = el("room-invite-participants");
+  if (participantsNode) {
+    const activeCount = Number(invite && invite.active_participants_count != null ? invite.active_participants_count : 0);
+    const participantLimit = invite && invite.participant_limit != null ? Number(invite.participant_limit) : null;
+    participantsNode.textContent = `Участники: ${activeCount} / ${formatInviteParticipantLimit(participantLimit)}`;
+  }
+
+  const limitInput = el("room-invite-limit-input");
+  if (limitInput) {
+    const participantLimit = invite && invite.participant_limit != null ? Number(invite.participant_limit) : null;
+    limitInput.value = participantLimit == null ? "" : String(participantLimit);
   }
 
   const manualNode = el("room-invite-manual");
@@ -1457,6 +1474,51 @@ async function loadRoomInvite(roomCode = selectedRoomCode()) {
   renderRoomInvite(roomInviteSnapshot);
 }
 
+async function saveRoomInviteLimit(limitValue) {
+  const code = selectedRoomCode();
+  if (!code) return;
+
+  showError("room-invite-error", "");
+  showRoomInviteMessage("");
+
+  const { ok, status, data } = await api(
+    "PATCH",
+    `/api/rooms/${encodeURIComponent(code)}/invite-limit`,
+    { participant_limit: limitValue },
+  );
+  if (!ok) {
+    showError("room-invite-error", (data && formatApiError(data)) || `Не удалось сохранить лимит (${status})`);
+    return;
+  }
+
+  roomInviteSnapshot = data || null;
+  renderRoomInvite(roomInviteSnapshot);
+  showRoomInviteMessage("Лимит сохранён");
+}
+
+async function onSaveRoomInviteLimit() {
+  const input = el("room-invite-limit-input");
+  if (!input) return;
+
+  const rawValue = String(input.value || "").trim();
+  if (!rawValue) {
+    showError("room-invite-error", "Введите лимит или нажмите «Без лимита»");
+    return;
+  }
+
+  const participantLimit = Number(rawValue);
+  if (!Number.isInteger(participantLimit) || participantLimit < 1) {
+    showError("room-invite-error", "Лимит участников должен быть не меньше 1");
+    return;
+  }
+
+  await saveRoomInviteLimit(participantLimit);
+}
+
+async function clearRoomInviteLimit() {
+  await saveRoomInviteLimit(null);
+}
+
 async function createRoomInvite() {
   const code = selectedRoomCode();
   if (!code) return;
@@ -2580,6 +2642,8 @@ function wire() {
   });
   el("btn-create-room-access").addEventListener("click", () => createRoomAccess());
   el("btn-create-room-invite").addEventListener("click", () => createRoomInvite());
+  el("btn-save-room-invite-limit").addEventListener("click", () => onSaveRoomInviteLimit());
+  el("btn-clear-room-invite-limit").addEventListener("click", () => clearRoomInviteLimit());
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());
   el("btn-close-dealer-details").addEventListener("click", () => closeDealerDetailsModal());
   el("dealer-rounds-filter").addEventListener("change", () => renderDealerRounds(dealerRoundsCache));
