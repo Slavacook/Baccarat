@@ -1,7 +1,7 @@
 """API роутер для комнат."""
 
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import secrets
 import string
 from typing import Any
@@ -17,6 +17,7 @@ from app.dependencies import get_current_trainer, require_trainer
 from app.models.participant_token import ParticipantToken, ParticipantTokenStatus
 from app.models.room import Room, RoomStatus
 from app.models.room_access import RoomAccess, RoomAccessStatus
+from app.models.room_invite import RoomInvite, RoomInviteStatus
 from app.models.room_pin import RoomPin
 from app.models.dealer import Dealer
 from app.models.trainer import Trainer
@@ -28,6 +29,8 @@ from app.schemas.room import (
     RoomAccessUpdateRequest,
     RoomParticipantResponse,
     RoomPersonalInviteResponse,
+    RoomInviteCreatedResponse,
+    RoomInviteResponse,
     RoomCreateRequest,
     RoomCreateResponse,
     RoomResponse,
@@ -35,8 +38,11 @@ from app.schemas.room import (
 from app.schemas.auth import DealerJoinRequest, DealerJoinResponse, DealerInviteJoinRequest
 from app.utils.access_codes import (
     generate_room_access_code,
+    generate_room_invite_code,
     hash_room_access_code,
+    hash_room_invite_code,
     room_access_code_suffix,
+    room_invite_code_suffix,
 )
 from app.utils.auth import create_access_token, create_refresh_token
 
@@ -106,6 +112,23 @@ async def generate_unique_room_access_code(db: AsyncSession) -> tuple[str, str]:
     )
 
 
+async def generate_unique_room_invite_code(db: AsyncSession) -> tuple[str, str]:
+    """Generate plaintext shared invite code and unique lookup hash."""
+    for _ in range(20):
+        invite_code = generate_room_invite_code()
+        invite_code_hash = hash_room_invite_code(invite_code)
+        exists_res = await db.execute(
+            select(RoomInvite.id).where(RoomInvite.invite_code_hash == invite_code_hash)
+        )
+        if not exists_res.scalar_one_or_none():
+            return invite_code, invite_code_hash
+
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Could not generate unique room invite code",
+    )
+
+
 def room_access_response(access: RoomAccess, dealer: Dealer | None = None) -> RoomAccessResponse:
     return RoomAccessResponse.from_model(access, dealer)
 
@@ -117,6 +140,23 @@ def created_room_access_response(access: RoomAccess, access_code: str) -> RoomAc
 
 def room_access_error(status_code: int, code: str, message: str) -> HTTPException:
     return HTTPException(status_code=status_code, detail={"code": code, "message": message})
+
+
+def sync_room_invite_status(invite: RoomInvite, now: datetime) -> bool:
+    """Mark active invite as expired when time is over."""
+    if invite.status == RoomInviteStatus.ACTIVE and invite.expires_at <= now:
+        invite.status = RoomInviteStatus.EXPIRED
+        return True
+    return False
+
+
+def room_invite_response(invite: RoomInvite) -> RoomInviteResponse:
+    return RoomInviteResponse.from_model(invite)
+
+
+def created_room_invite_response(invite: RoomInvite, invite_code: str) -> RoomInviteCreatedResponse:
+    base = RoomInviteResponse.from_model(invite)
+    return RoomInviteCreatedResponse(**base.model_dump(), invite_code=invite_code)
 
 
 async def get_room_access_or_404(
@@ -503,6 +543,82 @@ async def list_room_personal_invites(
         RoomPersonalInviteResponse.from_model(access)
         for access in invites_res.scalars().all()
     ]
+
+
+@router.post(
+    "/{room_code}/invite",
+    response_model=RoomInviteCreatedResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+async def create_room_invite(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Create or replace the shared invite code for a room."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    if room.status == RoomStatus.CLOSED:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "ROOM_CLOSED", "message": "Cannot create invite for closed room"},
+        )
+
+    now = datetime.now(timezone.utc)
+    existing_res = await db.execute(
+        select(RoomInvite)
+        .where(RoomInvite.room_id == room.id, RoomInvite.status == RoomInviteStatus.ACTIVE)
+        .with_for_update()
+    )
+    for invite in existing_res.scalars().all():
+        if sync_room_invite_status(invite, now):
+            continue
+        invite.status = RoomInviteStatus.REVOKED
+        invite.revoked_at = now
+
+    invite_code, invite_code_hash = await generate_unique_room_invite_code(db)
+    invite = RoomInvite(
+        room_id=room.id,
+        invite_code_hash=invite_code_hash,
+        invite_code_suffix=room_invite_code_suffix(invite_code),
+        status=RoomInviteStatus.ACTIVE,
+        expires_at=now + timedelta(hours=1),
+    )
+    db.add(invite)
+
+    await db.commit()
+    await db.refresh(invite)
+
+    return created_room_invite_response(invite, invite_code)
+
+
+@router.get("/{room_code}/invite", response_model=RoomInviteResponse | None)
+async def get_room_invite(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return current shared room invite metadata without plaintext code."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+    now = datetime.now(timezone.utc)
+
+    invite_res = await db.execute(
+        select(RoomInvite)
+        .where(RoomInvite.room_id == room.id)
+        .order_by(RoomInvite.created_at.desc())
+    )
+    invites = invite_res.scalars().all()
+    changed = False
+    for invite in invites:
+        changed = sync_room_invite_status(invite, now) or changed
+        if invite.status == RoomInviteStatus.ACTIVE:
+            if changed:
+                await db.commit()
+                await db.refresh(invite)
+            return room_invite_response(invite)
+
+    if changed:
+        await db.commit()
+    return None
 
 
 @router.post(

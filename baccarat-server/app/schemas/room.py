@@ -193,3 +193,29 @@ class RoomPersonalInviteResponse(BaseModel):
             access_code_suffix=access.access_code_suffix,
             status=access.status,
         )
+
+
+class RoomInviteResponse(BaseModel):
+    id: str
+    status: str
+    invite_code_suffix: str
+    expires_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+    revoked_at: datetime | None = None
+
+    @classmethod
+    def from_model(cls, invite) -> "RoomInviteResponse":
+        return cls(
+            id=str(invite.id),
+            status=invite.status,
+            invite_code_suffix=invite.invite_code_suffix,
+            expires_at=invite.expires_at,
+            created_at=invite.created_at,
+            updated_at=invite.updated_at,
+            revoked_at=invite.revoked_at,
+        )
+
+
+class RoomInviteCreatedResponse(RoomInviteResponse):
+    invite_code: str

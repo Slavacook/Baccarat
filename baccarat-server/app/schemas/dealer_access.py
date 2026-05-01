@@ -10,6 +10,11 @@ class DealerAccessActivateRequest(BaseModel):
     display_name: str = Field(max_length=100)
 
 
+class DealerInviteActivateRequest(BaseModel):
+    invite_code: str
+    display_name: str = Field(max_length=100)
+
+
 class DealerAccessRoomResponse(BaseModel):
     id: str
     room_code: str
@@ -25,9 +30,10 @@ class DealerAccessDealerResponse(BaseModel):
 
 class DealerAccessInfoResponse(BaseModel):
     id: str
-    slot_number: int
+    kind: str = "room_access"
+    slot_number: int | None = None
     status: str
-    access_code_suffix: str
+    access_code_suffix: str | None = None
     trainer_internal_name: str | None = None
     activated_at: datetime | None = None
 
@@ -53,9 +59,10 @@ class DealerMyRoomRoomInfo(BaseModel):
 
 class DealerMyRoomAccessInfo(BaseModel):
     id: str
-    slot_number: int
+    kind: str = "room_access"
+    slot_number: int | None = None
     status: str
-    access_code_suffix: str
+    access_code_suffix: str | None = None
     trainer_internal_name: str | None = None
 
 
@@ -101,6 +108,7 @@ class DealerTokenExchangeDealerInfo(BaseModel):
 
 class DealerTokenExchangeAccessInfo(BaseModel):
     id: str
+    kind: str = "room_access"
     status: str
 
 

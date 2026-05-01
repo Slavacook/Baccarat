@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint, func
+from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Index, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -22,8 +22,11 @@ class ParticipantToken(Base):
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
-    room_access_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("room_accesses.id"), nullable=False
+    room_access_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("room_accesses.id"), nullable=True
+    )
+    room_invite_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("room_invites.id"), nullable=True
     )
     dealer_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("dealers.id"), nullable=False
@@ -43,7 +46,13 @@ class ParticipantToken(Base):
 
     __table_args__ = (
         UniqueConstraint("token_hash", name="uq_participant_tokens_token_hash"),
+        CheckConstraint(
+            "(room_access_id IS NOT NULL AND room_invite_id IS NULL) OR "
+            "(room_access_id IS NULL AND room_invite_id IS NOT NULL)",
+            name="ck_participant_tokens_exactly_one_access_source",
+        ),
         Index("idx_participant_tokens_room_access_id", "room_access_id"),
+        Index("idx_participant_tokens_room_invite_id", "room_invite_id"),
         Index("idx_participant_tokens_dealer_id", "dealer_id"),
         Index("idx_participant_tokens_status", "status"),
     )

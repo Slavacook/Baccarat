@@ -45,6 +45,27 @@ def room_access_code_suffix(code: str) -> str:
     return normalize_room_access_code(code)[-ACCESS_CODE_GROUP_SIZE:]
 
 
+def generate_room_invite_code() -> str:
+    """Generate a shared room invite code with the same readable format."""
+    return generate_room_access_code()
+
+
+def hash_room_invite_code(code: str) -> str:
+    """Create stable lookup hash for shared room invites."""
+    normalized = normalize_room_access_code(code)
+    secret = settings.ROOM_ACCESS_CODE_PEPPER or settings.JWT_SECRET_KEY
+    return hmac.new(
+        secret.encode("utf-8"),
+        f"room-invite:{normalized}".encode("utf-8"),
+        hashlib.sha256,
+    ).hexdigest()
+
+
+def room_invite_code_suffix(code: str) -> str:
+    """Return last characters safe to show for shared room invites."""
+    return room_access_code_suffix(code)
+
+
 def generate_participant_token() -> str:
     """Generate a local participant token returned only once to the game."""
     return "pt_" + secrets.token_urlsafe(32)

@@ -13,6 +13,7 @@ from app.models.room import Room, RoomStatus  # noqa: F401
 from app.models.dealer import Dealer  # noqa: F401
 from app.models.room_pin import RoomPin  # noqa: F401
 from app.models.room_access import RoomAccess  # noqa: F401
+from app.models.room_invite import RoomInvite  # noqa: F401
 from app.models.participant_token import ParticipantToken  # noqa: F401
 from app.models.session import Session, SessionParticipant, SessionStatus, SessionType  # noqa: F401
 from app.models.round_result import RoundResult  # noqa: F401
