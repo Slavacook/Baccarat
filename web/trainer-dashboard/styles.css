@@ -464,13 +464,18 @@ button:disabled {
   gap: 20px;
 }
 
-#legacy-pins-card summary {
+.legacy-card summary {
   cursor: pointer;
   font-weight: 700;
+  color: var(--muted);
 }
 
-#legacy-pins-card[open] summary {
+.legacy-card[open] summary {
   margin-bottom: 12px;
+}
+
+.legacy-card {
+  border-color: rgba(148, 163, 184, 0.28);
 }
 
 .muted {
