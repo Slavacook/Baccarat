@@ -10,6 +10,9 @@ const STORAGE_ROOM_PINS_KEY = "bt_room_pins_cache_v1";
 const el = (id) => document.getElementById(id);
 
 let pollTimer = null;
+let roomPollTimer = null;
+let roomPollInFlight = false;
+let roomPollGeneration = 0;
 let sessionWs = null;
 let sessionWsSessionId = "";
 let sessionWsGeneration = 0;
@@ -27,6 +30,12 @@ let roomAccessesSnapshot = [];
 let roomParticipantsSnapshot = [];
 let roomPersonalInvitesSnapshot = [];
 let roomInviteSnapshot = null;
+let roomInviteTransientMessage = "";
+let roomInviteTransientManualCode = "";
+let roomInviteTransientManualNote = "";
+let roomParticipantsTransientMessage = "";
+let roomParticipantsTransientManualCode = "";
+let roomParticipantsTransientManualNote = "";
 let generatedRoomAccesses = [];
 let currentRoomCode = "";
 const liveTableStore = {
@@ -39,6 +48,7 @@ const LIVE_MONITOR_TYPES = new Set([
   "action_performed",
   "round_completed",
 ]);
+const ROOM_MODEL_POLL_MS = 4000;
 const WINNER_LABELS = {
   Player: "Игрок",
   Banker: "Банкир",
@@ -128,15 +138,16 @@ function formatInviteExpiresAt(value) {
 }
 
 function showRoomInviteMessage(message) {
+  roomInviteTransientMessage = message ? String(message) : "";
   const node = el("room-invite-message");
   if (!node) return;
-  if (!message) {
+  if (!roomInviteTransientMessage) {
     node.hidden = true;
     node.textContent = "";
     return;
   }
   node.hidden = false;
-  node.textContent = message;
+  node.textContent = roomInviteTransientMessage;
 }
 
 function formatInviteParticipantLimit(limit) {
@@ -144,7 +155,10 @@ function formatInviteParticipantLimit(limit) {
 }
 
 function renderRoomInvite(invite, options = {}) {
-  const { manualCode = "", manualNote = "" } = options;
+  if (Object.prototype.hasOwnProperty.call(options, "manualCode")) {
+    roomInviteTransientManualCode = String(options.manualCode || "");
+    roomInviteTransientManualNote = String(options.manualNote || "");
+  }
   const statusNode = el("room-invite-status");
   if (statusNode) {
     if (invite && String(invite.status || "").toLowerCase() === "active") {
@@ -170,7 +184,7 @@ function renderRoomInvite(invite, options = {}) {
   const manualNode = el("room-invite-manual");
   if (!manualNode) return;
   manualNode.innerHTML = "";
-  if (!manualCode) {
+  if (!roomInviteTransientManualCode) {
     manualNode.classList.add("hidden");
     return;
   }
@@ -178,38 +192,44 @@ function renderRoomInvite(invite, options = {}) {
   manualNode.classList.remove("hidden");
   const note = document.createElement("p");
   note.className = "muted small";
-  note.textContent = manualNote || "Скопируйте код вручную.";
+  note.textContent = roomInviteTransientManualNote || "Скопируйте код вручную.";
   const codeNode = document.createElement("div");
   codeNode.className = "invite-manual-code";
-  codeNode.textContent = manualCode;
+  codeNode.textContent = roomInviteTransientManualCode;
   manualNode.appendChild(note);
   manualNode.appendChild(codeNode);
 }
 
 function clearRoomInviteState() {
   roomInviteSnapshot = null;
+  roomInviteTransientMessage = "";
+  roomInviteTransientManualCode = "";
+  roomInviteTransientManualNote = "";
   showError("room-invite-error", "");
   showRoomInviteMessage("");
-  renderRoomInvite(null);
+  renderRoomInvite(null, { manualCode: "", manualNote: "" });
 }
 
 function showRoomParticipantsMessage(message) {
+  roomParticipantsTransientMessage = message ? String(message) : "";
   const node = el("room-participants-message");
   if (!node) return;
-  if (!message) {
+  if (!roomParticipantsTransientMessage) {
     node.hidden = true;
     node.textContent = "";
     return;
   }
   node.hidden = false;
-  node.textContent = message;
+  node.textContent = roomParticipantsTransientMessage;
 }
 
 function renderRoomParticipantsManual(code = "", note = "") {
+  roomParticipantsTransientManualCode = String(code || "");
+  roomParticipantsTransientManualNote = String(note || "");
   const manualNode = el("room-participants-manual");
   if (!manualNode) return;
   manualNode.innerHTML = "";
-  if (!code) {
+  if (!roomParticipantsTransientManualCode) {
     manualNode.classList.add("hidden");
     return;
   }
@@ -217,10 +237,10 @@ function renderRoomParticipantsManual(code = "", note = "") {
   manualNode.classList.remove("hidden");
   const noteNode = document.createElement("p");
   noteNode.className = "muted small";
-  noteNode.textContent = note || "Скопируйте код вручную.";
+  noteNode.textContent = roomParticipantsTransientManualNote || "Скопируйте код вручную.";
   const codeNode = document.createElement("div");
   codeNode.className = "invite-manual-code";
-  codeNode.textContent = code;
+  codeNode.textContent = roomParticipantsTransientManualCode;
   manualNode.appendChild(noteNode);
   manualNode.appendChild(codeNode);
 }
@@ -228,9 +248,12 @@ function renderRoomParticipantsManual(code = "", note = "") {
 function clearRoomParticipantsState() {
   roomParticipantsSnapshot = [];
   roomPersonalInvitesSnapshot = [];
+  roomParticipantsTransientMessage = "";
+  roomParticipantsTransientManualCode = "";
+  roomParticipantsTransientManualNote = "";
   showError("room-participants-error", "");
   showRoomParticipantsMessage("");
-  renderRoomParticipantsManual();
+  renderRoomParticipantsManual("", "");
   renderRoomParticipants([], []);
 }
 
@@ -258,6 +281,7 @@ function clearRoomScopedState(options = {}) {
     deleteRoomPinsCache(previousRoomCode);
   }
 
+  stopRoomModelPolling();
   roomPinsSnapshot = [];
   clearRoomInviteState();
   clearRoomParticipantsState();
@@ -1201,6 +1225,50 @@ function stopPoll() {
   }
 }
 
+function stopRoomModelPolling() {
+  if (roomPollTimer) {
+    clearInterval(roomPollTimer);
+    roomPollTimer = null;
+  }
+  roomPollInFlight = false;
+  roomPollGeneration += 1;
+}
+
+function isRoomPollStale(roomCode, generation) {
+  return (
+    generation !== roomPollGeneration
+    || String(selectedRoomCode() || "") !== String(roomCode || "")
+    || !getToken()
+  );
+}
+
+async function pollRoomModelOnce() {
+  if (roomPollInFlight) return;
+  const roomCode = String(selectedRoomCode() || "");
+  if (!roomCode || !getToken()) return;
+
+  const generation = roomPollGeneration;
+  roomPollInFlight = true;
+  try {
+    await loadRoomInvite(roomCode, { background: true, generation });
+    if (isRoomPollStale(roomCode, generation)) return;
+    await loadRoomParticipants(roomCode, { background: true, generation });
+  } finally {
+    if (generation === roomPollGeneration) {
+      roomPollInFlight = false;
+    }
+  }
+}
+
+function startRoomModelPolling() {
+  stopRoomModelPolling();
+  if (!getToken() || !selectedRoomCode()) return;
+  void pollRoomModelOnce();
+  roomPollTimer = setInterval(() => {
+    void pollRoomModelOnce();
+  }, ROOM_MODEL_POLL_MS);
+}
+
 function closeSessionWs(targetWs = sessionWs) {
   if (!targetWs) return;
   const isCurrentWs = targetWs === sessionWs;
@@ -1387,6 +1455,8 @@ function setCurrentRoom(code, roomName = "") {
   if (nextRoomCode !== currentRoomCode) {
     generatedRoomAccesses = [];
     renderGeneratedRoomAccesses();
+    clearRoomInviteState();
+    clearRoomParticipantsState();
   }
   currentRoomCode = nextRoomCode;
   const label = el("current-room-label");
@@ -1459,6 +1529,7 @@ async function refreshRooms() {
     clearLiveDashboardState();
   }
   const selected = rooms.find((r) => r.room_code === nextRoomCode) || rooms[0];
+  stopRoomModelPolling();
   setCurrentRoom(selected.room_code, `${selected.name} (${selected.room_code})`);
   renderRoomsList(rooms);
   await loadRoomInvite();
@@ -1466,6 +1537,7 @@ async function refreshRooms() {
   await fetchRoomPinsOnce();
   await loadRoomAccesses();
   await fetchRoomDealersOnce();
+  startRoomModelPolling();
 }
 
 function selectedRoomCode() {
@@ -1487,20 +1559,30 @@ async function copyRoomInviteCode(code, button) {
   return false;
 }
 
-async function loadRoomInvite(roomCode = selectedRoomCode()) {
+async function loadRoomInvite(roomCode = selectedRoomCode(), options = {}) {
   const code = String(roomCode || "");
+  const background = Boolean(options.background);
+  const generation = options.generation;
   if (!code) {
-    clearRoomInviteState();
+    if (!background) {
+      clearRoomInviteState();
+    }
     return;
   }
 
-  showError("room-invite-error", "");
-  showRoomInviteMessage("");
+  if (!background) {
+    showError("room-invite-error", "");
+  }
   const { ok, status, data } = await api("GET", `/api/rooms/${encodeURIComponent(code)}/invite`);
+  if (background && isRoomPollStale(code, generation)) {
+    return;
+  }
   if (!ok) {
-    roomInviteSnapshot = null;
-    renderRoomInvite(null);
-    showError("room-invite-error", (data && formatApiError(data)) || `Не удалось загрузить приглашение (${status})`);
+    if (!background) {
+      roomInviteSnapshot = null;
+      renderRoomInvite(null);
+      showError("room-invite-error", (data && formatApiError(data)) || `Не удалось загрузить приглашение (${status})`);
+    }
     return;
   }
 
@@ -1514,6 +1596,7 @@ async function saveRoomInviteLimit(limitValue) {
 
   showError("room-invite-error", "");
   showRoomInviteMessage("");
+  renderRoomInvite(roomInviteSnapshot, { manualCode: "", manualNote: "" });
 
   const { ok, status, data } = await api(
     "PATCH",
@@ -1559,7 +1642,7 @@ async function createRoomInvite() {
 
   showError("room-invite-error", "");
   showRoomInviteMessage("");
-  renderRoomInvite(roomInviteSnapshot);
+  renderRoomInvite(roomInviteSnapshot, { manualCode: "", manualNote: "" });
 
   const button = el("btn-create-room-invite");
   if (button) button.disabled = true;
@@ -1699,27 +1782,45 @@ function renderRoomParticipants(participants, invites) {
   }
 }
 
-async function loadRoomParticipants(roomCode = selectedRoomCode()) {
+async function loadRoomParticipants(roomCode = selectedRoomCode(), options = {}) {
   const code = String(roomCode || "");
+  const background = Boolean(options.background);
+  const generation = options.generation;
   if (!code) {
-    clearRoomParticipantsState();
+    if (!background) {
+      clearRoomParticipantsState();
+    }
     return;
   }
 
-  showError("room-participants-error", "");
+  if (!background) {
+    showError("room-participants-error", "");
+  }
   const [participantsRes, invitesRes] = await Promise.all([
     api("GET", `/api/rooms/${encodeURIComponent(code)}/participants`),
     api("GET", `/api/rooms/${encodeURIComponent(code)}/personal-invites`),
   ]);
+  if (background && isRoomPollStale(code, generation)) {
+    return;
+  }
 
   const participantsOk = participantsRes.ok && Array.isArray(participantsRes.data);
   const invitesOk = invitesRes.ok && Array.isArray(invitesRes.data);
 
+  if (participantsOk && invitesOk) {
+    roomParticipantsSnapshot = participantsRes.data;
+    roomPersonalInvitesSnapshot = invitesRes.data;
+    renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+    return;
+  }
+
+  if (background) {
+    return;
+  }
+
   roomParticipantsSnapshot = participantsOk ? participantsRes.data : [];
   roomPersonalInvitesSnapshot = invitesOk ? invitesRes.data : [];
   renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
-
-  if (participantsOk && invitesOk) return;
 
   const participantsError = !participantsOk
     ? (participantsRes.data && formatApiError(participantsRes.data)) || `Не удалось загрузить участников (${participantsRes.status})`
@@ -1737,7 +1838,7 @@ async function createPersonalInviteFromParticipants() {
 
   showError("room-participants-error", "");
   showRoomParticipantsMessage("");
-  renderRoomParticipantsManual();
+  renderRoomParticipantsManual("", "");
 
   const button = el("btn-create-personal-invite");
   if (button) button.disabled = true;
@@ -1788,6 +1889,8 @@ async function revokePendingPersonalInvite(accessId) {
   if (!confirmed) return;
 
   showError("room-participants-error", "");
+  showRoomParticipantsMessage("");
+  renderRoomParticipantsManual("", "");
   const { ok, status, data } = await api(
     "POST",
     `/api/rooms/${encodeURIComponent(code)}/accesses/${encodeURIComponent(accessId)}/revoke`,
@@ -1812,6 +1915,8 @@ async function deleteRoomParticipant(dealerId) {
   if (!confirmed) return;
 
   showError("room-participants-error", "");
+  showRoomParticipantsMessage("");
+  renderRoomParticipantsManual("", "");
   const { ok, status, data } = await api(
     "DELETE",
     `/api/rooms/${encodeURIComponent(code)}/participants/${encodeURIComponent(dealerId)}`,
@@ -2218,6 +2323,7 @@ function renderRoomsList(rooms) {
     pick.disabled = room.room_code === currentRoomCode;
     pick.addEventListener("click", async () => {
       clearLiveDashboardState();
+      stopRoomModelPolling();
       setCurrentRoom(room.room_code, `${room.name} (${room.room_code})`);
       await loadRoomInvite();
       await loadRoomParticipants();
@@ -2225,6 +2331,7 @@ function renderRoomsList(rooms) {
       await loadRoomAccesses();
       await fetchRoomDealersOnce();
       await loadTrainerLiveSession();
+      startRoomModelPolling();
       renderRoomsList(rooms);
     });
     pickTd.appendChild(pick);
@@ -2394,6 +2501,7 @@ async function createRoom() {
   clearRoomScopedState({ preserveActionError: true });
   await refreshRooms();
   if (room && room.room_code) {
+    stopRoomModelPolling();
     setCurrentRoom(room.room_code, `${room.name || room.room_code} (${room.room_code})`);
     await loadRoomInvite();
     await loadRoomParticipants();
@@ -2401,6 +2509,7 @@ async function createRoom() {
     await loadRoomAccesses();
     await fetchRoomDealersOnce();
     await loadTrainerLiveSession();
+    startRoomModelPolling();
   }
   showError("action-error", "");
 }
