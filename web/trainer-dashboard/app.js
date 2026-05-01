@@ -417,6 +417,9 @@ function applyTableState(snapshot) {
   });
 
   renderLiveTableView();
+  if (roomParticipantsSnapshot.length > 0) {
+    renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+  }
   if (typeof console !== "undefined" && typeof console.debug === "function") {
     console.debug("[live-table] state applied", {
       dealerId,
@@ -439,6 +442,9 @@ function resetDealerLiveState(dealerId, options = {}) {
   renderSessionInfo();
   renderLiveTableView();
   renderDealers(Array.isArray(latestDealersSnapshot) ? latestDealersSnapshot : []);
+  if (roomParticipantsSnapshot.length > 0) {
+    renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+  }
 }
 
 function markDealerRoundStarted(dealerId, data = {}) {
@@ -472,6 +478,9 @@ function markDealerRoundStarted(dealerId, data = {}) {
     },
   });
   renderLiveTableView();
+  if (roomParticipantsSnapshot.length > 0) {
+    renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+  }
 }
 
 function applyTableStateSync(states) {
@@ -480,7 +489,12 @@ function applyTableStateSync(states) {
   for (const item of states) {
     if (applyTableState(item)) applied += 1;
   }
-  if (applied > 0) renderLiveTableView();
+  if (applied > 0) {
+    renderLiveTableView();
+    if (roomParticipantsSnapshot.length > 0) {
+      renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+    }
+  }
   return applied;
 }
 
@@ -1826,6 +1840,35 @@ function participantStatusClass(status, kind = "participant") {
   return "status-unknown";
 }
 
+function getParticipantResultsSummary(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return null;
+  return latestDealersSnapshot.find((dealer) => String(dealer && dealer.dealer_id ? dealer.dealer_id : "").trim() === id) || null;
+}
+
+function getParticipantPhaseLabel(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return "—";
+  const state = liveTableStore.byDealerId.get(id)?.currentState;
+  const phase = state && typeof state === "object" ? state.phase : "";
+  if (typeof phase === "string" && phase.trim() !== "") {
+    return _phaseLabel(phase);
+  }
+  return "—";
+}
+
+function formatParticipantErrorsSummary(dealerId) {
+  const summary = getParticipantResultsSummary(dealerId);
+  const errorsTotal = summary && typeof summary.errors_total === "number"
+    ? Number(summary.errors_total)
+    : 0;
+  return `Ошибки: ${errorsTotal}`;
+}
+
+function formatParticipantPhaseSummary(dealerId) {
+  return `Фаза: ${getParticipantPhaseLabel(dealerId)}`;
+}
+
 function renderRoomParticipants(participants, invites) {
   const table = el("room-participants-table");
   if (!table) return;
@@ -1873,6 +1916,14 @@ function renderRoomParticipants(participants, invites) {
     const title = document.createElement("span");
     title.textContent = participant.display_name || "—";
     nameWrap.appendChild(title);
+    const errorsSubtitle = document.createElement("span");
+    errorsSubtitle.className = "participant-subtitle";
+    errorsSubtitle.textContent = formatParticipantErrorsSummary(participantDealerId);
+    nameWrap.appendChild(errorsSubtitle);
+    const phaseSubtitle = document.createElement("span");
+    phaseSubtitle.className = "participant-subtitle";
+    phaseSubtitle.textContent = formatParticipantPhaseSummary(participantDealerId);
+    nameWrap.appendChild(phaseSubtitle);
     cName.appendChild(nameWrap);
 
     const cStatus = document.createElement("td");
@@ -2825,6 +2876,9 @@ async function fetchResultsOnce() {
       return;
     }
     renderDealers(Array.from(byId.values()));
+    if (roomParticipantsSnapshot.length > 0) {
+      renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+    }
   } finally {
     resultsFetchInFlight = false;
   }
