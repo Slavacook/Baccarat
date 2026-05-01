@@ -274,6 +274,9 @@ func _input(event: InputEvent) -> void:
 func _run_keyboard_focus_adjustment(target: Control, focus_version: int) -> void:
 	if target == null or form_scroll == null:
 		return
+	if not _is_mobile_platform():
+		_set_keyboard_spacer_height(0)
+		return
 
 	var keyboard_height := 0.0
 	for _i in range(4):
@@ -319,8 +322,9 @@ func _dismiss_keyboard() -> void:
 		display_name_input.release_focus()
 
 	_active_input = null
-	_set_keyboard_spacer_height(0)
-	DisplayServer.virtual_keyboard_hide()
+	if _is_mobile_platform():
+		_set_keyboard_spacer_height(0)
+		DisplayServer.virtual_keyboard_hide()
 
 
 func _is_tap_event(event: InputEvent) -> bool:
@@ -340,14 +344,18 @@ func _event_position(event: InputEvent) -> Vector2:
 	return Vector2.ZERO
 
 
-func _is_position_inside_input(target: Control, position: Vector2) -> bool:
-	return target != null and target.get_global_rect().has_point(position)
+func _is_position_inside_input(target: Control, tap_position: Vector2) -> bool:
+	return target != null and target.get_global_rect().has_point(tap_position)
 
 
 func _set_keyboard_spacer_height(height: int) -> void:
 	if keyboard_spacer == null:
 		return
 	keyboard_spacer.custom_minimum_size = Vector2(0, max(height, 0))
+
+
+func _is_mobile_platform() -> bool:
+	return OS.has_feature("android") or OS.has_feature("ios")
 
 
 func _dictionary_or_empty(value: Variant) -> Dictionary:
