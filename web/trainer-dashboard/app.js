@@ -115,7 +115,7 @@ function setRoomScopedVisibility() {
   const hasRoom = Boolean(selectedRoomCode());
   el("rooms-empty-state")?.classList.toggle("hidden", hasRoom);
   el("room-details-section")?.classList.toggle("hidden", !hasRoom);
-  el("btn-open-room-dashboard")?.classList.toggle("hidden", !hasRoom);
+  el("btn-toggle-training")?.classList.toggle("hidden", !hasRoom);
   el("btn-delete-current-room")?.classList.toggle("hidden", !hasRoom);
 }
 
@@ -304,15 +304,15 @@ function renderSelectedDealerDetail() {
     ? String(selectedParticipant.display_name)
     : "Участник";
 
-  statusRoot.innerHTML = "";
+  statusRoot.textContent = "";
   if (!selectedParticipant) {
     return;
   }
-
-  const badge = document.createElement("span");
-  badge.className = `status-badge ${participantStatusClass(selectedParticipant.online_status, "participant")}`;
-  badge.textContent = participantStatusLabel(selectedParticipant.online_status, "participant");
-  statusRoot.appendChild(badge);
+  statusRoot.textContent = [
+    participantStatusLabel(selectedParticipant.online_status, "participant"),
+    formatParticipantErrorsSummary(getSelectedDealerId()),
+    formatParticipantPhaseSummary(getSelectedDealerId()),
+  ].join(" · ");
 }
 
 function selectLiveDealer(dealerId) {
@@ -3073,12 +3073,14 @@ function wire() {
   });
   el("btn-create-room").addEventListener("click", () => createRoom());
   el("btn-delete-current-room").addEventListener("click", () => deleteCurrentRoom());
-  el("btn-open-room-dashboard").addEventListener("click", async () => {
-    setDashboardStage("live");
-    await loadTrainerLiveSession();
-    await fetchResultsOnce();
-  });
-  el("btn-back").addEventListener("click", () => closeSelectedDealerView());
+  const openRoomDashboardBtn = el("btn-open-room-dashboard");
+  if (openRoomDashboardBtn) {
+    openRoomDashboardBtn.addEventListener("click", async () => {
+      setDashboardStage("live");
+      await loadTrainerLiveSession();
+      await fetchResultsOnce();
+    });
+  }
   el("btn-back-to-participants").addEventListener("click", () => closeSelectedDealerView());
   el("btn-add-pin-slot").addEventListener("click", async () => {
     const code = selectedRoomCode();

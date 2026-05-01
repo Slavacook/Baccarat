@@ -47,7 +47,8 @@
         <div class="row toolbar-compact">
           <button type="button" id="btn-logout" class="ghost">Выйти</button>
           <button type="button" id="btn-open-create-room-modal" class="secondary">+ Комната</button>
-          <button type="button" id="btn-open-room-dashboard" class="primary">Открыть live dashboard</button>
+          <button type="button" id="btn-open-room-dashboard" class="primary hidden">Открыть live dashboard</button>
+          <button type="button" id="btn-toggle-training" class="primary">Начать тренировку</button>
           <button type="button" id="btn-delete-current-room" class="danger">Удалить комнату</button>
           <span id="current-room-label" class="muted">Комната: —</span>
           <span id="user-label" class="muted"></span>
@@ -79,9 +80,7 @@
       <div id="room-details-section" class="hidden">
         <div class="card" id="room-invite-card">
           <h2>Общее приглашение</h2>
-          <p class="muted small">
-            Создайте общий код и отправьте его дилерам. Код действует 1 час.
-          </p>
+          <p class="muted small">Общий код для входа дилеров. Действует 1 час.</p>
           <div class="row wrap invite-toolbar">
             <button type="button" id="btn-create-room-invite" class="secondary">Создать приглашение</button>
             <span id="room-invite-status" class="muted">Нет активного приглашения</span>
@@ -106,9 +105,6 @@
 
         <div class="card" id="room-participants-card">
           <h2>Участники</h2>
-          <p class="muted small">
-            Здесь показываются реальные участники комнаты и персональные приглашения, которые ещё ждут входа.
-          </p>
           <div class="row wrap">
             <button type="button" id="btn-create-personal-invite" class="secondary">+ Добавить участника</button>
           </div>
@@ -129,7 +125,7 @@
           </div>
         </div>
 
-        <details class="card legacy-card" id="room-accesses-card">
+        <details class="card legacy-card hidden" id="room-accesses-card">
           <summary>Дополнительно: персональные коды</summary>
           <h2>Персональные access-коды</h2>
           <p class="muted small">
@@ -159,7 +155,7 @@
           </div>
         </details>
 
-        <details class="card legacy-card" id="legacy-pins-card">
+        <details class="card legacy-card hidden" id="legacy-pins-card">
           <summary>Legacy: PIN-доступы</summary>
           <p class="muted small">
             Старый способ входа. Оставлен для совместимости и ручного тестирования.
@@ -186,18 +182,13 @@
       </div>
 
       <div id="live-stage" class="hidden">
-      <div class="toolbar card">
-        <div class="row wrap">
-          <button type="button" id="btn-back" class="ghost">← Назад</button>
-          <button type="button" id="btn-toggle-training" class="primary">Начать тренировку</button>
-        </div>
-        <p id="session-info" class="mono muted"></p>
-      </div>
-
       <div id="selected-participant-detail" class="card selected-participant-detail hidden">
-        <button type="button" id="btn-back-to-participants" class="ghost">← Назад к участникам</button>
-        <h2 id="selected-participant-title">Участник</h2>
-        <div id="selected-participant-status"></div>
+        <div class="selected-participant-head">
+          <button type="button" id="btn-back-to-participants" class="ghost">← Участники</button>
+          <h2 id="selected-participant-title">Участник</h2>
+        </div>
+        <p id="selected-participant-status" class="muted"></p>
+        <p id="session-info" class="mono muted hidden"></p>
       </div>
 
       <div class="card live-workspace-card">
@@ -229,7 +220,7 @@
         </div>
       </div>
 
-      <details class="card live-secondary-card">
+      <details class="card live-secondary-card hidden">
         <summary>Сводка по дилерам</summary>
         <div class="table-wrap">
           <table id="dealers-table">

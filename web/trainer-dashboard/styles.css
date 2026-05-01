@@ -170,15 +170,24 @@ tr.row-live-error {
 
 .selected-participant-detail {
   display: grid;
-  gap: 10px;
+  gap: 8px;
+  padding: 16px 20px;
+}
+
+.selected-participant-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .selected-participant-detail h2 {
   margin: 0;
 }
 
-#selected-participant-status .status-badge {
-  margin-top: 0;
+#selected-participant-status {
+  margin: 0;
+  font-size: 0.95rem;
 }
 
 .live-dealer-card {
