@@ -37,6 +37,8 @@ let selectedDealerId = null;
 let roomInviteTransientMessage = "";
 let roomInviteTransientManualCode = "";
 let roomInviteTransientManualNote = "";
+let roomInviteLimitSaveInFlight = null;
+let roomInviteLimitInputDirty = false;
 let roomParticipantsTransientMessage = "";
 let roomParticipantsTransientManualCode = "";
 let roomParticipantsTransientManualNote = "";
@@ -155,7 +157,57 @@ function showRoomInviteMessage(message) {
 }
 
 function formatInviteParticipantLimit(limit) {
-  return limit == null ? "без лимита" : String(limit);
+  return limit == null ? "∞" : String(limit);
+}
+
+function getCurrentSavedRoomInviteLimit() {
+  if (!roomInviteSnapshot || roomInviteSnapshot.participant_limit == null) return null;
+  const participantLimit = Number(roomInviteSnapshot.participant_limit);
+  return Number.isInteger(participantLimit) && participantLimit > 0 ? participantLimit : null;
+}
+
+function restoreRoomInviteLimitInput() {
+  const input = el("room-invite-limit-input");
+  if (!input) return;
+  const savedLimit = getCurrentSavedRoomInviteLimit();
+  input.value = savedLimit == null ? "" : String(savedLimit);
+}
+
+function isAddParticipantModalOpen() {
+  const modal = el("add-participant-modal");
+  return Boolean(modal && !modal.classList.contains("hidden"));
+}
+
+function syncRoomInviteLimitInputFromSnapshot(force = false) {
+  const input = el("room-invite-limit-input");
+  if (!input) return;
+  const isFocused = document.activeElement === input;
+  if (!force && isAddParticipantModalOpen() && (roomInviteLimitInputDirty || isFocused)) {
+    return;
+  }
+  restoreRoomInviteLimitInput();
+}
+
+function normalizeRoomInviteLimitInput(rawValue) {
+  const text = String(rawValue || "").trim();
+  if (!text) return { ok: true, value: null };
+  if (!/^-?\d+(?:\.\d+)?$/.test(text)) {
+    return { ok: false, message: "Лимит участников должен быть целым числом или 0" };
+  }
+  const numericValue = Number(text);
+  if (!Number.isFinite(numericValue)) {
+    return { ok: false, message: "Лимит участников должен быть числом" };
+  }
+  if (!Number.isInteger(numericValue)) {
+    return { ok: false, message: "Лимит участников должен быть целым числом" };
+  }
+  if (numericValue < 0) {
+    return { ok: false, message: "Лимит участников не может быть отрицательным" };
+  }
+  if (numericValue === 0) {
+    return { ok: true, value: null };
+  }
+  return { ok: true, value: numericValue };
 }
 
 function getRoomInviteCodesStorageKey(roomCode = selectedRoomCode()) {
@@ -210,9 +262,9 @@ function renderRoomInvite(invite, options = {}) {
   const statusNode = el("room-invite-status");
   if (statusNode) {
     if (invite && String(invite.status || "").toLowerCase() === "active") {
-      statusNode.textContent = `Активно до: ${formatInviteExpiresAt(invite.expires_at)}`;
+      statusNode.textContent = `Активен до: ${formatInviteExpiresAt(invite.expires_at)}`;
     } else {
-      statusNode.textContent = "Нет активного приглашения";
+      statusNode.textContent = "Активен до: —";
     }
   }
 
@@ -225,8 +277,7 @@ function renderRoomInvite(invite, options = {}) {
 
   const limitInput = el("room-invite-limit-input");
   if (limitInput) {
-    const participantLimit = invite && invite.participant_limit != null ? Number(invite.participant_limit) : null;
-    limitInput.value = participantLimit == null ? "" : String(participantLimit);
+    syncRoomInviteLimitInputFromSnapshot();
   }
 
   const manualNode = el("room-invite-manual");
@@ -236,17 +287,16 @@ function renderRoomInvite(invite, options = {}) {
   const activeInviteId = isActiveInvite ? String(invite.id || "").trim() : "";
   const cachedInviteCode = activeInviteId ? getRoomInviteCode(activeInviteId) : "";
   const visibleInviteCode = cachedInviteCode || roomInviteTransientManualCode;
+  const labelNode = document.createElement("span");
+  labelNode.className = "muted";
+  labelNode.textContent = "Код:";
+  const codeNode = document.createElement("div");
+  codeNode.className = "invite-manual-code";
+  codeNode.textContent = visibleInviteCode || (isActiveInvite ? "недоступен" : "—");
+  manualNode.appendChild(labelNode);
+  manualNode.appendChild(codeNode);
 
   if (visibleInviteCode) {
-    manualNode.classList.remove("hidden");
-    const note = document.createElement("p");
-    note.className = "muted small";
-    note.textContent = roomInviteTransientManualNote || "Код:";
-    const row = document.createElement("div");
-    row.className = "row wrap";
-    const codeNode = document.createElement("div");
-    codeNode.className = "invite-manual-code";
-    codeNode.textContent = visibleInviteCode;
     const copyBtn = document.createElement("button");
     copyBtn.type = "button";
     copyBtn.className = "ghost table-action-button";
@@ -259,25 +309,7 @@ function renderRoomInvite(invite, options = {}) {
         showError("room-invite-error", "Не удалось скопировать код. Скопируйте его вручную.");
       }
     });
-    row.appendChild(codeNode);
-    row.appendChild(copyBtn);
-    manualNode.appendChild(note);
-    manualNode.appendChild(row);
-    return;
-  }
-
-  if (isActiveInvite) {
-    manualNode.classList.remove("hidden");
-    const note = document.createElement("p");
-    note.className = "muted small";
-    note.textContent = "Полный код доступен только после создания нового приглашения в этом браузере";
-    manualNode.appendChild(note);
-    return;
-  }
-
-  if (!roomInviteTransientManualCode) {
-    manualNode.classList.add("hidden");
-    return;
+    manualNode.appendChild(copyBtn);
   }
 }
 
@@ -497,7 +529,7 @@ function clearRoomScopedState(options = {}) {
   }
 
   stopRoomModelPolling();
-  closeAddParticipantModal();
+  hideAddParticipantModal();
   roomPinsSnapshot = [];
   clearRoomInviteState();
   clearRoomParticipantsState();
@@ -1300,11 +1332,21 @@ function closeCreateRoomModal() {
 }
 
 function openAddParticipantModal() {
+  roomInviteLimitInputDirty = false;
+  syncRoomInviteLimitInputFromSnapshot(true);
+  showError("room-invite-error", "");
   el("add-participant-modal")?.classList.remove("hidden");
 }
 
-function closeAddParticipantModal() {
+function hideAddParticipantModal() {
   el("add-participant-modal")?.classList.add("hidden");
+}
+
+async function closeAddParticipantModal() {
+  roomInviteLimitInputDirty = false;
+  syncRoomInviteLimitInputFromSnapshot(true);
+  hideAddParticipantModal();
+  return true;
 }
 
 function renderDealerRounds(items) {
@@ -1880,7 +1922,7 @@ async function loadRoomInvite(roomCode = selectedRoomCode(), options = {}) {
 
 async function saveRoomInviteLimit(limitValue) {
   const code = selectedRoomCode();
-  if (!code) return;
+  if (!code) return false;
 
   showError("room-invite-error", "");
   showRoomInviteMessage("");
@@ -1893,35 +1935,44 @@ async function saveRoomInviteLimit(limitValue) {
   );
   if (!ok) {
     showError("room-invite-error", (data && formatApiError(data)) || `Не удалось сохранить лимит (${status})`);
-    return;
+    return false;
   }
 
   roomInviteSnapshot = data || null;
+  roomInviteLimitInputDirty = false;
   renderRoomInvite(roomInviteSnapshot);
   showRoomInviteMessage("Лимит сохранён");
+  return true;
 }
 
-async function onSaveRoomInviteLimit() {
+async function saveRoomInviteLimitFromInput() {
   const input = el("room-invite-limit-input");
-  if (!input) return;
-
-  const rawValue = String(input.value || "").trim();
-  if (!rawValue) {
-    showError("room-invite-error", "Введите лимит или нажмите «Без лимита»");
-    return;
+  if (!input) return false;
+  const normalized = normalizeRoomInviteLimitInput(input.value);
+  if (!normalized.ok) {
+    showError("room-invite-error", normalized.message || "Некорректный лимит участников");
+    return false;
   }
-
-  const participantLimit = Number(rawValue);
-  if (!Number.isInteger(participantLimit) || participantLimit < 1) {
-    showError("room-invite-error", "Лимит участников должен быть не меньше 1");
-    return;
+  const normalizedValue = normalized.value;
+  const savedValue = getCurrentSavedRoomInviteLimit();
+  const nextKey = normalizedValue == null ? "null" : String(normalizedValue);
+  const savedKey = savedValue == null ? "null" : String(savedValue);
+  if (nextKey === savedKey) {
+    showError("room-invite-error", "");
+    showRoomInviteMessage("");
+    roomInviteLimitInputDirty = false;
+    syncRoomInviteLimitInputFromSnapshot(true);
+    return false;
   }
-
-  await saveRoomInviteLimit(participantLimit);
-}
-
-async function clearRoomInviteLimit() {
-  await saveRoomInviteLimit(null);
+  if (roomInviteLimitSaveInFlight) {
+    return await roomInviteLimitSaveInFlight;
+  }
+  roomInviteLimitSaveInFlight = saveRoomInviteLimit(normalizedValue);
+  try {
+    return await roomInviteLimitSaveInFlight;
+  } finally {
+    roomInviteLimitSaveInFlight = null;
+  }
 }
 
 async function createRoomInvite() {
@@ -3273,9 +3324,13 @@ function wire() {
   el("create-room-modal").addEventListener("click", (ev) => {
     if (ev.target === el("create-room-modal")) closeCreateRoomModal();
   });
-  el("btn-close-add-participant-modal").addEventListener("click", () => closeAddParticipantModal());
+  el("btn-close-add-participant-modal").addEventListener("click", () => {
+    void closeAddParticipantModal();
+  });
   el("add-participant-modal").addEventListener("click", (ev) => {
-    if (ev.target === el("add-participant-modal")) closeAddParticipantModal();
+    if (ev.target === el("add-participant-modal")) {
+      void closeAddParticipantModal();
+    }
   });
   el("btn-create-room").addEventListener("click", () => createRoom());
   el("btn-delete-current-room").addEventListener("click", () => deleteCurrentRoom());
@@ -3300,8 +3355,16 @@ function wire() {
   el("btn-create-room-invite").addEventListener("click", () => createRoomInvite());
   el("btn-create-personal-invite").addEventListener("click", () => createPersonalInviteFromParticipants());
   el("btn-open-room-settings")?.addEventListener("click", () => openAddParticipantModal());
-  el("btn-save-room-invite-limit").addEventListener("click", () => onSaveRoomInviteLimit());
-  el("btn-clear-room-invite-limit").addEventListener("click", () => clearRoomInviteLimit());
+  el("btn-save-room-invite-limit")?.addEventListener("click", () => {
+    void saveRoomInviteLimitFromInput();
+  });
+  const roomInviteLimitInput = el("room-invite-limit-input");
+  roomInviteLimitInput?.addEventListener("input", () => {
+    roomInviteLimitInputDirty = true;
+  });
+  roomInviteLimitInput?.addEventListener("change", () => {
+    roomInviteLimitInputDirty = true;
+  });
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());
   el("btn-close-dealer-details").addEventListener("click", () => closeDealerDetailsModal());
   el("dealer-rounds-filter").addEventListener("change", () => renderDealerRounds(dealerRoundsCache));

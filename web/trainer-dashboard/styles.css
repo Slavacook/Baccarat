@@ -643,12 +643,12 @@ button:disabled {
 .invite-toolbar {
   align-items: center;
   gap: 12px;
+  justify-content: space-between;
 }
 
 .invite-limit-controls {
   align-items: center;
   gap: 12px;
-  margin-top: 10px;
 }
 
 .invite-limit-input {
@@ -656,13 +656,11 @@ button:disabled {
 }
 
 .invite-manual {
-  margin-top: 14px;
-  padding: 12px;
-  border-radius: 8px;
-  border: 1px solid rgba(56, 189, 248, 0.35);
-  background: rgba(56, 189, 248, 0.08);
-  display: grid;
-  gap: 8px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex-wrap: wrap;
 }
 
 .invite-manual-code {

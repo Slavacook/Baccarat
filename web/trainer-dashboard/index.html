@@ -269,25 +269,27 @@
 
       <section class="add-participant-section" id="room-invite-card">
         <h4>Общее приглашение</h4>
-        <p class="muted small">Общий код для входа дилеров. Код показывается после создания нового приглашения.</p>
         <div class="row wrap invite-toolbar">
-          <button type="button" id="btn-create-room-invite" class="secondary">Создать новое приглашение</button>
-          <span id="room-invite-status" class="muted">Нет активного приглашения</span>
+          <div id="room-invite-manual" class="invite-manual" aria-live="polite"></div>
+          <button type="button" id="btn-create-room-invite" class="secondary">Создать новый</button>
         </div>
-        <p id="room-invite-participants" class="muted small">Участники: 0 / без лимита</p>
+        <p id="room-invite-status" class="muted small">Активен до: —</p>
+        <p id="room-invite-participants" class="muted small">Участники: 0 / ∞</p>
+      </section>
+
+      <section class="add-participant-section">
+        <h4>Лимит участников</h4>
         <div class="row wrap invite-limit-controls">
           <input
             type="number"
             id="room-invite-limit-input"
-            min="1"
+            min="0"
             step="1"
             class="invite-limit-input"
             placeholder="Без лимита"
           />
-          <button type="button" id="btn-save-room-invite-limit" class="secondary">Сохранить лимит</button>
-          <button type="button" id="btn-clear-room-invite-limit" class="ghost">Без лимита</button>
+          <button type="button" id="btn-save-room-invite-limit" class="secondary">Сохранить</button>
         </div>
-        <div id="room-invite-manual" class="invite-manual hidden" aria-live="polite"></div>
         <p id="room-invite-error" class="error" hidden></p>
         <p id="room-invite-message" class="access-message" hidden></p>
       </section>
