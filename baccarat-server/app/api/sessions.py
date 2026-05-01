@@ -282,6 +282,9 @@ async def get_active_live_session_for_dealer(
     if not session_obj:
         raise HTTPException(status_code=404, detail="No active live session")
 
+    dealer.last_seen_at = datetime.now(timezone.utc)
+    await db.commit()
+
     return _active_live_session_to_response(room, session_obj)
 
 

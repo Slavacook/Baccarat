@@ -20,6 +20,7 @@ from app.models.room_access import RoomAccess, RoomAccessStatus
 from app.models.room_invite import RoomInvite, RoomInviteStatus
 from app.models.room_pin import RoomPin
 from app.models.dealer import Dealer
+from app.models.session import Session, SessionStatus, SessionType
 from app.models.trainer import Trainer
 from app.schemas.room import (
     RoomAccessCreateRequest,
@@ -54,6 +55,7 @@ router = APIRouter(prefix="/rooms")
 # ═══════════════════════════════════════════════════════════════
 
 ALPHABET = "ABCDEFGHJKMNPQRTUVWXYZ23456789"  # 34 символа (без 0,1,I,L,O)
+PARTICIPANT_ONLINE_WINDOW_SEC = 12
 
 
 def generate_room_code() -> str:
@@ -572,6 +574,16 @@ async def list_room_participants(
     """List real room participants based on Dealer records."""
     room = await get_owned_room_or_404(room_code, trainer, db)
 
+    now = datetime.now(timezone.utc)
+    active_session_res = await db.execute(
+        select(Session.id).where(
+            Session.room_id == room.id,
+            Session.type == SessionType.LIVE,
+            Session.status.in_([SessionStatus.CREATED, SessionStatus.ACTIVE]),
+        )
+    )
+    has_active_live_session = active_session_res.scalar_one_or_none() is not None
+
     dealers_res = await db.execute(
         select(Dealer)
         .where(
@@ -580,8 +592,19 @@ async def list_room_participants(
         )
         .order_by(Dealer.created_at.asc(), Dealer.display_name.asc())
     )
+
+    def online_status_for(dealer: Dealer) -> str:
+        if not has_active_live_session:
+            return "offline"
+        if dealer.last_seen_at is None:
+            return "offline"
+        delta_seconds = (now - dealer.last_seen_at).total_seconds()
+        if delta_seconds <= PARTICIPANT_ONLINE_WINDOW_SEC:
+            return "online"
+        return "offline"
+
     return [
-        RoomParticipantResponse.from_model(dealer, online_status="unknown")
+        RoomParticipantResponse.from_model(dealer, online_status=online_status_for(dealer))
         for dealer in dealers_res.scalars().all()
     ]
 
