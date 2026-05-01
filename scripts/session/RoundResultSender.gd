@@ -112,6 +112,13 @@ func _send_async(session_id_str: String, payload: Dictionary) -> void:
 	var code: int = await _api_service.submit_round_result_async(session_id_str, payload)
 	if code == 201:
 		print("[RoundResultSender] Раунд %d отправлен (HTTP %d)" % [payload.get("round_number", 0), code])
+	elif _is_terminal_submit_status(code):
+		push_warning("[RoundResultSender] Доступ к online-сессии потерян: HTTP %d" % code)
+		if _session_manager and _session_manager.has_method("force_exit_online_session"):
+			_session_manager.force_exit_online_session(
+				_submit_terminal_reason(code),
+				_submit_terminal_message(code)
+			)
 	else:
 		push_warning("[RoundResultSender] Ошибка отправки раунда: HTTP %d" % code)
 		_pending_results.append(payload)
@@ -164,3 +171,31 @@ func _find_api_service() -> Node:
 		if child.name == "ApiService":
 			return child
 	return null
+
+
+func _is_terminal_submit_status(code: int) -> bool:
+	return code in [401, 403, 404, 410]
+
+
+func _submit_terminal_reason(code: int) -> String:
+	match code:
+		404:
+			return "session_finished"
+		410:
+			return "room_closed"
+		401, 403:
+			return "access_revoked"
+		_:
+			return "access_revoked"
+
+
+func _submit_terminal_message(code: int) -> String:
+	match code:
+		404:
+			return "Тренировка завершена"
+		410:
+			return "Комната закрыта"
+		401, 403:
+			return "Доступ к тренировке отозван"
+		_:
+			return "Доступ к тренировке потерян"

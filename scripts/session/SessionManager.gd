@@ -3,6 +3,9 @@
 ## (autoload — class_name НЕ нужен)
 extends Node
 
+const ONLINE_WATCHDOG_INTERVAL_SEC: float = 4.0
+const FORCE_EXIT_SCENE_PATH: String = "res://scenes/network/MyTrainingsScreen.tscn"
+
 # ═══════════════════════════════════════════════════════════════
 # РЕЖИМЫ
 # ═══════════════════════════════════════════════════════════════
@@ -23,6 +26,9 @@ var display_name: String = ""
 var live_round_seed: String = ""
 ## Сид следующего раунда из WS `round_sync` (применяется в deal_first_four перед раздачей).
 var pending_live_round_seed: String = ""
+var _online_watchdog_timer: Timer = null
+var _online_watchdog_in_flight: bool = false
+var _force_exit_in_progress: bool = false
 
 # Статистика текущей сессии
 var rounds_played: int = 0
@@ -54,6 +60,7 @@ func _ready() -> void:
 		eb.cards_dealt.connect(_on_cards_dealt)
 		eb.player_third_drawn.connect(_on_player_third_drawn)
 		eb.banker_third_drawn.connect(_on_banker_third_drawn)
+	_ensure_online_watchdog_timer()
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -63,10 +70,15 @@ func _ready() -> void:
 func start_offline_session() -> void:
 	if Engine.has_singleton("LiveSessionClient"):
 		LiveSessionClient.disconnect_live()
+	_stop_online_watchdog()
 	current_mode = Mode.OFFLINE
 	session_id = ""
+	room_code = ""
+	dealer_id = ""
+	display_name = ""
 	live_round_seed = ""
 	pending_live_round_seed = ""
+	_force_exit_in_progress = false
 	_reset_stats()
 	session_started.emit(current_mode)
 
@@ -77,6 +89,7 @@ func start_online_session(
 	display_name_str: String,
 	live_session_uuid: String = ""
 ) -> void:
+	_force_exit_in_progress = false
 	current_mode = Mode.ONLINE
 	room_code = room_code_str
 	dealer_id = dealer_id_str
@@ -84,6 +97,7 @@ func start_online_session(
 	session_id = live_session_uuid
 	pending_live_round_seed = ""
 	_reset_stats()
+	_start_online_watchdog()
 	session_started.emit(current_mode)
 
 
@@ -116,16 +130,46 @@ func apply_pending_live_deck_seed_to(deck: Deck) -> void:
 
 
 func end_session() -> Dictionary:
+	_stop_online_watchdog()
 	if Engine.has_singleton("LiveSessionClient"):
 		LiveSessionClient.disconnect_live()
 	var stats = get_session_stats()
 	session_ended.emit(stats)
 	_reset_stats()
 	current_mode = Mode.OFFLINE
+	room_code = ""
 	session_id = ""
+	dealer_id = ""
+	display_name = ""
 	live_round_seed = ""
 	pending_live_round_seed = ""
+	_force_exit_in_progress = false
 	return stats
+
+
+func force_exit_online_session(reason_code: String, message: String) -> void:
+	if current_mode != Mode.ONLINE:
+		return
+	if _force_exit_in_progress:
+		return
+
+	_force_exit_in_progress = true
+	_stop_online_watchdog()
+
+	var final_message: String = message.strip_edges()
+	if final_message.is_empty():
+		final_message = _force_exit_message(reason_code)
+
+	end_session()
+	_clear_runtime_dealer_auth()
+
+	var tree := get_tree()
+	if tree == null:
+		return
+	if tree.current_scene == null or tree.current_scene.scene_file_path != FORCE_EXIT_SCENE_PATH:
+		tree.change_scene_to_file(FORCE_EXIT_SCENE_PATH)
+	if not final_message.is_empty():
+		_emit_force_exit_toast.call_deferred(final_message)
 
 
 func get_session_stats() -> Dictionary:
@@ -205,3 +249,108 @@ func _cards_to_strings(cards: Array) -> Array[String]:
 		if c and c.has_method("card_to_string"):
 			out.append(str(c.card_to_string()))
 	return out
+
+
+func _ensure_online_watchdog_timer() -> void:
+	if _online_watchdog_timer != null:
+		return
+	_online_watchdog_timer = Timer.new()
+	_online_watchdog_timer.name = "OnlineSessionWatchdogTimer"
+	_online_watchdog_timer.one_shot = false
+	_online_watchdog_timer.wait_time = ONLINE_WATCHDOG_INTERVAL_SEC
+	add_child(_online_watchdog_timer)
+	_online_watchdog_timer.timeout.connect(_on_online_watchdog_timeout)
+
+
+func _start_online_watchdog() -> void:
+	if current_mode != Mode.ONLINE:
+		return
+	_ensure_online_watchdog_timer()
+	if _online_watchdog_timer == null:
+		return
+	if _online_watchdog_timer.is_stopped():
+		_online_watchdog_timer.start()
+	_on_online_watchdog_timeout.call_deferred()
+
+
+func _stop_online_watchdog() -> void:
+	if _online_watchdog_timer and not _online_watchdog_timer.is_stopped():
+		_online_watchdog_timer.stop()
+	_online_watchdog_in_flight = false
+
+
+func _on_online_watchdog_timeout() -> void:
+	if current_mode != Mode.ONLINE:
+		return
+	if _force_exit_in_progress or _online_watchdog_in_flight:
+		return
+	_online_watchdog_in_flight = true
+	await _run_online_watchdog_check()
+	_online_watchdog_in_flight = false
+
+
+func _run_online_watchdog_check() -> void:
+	if current_mode != Mode.ONLINE or _force_exit_in_progress:
+		return
+
+	var api_service := _find_api_service()
+	if api_service == null or not api_service.has_method("fetch_active_live_session_async"):
+		return
+
+	var normalized_room_code := room_code.strip_edges()
+	if normalized_room_code.is_empty():
+		return
+
+	var result: Dictionary = await api_service.fetch_active_live_session_async(normalized_room_code)
+	if current_mode != Mode.ONLINE or _force_exit_in_progress:
+		return
+
+	var code: int = int(result.get("code", 0))
+	match code:
+		200:
+			return
+		404:
+			force_exit_online_session("session_finished", "Тренировка завершена")
+		401, 403:
+			force_exit_online_session("access_revoked", "Доступ к тренировке отозван")
+		410:
+			force_exit_online_session("room_closed", "Комната закрыта")
+		0:
+			return
+		_:
+			if code >= 500:
+				return
+
+
+func _clear_runtime_dealer_auth() -> void:
+	var api_service := _find_api_service()
+	if api_service == null:
+		return
+	if api_service.get("api_client") != null and api_service.api_client.has_method("clear_auth_token"):
+		api_service.api_client.clear_auth_token()
+
+
+func _emit_force_exit_toast(message: String) -> void:
+	var eb: Node = get_node_or_null("/root/EventBus")
+	if eb == null:
+		return
+	if eb.has_signal("show_toast_error"):
+		eb.show_toast_error.emit(message)
+
+
+func _force_exit_message(reason_code: String) -> String:
+	match reason_code:
+		"session_finished":
+			return "Тренировка завершена"
+		"room_closed":
+			return "Комната закрыта"
+		"access_revoked":
+			return "Доступ к тренировке отозван"
+		_:
+			return "Доступ к тренировке потерян"
+
+
+func _find_api_service() -> Node:
+	if Engine.has_singleton("ApiService"):
+		return Engine.get_singleton("ApiService") as Node
+	return get_node_or_null("/root/ApiService")
