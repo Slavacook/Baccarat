@@ -25,6 +25,7 @@ let connectedDealerIds = new Set();
 let refreshInFlight = null;
 let latestDealersSnapshot = [];
 let dealerRoundsCache = [];
+let liveFeedEntries = [];
 let roomPinsSnapshot = [];
 let roomAccessesSnapshot = [];
 let roomParticipantsSnapshot = [];
@@ -259,6 +260,7 @@ function clearRoomParticipantsState() {
   renderRoomParticipants([], []);
   renderSelectedDealerDetail();
   renderLiveTableView();
+  renderLiveFeed();
 }
 
 function clearLiveDashboardState() {
@@ -319,6 +321,7 @@ function selectLiveDealer(dealerId) {
   renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
   renderSelectedDealerDetail();
   renderLiveTableView();
+  renderLiveFeed();
 }
 
 async function openSelectedDealerView(dealerId) {
@@ -335,6 +338,7 @@ function closeSelectedDealerView() {
   renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
   renderSelectedDealerDetail();
   renderLiveTableView();
+  renderLiveFeed();
   setDashboardStage("rooms");
 }
 
@@ -976,6 +980,7 @@ function renderLiveTableView() {
 }
 
 function clearLiveFeed() {
+  liveFeedEntries = [];
   const ul = el("live-feed-list");
   if (ul) ul.innerHTML = "";
   const empty = el("live-feed-empty");
@@ -1005,52 +1010,99 @@ function formatLiveEventLine(t, data) {
   return "Событие";
 }
 
-function pushLiveFeedEntry(msgType, data) {
+function _formatLiveFeedTimestamp(value) {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return date.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+}
+
+function renderLiveFeed() {
   const ul = el("live-feed-list");
   const empty = el("live-feed-empty");
   if (!ul) return;
+  ul.innerHTML = "";
+
+  const selectedId = getSelectedDealerId();
+  if (!selectedId) {
+    if (empty) empty.hidden = true;
+    return;
+  }
+
   const errOnly = el("live-feed-errors-only")?.checked;
-  if (errOnly && msgType !== "error_occurred") return;
+  const visibleEntries = liveFeedEntries.filter((entry) => {
+    if (!entry || entry.dealerId !== selectedId) return false;
+    if (errOnly && entry.msgType !== "error_occurred") return false;
+    return true;
+  });
 
-  const li = document.createElement("li");
-  li.dataset.msgType = msgType;
-  const ts = document.createElement("span");
-  ts.className = "ts";
-  const d = new Date();
-  ts.textContent = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-
-  const tag = document.createElement("span");
-  tag.className = "tag " + (msgType === "error_occurred" ? "tag-err" : msgType === "action_performed" ? "tag-ok" : "tag-info");
-  tag.textContent =
-    msgType === "error_occurred" ? "Ошибка" : msgType === "action_performed" ? "Действие" : msgType === "round_started" ? "Старт" : "Конец";
-
-  const text = document.createElement("span");
-  const line = formatLiveEventLine(msgType, data && typeof data === "object" ? data : {});
-  if (!line) return;
-  if (typeof line === "object") {
-    const primary = document.createElement("span");
-    primary.textContent = line.primary || "";
-    text.appendChild(primary);
-    if (line.detail) {
-      primary.style.display = "block";
-      const detail = document.createElement("span");
-      detail.textContent = line.detail;
-      detail.className = "muted small";
-      detail.style.display = "block";
-      text.appendChild(detail);
+  if (visibleEntries.length === 0) {
+    if (empty) {
+      empty.textContent = "Пока нет событий — дождитесь действий участника в игре.";
+      empty.hidden = false;
     }
-  } else {
-    text.textContent = line;
+    return;
   }
 
-  li.appendChild(ts);
-  li.appendChild(tag);
-  li.appendChild(text);
-  ul.insertBefore(li, ul.firstChild);
-  while (ul.children.length > LIVE_FEED_MAX) {
-    ul.removeChild(ul.lastChild);
+  for (const entry of visibleEntries) {
+    const li = document.createElement("li");
+    li.dataset.msgType = entry.msgType;
+    li.dataset.dealerId = entry.dealerId;
+    const ts = document.createElement("span");
+    ts.className = "ts";
+    ts.textContent = _formatLiveFeedTimestamp(entry.timestamp);
+
+    const tag = document.createElement("span");
+    tag.className = "tag " + (entry.msgType === "error_occurred" ? "tag-err" : entry.msgType === "action_performed" ? "tag-ok" : "tag-info");
+    tag.textContent =
+      entry.msgType === "error_occurred" ? "Ошибка" : entry.msgType === "action_performed" ? "Действие" : entry.msgType === "round_started" ? "Старт" : "Конец";
+
+    const text = document.createElement("span");
+    const line = formatLiveEventLine(entry.msgType, entry.data && typeof entry.data === "object" ? entry.data : {});
+    if (!line) {
+      continue;
+    }
+    if (typeof line === "object") {
+      const primary = document.createElement("span");
+      primary.textContent = line.primary || "";
+      text.appendChild(primary);
+      if (line.detail) {
+        primary.style.display = "block";
+        const detail = document.createElement("span");
+        detail.textContent = line.detail;
+        detail.className = "muted small";
+        detail.style.display = "block";
+        text.appendChild(detail);
+      }
+    } else {
+      text.textContent = line;
+    }
+
+    li.appendChild(ts);
+    li.appendChild(tag);
+    li.appendChild(text);
+    ul.appendChild(li);
   }
-  if (empty) empty.hidden = ul.children.length > 0;
+
+  if (empty) empty.hidden = true;
+}
+
+function pushLiveFeedEntry(msgType, data) {
+  const safeData = data && typeof data === "object" ? data : {};
+  const dealerId = String(safeData.dealer_id || "").trim();
+  if (!dealerId) return;
+
+  liveFeedEntries.unshift({
+    msgType,
+    dealerId,
+    timestamp: Date.now(),
+    data: safeData,
+  });
+  if (liveFeedEntries.length > LIVE_FEED_MAX) {
+    liveFeedEntries.length = LIVE_FEED_MAX;
+  }
+  renderLiveFeed();
 }
 
 function pulseDealerRow(dealerId) {
@@ -1067,13 +1119,7 @@ function pulseDealerRow(dealerId) {
 }
 
 function refilterLiveFeed() {
-  const ul = el("live-feed-list");
-  if (!ul) return;
-  const errOnly = el("live-feed-errors-only")?.checked;
-  for (const li of ul.querySelectorAll("li")) {
-    const t = li.dataset.msgType || "";
-    li.hidden = errOnly && t !== "error_occurred";
-  }
+  renderLiveFeed();
 }
 
 function setTrainingButtons(active) {
@@ -1926,6 +1972,7 @@ async function loadRoomParticipants(roomCode = selectedRoomCode(), options = {})
     renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
     renderSelectedDealerDetail();
     renderLiveTableView();
+    renderLiveFeed();
     return;
   }
 
@@ -1943,6 +1990,7 @@ async function loadRoomParticipants(roomCode = selectedRoomCode(), options = {})
   renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
   renderSelectedDealerDetail();
   renderLiveTableView();
+  renderLiveFeed();
 
   const participantsError = !participantsOk
     ? (participantsRes.data && formatApiError(participantsRes.data)) || `Не удалось загрузить участников (${participantsRes.status})`
