@@ -6,6 +6,7 @@
 const STORAGE_ACCESS_KEY = "bt_trainer_access_token";
 const STORAGE_REFRESH_KEY = "bt_trainer_refresh_token";
 const STORAGE_ROOM_PINS_KEY = "bt_room_pins_cache_v1";
+const STORAGE_ROOM_PERSONAL_INVITE_CODES_PREFIX = "bt_room_personal_invite_codes_v1:";
 
 const el = (id) => document.getElementById(id);
 
@@ -261,6 +262,59 @@ function clearRoomParticipantsState() {
   renderSelectedDealerDetail();
   renderLiveTableView();
   renderLiveFeed();
+}
+
+function getRoomPersonalInviteCodesStorageKey(roomCode = selectedRoomCode()) {
+  const code = String(roomCode || "").trim();
+  return code ? `${STORAGE_ROOM_PERSONAL_INVITE_CODES_PREFIX}${code}` : "";
+}
+
+function loadRoomPersonalInviteCodes(roomCode = selectedRoomCode()) {
+  const key = getRoomPersonalInviteCodesStorageKey(roomCode);
+  if (!key) return {};
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoomPersonalInviteCodes(roomCode, codesMap) {
+  const key = getRoomPersonalInviteCodesStorageKey(roomCode);
+  if (!key) return;
+  try {
+    sessionStorage.setItem(key, JSON.stringify(codesMap || {}));
+  } catch {
+    // ignore storage write failures
+  }
+}
+
+function storeRoomPersonalInviteCode(accessId, accessCode, roomCode = selectedRoomCode()) {
+  const id = String(accessId || "").trim();
+  const code = String(accessCode || "").trim();
+  if (!id || !code) return;
+  const codesMap = loadRoomPersonalInviteCodes(roomCode);
+  codesMap[id] = code;
+  saveRoomPersonalInviteCodes(roomCode, codesMap);
+}
+
+function getRoomPersonalInviteCode(accessId, roomCode = selectedRoomCode()) {
+  const id = String(accessId || "").trim();
+  if (!id) return "";
+  const codesMap = loadRoomPersonalInviteCodes(roomCode);
+  return String(codesMap[id] || "").trim();
+}
+
+function deleteRoomPersonalInviteCode(accessId, roomCode = selectedRoomCode()) {
+  const id = String(accessId || "").trim();
+  if (!id) return;
+  const codesMap = loadRoomPersonalInviteCodes(roomCode);
+  if (!(id in codesMap)) return;
+  delete codesMap[id];
+  saveRoomPersonalInviteCodes(roomCode, codesMap);
 }
 
 function clearLiveDashboardState() {
@@ -1878,6 +1932,39 @@ function formatParticipantPhaseSummary(dealerId) {
   return `Фаза: ${getParticipantPhaseLabel(dealerId)}`;
 }
 
+async function copyPendingPersonalInviteCode(code, button) {
+  const value = String(code || "").trim();
+  if (!value) return false;
+  showError("room-participants-error", "");
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (!copied) throw new Error("copy_failed");
+    }
+    if (button) {
+      const prev = button.textContent;
+      button.textContent = "Скопировано";
+      setTimeout(() => {
+        button.textContent = prev || "Скопировать";
+      }, 1400);
+    }
+    return true;
+  } catch {
+    showError("room-participants-error", "Не удалось скопировать код. Скопируйте его вручную.");
+    return false;
+  }
+}
+
 function renderRoomParticipants(participants, invites) {
   const table = el("room-participants-table");
   if (!table) return;
@@ -1960,6 +2047,8 @@ function renderRoomParticipants(participants, invites) {
 
   for (const invite of inviteItems) {
     const tr = document.createElement("tr");
+    const accessId = String(invite.access_id || "").trim();
+    const inviteCode = getRoomPersonalInviteCode(accessId);
 
     const cName = document.createElement("td");
     const nameWrap = document.createElement("div");
@@ -1973,6 +2062,12 @@ function renderRoomParticipants(participants, invites) {
       subtitle.textContent = invite.trainer_internal_name;
       nameWrap.appendChild(subtitle);
     }
+    const codeSubtitle = document.createElement("span");
+    codeSubtitle.className = inviteCode ? "participant-subtitle mono" : "participant-subtitle muted";
+    codeSubtitle.textContent = inviteCode
+      ? `Код: ${inviteCode}`
+      : "Код недоступен после обновления страницы";
+    nameWrap.appendChild(codeSubtitle);
     cName.appendChild(nameWrap);
 
     const cStatus = document.createElement("td");
@@ -1982,11 +2077,21 @@ function renderRoomParticipants(participants, invites) {
     cStatus.appendChild(badge);
 
     const cActions = document.createElement("td");
+    if (inviteCode) {
+      const copyBtn = document.createElement("button");
+      copyBtn.type = "button";
+      copyBtn.className = "ghost table-action-button";
+      copyBtn.textContent = "Скопировать";
+      copyBtn.addEventListener("click", () => {
+        void copyPendingPersonalInviteCode(inviteCode, copyBtn);
+      });
+      cActions.appendChild(copyBtn);
+    }
     const deleteBtn = document.createElement("button");
     deleteBtn.type = "button";
     deleteBtn.className = "danger table-action-button";
     deleteBtn.textContent = "Удалить";
-    deleteBtn.addEventListener("click", () => revokePendingPersonalInvite(invite.access_id));
+    deleteBtn.addEventListener("click", () => revokePendingPersonalInvite(accessId));
     cActions.appendChild(deleteBtn);
 
     tr.appendChild(cName);
@@ -2084,7 +2189,11 @@ async function createPersonalInviteFromParticipants() {
       return;
     }
 
+    const createdAccessId = String(createdItem.access_id || createdItem.id || "").trim();
     const accessCode = String(createdItem.access_code || "");
+    if (createdAccessId && accessCode) {
+      storeRoomPersonalInviteCode(createdAccessId, accessCode, code);
+    }
     let copied = false;
     try {
       if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
@@ -2134,6 +2243,7 @@ async function revokePendingPersonalInvite(accessId) {
     return;
   }
 
+  deleteRoomPersonalInviteCode(accessId, code);
   await loadRoomParticipants(code);
 }
 
