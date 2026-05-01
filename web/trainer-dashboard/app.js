@@ -1552,8 +1552,12 @@ function renderRoomParticipants(participants, invites) {
     cStatus.appendChild(badge);
 
     const cActions = document.createElement("td");
-    cActions.className = "muted";
-    cActions.textContent = "—";
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "danger table-action-button";
+    deleteBtn.textContent = "Удалить";
+    deleteBtn.addEventListener("click", () => deleteRoomParticipant(participant.dealer_id));
+    cActions.appendChild(deleteBtn);
 
     tr.appendChild(cName);
     tr.appendChild(cStatus);
@@ -1625,6 +1629,29 @@ async function loadRoomParticipants(roomCode = selectedRoomCode()) {
     : "";
 
   showError("room-participants-error", [participantsError, invitesError].filter(Boolean).join(". "));
+}
+
+async function deleteRoomParticipant(dealerId) {
+  const code = selectedRoomCode();
+  if (!code || !dealerId) return;
+
+  const confirmed = window.confirm("Удалить участника? Он потеряет доступ к комнате.");
+  if (!confirmed) return;
+
+  showError("room-participants-error", "");
+  const { ok, status, data } = await api(
+    "DELETE",
+    `/api/rooms/${encodeURIComponent(code)}/participants/${encodeURIComponent(dealerId)}`,
+  );
+  if (!ok) {
+    showError(
+      "room-participants-error",
+      (data && formatApiError(data)) || `Не удалось удалить участника (${status})`,
+    );
+    return;
+  }
+
+  await loadRoomParticipants(code);
 }
 
 function roomAccessStatusLabel(status) {

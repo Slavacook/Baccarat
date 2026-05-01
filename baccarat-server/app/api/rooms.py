@@ -7,7 +7,7 @@ import string
 from typing import Any
 
 import bcrypt
-from fastapi import APIRouter, Body, Depends, HTTPException, status
+from fastapi import APIRouter, Body, Depends, HTTPException, Response, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -543,6 +543,95 @@ async def list_room_personal_invites(
         RoomPersonalInviteResponse.from_model(access)
         for access in invites_res.scalars().all()
     ]
+
+
+@router.delete(
+    "/{room_code}/participants/{dealer_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def delete_room_participant(
+    room_code: str,
+    dealer_id: uuid.UUID,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a room participant and revoke all room-scoped participant tokens."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+
+    dealer_res = await db.execute(
+        select(Dealer).where(
+            Dealer.id == dealer_id,
+            Dealer.room_id == room.id,
+        )
+    )
+    dealer = dealer_res.scalar_one_or_none()
+    if not dealer:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail={"code": "PARTICIPANT_NOT_FOUND", "message": "Room participant not found"},
+        )
+
+    now = datetime.now(timezone.utc)
+    if dealer.is_active:
+        dealer.is_active = False
+        dealer.last_seen_at = now
+        active_dealers_count = int(room.total_dealers or 0)
+        if active_dealers_count > 0:
+            room.total_dealers = active_dealers_count - 1
+
+    tokens_res = await db.execute(
+        select(ParticipantToken).where(ParticipantToken.dealer_id == dealer.id)
+    )
+    tokens = tokens_res.scalars().all()
+
+    access_ids: set[uuid.UUID] = set()
+    invite_ids: set[uuid.UUID] = set()
+    for token in tokens:
+        if token.room_access_id:
+            access_ids.add(token.room_access_id)
+        if token.room_invite_id:
+            invite_ids.add(token.room_invite_id)
+
+    room_access_ids: set[uuid.UUID] = set()
+    if access_ids:
+        access_rows_res = await db.execute(
+            select(RoomAccess.id).where(
+                RoomAccess.id.in_(access_ids),
+                RoomAccess.room_id == room.id,
+            )
+        )
+        room_access_ids = set(access_rows_res.scalars().all())
+
+    room_invite_ids: set[uuid.UUID] = set()
+    if invite_ids:
+        invite_rows_res = await db.execute(
+            select(RoomInvite.id).where(
+                RoomInvite.id.in_(invite_ids),
+                RoomInvite.room_id == room.id,
+            )
+        )
+        room_invite_ids = set(invite_rows_res.scalars().all())
+
+    for token in tokens:
+        is_room_access_token = bool(token.room_access_id and token.room_access_id in room_access_ids)
+        is_room_invite_token = bool(token.room_invite_id and token.room_invite_id in room_invite_ids)
+        if not is_room_access_token and not is_room_invite_token:
+            continue
+        token.status = ParticipantTokenStatus.REVOKED
+        token.revoked_at = now
+
+    access_res = await db.execute(
+        select(RoomAccess).where(
+            RoomAccess.room_id == room.id,
+            RoomAccess.dealer_id == dealer.id,
+        )
+    )
+    for access in access_res.scalars().all():
+        access.status = RoomAccessStatus.REVOKED
+        access.revoked_at = access.revoked_at or now
+
+    await db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.post(
