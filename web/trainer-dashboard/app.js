@@ -30,6 +30,7 @@ let roomAccessesSnapshot = [];
 let roomParticipantsSnapshot = [];
 let roomPersonalInvitesSnapshot = [];
 let roomInviteSnapshot = null;
+let selectedDealerId = null;
 let roomInviteTransientMessage = "";
 let roomInviteTransientManualCode = "";
 let roomInviteTransientManualNote = "";
@@ -248,6 +249,7 @@ function renderRoomParticipantsManual(code = "", note = "") {
 function clearRoomParticipantsState() {
   roomParticipantsSnapshot = [];
   roomPersonalInvitesSnapshot = [];
+  selectedDealerId = null;
   roomParticipantsTransientMessage = "";
   roomParticipantsTransientManualCode = "";
   roomParticipantsTransientManualNote = "";
@@ -255,6 +257,8 @@ function clearRoomParticipantsState() {
   showRoomParticipantsMessage("");
   renderRoomParticipantsManual("", "");
   renderRoomParticipants([], []);
+  renderSelectedDealerDetail();
+  renderLiveTableView();
 }
 
 function clearLiveDashboardState() {
@@ -267,6 +271,81 @@ function clearLiveDashboardState() {
   renderDealerRounds([]);
   setTrainingButtons(false);
   renderResultsEmpty("Тренировка ещё не запущена");
+}
+
+function getSelectedDealerId() {
+  return String(selectedDealerId || "").trim();
+}
+
+function getSelectedParticipantSnapshot() {
+  const dealerId = getSelectedDealerId();
+  if (!dealerId) return null;
+  return roomParticipantsSnapshot.find(
+    (participant) => String(participant && participant.dealer_id ? participant.dealer_id : "").trim() === dealerId
+  ) || null;
+}
+
+function renderSelectedDealerDetail() {
+  const panel = el("selected-participant-detail");
+  const liveWorkspaceCard = el("live-workspace-card");
+  const title = el("selected-participant-title");
+  const statusRoot = el("selected-participant-status");
+  const hasSelectedDealer = Boolean(getSelectedDealerId());
+  const selectedParticipant = getSelectedParticipantSnapshot();
+
+  panel?.classList.toggle("hidden", !hasSelectedDealer);
+  liveWorkspaceCard?.classList.toggle("hidden", !hasSelectedDealer);
+
+  if (!panel || !title || !statusRoot) return;
+
+  title.textContent = selectedParticipant && selectedParticipant.display_name
+    ? String(selectedParticipant.display_name)
+    : "Участник";
+
+  statusRoot.innerHTML = "";
+  if (!selectedParticipant) {
+    return;
+  }
+
+  const badge = document.createElement("span");
+  badge.className = `status-badge ${participantStatusClass(selectedParticipant.online_status, "participant")}`;
+  badge.textContent = participantStatusLabel(selectedParticipant.online_status, "participant");
+  statusRoot.appendChild(badge);
+}
+
+function selectLiveDealer(dealerId) {
+  const nextDealerId = String(dealerId || "").trim();
+  selectedDealerId = nextDealerId || null;
+  renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+  renderSelectedDealerDetail();
+  renderLiveTableView();
+}
+
+async function openSelectedDealerView(dealerId) {
+  const nextDealerId = String(dealerId || "").trim();
+  if (!nextDealerId) return;
+  selectLiveDealer(nextDealerId);
+  setDashboardStage("live");
+  await loadTrainerLiveSession();
+  await fetchResultsOnce();
+}
+
+function closeSelectedDealerView() {
+  selectedDealerId = null;
+  renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+  renderSelectedDealerDetail();
+  renderLiveTableView();
+  setDashboardStage("rooms");
+}
+
+function syncSelectedDealerWithParticipants(participants) {
+  const currentSelected = getSelectedDealerId();
+  if (!currentSelected) return;
+  const items = Array.isArray(participants) ? participants : [];
+  const exists = items.some((participant) => String(participant && participant.dealer_id ? participant.dealer_id : "").trim() === currentSelected);
+  if (!exists) {
+    selectedDealerId = null;
+  }
 }
 
 function clearRoomScopedState(options = {}) {
@@ -809,11 +888,18 @@ function renderLiveTableView() {
   const root = el("live-table-view");
   if (!root) return;
   root.innerHTML = "";
-  const rows = Array.from(liveTableStore.byDealerId.entries());
-  if (rows.length === 0) {
-    root.textContent = "Нет live-данных стола.";
+  const selectedId = getSelectedDealerId();
+  if (!selectedId) {
     return;
   }
+
+  const entry = liveTableStore.byDealerId.get(selectedId);
+  if (!entry || !entry.currentState || typeof entry.currentState !== "object") {
+    root.textContent = "Участник выбран. Live View появится, когда он начнёт online-тренировку.";
+    return;
+  }
+
+  const rows = [[selectedId, entry]];
 
   for (const [dealerId, entry] of rows) {
     const state = entry && entry.currentState && typeof entry.currentState === "object" ? entry.currentState : {};
@@ -1441,6 +1527,7 @@ function setDashboardStage(stage) {
   const isLive = stage === "live";
   el("room-stage").classList.toggle("hidden", isLive);
   el("live-stage").classList.toggle("hidden", !isLive);
+  renderSelectedDealerDetail();
 }
 
 function formatDuration(seconds) {
@@ -1715,6 +1802,24 @@ function renderRoomParticipants(participants, invites) {
 
   for (const participant of participantItems) {
     const tr = document.createElement("tr");
+    const participantDealerId = String(participant.dealer_id || "").trim();
+    const isSelected = participantDealerId && participantDealerId === getSelectedDealerId();
+    tr.dataset.dealerId = participantDealerId;
+    tr.classList.toggle("participant-row-selectable", Boolean(participantDealerId));
+    tr.classList.toggle("participant-row-selected", Boolean(isSelected));
+    if (participantDealerId) {
+      tr.tabIndex = 0;
+      tr.setAttribute("role", "button");
+      tr.setAttribute("aria-pressed", isSelected ? "true" : "false");
+      tr.addEventListener("click", () => {
+        void openSelectedDealerView(participantDealerId);
+      });
+      tr.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter" && event.key !== " ") return;
+        event.preventDefault();
+        void openSelectedDealerView(participantDealerId);
+      });
+    }
 
     const cName = document.createElement("td");
     const nameWrap = document.createElement("div");
@@ -1735,7 +1840,10 @@ function renderRoomParticipants(participants, invites) {
     deleteBtn.type = "button";
     deleteBtn.className = "danger table-action-button";
     deleteBtn.textContent = "Удалить";
-    deleteBtn.addEventListener("click", () => deleteRoomParticipant(participant.dealer_id));
+    deleteBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      deleteRoomParticipant(participant.dealer_id);
+    });
     cActions.appendChild(deleteBtn);
 
     tr.appendChild(cName);
@@ -1808,9 +1916,16 @@ async function loadRoomParticipants(roomCode = selectedRoomCode(), options = {})
   const invitesOk = invitesRes.ok && Array.isArray(invitesRes.data);
 
   if (participantsOk && invitesOk) {
+    const previousSelectedDealerId = getSelectedDealerId();
     roomParticipantsSnapshot = participantsRes.data;
     roomPersonalInvitesSnapshot = invitesRes.data;
+    syncSelectedDealerWithParticipants(roomParticipantsSnapshot);
+    if (previousSelectedDealerId && !getSelectedDealerId()) {
+      setDashboardStage("rooms");
+    }
     renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+    renderSelectedDealerDetail();
+    renderLiveTableView();
     return;
   }
 
@@ -1818,9 +1933,16 @@ async function loadRoomParticipants(roomCode = selectedRoomCode(), options = {})
     return;
   }
 
+  const previousSelectedDealerId = getSelectedDealerId();
   roomParticipantsSnapshot = participantsOk ? participantsRes.data : [];
   roomPersonalInvitesSnapshot = invitesOk ? invitesRes.data : [];
+  syncSelectedDealerWithParticipants(roomParticipantsSnapshot);
+  if (previousSelectedDealerId && !getSelectedDealerId()) {
+    setDashboardStage("rooms");
+  }
   renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+  renderSelectedDealerDetail();
+  renderLiveTableView();
 
   const participantsError = !participantsOk
     ? (participantsRes.data && formatApiError(participantsRes.data)) || `Не удалось загрузить участников (${participantsRes.status})`
@@ -1929,6 +2051,9 @@ async function deleteRoomParticipant(dealerId) {
     return;
   }
 
+  if (String(dealerId || "").trim() === getSelectedDealerId()) {
+    closeSelectedDealerView();
+  }
   await loadRoomParticipants(code);
 }
 
@@ -2851,7 +2976,8 @@ function wire() {
     await loadTrainerLiveSession();
     await fetchResultsOnce();
   });
-  el("btn-back").addEventListener("click", () => setDashboardStage("rooms"));
+  el("btn-back").addEventListener("click", () => closeSelectedDealerView());
+  el("btn-back-to-participants").addEventListener("click", () => closeSelectedDealerView());
   el("btn-add-pin-slot").addEventListener("click", async () => {
     const code = selectedRoomCode();
     if (!code) return;

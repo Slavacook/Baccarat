@@ -168,6 +168,19 @@ tr.row-live-error {
   gap: 16px;
 }
 
+.selected-participant-detail {
+  display: grid;
+  gap: 10px;
+}
+
+.selected-participant-detail h2 {
+  margin: 0;
+}
+
+#selected-participant-status .status-badge {
+  margin-top: 0;
+}
+
 .live-dealer-card {
   border: 1px solid var(--border);
   border-radius: 12px;
@@ -664,6 +677,23 @@ button:disabled {
 .participant-subtitle {
   color: var(--muted);
   font-size: 0.8rem;
+}
+
+#room-participants-table tr.participant-row-selectable {
+  cursor: pointer;
+}
+
+#room-participants-table tr.participant-row-selectable:hover td {
+  background: rgba(56, 189, 248, 0.08);
+}
+
+#room-participants-table tr.participant-row-selectable:focus-visible {
+  outline: 2px solid rgba(56, 189, 248, 0.8);
+  outline-offset: -2px;
+}
+
+#room-participants-table tr.participant-row-selected td {
+  background: rgba(56, 189, 248, 0.14);
 }
 
 .status-badge {

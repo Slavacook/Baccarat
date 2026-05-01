@@ -194,13 +194,19 @@
         <p id="session-info" class="mono muted"></p>
       </div>
 
+      <div id="selected-participant-detail" class="card selected-participant-detail hidden">
+        <button type="button" id="btn-back-to-participants" class="ghost">← Назад к участникам</button>
+        <h2 id="selected-participant-title">Участник</h2>
+        <div id="selected-participant-status"></div>
+      </div>
+
       <div class="card live-workspace-card">
         <div class="live-workspace">
           <section class="live-pane live-pane-table" id="live-table-card">
             <div class="live-pane-head">
               <div>
                 <h2>Live View стола</h2>
-                <p class="muted small">Текущее состояние карт, фазы и последнего действия по каждому дилеру.</p>
+                <p class="muted small">Текущее состояние карт, фазы и последнего действия выбранного участника.</p>
               </div>
             </div>
             <div id="live-table-view"></div>
