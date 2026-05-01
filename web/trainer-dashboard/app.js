@@ -7,6 +7,7 @@ const STORAGE_ACCESS_KEY = "bt_trainer_access_token";
 const STORAGE_REFRESH_KEY = "bt_trainer_refresh_token";
 const STORAGE_ROOM_PINS_KEY = "bt_room_pins_cache_v1";
 const STORAGE_ROOM_PERSONAL_INVITE_CODES_PREFIX = "bt_room_personal_invite_codes_v1:";
+const STORAGE_ROOM_INVITE_CODES_PREFIX = "bt_room_invite_codes_v1:";
 
 const el = (id) => document.getElementById(id);
 
@@ -157,6 +158,50 @@ function formatInviteParticipantLimit(limit) {
   return limit == null ? "без лимита" : String(limit);
 }
 
+function getRoomInviteCodesStorageKey(roomCode = selectedRoomCode()) {
+  const code = String(roomCode || "").trim();
+  return code ? `${STORAGE_ROOM_INVITE_CODES_PREFIX}${code}` : "";
+}
+
+function loadRoomInviteCodes(roomCode = selectedRoomCode()) {
+  const key = getRoomInviteCodesStorageKey(roomCode);
+  if (!key) return {};
+  try {
+    const raw = sessionStorage.getItem(key);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function saveRoomInviteCodes(roomCode, codesMap) {
+  const key = getRoomInviteCodesStorageKey(roomCode);
+  if (!key) return;
+  try {
+    sessionStorage.setItem(key, JSON.stringify(codesMap || {}));
+  } catch {
+    // ignore storage write failures
+  }
+}
+
+function storeRoomInviteCode(inviteId, inviteCode, roomCode = selectedRoomCode()) {
+  const id = String(inviteId || "").trim();
+  const code = String(inviteCode || "").trim();
+  if (!id || !code) return;
+  const codesMap = loadRoomInviteCodes(roomCode);
+  codesMap[id] = code;
+  saveRoomInviteCodes(roomCode, codesMap);
+}
+
+function getRoomInviteCode(inviteId, roomCode = selectedRoomCode()) {
+  const id = String(inviteId || "").trim();
+  if (!id) return "";
+  const codesMap = loadRoomInviteCodes(roomCode);
+  return String(codesMap[id] || "").trim();
+}
+
 function renderRoomInvite(invite, options = {}) {
   if (Object.prototype.hasOwnProperty.call(options, "manualCode")) {
     roomInviteTransientManualCode = String(options.manualCode || "");
@@ -187,20 +232,53 @@ function renderRoomInvite(invite, options = {}) {
   const manualNode = el("room-invite-manual");
   if (!manualNode) return;
   manualNode.innerHTML = "";
+  const isActiveInvite = invite && String(invite.status || "").toLowerCase() === "active";
+  const activeInviteId = isActiveInvite ? String(invite.id || "").trim() : "";
+  const cachedInviteCode = activeInviteId ? getRoomInviteCode(activeInviteId) : "";
+  const visibleInviteCode = cachedInviteCode || roomInviteTransientManualCode;
+
+  if (visibleInviteCode) {
+    manualNode.classList.remove("hidden");
+    const note = document.createElement("p");
+    note.className = "muted small";
+    note.textContent = roomInviteTransientManualNote || "Код:";
+    const row = document.createElement("div");
+    row.className = "row wrap";
+    const codeNode = document.createElement("div");
+    codeNode.className = "invite-manual-code";
+    codeNode.textContent = visibleInviteCode;
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.className = "ghost table-action-button";
+    copyBtn.textContent = "Скопировать";
+    copyBtn.addEventListener("click", async () => {
+      try {
+        const copied = await copyRoomInviteCode(visibleInviteCode, copyBtn);
+        if (!copied) throw new Error("copy_failed");
+      } catch {
+        showError("room-invite-error", "Не удалось скопировать код. Скопируйте его вручную.");
+      }
+    });
+    row.appendChild(codeNode);
+    row.appendChild(copyBtn);
+    manualNode.appendChild(note);
+    manualNode.appendChild(row);
+    return;
+  }
+
+  if (isActiveInvite) {
+    manualNode.classList.remove("hidden");
+    const note = document.createElement("p");
+    note.className = "muted small";
+    note.textContent = "Полный код доступен только после создания нового приглашения в этом браузере";
+    manualNode.appendChild(note);
+    return;
+  }
+
   if (!roomInviteTransientManualCode) {
     manualNode.classList.add("hidden");
     return;
   }
-
-  manualNode.classList.remove("hidden");
-  const note = document.createElement("p");
-  note.className = "muted small";
-  note.textContent = roomInviteTransientManualNote || "Скопируйте код вручную.";
-  const codeNode = document.createElement("div");
-  codeNode.className = "invite-manual-code";
-  codeNode.textContent = roomInviteTransientManualCode;
-  manualNode.appendChild(note);
-  manualNode.appendChild(codeNode);
 }
 
 function clearRoomInviteState() {
@@ -1761,7 +1839,7 @@ async function copyRoomInviteCode(code, button) {
       const prev = button.textContent;
       button.textContent = "Скопировано";
       setTimeout(() => {
-        button.textContent = prev || "Создать приглашение";
+        button.textContent = prev || "Скопировать";
       }, 1400);
     }
     return true;
@@ -1863,10 +1941,15 @@ async function createRoomInvite() {
       return;
     }
 
+    const inviteId = String(data.id || "").trim();
+    const inviteCode = String(data.invite_code || "");
+    if (inviteId && inviteCode) {
+      storeRoomInviteCode(inviteId, inviteCode, code);
+    }
     roomInviteSnapshot = data;
     let copied = false;
     try {
-      copied = await copyRoomInviteCode(String(data.invite_code || ""), button);
+      copied = await copyRoomInviteCode(inviteCode, button);
     } catch {
       copied = false;
     }
