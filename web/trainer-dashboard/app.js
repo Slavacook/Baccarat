@@ -193,10 +193,44 @@ function clearRoomInviteState() {
   renderRoomInvite(null);
 }
 
+function showRoomParticipantsMessage(message) {
+  const node = el("room-participants-message");
+  if (!node) return;
+  if (!message) {
+    node.hidden = true;
+    node.textContent = "";
+    return;
+  }
+  node.hidden = false;
+  node.textContent = message;
+}
+
+function renderRoomParticipantsManual(code = "", note = "") {
+  const manualNode = el("room-participants-manual");
+  if (!manualNode) return;
+  manualNode.innerHTML = "";
+  if (!code) {
+    manualNode.classList.add("hidden");
+    return;
+  }
+
+  manualNode.classList.remove("hidden");
+  const noteNode = document.createElement("p");
+  noteNode.className = "muted small";
+  noteNode.textContent = note || "Скопируйте код вручную.";
+  const codeNode = document.createElement("div");
+  codeNode.className = "invite-manual-code";
+  codeNode.textContent = code;
+  manualNode.appendChild(noteNode);
+  manualNode.appendChild(codeNode);
+}
+
 function clearRoomParticipantsState() {
   roomParticipantsSnapshot = [];
   roomPersonalInvitesSnapshot = [];
   showError("room-participants-error", "");
+  showRoomParticipantsMessage("");
+  renderRoomParticipantsManual();
   renderRoomParticipants([], []);
 }
 
@@ -1651,8 +1685,12 @@ function renderRoomParticipants(participants, invites) {
     cStatus.appendChild(badge);
 
     const cActions = document.createElement("td");
-    cActions.className = "muted";
-    cActions.textContent = "—";
+    const deleteBtn = document.createElement("button");
+    deleteBtn.type = "button";
+    deleteBtn.className = "danger table-action-button";
+    deleteBtn.textContent = "Удалить";
+    deleteBtn.addEventListener("click", () => revokePendingPersonalInvite(invite.access_id));
+    cActions.appendChild(deleteBtn);
 
     tr.appendChild(cName);
     tr.appendChild(cStatus);
@@ -1691,6 +1729,79 @@ async function loadRoomParticipants(roomCode = selectedRoomCode()) {
     : "";
 
   showError("room-participants-error", [participantsError, invitesError].filter(Boolean).join(". "));
+}
+
+async function createPersonalInviteFromParticipants() {
+  const code = selectedRoomCode();
+  if (!code) return;
+
+  showError("room-participants-error", "");
+  showRoomParticipantsMessage("");
+  renderRoomParticipantsManual();
+
+  const button = el("btn-create-personal-invite");
+  if (button) button.disabled = true;
+  try {
+    const { ok, status, data } = await api("POST", `/api/rooms/${encodeURIComponent(code)}/accesses`, {});
+    const created = data && Array.isArray(data.accesses) ? data.accesses : [];
+    const createdItem = created.find((item) => item && item.access_code);
+    if (!ok || !createdItem || !createdItem.access_code) {
+      showError(
+        "room-participants-error",
+        (data && formatApiError(data)) || `Не удалось создать персональное приглашение (${status})`,
+      );
+      return;
+    }
+
+    const accessCode = String(createdItem.access_code || "");
+    let copied = false;
+    try {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+        await navigator.clipboard.writeText(accessCode);
+        copied = true;
+      }
+    } catch {
+      copied = false;
+    }
+
+    if (copied) {
+      showRoomParticipantsMessage("Приглашение создано и скопировано");
+    } else {
+      renderRoomParticipantsManual(
+        accessCode,
+        "Буфер обмена недоступен. Скопируйте код вручную сейчас.",
+      );
+      showRoomParticipantsMessage("Приглашение создано");
+    }
+
+    await loadRoomParticipants(code);
+  } finally {
+    if (button) button.disabled = false;
+  }
+}
+
+async function revokePendingPersonalInvite(accessId) {
+  const code = selectedRoomCode();
+  if (!code || !accessId) return;
+
+  const confirmed = window.confirm("Удалить персональное приглашение? Этот код больше не будет работать.");
+  if (!confirmed) return;
+
+  showError("room-participants-error", "");
+  const { ok, status, data } = await api(
+    "POST",
+    `/api/rooms/${encodeURIComponent(code)}/accesses/${encodeURIComponent(accessId)}/revoke`,
+    {},
+  );
+  if (!ok) {
+    showError(
+      "room-participants-error",
+      (data && formatApiError(data)) || `Не удалось удалить приглашение (${status})`,
+    );
+    return;
+  }
+
+  await loadRoomParticipants(code);
 }
 
 async function deleteRoomParticipant(dealerId) {
@@ -2642,6 +2753,7 @@ function wire() {
   });
   el("btn-create-room-access").addEventListener("click", () => createRoomAccess());
   el("btn-create-room-invite").addEventListener("click", () => createRoomInvite());
+  el("btn-create-personal-invite").addEventListener("click", () => createPersonalInviteFromParticipants());
   el("btn-save-room-invite-limit").addEventListener("click", () => onSaveRoomInviteLimit());
   el("btn-clear-room-invite-limit").addEventListener("click", () => clearRoomInviteLimit());
   el("btn-toggle-training").addEventListener("click", () => startTrainingSimple());

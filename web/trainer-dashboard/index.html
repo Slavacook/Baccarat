@@ -109,7 +109,12 @@
           <p class="muted small">
             Здесь показываются реальные участники комнаты и персональные приглашения, которые ещё ждут входа.
           </p>
+          <div class="row wrap">
+            <button type="button" id="btn-create-personal-invite" class="secondary">+ Добавить участника</button>
+          </div>
+          <div id="room-participants-manual" class="invite-manual hidden" aria-live="polite"></div>
           <p id="room-participants-error" class="error" hidden></p>
+          <p id="room-participants-message" class="access-message" hidden></p>
           <div class="table-wrap">
             <table id="room-participants-table">
               <thead>
