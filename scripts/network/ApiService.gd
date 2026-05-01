@@ -94,6 +94,16 @@ func activate_dealer_access(access_code: String, display_name: String) -> Dictio
 	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
 
 
+func activate_dealer_invite(invite_code: String, display_name: String) -> Dictionary:
+	_http_op = "activate_dealer_invite"
+	api_client.post_public("/api/dealer/invites/activate", {
+		"invite_code": invite_code,
+		"display_name": display_name
+	})
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
 func get_dealer_my_rooms(participant_tokens: Array) -> Dictionary:
 	_http_op = "dealer_my_rooms"
 	api_client.post_public("/api/dealer/my-rooms", {

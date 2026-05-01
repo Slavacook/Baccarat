@@ -77,7 +77,7 @@ func _on_connect_pressed() -> void:
 	_hide_error()
 	_set_loading(true)
 
-	var result: Dictionary = await _api_service.activate_dealer_access(access_code, display_name)
+	var result: Dictionary = await _activate_training_access(access_code, display_name)
 	_set_loading(false)
 
 	var code := int(result.get("code", 0))
@@ -104,6 +104,32 @@ func _on_connect_pressed() -> void:
 	training_added.emit(record)
 	if get_tree():
 		get_tree().change_scene_to_file("res://scenes/network/MyTrainingsScreen.tscn")
+
+
+func _activate_training_access(access_code: String, display_name: String) -> Dictionary:
+	var access_result: Dictionary = await _api_service.activate_dealer_access(access_code, display_name)
+	var status_code := int(access_result.get("code", 0))
+	if status_code >= 200 and status_code < 300:
+		return access_result
+
+	var body: Variant = access_result.get("body", {})
+	if not _should_try_invite_activation(status_code, body):
+		return access_result
+
+	return await _api_service.activate_dealer_invite(access_code, display_name)
+
+
+func _should_try_invite_activation(status_code: int, body: Variant) -> bool:
+	if status_code != 404:
+		return false
+	if not (body is Dictionary):
+		return false
+
+	var detail: Variant = (body as Dictionary).get("detail", {})
+	if not (detail is Dictionary):
+		return false
+
+	return str((detail as Dictionary).get("code", "")) == "INVALID_ACCESS_CODE"
 
 
 func _build_access_record(participant_token: String, response: Dictionary, fallback_display_name: String) -> Dictionary:
@@ -142,10 +168,18 @@ func _activation_error_message(status_code: int, body: Variant) -> String:
 	match code:
 		"INVALID_ACCESS_CODE":
 			return "Код доступа не найден"
+		"INVALID_INVITE_CODE":
+			return "Код доступа не найден"
 		"ACCESS_ALREADY_ACTIVATED":
 			return "Этот код уже активирован"
 		"ACCESS_REVOKED":
 			return "Этот доступ отозван тренером"
+		"INVITE_REVOKED":
+			return "Это приглашение отозвано"
+		"INVITE_EXPIRED":
+			return "Срок действия приглашения истёк"
+		"INVITE_NOT_ACTIVE":
+			return "Это приглашение недоступно"
 		"ACCESS_CLOSED", "ROOM_CLOSED":
 			return "Эта тренировка закрыта"
 		"DISPLAY_NAME_REQUIRED":
