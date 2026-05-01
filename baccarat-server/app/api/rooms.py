@@ -26,6 +26,8 @@ from app.schemas.room import (
     RoomAccessCreatedResponse,
     RoomAccessResponse,
     RoomAccessUpdateRequest,
+    RoomParticipantResponse,
+    RoomPersonalInviteResponse,
     RoomCreateRequest,
     RoomCreateResponse,
     RoomResponse,
@@ -453,6 +455,53 @@ async def list_room_accesses(
     return [
         room_access_response(access, dealer)
         for access, dealer in accesses_res.all()
+    ]
+
+
+@router.get("/{room_code}/participants", response_model=list[RoomParticipantResponse])
+async def list_room_participants(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """List real room participants based on Dealer records."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+
+    dealers_res = await db.execute(
+        select(Dealer)
+        .where(
+            Dealer.room_id == room.id,
+            Dealer.is_active.is_(True),
+        )
+        .order_by(Dealer.created_at.asc(), Dealer.display_name.asc())
+    )
+    return [
+        RoomParticipantResponse.from_model(dealer, online_status="unknown")
+        for dealer in dealers_res.scalars().all()
+    ]
+
+
+@router.get("/{room_code}/personal-invites", response_model=list[RoomPersonalInviteResponse])
+async def list_room_personal_invites(
+    room_code: str,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    """List pending personal invites that are not activated yet."""
+    room = await get_owned_room_or_404(room_code, trainer, db)
+
+    invites_res = await db.execute(
+        select(RoomAccess)
+        .where(
+            RoomAccess.room_id == room.id,
+            RoomAccess.status == RoomAccessStatus.CREATED,
+            RoomAccess.dealer_id.is_(None),
+        )
+        .order_by(RoomAccess.slot_number.asc(), RoomAccess.created_at.asc())
+    )
+    return [
+        RoomPersonalInviteResponse.from_model(access)
+        for access in invites_res.scalars().all()
     ]
 
 

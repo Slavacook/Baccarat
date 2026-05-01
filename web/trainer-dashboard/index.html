@@ -77,6 +77,26 @@
       </div>
 
       <div id="room-details-section" class="hidden">
+        <div class="card" id="room-participants-card">
+          <h2>Участники</h2>
+          <p class="muted small">
+            Здесь показываются реальные участники комнаты и персональные приглашения, которые ещё ждут входа.
+          </p>
+          <p id="room-participants-error" class="error" hidden></p>
+          <div class="table-wrap">
+            <table id="room-participants-table">
+              <thead>
+                <tr>
+                  <th>Имя</th>
+                  <th>Статус</th>
+                  <th>Действия</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="card" id="room-accesses-card">
           <h2>Персональные access-коды</h2>
           <p class="muted small">

@@ -24,6 +24,8 @@ let latestDealersSnapshot = [];
 let dealerRoundsCache = [];
 let roomPinsSnapshot = [];
 let roomAccessesSnapshot = [];
+let roomParticipantsSnapshot = [];
+let roomPersonalInvitesSnapshot = [];
 let generatedRoomAccesses = [];
 let currentRoomCode = "";
 const liveTableStore = {
@@ -112,6 +114,13 @@ function clearRoomAccessState() {
   renderGeneratedRoomAccesses([]);
 }
 
+function clearRoomParticipantsState() {
+  roomParticipantsSnapshot = [];
+  roomPersonalInvitesSnapshot = [];
+  showError("room-participants-error", "");
+  renderRoomParticipants([], []);
+}
+
 function clearLiveDashboardState() {
   stopLiveWatch();
   currentSessionId = null;
@@ -137,6 +146,7 @@ function clearRoomScopedState(options = {}) {
   }
 
   roomPinsSnapshot = [];
+  clearRoomParticipantsState();
   clearRoomAccessState();
   clearLiveDashboardState();
 
@@ -1337,6 +1347,7 @@ async function refreshRooms() {
   const selected = rooms.find((r) => r.room_code === nextRoomCode) || rooms[0];
   setCurrentRoom(selected.room_code, `${selected.name} (${selected.room_code})`);
   renderRoomsList(rooms);
+  await loadRoomParticipants();
   await fetchRoomPinsOnce();
   await loadRoomAccesses();
   await fetchRoomDealersOnce();
@@ -1344,6 +1355,136 @@ async function refreshRooms() {
 
 function selectedRoomCode() {
   return currentRoomCode || "";
+}
+
+function participantStatusLabel(status, kind = "participant") {
+  const value = String(status || "").toLowerCase();
+  if (kind === "pending-invite") return "Ожидает";
+  if (value === "online") return "Онлайн";
+  if (value === "offline") return "Оффлайн";
+  if (value === "unknown") return "Неизвестно";
+  return status || "—";
+}
+
+function participantStatusClass(status, kind = "participant") {
+  const value = String(status || "").toLowerCase();
+  if (kind === "pending-invite") return "status-created";
+  if (value === "online") return "status-activated";
+  if (value === "offline") return "status-revoked";
+  return "status-unknown";
+}
+
+function renderRoomParticipants(participants, invites) {
+  const table = el("room-participants-table");
+  if (!table) return;
+  const tbody = table.querySelector("tbody");
+  tbody.innerHTML = "";
+
+  const participantItems = Array.isArray(participants) ? participants : [];
+  const inviteItems = Array.isArray(invites) ? invites : [];
+
+  if (participantItems.length === 0 && inviteItems.length === 0) {
+    const tr = document.createElement("tr");
+    const td = document.createElement("td");
+    td.colSpan = 3;
+    td.className = "muted";
+    td.textContent = "Участников пока нет.";
+    tr.appendChild(td);
+    tbody.appendChild(tr);
+    return;
+  }
+
+  for (const participant of participantItems) {
+    const tr = document.createElement("tr");
+
+    const cName = document.createElement("td");
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "participant-name-cell";
+    const title = document.createElement("span");
+    title.textContent = participant.display_name || "—";
+    nameWrap.appendChild(title);
+    cName.appendChild(nameWrap);
+
+    const cStatus = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = `status-badge ${participantStatusClass(participant.online_status, "participant")}`;
+    badge.textContent = participantStatusLabel(participant.online_status, "participant");
+    cStatus.appendChild(badge);
+
+    const cActions = document.createElement("td");
+    cActions.className = "muted";
+    cActions.textContent = "—";
+
+    tr.appendChild(cName);
+    tr.appendChild(cStatus);
+    tr.appendChild(cActions);
+    tbody.appendChild(tr);
+  }
+
+  for (const invite of inviteItems) {
+    const tr = document.createElement("tr");
+
+    const cName = document.createElement("td");
+    const nameWrap = document.createElement("div");
+    nameWrap.className = "participant-name-cell";
+    const title = document.createElement("span");
+    title.textContent = "Ожидает входа";
+    nameWrap.appendChild(title);
+    if (invite.trainer_internal_name) {
+      const subtitle = document.createElement("span");
+      subtitle.className = "participant-subtitle";
+      subtitle.textContent = invite.trainer_internal_name;
+      nameWrap.appendChild(subtitle);
+    }
+    cName.appendChild(nameWrap);
+
+    const cStatus = document.createElement("td");
+    const badge = document.createElement("span");
+    badge.className = `status-badge ${participantStatusClass(invite.status, "pending-invite")}`;
+    badge.textContent = participantStatusLabel(invite.status, "pending-invite");
+    cStatus.appendChild(badge);
+
+    const cActions = document.createElement("td");
+    cActions.className = "muted";
+    cActions.textContent = "—";
+
+    tr.appendChild(cName);
+    tr.appendChild(cStatus);
+    tr.appendChild(cActions);
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadRoomParticipants(roomCode = selectedRoomCode()) {
+  const code = String(roomCode || "");
+  if (!code) {
+    clearRoomParticipantsState();
+    return;
+  }
+
+  showError("room-participants-error", "");
+  const [participantsRes, invitesRes] = await Promise.all([
+    api("GET", `/api/rooms/${encodeURIComponent(code)}/participants`),
+    api("GET", `/api/rooms/${encodeURIComponent(code)}/personal-invites`),
+  ]);
+
+  const participantsOk = participantsRes.ok && Array.isArray(participantsRes.data);
+  const invitesOk = invitesRes.ok && Array.isArray(invitesRes.data);
+
+  roomParticipantsSnapshot = participantsOk ? participantsRes.data : [];
+  roomPersonalInvitesSnapshot = invitesOk ? invitesRes.data : [];
+  renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+
+  if (participantsOk && invitesOk) return;
+
+  const participantsError = !participantsOk
+    ? (participantsRes.data && formatApiError(participantsRes.data)) || `Не удалось загрузить участников (${participantsRes.status})`
+    : "";
+  const invitesError = !invitesOk
+    ? (invitesRes.data && formatApiError(invitesRes.data)) || `Не удалось загрузить персональные приглашения (${invitesRes.status})`
+    : "";
+
+  showError("room-participants-error", [participantsError, invitesError].filter(Boolean).join(". "));
 }
 
 function roomAccessStatusLabel(status) {
@@ -1582,6 +1723,7 @@ async function createRoomAccess() {
     generatedRoomAccesses = created.filter((item) => item && item.access_code);
     renderGeneratedRoomAccesses();
     showRoomAccessMessage("Access-код создан. Скопируйте полный код сейчас.");
+    await loadRoomParticipants(code);
     await loadRoomAccesses(code);
   } finally {
     if (btn) btn.disabled = false;
@@ -1606,6 +1748,7 @@ async function updateRoomAccessInternalName(accessId, value) {
     return;
   }
   showRoomAccessMessage("Внутреннее имя сохранено.");
+  await loadRoomParticipants(code);
   await loadRoomAccesses(code);
 }
 
@@ -1631,6 +1774,7 @@ async function revokeRoomAccess(accessId) {
   }
 
   showRoomAccessMessage("Доступ отозван.");
+  await loadRoomParticipants(code);
   await loadRoomAccesses(code);
 }
 
@@ -1657,6 +1801,7 @@ async function resetRoomAccess(accessId) {
   generatedRoomAccesses = [data];
   renderGeneratedRoomAccesses();
   showRoomAccessMessage("Доступ сброшен. Новый код показан ниже, скопируйте его сейчас.");
+  await loadRoomParticipants(code);
   await loadRoomAccesses(code);
 }
 
@@ -1734,6 +1879,7 @@ function renderRoomsList(rooms) {
     pick.addEventListener("click", async () => {
       clearLiveDashboardState();
       setCurrentRoom(room.room_code, `${room.name} (${room.room_code})`);
+      await loadRoomParticipants();
       await fetchRoomPinsOnce();
       await loadRoomAccesses();
       await fetchRoomDealersOnce();
@@ -1908,6 +2054,7 @@ async function createRoom() {
   await refreshRooms();
   if (room && room.room_code) {
     setCurrentRoom(room.room_code, `${room.name || room.room_code} (${room.room_code})`);
+    await loadRoomParticipants();
     await fetchRoomPinsOnce();
     await loadRoomAccesses();
     await fetchRoomDealersOnce();
@@ -2276,6 +2423,7 @@ function wire() {
 function boot() {
   wire();
   setRoomScopedVisibility();
+  renderRoomParticipants([], []);
   renderRoomPins([]);
   renderRoomAccesses([]);
   renderResultsEmpty("Тренировка ещё не запущена");

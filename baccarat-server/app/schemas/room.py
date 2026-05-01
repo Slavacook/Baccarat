@@ -155,3 +155,41 @@ class RoomAccessUpdateRequest(BaseModel):
         if len(value) > 255:
             raise ValueError("Внутреннее имя не должно превышать 255 символов")
         return value
+
+
+class RoomParticipantResponse(BaseModel):
+    dealer_id: str
+    display_name: str
+    is_active: bool
+    last_seen_at: datetime | None = None
+    created_at: datetime | None = None
+    online_status: str = "unknown"
+
+    @classmethod
+    def from_model(cls, dealer, online_status: str = "unknown") -> "RoomParticipantResponse":
+        return cls(
+            dealer_id=str(dealer.id),
+            display_name=dealer.display_name,
+            is_active=bool(dealer.is_active),
+            last_seen_at=dealer.last_seen_at,
+            created_at=dealer.created_at,
+            online_status=online_status,
+        )
+
+
+class RoomPersonalInviteResponse(BaseModel):
+    access_id: str
+    trainer_internal_name: str | None = None
+    created_at: datetime | None = None
+    access_code_suffix: str | None = None
+    status: str = "created"
+
+    @classmethod
+    def from_model(cls, access) -> "RoomPersonalInviteResponse":
+        return cls(
+            access_id=str(access.id),
+            trainer_internal_name=access.trainer_internal_name,
+            created_at=access.created_at,
+            access_code_suffix=access.access_code_suffix,
+            status=access.status,
+        )
