@@ -220,6 +220,21 @@ func _on_input_focus_exited() -> void:
 	_handle_input_focus_exit()
 
 
+func _input(event: InputEvent) -> void:
+	if _active_input == null:
+		return
+	if not _is_tap_event(event):
+		return
+
+	var tap_position := _event_position(event)
+	if _is_position_inside_input(access_code_input, tap_position):
+		return
+	if _is_position_inside_input(display_name_input, tap_position):
+		return
+
+	_dismiss_keyboard()
+
+
 func _run_keyboard_focus_adjustment(target: Control, focus_version: int) -> void:
 	if target == null or form_scroll == null:
 		return
@@ -251,14 +266,46 @@ func _handle_input_focus_exit() -> void:
 	if _has_input_focus():
 		return
 
-	_keyboard_focus_version += 1
-	_active_input = null
-	_set_keyboard_spacer_height(0)
+	_dismiss_keyboard()
 
 
 func _has_input_focus() -> bool:
 	return (access_code_input != null and access_code_input.has_focus()) \
 		or (display_name_input != null and display_name_input.has_focus())
+
+
+func _dismiss_keyboard() -> void:
+	_keyboard_focus_version += 1
+
+	if access_code_input and access_code_input.has_focus():
+		access_code_input.release_focus()
+	if display_name_input and display_name_input.has_focus():
+		display_name_input.release_focus()
+
+	_active_input = null
+	_set_keyboard_spacer_height(0)
+	DisplayServer.virtual_keyboard_hide()
+
+
+func _is_tap_event(event: InputEvent) -> bool:
+	if event is InputEventMouseButton:
+		var mouse_event := event as InputEventMouseButton
+		return mouse_event.pressed and mouse_event.button_index == MOUSE_BUTTON_LEFT
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).pressed
+	return false
+
+
+func _event_position(event: InputEvent) -> Vector2:
+	if event is InputEventMouseButton:
+		return (event as InputEventMouseButton).position
+	if event is InputEventScreenTouch:
+		return (event as InputEventScreenTouch).position
+	return Vector2.ZERO
+
+
+func _is_position_inside_input(target: Control, position: Vector2) -> bool:
+	return target != null and target.get_global_rect().has_point(position)
 
 
 func _set_keyboard_spacer_height(height: int) -> void:
