@@ -32,6 +32,7 @@ var tournament_participant_id: String = ""
 var tournament_participant_display_name: String = ""
 var tournament_max_rounds: int = 0
 var tournament_attempt_duration_seconds: int = 0
+var tournament_attempt_started_at: float = 0.0
 ## Сид текущего раунда с сервера (после применения к колоде совпадает с последней раздачей).
 var live_round_seed: String = ""
 ## Сид следующего раунда из WS `round_sync` (применяется в deal_first_four перед раздачей).
@@ -117,6 +118,7 @@ func start_tournament_session(access_record: Dictionary) -> void:
 	tournament_participant_display_name = str(participant.get("display_name", "")).strip_edges()
 	tournament_max_rounds = int(tournament.get("max_rounds", 0))
 	tournament_attempt_duration_seconds = int(tournament.get("attempt_duration_seconds", 0))
+	tournament_attempt_started_at = Time.get_ticks_msec() / 1000.0
 	display_name = tournament_participant_display_name
 
 	_reset_stats()
@@ -201,6 +203,7 @@ func get_session_stats() -> Dictionary:
 		"tournament_participant_display_name": tournament_participant_display_name,
 		"tournament_max_rounds": tournament_max_rounds,
 		"tournament_attempt_duration_seconds": tournament_attempt_duration_seconds,
+		"tournament_attempt_started_at": tournament_attempt_started_at,
 		"rounds_played": rounds_played,
 		"correct_answers": correct_answers,
 		"total_errors": total_errors,
@@ -241,6 +244,7 @@ func _reset_runtime_context() -> void:
 	tournament_participant_display_name = ""
 	tournament_max_rounds = 0
 	tournament_attempt_duration_seconds = 0
+	tournament_attempt_started_at = 0.0
 	live_round_seed = ""
 	pending_live_round_seed = ""
 	_force_exit_in_progress = false

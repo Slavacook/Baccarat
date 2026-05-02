@@ -189,6 +189,52 @@ offset_right = 40.0
 offset_bottom = 40.0
 texture = ExtResource("5_bneo8")
 
+[node name="TournamentInfoPanel" type="PanelContainer" parent="TopUI"]
+visible = false
+offset_left = 16.0
+offset_top = 86.0
+offset_right = 336.0
+offset_bottom = 208.0
+
+[node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentInfoPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 12
+
+[node name="TournamentInfoContainer" type="VBoxContainer" parent="TopUI/TournamentInfoPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TournamentTitleLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
+theme_override_font_sizes/font_size = 20
+text = "Турнир: —"
+autowrap_mode = 2
+
+[node name="TournamentParticipantLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
+theme_override_font_sizes/font_size = 18
+text = "Участник: —"
+autowrap_mode = 2
+
+[node name="TournamentRoundsLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 1)
+theme_override_font_sizes/font_size = 18
+text = "Раздачи: 0 / 0"
+autowrap_mode = 2
+
+[node name="TournamentTimeLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 1)
+theme_override_font_sizes/font_size = 18
+text = "Время: 00:00"
+autowrap_mode = 2
+
 [node name="Background5" type="TextureRect" parent="."]
 offset_left = -1690.0
 offset_top = -1636.0

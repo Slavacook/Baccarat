@@ -158,6 +158,7 @@ var is_payout_processing: bool = false  # Флаг обработки выпла
 
 # Переменная для отложенной смены режима (аналогично pending_filter_changes)
 var pending_mode_change: String = GameConstants.MODE_EMPTY  # "junket" или "classic", пустая = нет отложенной смены
+var _last_tournament_remaining_seconds: int = -1
 
 # Контроллер состояния игры (Extract Class)
 var game_state_controller: GameStateController
@@ -178,6 +179,11 @@ var game_state_controller: GameStateController
 @onready var rounds_counter_label: Label = $RoundsCounterLabel
 @onready var background_5: TextureRect = $Background5
 @onready var background_666: TextureRect = $Background666
+@onready var tournament_info_panel: Control = $TopUI/TournamentInfoPanel
+@onready var tournament_title_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentTitleLabel
+@onready var tournament_participant_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentParticipantLabel
+@onready var tournament_rounds_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentRoundsLabel
+@onready var tournament_time_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentTimeLabel
 @onready var guest_sprites: Dictionary = {
 	1: $G_1,
 	2: $G_2,
@@ -317,6 +323,7 @@ func _ready():
 	# Инициализируем счетчик раздач
 	_update_rounds_counter()
 	_refresh_top_bar_texts()
+	_update_tournament_info_panel()
 	
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
@@ -1895,6 +1902,7 @@ func _process(_delta: float) -> void:
 	"""Проверка изменения подключения геймпадов - делегировано в GamepadMonitor"""
 	if gamepad_monitor:
 		gamepad_monitor.process(_delta)
+	_update_tournament_countdown_if_needed()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ UI - СЧЕТЧИК РАУНДОВ
@@ -1905,6 +1913,7 @@ func _on_round_started() -> void:
 	survival_rounds_completed += 1
 	if rounds_counter_updater:
 		rounds_counter_updater.on_round_started()
+	_update_tournament_info_panel()
 	DebugLogger.log("🎮 Началась раздача #%d" % survival_rounds_completed)
 
 func _update_rounds_counter() -> void:
@@ -1923,6 +1932,89 @@ func _refresh_top_bar_texts(_lang: String = "") -> void:
 		top_settings_button.text = Localization.t("TOPBAR_SETTINGS")
 
 	_update_rounds_counter()
+	_update_tournament_info_panel()
 
 	if StatsManager.instance:
 		StatsManager.instance.update_stats()
+
+
+func _update_tournament_info_panel() -> void:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	if sm == null:
+		_last_tournament_remaining_seconds = -1
+		if tournament_info_panel:
+			tournament_info_panel.visible = false
+		return
+
+	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
+		_last_tournament_remaining_seconds = -1
+		if tournament_info_panel:
+			tournament_info_panel.visible = false
+		return
+
+	if tournament_info_panel:
+		tournament_info_panel.visible = true
+
+	var title_text: String = str(sm.get("tournament_title")).strip_edges()
+	var code_text: String = str(sm.get("tournament_code")).strip_edges()
+	var participant_text: String = str(sm.get("tournament_participant_display_name")).strip_edges()
+	var rounds_played: int = int(sm.get("rounds_played"))
+	var max_rounds: int = int(sm.get("tournament_max_rounds"))
+	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
+	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
+	var elapsed_seconds: int = 0
+	if attempt_started_at > 0.0:
+		elapsed_seconds = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
+	var remaining_seconds: int = max(attempt_duration_seconds - elapsed_seconds, 0)
+	_last_tournament_remaining_seconds = remaining_seconds
+
+	if title_text.is_empty():
+		title_text = code_text if not code_text.is_empty() else "—"
+	if participant_text.is_empty():
+		participant_text = "—"
+
+	if tournament_title_label:
+		tournament_title_label.text = "Турнир: %s" % title_text
+	if tournament_participant_label:
+		tournament_participant_label.text = "Участник: %s" % participant_text
+	if tournament_rounds_label:
+		tournament_rounds_label.text = "Раздачи: %d / %d" % [rounds_played, max_rounds]
+	if tournament_time_label:
+		tournament_time_label.text = "Время: %s" % _format_duration_mmss(remaining_seconds)
+
+
+func _format_duration_mmss(total_seconds: int) -> String:
+	var clamped_seconds: int = max(total_seconds, 0)
+	var minutes: int = int(floor(float(clamped_seconds) / 60.0))
+	var seconds: int = clamped_seconds % 60
+	return "%02d:%02d" % [minutes, seconds]
+
+
+func _update_tournament_countdown_if_needed() -> void:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	if sm == null:
+		return
+	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
+		return
+
+	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
+	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
+	if attempt_started_at <= 0.0:
+		return
+
+	var elapsed_seconds: int = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
+	var remaining_seconds: int = max(attempt_duration_seconds - elapsed_seconds, 0)
+	if remaining_seconds == _last_tournament_remaining_seconds:
+		return
+
+	_update_tournament_info_panel()
