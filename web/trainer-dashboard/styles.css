@@ -802,6 +802,10 @@ th {
   padding: 16px;
 }
 
+.tournament-modal-card {
+  width: min(560px, 100%);
+}
+
 .add-participant-modal-card {
   width: min(760px, 100%);
 }

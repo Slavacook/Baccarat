@@ -229,6 +229,7 @@
         <div class="toolbar card">
           <div class="row toolbar-compact">
             <button type="button" id="btn-logout-tournaments" class="ghost">Выйти</button>
+            <button type="button" id="btn-open-create-tournament-modal" class="secondary">+ Турнир</button>
             <span id="tournaments-user-label" class="muted"></span>
           </div>
           <p id="tournaments-error" class="error" hidden></p>
@@ -236,7 +237,7 @@
 
         <div id="tournaments-empty-state" class="card empty-state hidden">
           <h2>Турниров пока нет</h2>
-          <p class="muted">Создание турнира добавим следующим шагом.</p>
+          <p class="muted">Создайте первый турнир, чтобы получить код для участников.</p>
         </div>
 
         <div id="tournaments-list-card" class="card hidden">
@@ -298,6 +299,19 @@
       <input type="text" id="new-room-name" maxlength="100" placeholder="Например: Смена 1" />
       <p class="muted small">Комната создается на 5 участников. Потом можно добавить еще.</p>
       <button type="button" id="btn-create-room" class="primary">Создать</button>
+    </div>
+  </div>
+  <div id="create-tournament-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-tournament-title">
+    <div class="modal-card tournament-modal-card">
+      <div class="row wrap">
+        <h3 id="create-tournament-title">Новый турнир</h3>
+        <button type="button" id="btn-close-create-tournament-modal" class="ghost">Закрыть</button>
+      </div>
+      <label for="new-tournament-title">Название турнира</label>
+      <input type="text" id="new-tournament-title" maxlength="255" placeholder="Можно оставить пустым" />
+      <p class="muted small">Если название не указано, сервер подставит его сам.</p>
+      <button type="button" id="btn-create-tournament" class="primary">Создать</button>
+      <p id="create-tournament-error" class="error" hidden></p>
     </div>
   </div>
   <div id="add-participant-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="add-participant-title">
