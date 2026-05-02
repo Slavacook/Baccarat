@@ -36,7 +36,7 @@ from app.utils.access_codes import (
     generate_tournament_code,
     hash_participant_token,
 )
-from app.utils.tournament_participants import normalize_tournament_display_name
+from app.utils.tournament_participants import clean_tournament_display_name, normalize_tournament_display_name
 
 router = APIRouter(prefix="/tournaments")
 
@@ -317,7 +317,8 @@ async def activate_tournament_participant(
             detail="Tournament is closed",
         )
 
-    normalized_display_name = normalize_tournament_display_name(body.display_name)
+    display_name = clean_tournament_display_name(body.display_name)
+    normalized_display_name = normalize_tournament_display_name(display_name)
     now = datetime.now(timezone.utc)
 
     participant_res = await db.execute(
@@ -330,7 +331,7 @@ async def activate_tournament_participant(
     if participant is None:
         participant = TournamentParticipant(
             tournament_id=tournament.id,
-            display_name=body.display_name.strip(),
+            display_name=display_name,
             normalized_display_name=normalized_display_name,
             last_seen_at=now,
         )
