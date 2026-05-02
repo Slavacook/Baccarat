@@ -34,8 +34,12 @@ var tournament_max_rounds: int = 0
 var tournament_attempt_duration_seconds: int = 0
 var tournament_attempt_started_at: float = 0.0
 var tournament_rounds_completed: int = 0
+var tournament_errors_total: int = 0
 var tournament_attempt_finished: bool = false
 var tournament_finish_reason: String = ""
+var tournament_submit_started: bool = false
+var tournament_submit_completed: bool = false
+var tournament_submit_succeeded: bool = false
 ## Сид текущего раунда с сервера (после применения к колоде совпадает с последней раздачей).
 var live_round_seed: String = ""
 ## Сид следующего раунда из WS `round_sync` (применяется в deal_first_four перед раздачей).
@@ -74,6 +78,14 @@ func _ready() -> void:
 		eb.cards_dealt.connect(_on_cards_dealt)
 		eb.player_third_drawn.connect(_on_player_third_drawn)
 		eb.banker_third_drawn.connect(_on_banker_third_drawn)
+		if eb.has_signal("action_error"):
+			eb.action_error.connect(_on_tournament_action_error)
+		if eb.has_signal("payout_wrong"):
+			eb.payout_wrong.connect(_on_tournament_payout_wrong)
+		if eb.has_signal("collection_error"):
+			eb.collection_error.connect(_on_tournament_collection_error)
+		if eb.has_signal("payment_error"):
+			eb.payment_error.connect(_on_tournament_payment_error)
 	_ensure_online_watchdog_timer()
 
 
@@ -208,8 +220,12 @@ func get_session_stats() -> Dictionary:
 		"tournament_attempt_duration_seconds": tournament_attempt_duration_seconds,
 		"tournament_attempt_started_at": tournament_attempt_started_at,
 		"tournament_rounds_completed": tournament_rounds_completed,
+		"tournament_errors_total": tournament_errors_total,
 		"tournament_attempt_finished": tournament_attempt_finished,
 		"tournament_finish_reason": tournament_finish_reason,
+		"tournament_submit_started": tournament_submit_started,
+		"tournament_submit_completed": tournament_submit_completed,
+		"tournament_submit_succeeded": tournament_submit_succeeded,
 		"rounds_played": rounds_played,
 		"correct_answers": correct_answers,
 		"total_errors": total_errors,
@@ -252,8 +268,12 @@ func _reset_runtime_context() -> void:
 	tournament_attempt_duration_seconds = 0
 	tournament_attempt_started_at = 0.0
 	tournament_rounds_completed = 0
+	tournament_errors_total = 0
 	tournament_attempt_finished = false
 	tournament_finish_reason = ""
+	tournament_submit_started = false
+	tournament_submit_completed = false
+	tournament_submit_succeeded = false
 	live_round_seed = ""
 	pending_live_round_seed = ""
 	_force_exit_in_progress = false
@@ -267,6 +287,14 @@ func mark_tournament_round_completed() -> void:
 	tournament_rounds_completed += 1
 
 
+func mark_tournament_error() -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	if tournament_attempt_finished:
+		return
+	tournament_errors_total += 1
+
+
 func finish_tournament_attempt(reason: String) -> void:
 	if current_mode != Mode.TOURNAMENT:
 		return
@@ -274,6 +302,22 @@ func finish_tournament_attempt(reason: String) -> void:
 		return
 	tournament_attempt_finished = true
 	tournament_finish_reason = reason
+
+
+func start_tournament_submit() -> bool:
+	if current_mode != Mode.TOURNAMENT:
+		return false
+	if tournament_submit_started or tournament_submit_completed:
+		return false
+	tournament_submit_started = true
+	return true
+
+
+func complete_tournament_submit(success: bool) -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	tournament_submit_completed = true
+	tournament_submit_succeeded = success
 
 
 func _calc_accuracy() -> float:
@@ -315,6 +359,22 @@ func _on_player_third_drawn(card: Card) -> void:
 func _on_banker_third_drawn(card: Card) -> void:
 	if card and card.has_method("card_to_string"):
 		_last_banker_cards.append(str(card.card_to_string()))
+
+
+func _on_tournament_action_error(_error_type: Variant = null, _message: Variant = null) -> void:
+	mark_tournament_error()
+
+
+func _on_tournament_payout_wrong(_payload: Variant = null) -> void:
+	mark_tournament_error()
+
+
+func _on_tournament_collection_error(_payload: Variant = null) -> void:
+	mark_tournament_error()
+
+
+func _on_tournament_payment_error(_payload: Variant = null) -> void:
+	mark_tournament_error()
 
 
 func _cards_to_strings(cards: Array) -> Array[String]:
