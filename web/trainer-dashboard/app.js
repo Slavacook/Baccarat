@@ -48,6 +48,8 @@ const liveTableStore = {
   byDealerId: new Map(),
 };
 const liveErrorsByDealerId = new Map();
+const liveTimeByDealerId = new Map();
+let liveTimerInterval = null;
 const LIVE_FEED_MAX = 100;
 const LIVE_MONITOR_TYPES = new Set([
   "round_started",
@@ -89,6 +91,7 @@ function resetLiveCounters() {
   connectedDealerIds = new Set();
   liveTableStore.byDealerId.clear();
   clearLiveErrorCounters();
+  clearLiveTimeCounters();
 }
 
 function resetLiveSessionView(options = {}) {
@@ -434,6 +437,7 @@ function clearLiveDashboardState() {
   currentSessionId = null;
   currentSessionInfoBase = "";
   clearLiveErrorCounters();
+  clearLiveTimeCounters();
   latestDealersSnapshot = [];
   dealerRoundsCache = [];
   resetLiveSessionView({ clearFeed: true, refreshDealersTable: false });
@@ -604,6 +608,7 @@ function resetDealerLiveState(dealerId, options = {}) {
   const { clearReady = false } = options;
   liveTableStore.byDealerId.delete(id);
   resetDealerLiveErrorCounter(id);
+  resetDealerLiveTimeCounter(id);
   connectedDealerIds.delete(id);
   if (clearReady) {
     readyDealerIds.delete(id);
@@ -1701,6 +1706,7 @@ function startTrainerSessionWebSocket() {
         if (t === "dealer_joined") {
           resetDealerLiveState(did, { clearReady: true });
           connectedDealerIds.add(did);
+          startDealerLiveTimeCounter(did, getBackendParticipantLiveSeconds(did) || 0);
         } else {
           resetDealerLiveState(did, { clearReady: true });
         }
@@ -1708,8 +1714,10 @@ function startTrainerSessionWebSocket() {
       renderSessionInfo();
     }
     if (t === "dealer_ready" && data.dealer_id) {
-      readyDealerIds.add(String(data.dealer_id));
-      connectedDealerIds.add(String(data.dealer_id));
+      const did = String(data.dealer_id);
+      readyDealerIds.add(did);
+      connectedDealerIds.add(did);
+      ensureDealerLiveTimeCounter(did);
       renderSessionInfo();
     }
     if (t === "dealer_update" && data.dealer_id) {
@@ -1729,6 +1737,9 @@ function startTrainerSessionWebSocket() {
     if (LIVE_MONITOR_TYPES.has(t)) {
       if (t === "round_started" && data.dealer_id) {
         markDealerRoundStarted(data.dealer_id, data);
+      }
+      if (data.dealer_id) {
+        ensureDealerLiveTimeCounter(data.dealer_id);
       }
       pushLiveFeedEntry(t, data);
       if (t === "error_occurred") {
@@ -2076,10 +2087,128 @@ function incrementDealerLiveErrorCounter(dealerId) {
   return nextCount;
 }
 
+function stopLiveTimerInterval() {
+  if (!liveTimerInterval) return;
+  clearInterval(liveTimerInterval);
+  liveTimerInterval = null;
+}
+
+function clearLiveTimeCounters() {
+  liveTimeByDealerId.clear();
+  stopLiveTimerInterval();
+}
+
+function resetDealerLiveTimeCounter(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  liveTimeByDealerId.delete(id);
+  if (liveTimeByDealerId.size === 0) {
+    stopLiveTimerInterval();
+  }
+}
+
+function ensureLiveTimerInterval() {
+  if (liveTimerInterval || liveTimeByDealerId.size === 0) return;
+  liveTimerInterval = setInterval(() => {
+    if (liveTimeByDealerId.size === 0) {
+      stopLiveTimerInterval();
+      return;
+    }
+    if (roomParticipantsSnapshot.length > 0) {
+      renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+    }
+    renderSelectedDealerDetail();
+    if (Array.isArray(latestDealersSnapshot) && latestDealersSnapshot.length > 0) {
+      renderDealers(latestDealersSnapshot);
+    }
+  }, 1000);
+}
+
+function startDealerLiveTimeCounter(dealerId, backendSeconds = 0) {
+  const id = String(dealerId || "").trim();
+  if (!id) return null;
+  const safeBaseSeconds = Math.max(0, Math.floor(Number(backendSeconds || 0)));
+  const currentRuntimeSeconds = getRuntimeParticipantLiveSeconds(id);
+  if (currentRuntimeSeconds != null && currentRuntimeSeconds >= safeBaseSeconds) {
+    ensureLiveTimerInterval();
+    return liveTimeByDealerId.get(id) || null;
+  }
+  const nextState = {
+    startedAtMs: Date.now(),
+    baseSeconds: safeBaseSeconds,
+  };
+  liveTimeByDealerId.set(id, nextState);
+  ensureLiveTimerInterval();
+  return nextState;
+}
+
+function ensureDealerLiveTimeCounter(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return null;
+  if (liveTimeByDealerId.has(id)) {
+    ensureLiveTimerInterval();
+    return liveTimeByDealerId.get(id) || null;
+  }
+  return startDealerLiveTimeCounter(id, getBackendParticipantLiveSeconds(id) || 0);
+}
+
 function getBackendParticipantErrorsCount(dealerId) {
   const summary = getParticipantResultsSummary(dealerId);
   if (!summary || typeof summary.errors_total !== "number") return 0;
   return Number(summary.errors_total || 0);
+}
+
+function isDealerLiveTimerEligible(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return false;
+  if (connectedDealerIds.has(id) || readyDealerIds.has(id)) {
+    return true;
+  }
+  const participant = roomParticipantsSnapshot.find(
+    (item) => String(item && item.dealer_id ? item.dealer_id : "").trim() === id
+  );
+  return String(participant && participant.online_status ? participant.online_status : "").trim() === "online";
+}
+
+function getBackendParticipantLiveSeconds(dealerId) {
+  const summary = getParticipantResultsSummary(dealerId);
+  if (!summary || typeof summary.live_seconds !== "number") return null;
+  return Number(summary.live_seconds || 0);
+}
+
+function getRuntimeParticipantLiveSeconds(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return null;
+  const state = liveTimeByDealerId.get(id);
+  if (!state || typeof state !== "object") return null;
+  const startedAtMs = Number(state.startedAtMs || 0);
+  const baseSeconds = Math.max(0, Math.floor(Number(state.baseSeconds || 0)));
+  if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) return baseSeconds;
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAtMs) / 1000));
+  return baseSeconds + elapsedSeconds;
+}
+
+function getParticipantDisplayLiveSeconds(dealerId) {
+  const backendSeconds = getBackendParticipantLiveSeconds(dealerId);
+  const runtimeSeconds = getRuntimeParticipantLiveSeconds(dealerId);
+  if (runtimeSeconds != null && backendSeconds != null) {
+    return Math.max(runtimeSeconds, backendSeconds);
+  }
+  if (runtimeSeconds != null) return runtimeSeconds;
+  if (backendSeconds != null) return backendSeconds;
+  return null;
+}
+
+function syncDealerLiveTimeFromBackend(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  if (!isDealerLiveTimerEligible(id)) return;
+  const backendSeconds = getBackendParticipantLiveSeconds(id);
+  if (backendSeconds == null) return;
+  const runtimeSeconds = getRuntimeParticipantLiveSeconds(id);
+  if (runtimeSeconds == null || backendSeconds > runtimeSeconds) {
+    startDealerLiveTimeCounter(id, backendSeconds);
+  }
 }
 
 function getLiveParticipantErrorsCount(dealerId) {
@@ -2118,9 +2247,7 @@ function getParticipantErrorsCount(dealerId) {
 }
 
 function getParticipantLiveSeconds(dealerId) {
-  const summary = getParticipantResultsSummary(dealerId);
-  if (!summary || typeof summary.live_seconds !== "number") return null;
-  return Number(summary.live_seconds || 0);
+  return getParticipantDisplayLiveSeconds(dealerId);
 }
 
 async function copyPendingPersonalInviteCode(code, button) {
@@ -3273,6 +3400,9 @@ async function startTrainingSimple() {
 
 function renderDealers(dealers) {
   latestDealersSnapshot = Array.isArray(dealers) ? dealers : [];
+  for (const dealer of latestDealersSnapshot) {
+    syncDealerLiveTimeFromBackend(dealer && dealer.dealer_id);
+  }
   const tbody = el("dealers-table").querySelector("tbody");
   tbody.innerHTML = "";
   el("results-empty").hidden = dealers.length > 0;
@@ -3299,7 +3429,8 @@ function renderDealers(dealers) {
     const errs = document.createElement("td");
     errs.textContent = `🃏${Number(d.cards_errors || 0)}  💰${Number(d.payout_errors || 0)}  🔢${Number(d.chips_errors || 0)}`;
     const liveTime = document.createElement("td");
-    liveTime.textContent = formatDuration(Number(d.live_seconds || 0));
+    const dealerLiveSeconds = getParticipantDisplayLiveSeconds(did);
+    liveTime.textContent = dealerLiveSeconds == null ? "—" : formatDuration(dealerLiveSeconds);
     const rounds = document.createElement("td");
     rounds.textContent = String(d.rounds_completed ?? 0);
     const acc = document.createElement("td");
