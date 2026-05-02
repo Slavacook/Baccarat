@@ -46,6 +46,9 @@ let generatedRoomAccesses = [];
 let tournamentsSnapshot = [];
 let tournamentsLoaded = false;
 let createTournamentInFlight = false;
+let selectedTournamentId = "";
+let selectedTournamentSnapshot = null;
+let tournamentLeaderboardSnapshot = [];
 let currentRoomCode = "";
 const liveTableStore = {
   byDealerId: new Map(),
@@ -1820,8 +1823,12 @@ function setDashboardUserLabel(text) {
 function clearTournamentState() {
   tournamentsSnapshot = [];
   tournamentsLoaded = false;
+  selectedTournamentId = "";
+  selectedTournamentSnapshot = null;
+  tournamentLeaderboardSnapshot = [];
   showError("tournaments-error", "");
   renderTournaments([]);
+  renderTournamentLeaderboard(null, []);
 }
 
 function formatTournamentStatus(status) {
@@ -1891,7 +1898,90 @@ async function closeTournament(tournamentId) {
     return;
   }
   await refreshTournaments();
+  if (selectedTournamentId && selectedTournamentId === id) {
+    await loadTournamentLeaderboard(id);
+  }
   setDashboardStage("tournaments");
+}
+
+function renderTournamentLeaderboard(tournament, entries) {
+  const card = el("tournament-leaderboard-card");
+  const table = el("tournament-leaderboard-table");
+  const tbody = table ? table.querySelector("tbody") : null;
+  const titleNode = el("tournament-leaderboard-title");
+  const metaNode = el("tournament-leaderboard-meta");
+  const emptyNode = el("tournament-leaderboard-empty");
+  if (!card || !tbody || !titleNode || !metaNode || !emptyNode) return;
+
+  tbody.innerHTML = "";
+
+  if (!tournament) {
+    card.classList.add("hidden");
+    titleNode.textContent = "Турнир: —";
+    metaNode.textContent = "Код: — · Статус: —";
+    emptyNode.classList.add("hidden");
+    return;
+  }
+
+  card.classList.remove("hidden");
+  titleNode.textContent = `Турнир: ${tournament.title || "—"}`;
+  metaNode.textContent = `Код: ${tournament.code || "—"} · Статус: ${formatTournamentStatus(tournament.status)}`;
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    emptyNode.classList.remove("hidden");
+    return;
+  }
+
+  emptyNode.classList.add("hidden");
+
+  for (const entry of entries) {
+    const tr = document.createElement("tr");
+
+    const cRank = document.createElement("td");
+    cRank.textContent = String(entry && entry.rank != null ? entry.rank : "—");
+
+    const cName = document.createElement("td");
+    cName.textContent = entry && entry.display_name ? String(entry.display_name) : "—";
+
+    const cErrors = document.createElement("td");
+    cErrors.textContent = String(entry && entry.errors_total != null ? entry.errors_total : "—");
+
+    const cTime = document.createElement("td");
+    const seconds = Number(entry && entry.time_spent_seconds);
+    cTime.textContent = Number.isFinite(seconds) && seconds >= 0 ? formatDuration(seconds) : "—";
+
+    const cAttempt = document.createElement("td");
+    cAttempt.textContent = String(entry && entry.attempt_number != null ? entry.attempt_number : "—");
+
+    tr.appendChild(cRank);
+    tr.appendChild(cName);
+    tr.appendChild(cErrors);
+    tr.appendChild(cTime);
+    tr.appendChild(cAttempt);
+    tbody.appendChild(tr);
+  }
+}
+
+async function loadTournamentLeaderboard(tournamentId) {
+  const id = String(tournamentId || "").trim();
+  if (!id) return;
+  const tournament = tournamentsSnapshot.find((item) => String(item && item.id ? item.id : "") === id) || null;
+  if (!tournament) return;
+
+  showError("tournaments-error", "");
+  const { ok, status, data } = await api("GET", `/api/tournaments/${encodeURIComponent(id)}/leaderboard`);
+  if (!ok || !data || !Array.isArray(data.entries)) {
+    showError(
+      "tournaments-error",
+      (data && formatApiError(data)) || `Не удалось загрузить таблицу турнира (${status})`,
+    );
+    return;
+  }
+
+  selectedTournamentId = id;
+  selectedTournamentSnapshot = tournament;
+  tournamentLeaderboardSnapshot = data.entries;
+  renderTournamentLeaderboard(selectedTournamentSnapshot, tournamentLeaderboardSnapshot);
 }
 
 function renderTournaments(items) {
@@ -1928,6 +2018,15 @@ function renderTournaments(items) {
     cRules.textContent = formatTournamentRules(item);
 
     const cActions = document.createElement("td");
+    const leaderboardBtn = document.createElement("button");
+    leaderboardBtn.type = "button";
+    leaderboardBtn.className = "secondary table-action-button";
+    leaderboardBtn.textContent = "Таблица";
+    leaderboardBtn.addEventListener("click", () => {
+      void loadTournamentLeaderboard(item && item.id);
+    });
+    cActions.appendChild(leaderboardBtn);
+
     const copyBtn = document.createElement("button");
     copyBtn.type = "button";
     copyBtn.className = "ghost table-action-button";
@@ -1963,13 +2062,23 @@ async function refreshTournaments() {
     tournamentsLoaded = false;
     tournamentsSnapshot = [];
     renderTournaments([]);
+    renderTournamentLeaderboard(selectedTournamentSnapshot, tournamentLeaderboardSnapshot);
     showError("tournaments-error", (data && formatApiError(data)) || `Не удалось загрузить турниры (${status})`);
     return;
   }
   tournamentsLoaded = true;
   tournamentsSnapshot = Array.isArray(data) ? data : [];
+  if (selectedTournamentId) {
+    selectedTournamentSnapshot =
+      tournamentsSnapshot.find((item) => String(item && item.id ? item.id : "") === selectedTournamentId) || null;
+    if (!selectedTournamentSnapshot) {
+      selectedTournamentId = "";
+      tournamentLeaderboardSnapshot = [];
+    }
+  }
   showError("tournaments-error", "");
   renderTournaments(tournamentsSnapshot);
+  renderTournamentLeaderboard(selectedTournamentSnapshot, tournamentLeaderboardSnapshot);
 }
 
 function openCreateTournamentModal() {

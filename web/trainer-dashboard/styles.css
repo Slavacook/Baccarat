@@ -557,6 +557,10 @@ button:disabled {
   gap: 20px;
 }
 
+.tournament-leaderboard-head h2 {
+  margin-bottom: 6px;
+}
+
 .auth-pane {
   margin-top: 4px;
 }
