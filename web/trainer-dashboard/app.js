@@ -1849,16 +1849,21 @@ function formatTournamentRules(item) {
   return `${roundsLabel} / ${durationLabel}`;
 }
 
-async function copyTournamentCode(code, button) {
-  const value = String(code || "").trim();
-  if (!value) return false;
+async function copyTextToClipboard(value, button, successText, defaultText, errorMessage) {
+  const text = String(value || "").trim();
+  if (!text) {
+    if (errorMessage) {
+      showError("tournaments-error", errorMessage);
+    }
+    return false;
+  }
   showError("tournaments-error", "");
   try {
     if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
-      await navigator.clipboard.writeText(value);
+      await navigator.clipboard.writeText(text);
     } else {
       const textarea = document.createElement("textarea");
-      textarea.value = value;
+      textarea.value = text;
       textarea.setAttribute("readonly", "");
       textarea.style.position = "fixed";
       textarea.style.left = "-9999px";
@@ -1870,16 +1875,42 @@ async function copyTournamentCode(code, button) {
     }
     if (button) {
       const prev = button.textContent;
-      button.textContent = "Скопировано";
+      button.textContent = successText || "Скопировано";
       setTimeout(() => {
-        button.textContent = prev || "Скопировать код";
+        button.textContent = prev || defaultText || "Скопировать";
       }, 1400);
     }
     return true;
   } catch {
-    showError("tournaments-error", "Не удалось скопировать код турнира.");
+    showError("tournaments-error", errorMessage || "Не удалось скопировать текст.");
     return false;
   }
+}
+
+async function copyTournamentCode(code, button) {
+  return copyTextToClipboard(
+    code,
+    button,
+    "Скопировано",
+    "Скопировать код",
+    "Не удалось скопировать код турнира.",
+  );
+}
+
+async function copyTournamentLink(code, button) {
+  const tournamentCode = String(code || "").trim();
+  if (!tournamentCode) {
+    showError("tournaments-error", "Не удалось сформировать ссылку турнира.");
+    return false;
+  }
+  const url = `${window.location.origin}/tournament.html?code=${encodeURIComponent(tournamentCode)}`;
+  return copyTextToClipboard(
+    url,
+    button,
+    "Ссылка скопирована",
+    "Ссылка",
+    "Не удалось скопировать ссылку турнира.",
+  );
 }
 
 async function closeTournament(tournamentId) {
@@ -2026,6 +2057,15 @@ function renderTournaments(items) {
       void loadTournamentLeaderboard(item && item.id);
     });
     cActions.appendChild(leaderboardBtn);
+
+    const linkBtn = document.createElement("button");
+    linkBtn.type = "button";
+    linkBtn.className = "ghost table-action-button";
+    linkBtn.textContent = "Ссылка";
+    linkBtn.addEventListener("click", () => {
+      void copyTournamentLink(item && item.code, linkBtn);
+    });
+    cActions.appendChild(linkBtn);
 
     const copyBtn = document.createElement("button");
     copyBtn.type = "button";
