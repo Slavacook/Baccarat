@@ -1842,6 +1842,58 @@ function formatTournamentRules(item) {
   return `${roundsLabel} / ${durationLabel}`;
 }
 
+async function copyTournamentCode(code, button) {
+  const value = String(code || "").trim();
+  if (!value) return false;
+  showError("tournaments-error", "");
+  try {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = value;
+      textarea.setAttribute("readonly", "");
+      textarea.style.position = "fixed";
+      textarea.style.left = "-9999px";
+      document.body.appendChild(textarea);
+      textarea.select();
+      const copied = document.execCommand("copy");
+      document.body.removeChild(textarea);
+      if (!copied) throw new Error("copy_failed");
+    }
+    if (button) {
+      const prev = button.textContent;
+      button.textContent = "Скопировано";
+      setTimeout(() => {
+        button.textContent = prev || "Скопировать код";
+      }, 1400);
+    }
+    return true;
+  } catch {
+    showError("tournaments-error", "Не удалось скопировать код турнира.");
+    return false;
+  }
+}
+
+async function closeTournament(tournamentId) {
+  const id = String(tournamentId || "").trim();
+  if (!id) return;
+  const confirmed = window.confirm("Закрыть турнир? Новые попытки больше не будут приниматься.");
+  if (!confirmed) return;
+
+  showError("tournaments-error", "");
+  const { ok, status, data } = await api("POST", `/api/tournaments/${encodeURIComponent(id)}/close`, {});
+  if (!ok) {
+    showError(
+      "tournaments-error",
+      (data && formatApiError(data)) || `Не удалось закрыть турнир (${status})`,
+    );
+    return;
+  }
+  await refreshTournaments();
+  setDashboardStage("tournaments");
+}
+
 function renderTournaments(items) {
   const listCard = el("tournaments-list-card");
   const emptyState = el("tournaments-empty-state");
@@ -1875,10 +1927,32 @@ function renderTournaments(items) {
     const cRules = document.createElement("td");
     cRules.textContent = formatTournamentRules(item);
 
+    const cActions = document.createElement("td");
+    const copyBtn = document.createElement("button");
+    copyBtn.type = "button";
+    copyBtn.className = "ghost table-action-button";
+    copyBtn.textContent = "Скопировать код";
+    copyBtn.addEventListener("click", () => {
+      void copyTournamentCode(item && item.code, copyBtn);
+    });
+    cActions.appendChild(copyBtn);
+
+    if (String(item && item.status ? item.status : "").trim().toLowerCase() === "active") {
+      const closeBtn = document.createElement("button");
+      closeBtn.type = "button";
+      closeBtn.className = "danger table-action-button";
+      closeBtn.textContent = "Закрыть";
+      closeBtn.addEventListener("click", () => {
+        void closeTournament(item && item.id);
+      });
+      cActions.appendChild(closeBtn);
+    }
+
     tr.appendChild(cTitle);
     tr.appendChild(cCode);
     tr.appendChild(cStatus);
     tr.appendChild(cRules);
+    tr.appendChild(cActions);
     tbody.appendChild(tr);
   }
 }
