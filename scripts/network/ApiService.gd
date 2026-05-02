@@ -122,6 +122,41 @@ func exchange_participant_token(participant_token: String) -> Dictionary:
 	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
 
 
+func activate_tournament(code: String, display_name: String) -> Dictionary:
+	_http_op = "activate_tournament"
+	api_client.post_public("/api/tournaments/activate", {
+		"code": code,
+		"display_name": display_name
+	})
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
+func submit_tournament_attempt(
+	tournament_id: String,
+	participant_token: String,
+	rounds_completed: int,
+	errors_total: int,
+	time_spent_seconds: int
+) -> Dictionary:
+	_http_op = "submit_tournament_attempt"
+	api_client.post_public("/api/tournaments/%s/attempts" % tournament_id, {
+		"participant_token": participant_token,
+		"rounds_completed": rounds_completed,
+		"errors_total": errors_total,
+		"time_spent_seconds": time_spent_seconds
+	})
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
+func get_public_tournament(code: String) -> Dictionary:
+	_http_op = "get_public_tournament"
+	api_client.get_public_request("/api/tournaments/public/%s" % code.uri_encode())
+	var pkt: Dictionary = await http_operation_completed
+	return {"code": int(pkt.get("code", 0)), "body": pkt.get("body")}
+
+
 func apply_exchanged_dealer_session(exchange_body: Dictionary, fallback_record: Dictionary = {}) -> Dictionary:
 	if not (exchange_body is Dictionary):
 		return {"ok": false, "error": "Сервер вернул неверный ответ"}

@@ -48,6 +48,12 @@ func get_request(path: String, query_params: Dictionary = {}) -> int:
 	return _http_request.request(url, headers, HTTPClient.METHOD_GET)
 
 
+func get_public_request(path: String, query_params: Dictionary = {}) -> int:
+	var url = _build_url(path, query_params)
+	var headers = _build_headers(false)
+	return _http_request.request(url, headers, HTTPClient.METHOD_GET)
+
+
 func post(path: String, body: Dictionary) -> int:
 	var url = _build_url(path)
 	var headers = _build_headers()
