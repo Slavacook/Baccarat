@@ -47,6 +47,7 @@ let currentRoomCode = "";
 const liveTableStore = {
   byDealerId: new Map(),
 };
+const liveErrorsByDealerId = new Map();
 const LIVE_FEED_MAX = 100;
 const LIVE_MONITOR_TYPES = new Set([
   "round_started",
@@ -87,6 +88,7 @@ function resetLiveCounters() {
   readyDealerIds = new Set();
   connectedDealerIds = new Set();
   liveTableStore.byDealerId.clear();
+  clearLiveErrorCounters();
 }
 
 function resetLiveSessionView(options = {}) {
@@ -431,6 +433,7 @@ function clearLiveDashboardState() {
   stopLiveWatch();
   currentSessionId = null;
   currentSessionInfoBase = "";
+  clearLiveErrorCounters();
   latestDealersSnapshot = [];
   dealerRoundsCache = [];
   resetLiveSessionView({ clearFeed: true, refreshDealersTable: false });
@@ -600,6 +603,7 @@ function resetDealerLiveState(dealerId, options = {}) {
   if (!id) return;
   const { clearReady = false } = options;
   liveTableStore.byDealerId.delete(id);
+  resetDealerLiveErrorCounter(id);
   connectedDealerIds.delete(id);
   if (clearReady) {
     readyDealerIds.delete(id);
@@ -1728,7 +1732,12 @@ function startTrainerSessionWebSocket() {
       }
       pushLiveFeedEntry(t, data);
       if (t === "error_occurred") {
+        incrementDealerLiveErrorCounter(data.dealer_id);
         pulseDealerRow(data.dealer_id);
+        if (roomParticipantsSnapshot.length > 0) {
+          renderRoomParticipants(roomParticipantsSnapshot, roomPersonalInvitesSnapshot);
+        }
+        renderSelectedDealerDetail();
       }
       fetchResultsOnce();
     }
@@ -2049,6 +2058,42 @@ function getParticipantResultsSummary(dealerId) {
   return latestDealersSnapshot.find((dealer) => String(dealer && dealer.dealer_id ? dealer.dealer_id : "").trim() === id) || null;
 }
 
+function clearLiveErrorCounters() {
+  liveErrorsByDealerId.clear();
+}
+
+function resetDealerLiveErrorCounter(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return;
+  liveErrorsByDealerId.delete(id);
+}
+
+function incrementDealerLiveErrorCounter(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return 0;
+  const nextCount = Number(liveErrorsByDealerId.get(id) || 0) + 1;
+  liveErrorsByDealerId.set(id, nextCount);
+  return nextCount;
+}
+
+function getBackendParticipantErrorsCount(dealerId) {
+  const summary = getParticipantResultsSummary(dealerId);
+  if (!summary || typeof summary.errors_total !== "number") return 0;
+  return Number(summary.errors_total || 0);
+}
+
+function getLiveParticipantErrorsCount(dealerId) {
+  const id = String(dealerId || "").trim();
+  if (!id) return 0;
+  return Number(liveErrorsByDealerId.get(id) || 0);
+}
+
+function getParticipantDisplayErrorsCount(dealerId) {
+  const backendCount = getBackendParticipantErrorsCount(dealerId);
+  const liveCount = getLiveParticipantErrorsCount(dealerId);
+  return Math.max(liveCount, backendCount);
+}
+
 function getParticipantPhaseLabel(dealerId) {
   const id = String(dealerId || "").trim();
   if (!id) return "—";
@@ -2061,11 +2106,7 @@ function getParticipantPhaseLabel(dealerId) {
 }
 
 function formatParticipantErrorsSummary(dealerId) {
-  const summary = getParticipantResultsSummary(dealerId);
-  const errorsTotal = summary && typeof summary.errors_total === "number"
-    ? Number(summary.errors_total)
-    : 0;
-  return `Ошибки: ${errorsTotal}`;
+  return `Ошибки: ${getParticipantDisplayErrorsCount(dealerId)}`;
 }
 
 function formatParticipantPhaseSummary(dealerId) {
@@ -2073,9 +2114,7 @@ function formatParticipantPhaseSummary(dealerId) {
 }
 
 function getParticipantErrorsCount(dealerId) {
-  const summary = getParticipantResultsSummary(dealerId);
-  if (!summary || typeof summary.errors_total !== "number") return 0;
-  return Number(summary.errors_total || 0);
+  return getParticipantDisplayErrorsCount(dealerId);
 }
 
 function getParticipantLiveSeconds(dealerId) {
