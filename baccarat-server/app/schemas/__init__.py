@@ -53,6 +53,7 @@ from .tournament import (
     TournamentLeaderboardEntryResponse,
     TournamentLeaderboardResponse,
     TournamentParticipantResponse,
+    TournamentPublicPageResponse,
     TournamentResponse,
 )
 
@@ -105,5 +106,6 @@ __all__ = [
     "TournamentLeaderboardEntryResponse",
     "TournamentLeaderboardResponse",
     "TournamentParticipantResponse",
+    "TournamentPublicPageResponse",
     "TournamentResponse",
 ]

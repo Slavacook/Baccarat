@@ -164,3 +164,8 @@ class TournamentLeaderboardResponse(BaseModel):
     tournament_id: str
     status: str
     entries: list[TournamentLeaderboardEntryResponse]
+
+
+class TournamentPublicPageResponse(BaseModel):
+    tournament: TournamentActivationTournamentResponse
+    leaderboard: TournamentLeaderboardResponse

@@ -29,6 +29,7 @@ from app.schemas.tournament import (
     TournamentLeaderboardEntryResponse,
     TournamentLeaderboardResponse,
     TournamentParticipantResponse,
+    TournamentPublicPageResponse,
     TournamentResponse,
 )
 from app.utils.access_codes import (
@@ -278,6 +279,17 @@ def build_tournament_leaderboard_entries(
     return entries
 
 
+def build_tournament_leaderboard_response(
+    tournament: Tournament,
+    rows: list[tuple[TournamentParticipant, TournamentAttempt]],
+) -> TournamentLeaderboardResponse:
+    return TournamentLeaderboardResponse(
+        tournament_id=str(tournament.id),
+        status=tournament.status.value if hasattr(tournament.status, "value") else str(tournament.status),
+        entries=build_tournament_leaderboard_entries(rows),
+    )
+
+
 @router.post("", response_model=TournamentResponse, status_code=status.HTTP_201_CREATED)
 async def create_tournament(
     body: TournamentCreateRequest,
@@ -473,10 +485,24 @@ async def get_tournament_leaderboard(
 ):
     tournament = await get_tournament_or_404(tournament_id, db)
     rows = await get_tournament_leaderboard_rows(tournament.id, db)
-    return TournamentLeaderboardResponse(
-        tournament_id=str(tournament.id),
-        status=tournament.status.value if hasattr(tournament.status, "value") else str(tournament.status),
-        entries=build_tournament_leaderboard_entries(rows),
+    return build_tournament_leaderboard_response(tournament, rows)
+
+
+@router.get("/public/{code}", response_model=TournamentPublicPageResponse)
+async def get_tournament_public_page(
+    code: str,
+    db: AsyncSession = Depends(get_db),
+):
+    formatted_code = normalize_tournament_code_for_lookup(code)
+    tournament_res = await db.execute(select(Tournament).where(Tournament.code == formatted_code))
+    tournament = tournament_res.scalar_one_or_none()
+    if not tournament:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tournament not found")
+
+    rows = await get_tournament_leaderboard_rows(tournament.id, db)
+    return TournamentPublicPageResponse(
+        tournament=TournamentActivationTournamentResponse.from_model(tournament),
+        leaderboard=build_tournament_leaderboard_response(tournament, rows),
     )
 
 
