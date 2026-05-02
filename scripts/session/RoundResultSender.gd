@@ -7,6 +7,7 @@ var _api_service: Node = null
 var _session_manager: Node = null
 
 var _pending_results: Array[Dictionary] = []
+var _current_round_errors: Array[Dictionary] = []
 const SAVE_PATH: String = "user://pending_results.json"
 
 
@@ -15,10 +16,55 @@ func _ready() -> void:
 	_api_service = _find_api_service()
 
 	_load_pending_results()
+	_clear_round_errors()
 
 	var eb: Node = get_node_or_null("/root/EventBus")
 	if eb:
+		eb.round_reset.connect(_on_round_reset)
+		eb.action_error.connect(_on_action_error)
+		eb.payout_wrong.connect(_on_payout_wrong)
+		eb.collection_error.connect(_on_collection_error)
+		eb.payment_error.connect(_on_payment_error)
 		eb.payout_correct.connect(_on_round_complete)
+
+
+func _on_round_reset() -> void:
+	_clear_round_errors()
+
+
+func _on_action_error(error_type: String, message: String) -> void:
+	_append_round_error({
+		"category": _map_action_error_category(error_type),
+		"message": _fallback_error_message(message, error_type, "Игровая ошибка"),
+		"context": {
+			"source_signal": "action_error",
+			"error_type": str(error_type),
+		}
+	})
+
+
+func _on_payout_wrong(payload: Dictionary) -> void:
+	_append_round_error({
+		"category": "payout_other",
+		"message": _payload_error_message(payload, "Неверная выплата"),
+		"context": _build_payload_error_context("payout_wrong", payload),
+	})
+
+
+func _on_collection_error(payload: Dictionary) -> void:
+	_append_round_error({
+		"category": _map_collection_error_category(str(payload.get("reason", ""))),
+		"message": _payload_error_message(payload, "Ошибка сбора ставок"),
+		"context": _build_payload_error_context("collection_error", payload),
+	})
+
+
+func _on_payment_error(payload: Dictionary) -> void:
+	_append_round_error({
+		"category": _map_payment_error_category(str(payload.get("reason", ""))),
+		"message": _payload_error_message(payload, "Ошибка оплаты ставок"),
+		"context": _build_payload_error_context("payment_error", payload),
+	})
 
 
 func _on_round_complete(_payload: Dictionary) -> void:
@@ -43,7 +89,7 @@ func _on_round_complete(_payload: Dictionary) -> void:
 	var payload: Dictionary = {
 		"round_number": rn,
 		"accuracy": acc_pct,
-		"errors": [],
+		"errors": _current_round_errors.duplicate(true),
 		"time_spent_seconds": int(max(3.0, time_spent)),
 		"payout_correct": true,
 		"round_context": _build_round_context(),
@@ -55,6 +101,76 @@ func _on_round_complete(_payload: Dictionary) -> void:
 		_pending_results.append(payload)
 		_save_pending_results()
 		print("[RoundResultSender] Нет ApiService — раунд сохранён локально в очередь")
+
+
+func _clear_round_errors() -> void:
+	_current_round_errors.clear()
+
+
+func _append_round_error(entry: Dictionary) -> void:
+	if entry.is_empty():
+		return
+	var category: String = str(entry.get("category", "")).strip_edges()
+	var message: String = str(entry.get("message", "")).strip_edges()
+	var context: Dictionary = entry.get("context", {}) if entry.get("context", {}) is Dictionary else {}
+	_current_round_errors.append({
+		"category": category if not category.is_empty() else "other",
+		"message": message if not message.is_empty() else "Unknown error",
+		"context": context.duplicate(true),
+	})
+
+
+func _map_action_error_category(error_type: String) -> String:
+	match str(error_type).strip_edges():
+		"player_wrong":
+			return "third_card_player"
+		"banker_wrong":
+			return "third_card_banker"
+		"winner_wrong", "winner_early", "tie_wrong":
+			return "winner_decision"
+		_:
+			return "other"
+
+
+func _map_collection_error_category(reason: String) -> String:
+	match str(reason).strip_edges():
+		"wrong_order", "collect_winning", "pay_before_collect":
+			return "chip_collection_order"
+		_:
+			return "chip_operation"
+
+
+func _map_payment_error_category(reason: String) -> String:
+	match str(reason).strip_edges():
+		"wrong_order":
+			return "chip_payment_order"
+		_:
+			return "chip_operation"
+
+
+func _payload_error_message(payload: Dictionary, fallback: String) -> String:
+	return _fallback_error_message(str(payload.get("message", "")), str(payload.get("reason", "")), fallback)
+
+
+func _fallback_error_message(primary: String, secondary: String, fallback: String) -> String:
+	var msg: String = str(primary).strip_edges()
+	if not msg.is_empty():
+		return msg
+	msg = str(secondary).strip_edges()
+	if not msg.is_empty():
+		return msg
+	return fallback
+
+
+func _build_payload_error_context(source_signal: String, payload: Dictionary) -> Dictionary:
+	return {
+		"source_signal": source_signal,
+		"reason": str(payload.get("reason", "")),
+		"bet_type": str(payload.get("actual", {}).get("bet_type", payload.get("expected", {}).get("bet_type", ""))),
+		"position_index": int(payload.get("actual", {}).get("position_index", payload.get("expected", {}).get("position_index", -1))),
+		"expected": payload.get("expected", {}),
+		"actual": payload.get("actual", {}),
+	}
 
 
 func _build_round_context() -> Dictionary:
