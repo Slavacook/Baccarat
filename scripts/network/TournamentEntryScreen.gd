@@ -7,6 +7,7 @@ const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAcc
 
 var tournament_code_input: LineEdit
 var display_name_input: LineEdit
+var paste_code_btn: Button
 var enter_btn: Button
 var back_btn: Button
 var error_label: Label
@@ -25,6 +26,7 @@ var _tournament_access_store: Node = null
 func _ready() -> void:
 	tournament_code_input = find_child("TournamentCodeInput", true, false)
 	display_name_input = find_child("DisplayNameInput", true, false)
+	paste_code_btn = find_child("PasteCodeBtn", true, false)
 	enter_btn = find_child("EnterBtn", true, false)
 	back_btn = find_child("BackBtn", true, false)
 	error_label = find_child("ErrorLabel", true, false)
@@ -43,6 +45,8 @@ func _ready() -> void:
 
 	if enter_btn and not enter_btn.pressed.is_connected(_on_enter_pressed):
 		enter_btn.pressed.connect(_on_enter_pressed)
+	if paste_code_btn and not paste_code_btn.pressed.is_connected(_on_paste_code_pressed):
+		paste_code_btn.pressed.connect(_on_paste_code_pressed)
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
 	if tournament_code_input and not tournament_code_input.text_changed.is_connected(_on_tournament_code_changed):
@@ -118,6 +122,26 @@ func _on_tournament_code_changed(text: String) -> void:
 		return
 	tournament_code_input.text = formatted
 	tournament_code_input.caret_column = formatted.length()
+
+
+func _on_paste_code_pressed() -> void:
+	if tournament_code_input == null:
+		return
+
+	var clipboard_text := str(DisplayServer.clipboard_get()).strip_edges()
+	if clipboard_text == "":
+		_show_error("Буфер обмена пуст")
+		return
+
+	_hide_error()
+	var normalized_code := _normalize_tournament_code(clipboard_text)
+	if normalized_code == "":
+		_show_error("В буфере нет кода турнира")
+		return
+
+	tournament_code_input.text = normalized_code
+	tournament_code_input.caret_column = normalized_code.length()
+	_set_status("Код вставлен из буфера обмена")
 
 
 func _on_input_changed(_text: String) -> void:
@@ -220,6 +244,8 @@ func _set_loading(loading: bool) -> void:
 	if enter_btn:
 		enter_btn.disabled = loading
 		enter_btn.text = "Подключение..." if loading else "Войти"
+	if paste_code_btn:
+		paste_code_btn.disabled = loading
 	if back_btn:
 		back_btn.disabled = loading
 	if tournament_code_input:

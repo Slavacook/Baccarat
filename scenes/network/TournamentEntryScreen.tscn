@@ -62,13 +62,24 @@ text = "Введите код турнира и ваше имя"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container"]
-custom_minimum_size = Vector2(420, 56)
+[node name="CodeRow" type="HBoxContainer" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container/CodeRow"]
+custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 placeholder_text = "Код турнира: XXXX-XXXX"
 max_length = 9
+
+[node name="PasteCodeBtn" type="Button" parent="Margin/Center/Container/CodeRow"]
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+text = "Вставить"
 
 [node name="DisplayNameInput" type="LineEdit" parent="Margin/Center/Container"]
 custom_minimum_size = Vector2(420, 56)
