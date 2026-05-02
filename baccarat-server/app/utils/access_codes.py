@@ -10,6 +10,7 @@ from app.config import settings
 ACCESS_CODE_ALPHABET = "ABCDEFGHJKMNPQRTUVWXYZ23456789"
 ACCESS_CODE_GROUP_SIZE = 4
 ACCESS_CODE_GROUPS = 3
+TOURNAMENT_CODE_GROUPS = 2
 
 
 def generate_room_access_code() -> str:
@@ -48,6 +49,18 @@ def room_access_code_suffix(code: str) -> str:
 def generate_room_invite_code() -> str:
     """Generate a shared room invite code with the same readable format."""
     return generate_room_access_code()
+
+
+def generate_tournament_code() -> str:
+    """Generate a short human-readable tournament code like XXXX-XXXX."""
+    raw_code = "".join(
+        secrets.choice(ACCESS_CODE_ALPHABET)
+        for _ in range(ACCESS_CODE_GROUP_SIZE * TOURNAMENT_CODE_GROUPS)
+    )
+    return "-".join(
+        raw_code[index : index + ACCESS_CODE_GROUP_SIZE]
+        for index in range(0, len(raw_code), ACCESS_CODE_GROUP_SIZE)
+    )
 
 
 def hash_room_invite_code(code: str) -> str:

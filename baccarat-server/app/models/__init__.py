@@ -14,6 +14,7 @@ from .push_device import PushDevice
 from .notification_preference import NotificationPreference
 from .login_attempt import LoginAttempt
 from .dealer_rank_history import DealerRankHistory
+from .tournament import Tournament, TournamentStatus
 
 __all__ = [
     "Trainer",
@@ -44,4 +45,6 @@ __all__ = [
     "NotificationPreference",
     "LoginAttempt",
     "DealerRankHistory",
+    "Tournament",
+    "TournamentStatus",
 ]
