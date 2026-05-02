@@ -544,6 +544,19 @@ button:disabled {
   border-color: var(--accent);
 }
 
+.dashboard-section-switcher {
+  padding: 16px 20px;
+}
+
+.dashboard-tabs {
+  margin-bottom: 0;
+}
+
+#tournaments-stage {
+  display: grid;
+  gap: 20px;
+}
+
 .auth-pane {
   margin-top: 4px;
 }

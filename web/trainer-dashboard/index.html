@@ -42,6 +42,12 @@
     </section>
 
     <section id="dashboard" class="hidden">
+      <div class="card dashboard-section-switcher">
+        <div class="auth-tabs dashboard-tabs" role="tablist" aria-label="Разделы дашборда">
+          <button type="button" id="btn-open-rooms-section" class="tab active" role="tab" aria-selected="true">Комнаты</button>
+          <button type="button" id="btn-open-tournaments-section" class="tab" role="tab" aria-selected="false">Турниры</button>
+        </div>
+      </div>
       <div id="room-stage">
       <div class="toolbar card">
         <div class="row toolbar-compact">
@@ -217,6 +223,38 @@
         </div>
         <p id="results-empty" class="muted">Нет данных — запустите live-сессию.</p>
       </details>
+      </div>
+
+      <div id="tournaments-stage" class="hidden">
+        <div class="toolbar card">
+          <div class="row toolbar-compact">
+            <button type="button" id="btn-logout-tournaments" class="ghost">Выйти</button>
+            <span id="tournaments-user-label" class="muted"></span>
+          </div>
+          <p id="tournaments-error" class="error" hidden></p>
+        </div>
+
+        <div id="tournaments-empty-state" class="card empty-state hidden">
+          <h2>Турниров пока нет</h2>
+          <p class="muted">Создание турнира добавим следующим шагом.</p>
+        </div>
+
+        <div id="tournaments-list-card" class="card hidden">
+          <h2>Турниры</h2>
+          <div class="table-wrap">
+            <table id="tournaments-table">
+              <thead>
+                <tr>
+                  <th>Название</th>
+                  <th>Код</th>
+                  <th>Статус</th>
+                  <th>Правила</th>
+                </tr>
+              </thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
       </div>
     </section>
   </div>

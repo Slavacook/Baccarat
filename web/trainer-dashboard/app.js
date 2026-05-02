@@ -43,6 +43,8 @@ let roomParticipantsTransientMessage = "";
 let roomParticipantsTransientManualCode = "";
 let roomParticipantsTransientManualNote = "";
 let generatedRoomAccesses = [];
+let tournamentsSnapshot = [];
+let tournamentsLoaded = false;
 let currentRoomCode = "";
 const liveTableStore = {
   byDealerId: new Map(),
@@ -1788,9 +1790,122 @@ function setDashboardVisible(visible) {
 
 function setDashboardStage(stage) {
   const isLive = stage === "live";
-  el("room-stage").classList.toggle("hidden", isLive);
+  const isTournaments = stage === "tournaments";
+  el("room-stage").classList.toggle("hidden", isLive || isTournaments);
   el("live-stage").classList.toggle("hidden", !isLive);
+  el("tournaments-stage")?.classList.toggle("hidden", !isTournaments);
+  const roomsTab = el("btn-open-rooms-section");
+  const tournamentsTab = el("btn-open-tournaments-section");
+  const roomsSelected = !isTournaments;
+  if (roomsTab) {
+    roomsTab.classList.toggle("active", roomsSelected);
+    roomsTab.setAttribute("aria-selected", roomsSelected ? "true" : "false");
+  }
+  if (tournamentsTab) {
+    tournamentsTab.classList.toggle("active", isTournaments);
+    tournamentsTab.setAttribute("aria-selected", isTournaments ? "true" : "false");
+  }
   renderSelectedDealerDetail();
+}
+
+function setDashboardUserLabel(text) {
+  const label = String(text || "");
+  const roomUser = el("user-label");
+  if (roomUser) roomUser.textContent = label;
+  const tournamentsUser = el("tournaments-user-label");
+  if (tournamentsUser) tournamentsUser.textContent = label;
+}
+
+function clearTournamentState() {
+  tournamentsSnapshot = [];
+  tournamentsLoaded = false;
+  showError("tournaments-error", "");
+  renderTournaments([]);
+}
+
+function formatTournamentStatus(status) {
+  const normalized = String(status || "").trim().toLowerCase();
+  if (normalized === "active") return "Активен";
+  if (normalized === "closed") return "Закрыт";
+  return "—";
+}
+
+function formatTournamentRules(item) {
+  const maxRounds = Number(item && item.max_rounds);
+  const attemptDurationSeconds = Number(item && item.attempt_duration_seconds);
+  const roundsLabel = Number.isFinite(maxRounds) && maxRounds > 0 ? `${maxRounds} раздач` : "—";
+  const minutes = Number.isFinite(attemptDurationSeconds) && attemptDurationSeconds > 0
+    ? Math.floor(attemptDurationSeconds / 60)
+    : 0;
+  const durationLabel = minutes > 0 ? `${minutes} мин` : "—";
+  return `${roundsLabel} / ${durationLabel}`;
+}
+
+function renderTournaments(items) {
+  const listCard = el("tournaments-list-card");
+  const emptyState = el("tournaments-empty-state");
+  const table = el("tournaments-table");
+  const tbody = table ? table.querySelector("tbody") : null;
+  if (!tbody || !listCard || !emptyState) return;
+  tbody.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    listCard.classList.add("hidden");
+    emptyState.classList.remove("hidden");
+    return;
+  }
+
+  emptyState.classList.add("hidden");
+  listCard.classList.remove("hidden");
+
+  for (const item of items) {
+    const tr = document.createElement("tr");
+
+    const cTitle = document.createElement("td");
+    cTitle.textContent = item && item.title ? String(item.title) : "—";
+
+    const cCode = document.createElement("td");
+    cCode.className = "mono";
+    cCode.textContent = item && item.code ? String(item.code) : "—";
+
+    const cStatus = document.createElement("td");
+    cStatus.textContent = formatTournamentStatus(item && item.status);
+
+    const cRules = document.createElement("td");
+    cRules.textContent = formatTournamentRules(item);
+
+    tr.appendChild(cTitle);
+    tr.appendChild(cCode);
+    tr.appendChild(cStatus);
+    tr.appendChild(cRules);
+    tbody.appendChild(tr);
+  }
+}
+
+async function refreshTournaments() {
+  const { ok, status, data } = await api("GET", "/api/tournaments");
+  if (!ok) {
+    tournamentsLoaded = false;
+    tournamentsSnapshot = [];
+    renderTournaments([]);
+    showError("tournaments-error", (data && formatApiError(data)) || `Не удалось загрузить турниры (${status})`);
+    return;
+  }
+  tournamentsLoaded = true;
+  tournamentsSnapshot = Array.isArray(data) ? data : [];
+  showError("tournaments-error", "");
+  renderTournaments(tournamentsSnapshot);
+}
+
+async function openDashboardSection(section) {
+  if (section === "tournaments") {
+    setDashboardStage("tournaments");
+    if (!tournamentsLoaded) {
+      await refreshTournaments();
+    }
+    return;
+  }
+  setDashboardStage("rooms");
 }
 
 function formatDuration(seconds) {
@@ -3469,7 +3584,7 @@ async function onLogin() {
   }
   setTokens(data.access_token, data.refresh_token || "");
   const user = data.user || {};
-  el("user-label").textContent = `${user.full_name || user.email || "тренер"}`;
+  setDashboardUserLabel(`${user.full_name || user.email || "тренер"}`);
   setDashboardVisible(true);
   setDashboardStage("rooms");
   await refreshRooms();
@@ -3494,7 +3609,7 @@ async function onRegister() {
   }
   setTokens(data.access_token, data.refresh_token || "");
   const user = data.user || {};
-  el("user-label").textContent = `${user.full_name || user.email || "тренер"}`;
+  setDashboardUserLabel(`${user.full_name || user.email || "тренер"}`);
   setDashboardVisible(true);
   setDashboardStage("rooms");
   await refreshRooms();
@@ -3504,6 +3619,8 @@ async function onRegister() {
 function onLogout() {
   clearTokens();
   clearRoomScopedState({ preserveActionError: true });
+  clearTournamentState();
+  setDashboardUserLabel("");
   setDashboardVisible(false);
   setDashboardStage("rooms");
   el("password").value = "";
@@ -3517,6 +3634,13 @@ function wire() {
   el("btn-login").addEventListener("click", () => onLogin());
   el("btn-register").addEventListener("click", () => onRegister());
   el("btn-logout").addEventListener("click", () => onLogout());
+  el("btn-logout-tournaments")?.addEventListener("click", () => onLogout());
+  el("btn-open-rooms-section")?.addEventListener("click", () => {
+    void openDashboardSection("rooms");
+  });
+  el("btn-open-tournaments-section")?.addEventListener("click", () => {
+    void openDashboardSection("tournaments");
+  });
   el("btn-open-create-room-modal").addEventListener("click", () => openCreateRoomModal());
   el("btn-close-create-room-modal").addEventListener("click", () => closeCreateRoomModal());
   el("create-room-modal").addEventListener("click", (ev) => {
@@ -3580,6 +3704,7 @@ function boot() {
   renderRoomParticipants([], []);
   renderRoomPins([]);
   renderRoomAccesses([]);
+  renderTournaments([]);
   renderResultsEmpty("Тренировка ещё не запущена");
   if (getToken()) {
     setDashboardVisible(true);
