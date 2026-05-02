@@ -10,6 +10,7 @@ var display_name_input: LineEdit
 var paste_code_btn: Button
 var enter_btn: Button
 var back_btn: Button
+var start_attempt_btn: Button
 var error_label: Label
 var status_label: Label
 var summary_block: Control
@@ -21,6 +22,7 @@ var summary_name_value: Label
 
 var _api_service = null
 var _tournament_access_store: Node = null
+var _saved_tournament_access: Dictionary = {}
 
 
 func _ready() -> void:
@@ -29,6 +31,7 @@ func _ready() -> void:
 	paste_code_btn = find_child("PasteCodeBtn", true, false)
 	enter_btn = find_child("EnterBtn", true, false)
 	back_btn = find_child("BackBtn", true, false)
+	start_attempt_btn = find_child("StartAttemptBtn", true, false)
 	error_label = find_child("ErrorLabel", true, false)
 	status_label = find_child("StatusLabel", true, false)
 	summary_block = find_child("SummaryBlock", true, false)
@@ -49,6 +52,8 @@ func _ready() -> void:
 		paste_code_btn.pressed.connect(_on_paste_code_pressed)
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
+	if start_attempt_btn and not start_attempt_btn.pressed.is_connected(_on_start_attempt_pressed):
+		start_attempt_btn.pressed.connect(_on_start_attempt_pressed)
 	if tournament_code_input and not tournament_code_input.text_changed.is_connected(_on_tournament_code_changed):
 		tournament_code_input.text_changed.connect(_on_tournament_code_changed)
 	if display_name_input and not display_name_input.text_changed.is_connected(_on_input_changed):
@@ -57,6 +62,7 @@ func _ready() -> void:
 	_hide_error()
 	_set_status("")
 	_set_summary_visible(false)
+	_set_start_attempt_visible(false)
 
 
 func _on_enter_pressed() -> void:
@@ -106,13 +112,33 @@ func _on_enter_pressed() -> void:
 		_show_error("Не удалось сохранить доступ к турниру")
 		return
 
-	_show_summary(saved as Dictionary)
+	_saved_tournament_access = (saved as Dictionary).duplicate(true)
+	_show_summary(_saved_tournament_access)
+	_set_start_attempt_visible(true)
 	_set_status("Вход в турнир сохранён")
 
 
 func _on_back_pressed() -> void:
 	if get_tree():
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
+
+
+func _on_start_attempt_pressed() -> void:
+	if _saved_tournament_access.is_empty():
+		_show_error("Турнир не подключён")
+		return
+
+	var session_manager: Variant = _find_session_manager()
+	if session_manager == null:
+		_show_error("SessionManager не найден")
+		return
+	if not session_manager.has_method("start_tournament_session"):
+		_show_error("Tournament launch недоступен")
+		return
+
+	session_manager.call("start_tournament_session", _saved_tournament_access)
+	if get_tree():
+		get_tree().change_scene_to_file("res://scenes/Game.tscn")
 
 
 func _on_tournament_code_changed(text: String) -> void:
@@ -145,9 +171,11 @@ func _on_paste_code_pressed() -> void:
 
 
 func _on_input_changed(_text: String) -> void:
+	_saved_tournament_access.clear()
 	_hide_error()
 	_set_status("")
 	_set_summary_visible(false)
+	_set_start_attempt_visible(false)
 
 
 func _format_tournament_code(value: String) -> String:
@@ -217,6 +245,12 @@ func _find_api_service():
 	return get_node_or_null("/root/ApiService")
 
 
+func _find_session_manager():
+	if Engine.has_singleton("SessionManager"):
+		return Engine.get_singleton("SessionManager")
+	return get_node_or_null("/root/SessionManager")
+
+
 func _dictionary_or_empty(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return value as Dictionary
@@ -248,6 +282,8 @@ func _set_loading(loading: bool) -> void:
 		paste_code_btn.disabled = loading
 	if back_btn:
 		back_btn.disabled = loading
+	if start_attempt_btn:
+		start_attempt_btn.disabled = loading
 	if tournament_code_input:
 		tournament_code_input.editable = not loading
 	if display_name_input:
@@ -258,3 +294,8 @@ func _set_loading(loading: bool) -> void:
 func _set_summary_visible(visible: bool) -> void:
 	if summary_block:
 		summary_block.visible = visible
+
+
+func _set_start_attempt_visible(visible: bool) -> void:
+	if start_attempt_btn:
+		start_attempt_btn.visible = visible

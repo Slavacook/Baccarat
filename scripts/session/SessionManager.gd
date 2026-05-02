@@ -12,7 +12,8 @@ const FORCE_EXIT_SCENE_PATH: String = "res://scenes/network/MyTrainingsScreen.ts
 
 enum Mode {
 	OFFLINE,      # Обычная игра без сервера
-	ONLINE        # Игра с отправкой результатов на сервер
+	ONLINE,       # Игра с отправкой результатов на сервер
+	TOURNAMENT    # Турнирный запуск без live/ws
 }
 
 var current_mode: Mode = Mode.OFFLINE
@@ -22,6 +23,15 @@ var room_code: String = ""
 var session_id: String = ""
 var dealer_id: String = ""
 var display_name: String = ""
+var tournament_id: String = ""
+var tournament_code: String = ""
+var tournament_title: String = ""
+var tournament_status: String = ""
+var tournament_participant_token: String = ""
+var tournament_participant_id: String = ""
+var tournament_participant_display_name: String = ""
+var tournament_max_rounds: int = 0
+var tournament_attempt_duration_seconds: int = 0
 ## Сид текущего раунда с сервера (после применения к колоде совпадает с последней раздачей).
 var live_round_seed: String = ""
 ## Сид следующего раунда из WS `round_sync` (применяется в deal_first_four перед раздачей).
@@ -68,17 +78,8 @@ func _ready() -> void:
 # ═══════════════════════════════════════════════════════════════
 
 func start_offline_session() -> void:
-	if Engine.has_singleton("LiveSessionClient"):
-		LiveSessionClient.disconnect_live()
-	_stop_online_watchdog()
+	_reset_runtime_context()
 	current_mode = Mode.OFFLINE
-	session_id = ""
-	room_code = ""
-	dealer_id = ""
-	display_name = ""
-	live_round_seed = ""
-	pending_live_round_seed = ""
-	_force_exit_in_progress = false
 	_reset_stats()
 	session_started.emit(current_mode)
 
@@ -89,15 +90,36 @@ func start_online_session(
 	display_name_str: String,
 	live_session_uuid: String = ""
 ) -> void:
-	_force_exit_in_progress = false
+	_reset_runtime_context()
 	current_mode = Mode.ONLINE
 	room_code = room_code_str
 	dealer_id = dealer_id_str
 	display_name = display_name_str
 	session_id = live_session_uuid
-	pending_live_round_seed = ""
 	_reset_stats()
 	_start_online_watchdog()
+	session_started.emit(current_mode)
+
+
+func start_tournament_session(access_record: Dictionary) -> void:
+	_reset_runtime_context()
+	current_mode = Mode.TOURNAMENT
+
+	var tournament: Dictionary = _dictionary_or_empty(access_record.get("tournament", {}))
+	var participant: Dictionary = _dictionary_or_empty(access_record.get("participant", {}))
+
+	tournament_id = str(tournament.get("id", "")).strip_edges()
+	tournament_code = str(tournament.get("code", "")).strip_edges()
+	tournament_title = str(tournament.get("title", "")).strip_edges()
+	tournament_status = str(tournament.get("status", "")).strip_edges()
+	tournament_participant_token = str(access_record.get("participant_token", "")).strip_edges()
+	tournament_participant_id = str(participant.get("id", "")).strip_edges()
+	tournament_participant_display_name = str(participant.get("display_name", "")).strip_edges()
+	tournament_max_rounds = int(tournament.get("max_rounds", 0))
+	tournament_attempt_duration_seconds = int(tournament.get("attempt_duration_seconds", 0))
+	display_name = tournament_participant_display_name
+
+	_reset_stats()
 	session_started.emit(current_mode)
 
 
@@ -130,20 +152,11 @@ func apply_pending_live_deck_seed_to(deck: Deck) -> void:
 
 
 func end_session() -> Dictionary:
-	_stop_online_watchdog()
-	if Engine.has_singleton("LiveSessionClient"):
-		LiveSessionClient.disconnect_live()
 	var stats = get_session_stats()
 	session_ended.emit(stats)
+	_reset_runtime_context()
 	_reset_stats()
 	current_mode = Mode.OFFLINE
-	room_code = ""
-	session_id = ""
-	dealer_id = ""
-	display_name = ""
-	live_round_seed = ""
-	pending_live_round_seed = ""
-	_force_exit_in_progress = false
 	return stats
 
 
@@ -179,6 +192,15 @@ func get_session_stats() -> Dictionary:
 		"session_id": session_id,
 		"dealer_id": dealer_id,
 		"display_name": display_name,
+		"tournament_id": tournament_id,
+		"tournament_code": tournament_code,
+		"tournament_title": tournament_title,
+		"tournament_status": tournament_status,
+		"tournament_participant_token": tournament_participant_token,
+		"tournament_participant_id": tournament_participant_id,
+		"tournament_participant_display_name": tournament_participant_display_name,
+		"tournament_max_rounds": tournament_max_rounds,
+		"tournament_attempt_duration_seconds": tournament_attempt_duration_seconds,
 		"rounds_played": rounds_played,
 		"correct_answers": correct_answers,
 		"total_errors": total_errors,
@@ -200,6 +222,28 @@ func _reset_stats() -> void:
 	round_start_time = 0.0
 	_last_player_cards.clear()
 	_last_banker_cards.clear()
+
+
+func _reset_runtime_context() -> void:
+	if Engine.has_singleton("LiveSessionClient"):
+		LiveSessionClient.disconnect_live()
+	_stop_online_watchdog()
+	session_id = ""
+	room_code = ""
+	dealer_id = ""
+	display_name = ""
+	tournament_id = ""
+	tournament_code = ""
+	tournament_title = ""
+	tournament_status = ""
+	tournament_participant_token = ""
+	tournament_participant_id = ""
+	tournament_participant_display_name = ""
+	tournament_max_rounds = 0
+	tournament_attempt_duration_seconds = 0
+	live_round_seed = ""
+	pending_live_round_seed = ""
+	_force_exit_in_progress = false
 
 
 func _calc_accuracy() -> float:
@@ -354,3 +398,9 @@ func _find_api_service() -> Node:
 	if Engine.has_singleton("ApiService"):
 		return Engine.get_singleton("ApiService") as Node
 	return get_node_or_null("/root/ApiService")
+
+
+func _dictionary_or_empty(value: Variant) -> Dictionary:
+	if value is Dictionary:
+		return value as Dictionary
+	return {}
