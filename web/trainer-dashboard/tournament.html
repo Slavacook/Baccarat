@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Baccarat Trainer — турнир</title>
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+<body>
+  <div class="layout">
+    <header class="header">
+      <h1>Baccarat Trainer</h1>
+      <p class="subtitle">Публичная страница турнира</p>
+    </header>
+
+    <section class="card">
+      <p class="muted">Эта страница доступна всем, у кого есть ссылка.</p>
+      <div class="row wrap">
+        <button type="button" id="btn-refresh-tournament" class="secondary">Обновить</button>
+      </div>
+      <p id="tournament-page-error" class="error hidden"></p>
+    </section>
+
+    <section id="tournament-public-info-card" class="card hidden">
+      <h2 id="tournament-public-title">Турнир</h2>
+      <div class="tournament-public-meta">
+        <p id="tournament-public-code" class="mono muted">Код: —</p>
+        <p id="tournament-public-status" class="muted">Статус: —</p>
+        <p id="tournament-public-rules" class="muted">Правила: —</p>
+      </div>
+    </section>
+
+    <section id="tournament-public-leaderboard-card" class="card hidden">
+      <h2>Таблица результатов</h2>
+      <div class="table-wrap">
+        <table id="tournament-public-leaderboard-table">
+          <thead>
+            <tr>
+              <th>Место</th>
+              <th>Имя</th>
+              <th>Ошибки</th>
+              <th>Время</th>
+              <th>Попытка</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p id="tournament-public-leaderboard-empty" class="muted hidden">Пока нет успешных результатов</p>
+    </section>
+  </div>
+
+  <script src="./tournament.js" type="module"></script>
+</body>
+</html>

@@ -557,6 +557,15 @@ button:disabled {
   gap: 20px;
 }
 
+.tournament-public-meta {
+  display: grid;
+  gap: 6px;
+}
+
+.tournament-public-meta p {
+  margin: 0;
+}
+
 .tournament-leaderboard-head h2 {
   margin-bottom: 6px;
 }
