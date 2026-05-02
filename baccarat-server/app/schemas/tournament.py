@@ -105,3 +105,62 @@ class TournamentActivateResponse(BaseModel):
     token_type: str = "Participant"
     tournament: TournamentActivationTournamentResponse
     participant: TournamentParticipantResponse
+
+
+class TournamentAttemptSubmitRequest(BaseModel):
+    participant_token: str
+    rounds_completed: int = Field(ge=0)
+    errors_total: int = Field(ge=0)
+    time_spent_seconds: int = Field(ge=0, le=86400)
+
+    @field_validator("participant_token")
+    @classmethod
+    def validate_participant_token(cls, value: str) -> str:
+        normalized = value.strip()
+        if not normalized:
+            raise ValueError("Participant token is required")
+        return normalized
+
+
+class TournamentBestResultResponse(BaseModel):
+    attempt_number: int
+    errors_total: int
+    time_spent_seconds: int
+
+    @classmethod
+    def from_model(cls, attempt) -> "TournamentBestResultResponse":
+        return cls(
+            attempt_number=int(attempt.attempt_number),
+            errors_total=int(attempt.errors_total),
+            time_spent_seconds=int(attempt.time_spent_seconds),
+        )
+
+
+class TournamentAttemptSubmitResponse(BaseModel):
+    attempt_id: str
+    attempt_number: int
+    status: str
+    rounds_completed: int
+    errors_total: int
+    time_spent_seconds: int
+    submitted_at: datetime | None = None
+    improved: bool
+    best_result: TournamentBestResultResponse | None = None
+    rank: int | None = None
+
+
+class TournamentLeaderboardEntryResponse(BaseModel):
+    rank: int
+    participant_id: str
+    display_name: str
+    attempt_id: str
+    attempt_number: int
+    errors_total: int
+    time_spent_seconds: int
+    submitted_at: datetime | None = None
+
+
+class TournamentLeaderboardResponse(BaseModel):
+    tournament_id: str
+    status: str
+    entries: list[TournamentLeaderboardEntryResponse]
