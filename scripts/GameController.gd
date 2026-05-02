@@ -185,10 +185,15 @@ var game_state_controller: GameStateController
 @onready var tournament_rounds_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentRoundsLabel
 @onready var tournament_time_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentTimeLabel
 @onready var tournament_finish_overlay: Control = $TopUI/TournamentFinishOverlay
+@onready var tournament_finish_title_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishTitleLabel
 @onready var tournament_finish_reason_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishReasonLabel
-@onready var tournament_finish_rounds_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishRoundsLabel
+@onready var tournament_finish_status_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishStatusLabel
+@onready var tournament_finish_rank_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishRankLabel
+@onready var tournament_finish_errors_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishErrorsLabel
 @onready var tournament_finish_time_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishTimeLabel
-@onready var tournament_finish_menu_btn: Button = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMenuBtn
+@onready var tournament_finish_rounds_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishRoundsLabel
+@onready var tournament_finish_retry_btn: Button = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishButtons/TournamentFinishRetryBtn
+@onready var tournament_finish_menu_btn: Button = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishButtons/TournamentFinishMenuBtn
 @onready var guest_sprites: Dictionary = {
 	1: $G_1,
 	2: $G_2,
@@ -335,6 +340,8 @@ func _ready():
 		tournament_finish_overlay.visible = false
 	if tournament_finish_menu_btn and not tournament_finish_menu_btn.pressed.is_connected(_on_tournament_finish_menu_pressed):
 		tournament_finish_menu_btn.pressed.connect(_on_tournament_finish_menu_pressed)
+	if tournament_finish_retry_btn and not tournament_finish_retry_btn.pressed.is_connected(_on_tournament_retry_submit_pressed):
+		tournament_finish_retry_btn.pressed.connect(_on_tournament_retry_submit_pressed)
 	
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
@@ -371,7 +378,7 @@ func _setup_live_session_ws() -> void:
 
 func _on_live_session_ws_event(event_type: String, data: Dictionary) -> void:
 	if event_type == "session_ended":
-		var reason: String = str(data.get("reason", ""))
+		var reason: String = str(_dict_value(data, "reason", ""))
 		var msg: String = "Live-сессия завершена тренером"
 		if reason != "":
 			msg += " (%s)" % reason
@@ -381,7 +388,7 @@ func _on_live_session_ws_event(event_type: String, data: Dictionary) -> void:
 		if sm_rs and sm_rs.has_method("apply_server_round_sync"):
 			sm_rs.apply_server_round_sync(data)
 		if training_mode_manager and training_mode_manager.has_method("queue_deck_reseed_from_server"):
-			training_mode_manager.queue_deck_reseed_from_server(str(data.get("round_seed", "")))
+			training_mode_manager.queue_deck_reseed_from_server(str(_dict_value(data, "round_seed", "")))
 
 
 func _initialize_round_result_sender() -> void:
@@ -1019,8 +1026,8 @@ func _hide_training_elements() -> void:
 		training_stage_complete_popup.hide()
 
 func _training_show_cards(scenario: Dictionary) -> void:
-	var p_hand: Array = scenario.get("player_hand", [])
-	var b_hand: Array = scenario.get("banker_hand", [])
+	var p_hand: Array = _dict_value(scenario, "player_hand", [])
+	var b_hand: Array = _dict_value(scenario, "banker_hand", [])
 	if p_hand.size() >= 2 and b_hand.size() >= 2:
 		var p1: TextureRect = get_node_or_null("PlayerZone/Card1") as TextureRect
 		var p2: TextureRect = get_node_or_null("PlayerZone/Card2") as TextureRect
@@ -1054,16 +1061,18 @@ func _on_training_answer_selected(answer: Variant) -> void:
 	var result: Dictionary = training_mode_manager.process_answer(answer)
 	if result.is_empty():
 		return
-	if result.get("is_correct", false):
+	var is_correct: bool = bool(_dict_value(result, "is_correct", false))
+	var explanation: String = str(_dict_value(result, "explanation", ""))
+	var current_progress: float = float(_dict_value(result, "current_progress", 0.0))
+	if is_correct:
 		EventBus.show_overlay_success.emit("Верно!", 1.0)
 	else:
 		EventBus.show_overlay_error.emit("Ошибка!", 1.0)
-	var explanation: String = result.get("explanation", "")
 	if explanation != "":
 		EventBus.show_toast_info.emit(explanation)
 	if training_progress_bar:
-		training_progress_bar.update_progress(result.get("current_progress", 0.0))
-	EventBus.training_answer_processed.emit(result.get("is_correct", false), explanation, result.get("current_progress", 0.0))
+		training_progress_bar.update_progress(current_progress)
+	EventBus.training_answer_processed.emit(is_correct, explanation, current_progress)
 	# Если этап не завершён — через короткую паузу показать следующий вопрос (новые карты + попап).
 	# Таймер даёт время закрыться попапу и показать «Верно!», затем стабильно открыть следующий вопрос.
 	if not training_mode_manager.is_current_stage_complete():
@@ -2077,10 +2086,12 @@ func _finish_tournament_attempt(reason: String) -> void:
 	if not sm.has_method("finish_tournament_attempt"):
 		return
 
+	var payload: Dictionary = _build_tournament_attempt_payload(reason)
 	sm.finish_tournament_attempt(reason)
+	if sm.has_method("save_tournament_attempt_payload"):
+		sm.save_tournament_attempt_payload(payload)
 	_update_tournament_info_panel()
 	_show_tournament_finish_overlay(reason)
-	_set_tournament_submit_status("Отправляем результат...", false)
 	_submit_tournament_attempt_async.call_deferred()
 
 	var input_context_manager: Variant = null
@@ -2127,25 +2138,82 @@ func _show_tournament_finish_overlay(reason: String) -> void:
 		else:
 			remaining_seconds = max(attempt_duration_seconds, 0)
 
-	if tournament_finish_reason_label:
-		tournament_finish_reason_label.text = reason_text
-	if tournament_finish_rounds_label:
-		tournament_finish_rounds_label.text = "Раздачи: %d / %d · Ошибки: %d" % [rounds_completed, max_rounds, errors_total]
-	if tournament_finish_time_label:
-		tournament_finish_time_label.text = "Время: %s" % _format_duration_mmss(remaining_seconds)
-	if tournament_finish_menu_btn:
-		tournament_finish_menu_btn.text = "В меню"
-		tournament_finish_menu_btn.disabled = false
+	_set_tournament_finish_overlay_state({
+		"title": "Турнир завершён",
+		"submit_state": "Отправляем результат...",
+		"reason": reason_text,
+		"status": "",
+		"rank": "",
+		"errors_text": "Ошибки: %d" % errors_total,
+		"time_text": "Время: %s" % _format_duration_mmss(remaining_seconds),
+		"rounds_text": "Раздачи: %d / %d" % [rounds_completed, max_rounds],
+		"menu_enabled": false,
+		"menu_text": "Отправка...",
+		"retry_visible": false,
+		"retry_enabled": false,
+	})
 
 	tournament_finish_overlay.visible = true
 
 
-func _set_tournament_submit_status(text: String, menu_enabled: bool) -> void:
+func _set_tournament_finish_overlay_state(state: Dictionary) -> void:
+	if tournament_finish_title_label:
+		tournament_finish_title_label.text = str(_dict_value(state, "title", "Турнир завершён"))
 	if tournament_finish_reason_label:
-		tournament_finish_reason_label.text = text
+		var submit_state: String = str(_dict_value(state, "submit_state", "")).strip_edges()
+		var reason: String = str(_dict_value(state, "reason", "")).strip_edges()
+		if submit_state.is_empty():
+			tournament_finish_reason_label.text = reason
+		elif reason.is_empty():
+			tournament_finish_reason_label.text = submit_state
+		else:
+			tournament_finish_reason_label.text = "%s\n%s" % [submit_state, reason]
+	if tournament_finish_status_label:
+		var status_text: String = str(_dict_value(state, "status", "")).strip_edges()
+		tournament_finish_status_label.text = "Статус: %s" % (status_text if not status_text.is_empty() else "—")
+	if tournament_finish_rank_label:
+		var rank_text: String = str(_dict_value(state, "rank", "")).strip_edges()
+		tournament_finish_rank_label.text = "Место: %s" % (rank_text if not rank_text.is_empty() else "—")
+	if tournament_finish_errors_label:
+		tournament_finish_errors_label.text = str(_dict_value(state, "errors_text", "Ошибки: 0"))
+	if tournament_finish_time_label:
+		tournament_finish_time_label.text = str(_dict_value(state, "time_text", "Время: 00:00"))
+	if tournament_finish_rounds_label:
+		tournament_finish_rounds_label.text = str(_dict_value(state, "rounds_text", "Раздачи: 0 / 0"))
+	if tournament_finish_retry_btn:
+		tournament_finish_retry_btn.visible = bool(_dict_value(state, "retry_visible", false))
+		tournament_finish_retry_btn.disabled = not bool(_dict_value(state, "retry_enabled", false))
 	if tournament_finish_menu_btn:
-		tournament_finish_menu_btn.disabled = not menu_enabled
-		tournament_finish_menu_btn.text = "В меню" if menu_enabled else "Отправка..."
+		tournament_finish_menu_btn.disabled = not bool(_dict_value(state, "menu_enabled", false))
+		tournament_finish_menu_btn.text = str(_dict_value(state, "menu_text", "В меню"))
+
+
+func _build_tournament_attempt_payload(finish_reason: String = "") -> Dictionary:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	if sm == null or sm.get("current_mode") != sm.Mode.TOURNAMENT:
+		return {}
+
+	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
+	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
+	var time_spent_seconds: int = 0
+	if attempt_started_at > 0.0:
+		time_spent_seconds = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
+	time_spent_seconds = clampi(time_spent_seconds, 0, max(attempt_duration_seconds, 0))
+
+	return {
+		"tournament_id": str(_node_prop(sm, "tournament_id", "")).strip_edges(),
+		"participant_token": str(_node_prop(sm, "tournament_participant_token", "")).strip_edges(),
+		"rounds_completed": int(_node_prop(sm, "tournament_rounds_completed", 0)),
+		"errors_total": int(_node_prop(sm, "tournament_errors_total", 0)),
+		"time_spent_seconds": time_spent_seconds,
+		"finish_reason": finish_reason if not finish_reason.strip_edges().is_empty() else str(_node_prop(sm, "tournament_finish_reason", "")).strip_edges(),
+		"max_rounds": int(_node_prop(sm, "tournament_max_rounds", 0)),
+	}
 
 
 func _get_api_service() -> Variant:
@@ -2154,7 +2222,7 @@ func _get_api_service() -> Variant:
 	return get_node_or_null("/root/ApiService")
 
 
-func _submit_tournament_attempt_async() -> void:
+func _submit_tournament_attempt_async(force_retry: bool = false) -> void:
 	var sm: Variant = null
 	if Engine.has_singleton("SessionManager"):
 		sm = Engine.get_singleton("SessionManager")
@@ -2165,70 +2233,185 @@ func _submit_tournament_attempt_async() -> void:
 		return
 	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
 		return
+	if force_retry:
+		if not sm.has_method("reset_tournament_submit_state_for_retry"):
+			return
+		if not sm.reset_tournament_submit_state_for_retry():
+			return
 	if not sm.has_method("start_tournament_submit"):
 		return
 	if not sm.start_tournament_submit():
+		return
+
+	var payload: Dictionary = {}
+	if sm.has_method("get_tournament_attempt_payload"):
+		payload = sm.get_tournament_attempt_payload()
+	if payload.is_empty():
+		if sm.has_method("complete_tournament_submit"):
+			sm.complete_tournament_submit(false)
+		if sm.has_method("set_tournament_submit_error"):
+			sm.set_tournament_submit_error("Нет данных попытки для отправки")
+		var empty_payload_time: int = 0
+		_set_tournament_finish_overlay_state({
+			"title": "Турнир завершён",
+			"submit_state": "Не удалось отправить результат",
+			"reason": _compose_tournament_submit_failure_reason(str(_node_prop(sm, "tournament_finish_reason", "")).strip_edges(), "Нет данных попытки для отправки"),
+			"status": "",
+			"rank": "",
+			"errors_text": "Ошибки: %d" % int(_node_prop(sm, "tournament_errors_total", 0)),
+			"time_text": "Время: %s" % _format_duration_mmss(empty_payload_time),
+			"rounds_text": "Раздачи: %d / %d" % [int(_node_prop(sm, "tournament_rounds_completed", 0)), int(_node_prop(sm, "tournament_max_rounds", 0))],
+			"menu_enabled": true,
+			"menu_text": "В меню",
+			"retry_visible": true,
+			"retry_enabled": true,
+		})
 		return
 
 	var api_service: Variant = _get_api_service()
 	if api_service == null or not api_service.has_method("submit_tournament_attempt"):
 		if sm.has_method("complete_tournament_submit"):
 			sm.complete_tournament_submit(false)
-		_set_tournament_submit_status("Не удалось отправить результат", true)
+		var api_error_text := "ApiService недоступен"
+		if sm.has_method("set_tournament_submit_error"):
+			sm.set_tournament_submit_error(api_error_text)
+		_set_tournament_finish_overlay_state({
+			"title": "Турнир завершён",
+			"submit_state": "Не удалось отправить результат",
+			"reason": _compose_tournament_submit_failure_reason(_format_tournament_finish_reason(str(_dict_value(payload, "finish_reason", ""))), api_error_text),
+			"status": "",
+			"rank": "",
+			"errors_text": "Ошибки: %d" % int(_dict_value(payload, "errors_total", 0)),
+			"time_text": "Время: %s" % _format_duration_mmss(int(_dict_value(payload, "time_spent_seconds", 0))),
+			"rounds_text": "Раздачи: %d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
+			"menu_enabled": true,
+			"menu_text": "В меню",
+			"retry_visible": true,
+			"retry_enabled": true,
+		})
 		return
 
-	_set_tournament_submit_status("Отправляем результат...", false)
-
-	var tournament_id: String = str(sm.get("tournament_id")).strip_edges()
-	var participant_token: String = str(sm.get("tournament_participant_token")).strip_edges()
-	var rounds_completed: int = int(sm.get("tournament_rounds_completed"))
-	var errors_total: int = int(sm.get("tournament_errors_total"))
-	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
-	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
-	var time_spent_seconds: int = 0
-	if attempt_started_at > 0.0:
-		time_spent_seconds = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
-	time_spent_seconds = clampi(time_spent_seconds, 0, max(attempt_duration_seconds, 0))
+	_set_tournament_finish_overlay_state({
+		"title": "Турнир завершён",
+		"submit_state": "Отправляем результат...",
+		"reason": _format_tournament_finish_reason(str(_dict_value(payload, "finish_reason", ""))),
+		"status": "",
+		"rank": "",
+		"errors_text": "Ошибки: %d" % int(_dict_value(payload, "errors_total", 0)),
+		"time_text": "Время: %s" % _format_duration_mmss(int(_dict_value(payload, "time_spent_seconds", 0))),
+		"rounds_text": "Раздачи: %d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
+		"menu_enabled": false,
+		"menu_text": "Отправка...",
+		"retry_visible": false,
+		"retry_enabled": false,
+	})
 
 	var response: Dictionary = await api_service.submit_tournament_attempt(
-		tournament_id,
-		participant_token,
-		rounds_completed,
-		errors_total,
-		time_spent_seconds
+		str(_dict_value(payload, "tournament_id", "")),
+		str(_dict_value(payload, "participant_token", "")),
+		int(_dict_value(payload, "rounds_completed", 0)),
+		int(_dict_value(payload, "errors_total", 0)),
+		int(_dict_value(payload, "time_spent_seconds", 0))
 	)
 
-	var response_code: int = int(response.get("code", 0))
-	var response_body: Dictionary = response.get("body", {}) if response.get("body", {}) is Dictionary else {}
+	var response_code: int = int(_dict_value(response, "code", 0))
+	var response_body_variant: Variant = _dict_value(response, "body", {})
+	var response_body: Dictionary = response_body_variant if response_body_variant is Dictionary else {}
 	if response_code >= 200 and response_code < 300:
 		if sm.has_method("complete_tournament_submit"):
 			sm.complete_tournament_submit(true)
-		_set_tournament_submit_status("Результат отправлен", true)
-		var submit_status: String = str(response_body.get("status", "")).strip_edges()
+		if sm.has_method("save_tournament_submit_response"):
+			sm.save_tournament_submit_response(response_body)
+		var submit_status: String = str(_dict_value(response_body, "status", "")).strip_edges()
 		var status_text: String = ""
 		if submit_status == "success":
 			status_text = "Прошёл"
 		elif submit_status == "failed":
 			status_text = "Не прошёл"
-
-		if tournament_finish_rounds_label:
-			tournament_finish_rounds_label.text = "Раздачи: %d / %d · Ошибки: %d" % [
-				rounds_completed,
-				int(sm.get("tournament_max_rounds")),
-				errors_total
-			]
-
-		var time_line: String = "Время: %s" % _format_duration_mmss(time_spent_seconds)
-		if not status_text.is_empty():
-			time_line += " · Статус: %s" % status_text
-		if response_body.get("rank", null) != null:
-			time_line += " · Место: %d" % int(response_body.get("rank", 0))
-		if tournament_finish_time_label:
-			tournament_finish_time_label.text = time_line
+		var rank_text: String = ""
+		if response_body.has("rank") and response_body["rank"] != null:
+			rank_text = str(int(response_body["rank"]))
+		_set_tournament_finish_overlay_state({
+			"title": "Турнир завершён",
+			"submit_state": "Результат отправлен",
+			"reason": _format_tournament_finish_reason(str(_dict_value(payload, "finish_reason", ""))),
+			"status": status_text,
+			"rank": rank_text,
+			"errors_text": "Ошибки: %d" % int(_dict_value(payload, "errors_total", 0)),
+			"time_text": "Время: %s" % _format_duration_mmss(int(_dict_value(payload, "time_spent_seconds", 0))),
+			"rounds_text": "Раздачи: %d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
+			"menu_enabled": true,
+			"menu_text": "В меню",
+			"retry_visible": false,
+			"retry_enabled": false,
+		})
 	else:
 		if sm.has_method("complete_tournament_submit"):
 			sm.complete_tournament_submit(false)
-		_set_tournament_submit_status("Не удалось отправить результат", true)
+		var error_text: String = "Не удалось отправить результат"
+		var detail: Variant = _dict_value(response_body, "detail", "")
+		if detail is String and not str(detail).strip_edges().is_empty():
+			error_text = str(detail).strip_edges()
+		elif detail is Dictionary:
+			var detail_dict: Dictionary = detail as Dictionary
+			var message_text: String = str(_dict_value(detail_dict, "message", "")).strip_edges()
+			if not message_text.is_empty():
+				error_text = message_text
+		if sm.has_method("set_tournament_submit_error"):
+			sm.set_tournament_submit_error(error_text)
+		_set_tournament_finish_overlay_state({
+			"title": "Турнир завершён",
+			"submit_state": "Не удалось отправить результат",
+			"reason": _compose_tournament_submit_failure_reason(_format_tournament_finish_reason(str(_dict_value(payload, "finish_reason", ""))), error_text),
+			"status": "",
+			"rank": "",
+			"errors_text": "Ошибки: %d" % int(_dict_value(payload, "errors_total", 0)),
+			"time_text": "Время: %s" % _format_duration_mmss(int(_dict_value(payload, "time_spent_seconds", 0))),
+			"rounds_text": "Раздачи: %d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
+			"menu_enabled": true,
+			"menu_text": "В меню",
+			"retry_visible": true,
+			"retry_enabled": true,
+		})
+
+
+func _format_tournament_finish_reason(reason: String) -> String:
+	match reason:
+		"round_limit":
+			return "Лимит раздач достигнут"
+		"time_limit":
+			return "Время вышло"
+		_:
+			return "Попытка завершена"
+
+
+func _on_tournament_retry_submit_pressed() -> void:
+	_submit_tournament_attempt_async.call_deferred(true)
+
+
+func _compose_tournament_submit_failure_reason(base_reason: String, error_text: String) -> String:
+	var normalized_reason := base_reason.strip_edges()
+	var normalized_error := error_text.strip_edges()
+	if normalized_error.is_empty():
+		return normalized_reason
+	if normalized_reason.is_empty():
+		return normalized_error
+	return "%s\n%s" % [normalized_reason, normalized_error]
+
+
+func _dict_value(source: Dictionary, key: String, fallback: Variant) -> Variant:
+	if source.has(key):
+		return source[key]
+	return fallback
+
+
+func _node_prop(node: Variant, key: String, fallback: Variant) -> Variant:
+	if node == null:
+		return fallback
+	var value: Variant = node.get(key)
+	if value == null:
+		return fallback
+	return value
 
 
 func _on_tournament_finish_menu_pressed() -> void:

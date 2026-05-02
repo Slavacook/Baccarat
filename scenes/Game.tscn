@@ -282,20 +282,32 @@ theme_override_constants/separation = 10
 [node name="TournamentFinishTitleLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 26
-text = "Попытка завершена"
+text = "Турнир завершён"
 horizontal_alignment = 1
 
 [node name="TournamentFinishReasonLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
-text = "Лимит раздач достигнут"
+text = "Отправляем результат..."
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="TournamentFinishRoundsLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+[node name="TournamentFinishStatusLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
-text = "Раздачи: 0 / 0"
+text = "Статус: —"
+horizontal_alignment = 1
+
+[node name="TournamentFinishRankLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Место: —"
+horizontal_alignment = 1
+
+[node name="TournamentFinishErrorsLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Ошибки: 0"
 horizontal_alignment = 1
 
 [node name="TournamentFinishTimeLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
@@ -304,8 +316,26 @@ theme_override_font_sizes/font_size = 18
 text = "Время: 00:00"
 horizontal_alignment = 1
 
-[node name="TournamentFinishMenuBtn" type="Button" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
-custom_minimum_size = Vector2(0, 52)
+[node name="TournamentFinishRoundsLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Раздачи: 0 / 0"
+horizontal_alignment = 1
+
+[node name="TournamentFinishButtons" type="HBoxContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="TournamentFinishRetryBtn" type="Button" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishButtons"]
+visible = false
+custom_minimum_size = Vector2(190, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Повторить отправку"
+
+[node name="TournamentFinishMenuBtn" type="Button" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishButtons"]
+custom_minimum_size = Vector2(190, 52)
 layout_mode = 2
 theme_override_font_sizes/font_size = 20
 text = "В меню"

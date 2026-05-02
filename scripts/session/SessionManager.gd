@@ -40,6 +40,9 @@ var tournament_finish_reason: String = ""
 var tournament_submit_started: bool = false
 var tournament_submit_completed: bool = false
 var tournament_submit_succeeded: bool = false
+var tournament_last_attempt_payload: Dictionary = {}
+var tournament_last_submit_response: Dictionary = {}
+var tournament_submit_error_text: String = ""
 ## Сид текущего раунда с сервера (после применения к колоде совпадает с последней раздачей).
 var live_round_seed: String = ""
 ## Сид следующего раунда из WS `round_sync` (применяется в deal_first_four перед раздачей).
@@ -121,18 +124,18 @@ func start_tournament_session(access_record: Dictionary) -> void:
 	_reset_runtime_context()
 	current_mode = Mode.TOURNAMENT
 
-	var tournament: Dictionary = _dictionary_or_empty(access_record.get("tournament", {}))
-	var participant: Dictionary = _dictionary_or_empty(access_record.get("participant", {}))
+	var tournament: Dictionary = _dictionary_or_empty(_dict_value(access_record, "tournament", {}))
+	var participant: Dictionary = _dictionary_or_empty(_dict_value(access_record, "participant", {}))
 
-	tournament_id = str(tournament.get("id", "")).strip_edges()
-	tournament_code = str(tournament.get("code", "")).strip_edges()
-	tournament_title = str(tournament.get("title", "")).strip_edges()
-	tournament_status = str(tournament.get("status", "")).strip_edges()
-	tournament_participant_token = str(access_record.get("participant_token", "")).strip_edges()
-	tournament_participant_id = str(participant.get("id", "")).strip_edges()
-	tournament_participant_display_name = str(participant.get("display_name", "")).strip_edges()
-	tournament_max_rounds = int(tournament.get("max_rounds", 0))
-	tournament_attempt_duration_seconds = int(tournament.get("attempt_duration_seconds", 0))
+	tournament_id = str(_dict_value(tournament, "id", "")).strip_edges()
+	tournament_code = str(_dict_value(tournament, "code", "")).strip_edges()
+	tournament_title = str(_dict_value(tournament, "title", "")).strip_edges()
+	tournament_status = str(_dict_value(tournament, "status", "")).strip_edges()
+	tournament_participant_token = str(_dict_value(access_record, "participant_token", "")).strip_edges()
+	tournament_participant_id = str(_dict_value(participant, "id", "")).strip_edges()
+	tournament_participant_display_name = str(_dict_value(participant, "display_name", "")).strip_edges()
+	tournament_max_rounds = int(_dict_value(tournament, "max_rounds", 0))
+	tournament_attempt_duration_seconds = int(_dict_value(tournament, "attempt_duration_seconds", 0))
 	tournament_attempt_started_at = Time.get_ticks_msec() / 1000.0
 	display_name = tournament_participant_display_name
 
@@ -226,6 +229,9 @@ func get_session_stats() -> Dictionary:
 		"tournament_submit_started": tournament_submit_started,
 		"tournament_submit_completed": tournament_submit_completed,
 		"tournament_submit_succeeded": tournament_submit_succeeded,
+		"tournament_last_attempt_payload": tournament_last_attempt_payload.duplicate(true),
+		"tournament_last_submit_response": tournament_last_submit_response.duplicate(true),
+		"tournament_submit_error_text": tournament_submit_error_text,
 		"rounds_played": rounds_played,
 		"correct_answers": correct_answers,
 		"total_errors": total_errors,
@@ -274,6 +280,9 @@ func _reset_runtime_context() -> void:
 	tournament_submit_started = false
 	tournament_submit_completed = false
 	tournament_submit_succeeded = false
+	tournament_last_attempt_payload.clear()
+	tournament_last_submit_response.clear()
+	tournament_submit_error_text = ""
 	live_round_seed = ""
 	pending_live_round_seed = ""
 	_force_exit_in_progress = false
@@ -318,6 +327,41 @@ func complete_tournament_submit(success: bool) -> void:
 		return
 	tournament_submit_completed = true
 	tournament_submit_succeeded = success
+
+
+func save_tournament_attempt_payload(payload: Dictionary) -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	tournament_last_attempt_payload = payload.duplicate(true)
+
+
+func get_tournament_attempt_payload() -> Dictionary:
+	return tournament_last_attempt_payload.duplicate(true)
+
+
+func save_tournament_submit_response(response: Dictionary) -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	tournament_last_submit_response = response.duplicate(true)
+	tournament_submit_error_text = ""
+
+
+func set_tournament_submit_error(text: String) -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	tournament_submit_error_text = text
+
+
+func reset_tournament_submit_state_for_retry() -> bool:
+	if current_mode != Mode.TOURNAMENT:
+		return false
+	if not tournament_submit_completed or tournament_submit_succeeded:
+		return false
+	tournament_submit_started = false
+	tournament_submit_completed = false
+	tournament_submit_succeeded = false
+	tournament_submit_error_text = ""
+	return true
 
 
 func _calc_accuracy() -> float:
@@ -439,7 +483,7 @@ func _run_online_watchdog_check() -> void:
 	if current_mode != Mode.ONLINE or _force_exit_in_progress:
 		return
 
-	var code: int = int(result.get("code", 0))
+	var code: int = int(_dict_value(result, "code", 0))
 	match code:
 		200:
 			return
@@ -494,3 +538,9 @@ func _dictionary_or_empty(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return value as Dictionary
 	return {}
+
+
+func _dict_value(source: Dictionary, key: String, fallback: Variant) -> Variant:
+	if source.has(key):
+		return source[key]
+	return fallback
