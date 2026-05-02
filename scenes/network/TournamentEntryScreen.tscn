@@ -62,13 +62,19 @@ text = "Введите код турнира и ваше имя"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="CodeRow" type="HBoxContainer" parent="Margin/Center/Container"]
+[node name="FormBlock" type="VBoxContainer" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="CodeRow" type="HBoxContainer" parent="Margin/Center/Container/FormBlock"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container/CodeRow"]
+[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container/FormBlock/CodeRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -76,12 +82,12 @@ alignment = 1
 placeholder_text = "Код турнира: XXXX-XXXX"
 max_length = 9
 
-[node name="PasteCodeBtn" type="Button" parent="Margin/Center/Container/CodeRow"]
+[node name="PasteCodeBtn" type="Button" parent="Margin/Center/Container/FormBlock/CodeRow"]
 custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "Вставить"
 
-[node name="DisplayNameInput" type="LineEdit" parent="Margin/Center/Container"]
+[node name="DisplayNameInput" type="LineEdit" parent="Margin/Center/Container/FormBlock"]
 custom_minimum_size = Vector2(420, 56)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -109,19 +115,19 @@ text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container"]
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container/FormBlock"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="BackBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+[node name="BackBtn" type="Button" parent="Margin/Center/Container/FormBlock/ActionsRow"]
 custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 size_flags_horizontal = 1
 text = "← Назад"
 
-[node name="EnterBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+[node name="EnterBtn" type="Button" parent="Margin/Center/Container/FormBlock/ActionsRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -194,7 +200,15 @@ autowrap_mode = 2
 
 [node name="StartAttemptBtn" type="Button" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
 visible = false
-custom_minimum_size = Vector2(0, 56)
+custom_minimum_size = Vector2(0, 64)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 22
 text = "Начать попытку"
+
+[node name="EditAccessBtn" type="Button" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Другой код"

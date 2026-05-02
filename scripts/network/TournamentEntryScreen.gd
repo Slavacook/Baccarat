@@ -11,6 +11,8 @@ var paste_code_btn: Button
 var enter_btn: Button
 var back_btn: Button
 var start_attempt_btn: Button
+var edit_access_btn: Button
+var form_block: Control
 var error_label: Label
 var status_label: Label
 var summary_block: Control
@@ -32,6 +34,8 @@ func _ready() -> void:
 	enter_btn = find_child("EnterBtn", true, false)
 	back_btn = find_child("BackBtn", true, false)
 	start_attempt_btn = find_child("StartAttemptBtn", true, false)
+	edit_access_btn = find_child("EditAccessBtn", true, false)
+	form_block = find_child("FormBlock", true, false)
 	error_label = find_child("ErrorLabel", true, false)
 	status_label = find_child("StatusLabel", true, false)
 	summary_block = find_child("SummaryBlock", true, false)
@@ -54,6 +58,8 @@ func _ready() -> void:
 		back_btn.pressed.connect(_on_back_pressed)
 	if start_attempt_btn and not start_attempt_btn.pressed.is_connected(_on_start_attempt_pressed):
 		start_attempt_btn.pressed.connect(_on_start_attempt_pressed)
+	if edit_access_btn and not edit_access_btn.pressed.is_connected(_on_edit_access_pressed):
+		edit_access_btn.pressed.connect(_on_edit_access_pressed)
 	if tournament_code_input and not tournament_code_input.text_changed.is_connected(_on_tournament_code_changed):
 		tournament_code_input.text_changed.connect(_on_tournament_code_changed)
 	if display_name_input and not display_name_input.text_changed.is_connected(_on_input_changed):
@@ -61,8 +67,10 @@ func _ready() -> void:
 
 	_hide_error()
 	_set_status("")
+	_set_form_visible(true)
 	_set_summary_visible(false)
 	_set_start_attempt_visible(false)
+	_set_edit_access_visible(false)
 
 
 func _on_enter_pressed() -> void:
@@ -114,7 +122,9 @@ func _on_enter_pressed() -> void:
 
 	_saved_tournament_access = (saved as Dictionary).duplicate(true)
 	_show_summary(_saved_tournament_access)
+	_set_form_visible(false)
 	_set_start_attempt_visible(true)
+	_set_edit_access_visible(true)
 	_set_status("Вход в турнир сохранён")
 
 
@@ -139,6 +149,16 @@ func _on_start_attempt_pressed() -> void:
 	session_manager.call("start_tournament_session", _saved_tournament_access)
 	if get_tree():
 		get_tree().change_scene_to_file("res://scenes/Game.tscn")
+
+
+func _on_edit_access_pressed() -> void:
+	_saved_tournament_access.clear()
+	_hide_error()
+	_set_status("")
+	_set_form_visible(true)
+	_set_summary_visible(false)
+	_set_start_attempt_visible(false)
+	_set_edit_access_visible(false)
 
 
 func _on_tournament_code_changed(text: String) -> void:
@@ -174,8 +194,10 @@ func _on_input_changed(_text: String) -> void:
 	_saved_tournament_access.clear()
 	_hide_error()
 	_set_status("")
+	_set_form_visible(true)
 	_set_summary_visible(false)
 	_set_start_attempt_visible(false)
+	_set_edit_access_visible(false)
 
 
 func _format_tournament_code(value: String) -> String:
@@ -284,6 +306,8 @@ func _set_loading(loading: bool) -> void:
 		back_btn.disabled = loading
 	if start_attempt_btn:
 		start_attempt_btn.disabled = loading
+	if edit_access_btn:
+		edit_access_btn.disabled = loading
 	if tournament_code_input:
 		tournament_code_input.editable = not loading
 	if display_name_input:
@@ -299,3 +323,13 @@ func _set_summary_visible(visible: bool) -> void:
 func _set_start_attempt_visible(visible: bool) -> void:
 	if start_attempt_btn:
 		start_attempt_btn.visible = visible
+
+
+func _set_edit_access_visible(visible: bool) -> void:
+	if edit_access_btn:
+		edit_access_btn.visible = visible
+
+
+func _set_form_visible(visible: bool) -> void:
+	if form_block:
+		form_block.visible = visible
