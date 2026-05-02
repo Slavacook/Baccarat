@@ -1,4 +1,4 @@
-[gd_scene load_steps=45 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=46 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
@@ -105,6 +105,18 @@ corner_radius_top_right = 22
 corner_radius_bottom_right = 22
 corner_radius_bottom_left = 22
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_info_panel"]
+bg_color = Color(0.054902, 0.0784314, 0.101961, 0.9)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.3)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
 
@@ -192,47 +204,48 @@ texture = ExtResource("5_bneo8")
 [node name="TournamentInfoPanel" type="PanelContainer" parent="TopUI"]
 visible = false
 offset_left = 16.0
-offset_top = 86.0
-offset_right = 336.0
-offset_bottom = 208.0
+offset_top = 80.0
+offset_right = 300.0
+offset_bottom = 194.0
+theme_override_styles/panel = SubResource("StyleBoxFlat_tournament_info_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentInfoPanel"]
 layout_mode = 2
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 12
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 12
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 10
 
 [node name="TournamentInfoContainer" type="VBoxContainer" parent="TopUI/TournamentInfoPanel/MarginContainer"]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="TournamentTitleLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
-theme_override_font_sizes/font_size = 20
-text = "Турнир: —"
+theme_override_font_sizes/font_size = 17
+text = "ТУРНИР"
 autowrap_mode = 2
 
 [node name="TournamentParticipantLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
-theme_override_font_sizes/font_size = 18
-text = "Участник: —"
+theme_override_colors/font_color = Color(0.870588, 0.901961, 0.929412, 0.95)
+theme_override_font_sizes/font_size = 16
+text = "Игрок: —"
 autowrap_mode = 2
 
 [node name="TournamentRoundsLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 1)
-theme_override_font_sizes/font_size = 18
-text = "Раздачи: 0 / 0"
+theme_override_colors/font_color = Color(0.886275, 0.827451, 0.690196, 0.92)
+theme_override_font_sizes/font_size = 16
+text = "Раздачи 0 / 0"
 autowrap_mode = 2
 
 [node name="TournamentTimeLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
 layout_mode = 2
-theme_override_colors/font_color = Color(0.8745098, 0.7921569, 0.57254905, 1)
-theme_override_font_sizes/font_size = 18
-text = "Время: 00:00"
+theme_override_colors/font_color = Color(0.980392, 0.92549, 0.756863, 1)
+theme_override_font_sizes/font_size = 22
+text = "Осталось 00:00"
 autowrap_mode = 2
 
 [node name="TournamentFinishOverlay" type="Control" parent="TopUI"]

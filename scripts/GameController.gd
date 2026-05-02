@@ -1994,18 +1994,20 @@ func _update_tournament_info_panel() -> void:
 	_last_tournament_remaining_seconds = remaining_seconds
 
 	if title_text.is_empty():
-		title_text = code_text if not code_text.is_empty() else "—"
+		title_text = code_text
 	if participant_text.is_empty():
 		participant_text = "—"
 
 	if tournament_title_label:
-		tournament_title_label.text = "Турнир: %s" % title_text
+		tournament_title_label.text = "ТУРНИР"
+		if not title_text.is_empty():
+			tournament_title_label.text = "ТУРНИР · %s" % title_text
 	if tournament_participant_label:
-		tournament_participant_label.text = "Участник: %s" % participant_text
+		tournament_participant_label.text = "Игрок: %s" % participant_text
 	if tournament_rounds_label:
-		tournament_rounds_label.text = "Раздачи: %d / %d" % [rounds_completed, max_rounds]
+		tournament_rounds_label.text = "Раздачи %d / %d" % [rounds_completed, max_rounds]
 	if tournament_time_label:
-		tournament_time_label.text = "Время: %s" % _format_duration_mmss(remaining_seconds)
+		tournament_time_label.text = "Осталось %s" % _format_duration_mmss(remaining_seconds)
 
 
 func _format_duration_mmss(total_seconds: int) -> String:
