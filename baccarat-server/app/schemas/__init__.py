@@ -42,7 +42,14 @@ from .room import (
     RoomResponse,
     RoomSettingsCreate,
 )
-from .tournament import TournamentCreateRequest, TournamentResponse
+from .tournament import (
+    TournamentActivateRequest,
+    TournamentActivateResponse,
+    TournamentActivationTournamentResponse,
+    TournamentCreateRequest,
+    TournamentParticipantResponse,
+    TournamentResponse,
+)
 
 __all__ = [
     "DealerJoinRequest",
@@ -83,6 +90,10 @@ __all__ = [
     "TrainerRegisterRequest",
     "TrainerRegisterResponse",
     "WhoamiResponse",
+    "TournamentActivateRequest",
+    "TournamentActivateResponse",
+    "TournamentActivationTournamentResponse",
     "TournamentCreateRequest",
+    "TournamentParticipantResponse",
     "TournamentResponse",
 ]

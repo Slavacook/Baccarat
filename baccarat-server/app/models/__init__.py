@@ -15,6 +15,11 @@ from .notification_preference import NotificationPreference
 from .login_attempt import LoginAttempt
 from .dealer_rank_history import DealerRankHistory
 from .tournament import Tournament, TournamentStatus
+from .tournament_participant import TournamentParticipant
+from .tournament_participant_token import (
+    TournamentParticipantToken,
+    TournamentParticipantTokenStatus,
+)
 
 __all__ = [
     "Trainer",
@@ -47,4 +52,7 @@ __all__ = [
     "DealerRankHistory",
     "Tournament",
     "TournamentStatus",
+    "TournamentParticipant",
+    "TournamentParticipantToken",
+    "TournamentParticipantTokenStatus",
 ]
