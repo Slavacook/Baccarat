@@ -77,12 +77,18 @@ func show_first_four_cards(player_hand: Array[Card], banker_hand: Array[Card]):
 
 	Задержка между картами: GameConstants.FLIP_CARD_DELAY
 	"""
+	var player_cards: Array[Card] = player_hand.duplicate()
+	var banker_cards: Array[Card] = banker_hand.duplicate()
+	if player_cards.size() < 2 or banker_cards.size() < 2:
+		push_warning("CardUIManager.show_first_four_cards: недостаточно карт для анимации первых четырех")
+		return
+
 	# ← Карта 1 игрока
 	player_card1.visible = false
 	flip_cards[0].visible = true
 	flip_cards[0].play_flip()
 	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	player_card1.texture = player_hand[0].get_texture(card_manager)
+	player_card1.texture = player_cards[0].get_texture(card_manager)
 	player_card1.visible = true
 	flip_cards[0].visible = false
 
@@ -91,7 +97,7 @@ func show_first_four_cards(player_hand: Array[Card], banker_hand: Array[Card]):
 	flip_cards[1].visible = true
 	flip_cards[1].play_flip()
 	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	player_card2.texture = player_hand[1].get_texture(card_manager)
+	player_card2.texture = player_cards[1].get_texture(card_manager)
 	player_card2.visible = true
 	flip_cards[1].visible = false
 
@@ -100,7 +106,7 @@ func show_first_four_cards(player_hand: Array[Card], banker_hand: Array[Card]):
 	flip_cards[2].visible = true
 	flip_cards[2].play_flip()
 	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	banker_card1.texture = banker_hand[0].get_texture(card_manager)
+	banker_card1.texture = banker_cards[0].get_texture(card_manager)
 	banker_card1.visible = true
 	flip_cards[2].visible = false
 
@@ -109,7 +115,7 @@ func show_first_four_cards(player_hand: Array[Card], banker_hand: Array[Card]):
 	flip_cards[3].visible = true
 	flip_cards[3].play_flip()
 	await main_node.get_tree().create_timer(GameConstants.FLIP_CARD_DELAY).timeout
-	banker_card2.texture = banker_hand[1].get_texture(card_manager)
+	banker_card2.texture = banker_cards[1].get_texture(card_manager)
 	banker_card2.visible = true
 	flip_cards[3].visible = false
 
