@@ -3,16 +3,20 @@ extends Control
 
 var play_button: Button
 var online_button: Button
+var tournament_button: Button
 
 
 func _ready() -> void:
 	play_button = find_child("PlayButton", true, false)
 	online_button = find_child("OnlineButton", true, false)
+	tournament_button = find_child("TournamentButton", true, false)
 
 	if play_button and not play_button.pressed.is_connected(_on_play_pressed):
 		play_button.pressed.connect(_on_play_pressed)
 	if online_button and not online_button.pressed.is_connected(_on_online_pressed):
 		online_button.pressed.connect(_on_online_pressed)
+	if tournament_button and not tournament_button.pressed.is_connected(_on_tournament_pressed):
+		tournament_button.pressed.connect(_on_tournament_pressed)
 
 
 func _on_play_pressed() -> void:
@@ -21,3 +25,7 @@ func _on_play_pressed() -> void:
 
 func _on_online_pressed() -> void:
 	get_tree().change_scene_to_file("res://scenes/network/MyTrainingsScreen.tscn")
+
+
+func _on_tournament_pressed() -> void:
+	get_tree().change_scene_to_file("res://scenes/network/TournamentEntryScreen.tscn")

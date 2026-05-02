@@ -1,0 +1,182 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/network/TournamentEntryScreen.gd" id="1_tournament_entry"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/start_screen_bg.png" id="2_tournament_bg"]
+
+[node name="TournamentEntryScreen" type="Control"]
+script = ExtResource("1_tournament_entry")
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_tournament_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="Center" type="CenterContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Container" type="VBoxContainer" parent="Margin/Center"]
+custom_minimum_size = Vector2(460, 560)
+layout_mode = 2
+theme_override_constants/separation = 14
+alignment = 1
+
+[node name="Title" type="Label" parent="Margin/Center/Container"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 8
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
+text = "Турнир"
+horizontal_alignment = 1
+
+[node name="Description" type="Label" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Введите код турнира и ваше имя"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+placeholder_text = "Код турнира: XXXX-XXXX"
+max_length = 9
+
+[node name="DisplayNameInput" type="LineEdit" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+alignment = 1
+placeholder_text = "Ваше имя"
+max_length = 100
+
+[node name="ErrorLabel" type="Label" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+visible = false
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Ошибка"
+horizontal_alignment = 1
+autowrap_mode = 2
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
+
+[node name="StatusLabel" type="Label" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="BackBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+custom_minimum_size = Vector2(120, 56)
+layout_mode = 2
+size_flags_horizontal = 1
+text = "← Назад"
+
+[node name="EnterBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Войти"
+
+[node name="SummaryBlock" type="PanelContainer" parent="Margin/Center/Container"]
+visible = false
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="SummaryPadding" type="MarginContainer" parent="Margin/Center/Container/SummaryBlock"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="SummaryContainer" type="VBoxContainer" parent="Margin/Center/Container/SummaryBlock/SummaryPadding"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SummaryTitle" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 22
+text = "Турнир подключён"
+horizontal_alignment = 1
+
+[node name="SummaryTitleValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="SummaryCodeLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = "Код"
+
+[node name="SummaryCodeValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = ""
+autowrap_mode = 2
+
+[node name="SummaryStatusLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = "Статус"
+
+[node name="SummaryStatusValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = ""
+autowrap_mode = 2
+
+[node name="SummaryRulesLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = "Правила"
+
+[node name="SummaryRulesValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = ""
+autowrap_mode = 2
+
+[node name="SummaryNameLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = "Участник"
+
+[node name="SummaryNameValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+layout_mode = 2
+text = ""
+autowrap_mode = 2
