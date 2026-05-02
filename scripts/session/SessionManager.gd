@@ -33,6 +33,9 @@ var tournament_participant_display_name: String = ""
 var tournament_max_rounds: int = 0
 var tournament_attempt_duration_seconds: int = 0
 var tournament_attempt_started_at: float = 0.0
+var tournament_rounds_completed: int = 0
+var tournament_attempt_finished: bool = false
+var tournament_finish_reason: String = ""
 ## Сид текущего раунда с сервера (после применения к колоде совпадает с последней раздачей).
 var live_round_seed: String = ""
 ## Сид следующего раунда из WS `round_sync` (применяется в deal_first_four перед раздачей).
@@ -204,6 +207,9 @@ func get_session_stats() -> Dictionary:
 		"tournament_max_rounds": tournament_max_rounds,
 		"tournament_attempt_duration_seconds": tournament_attempt_duration_seconds,
 		"tournament_attempt_started_at": tournament_attempt_started_at,
+		"tournament_rounds_completed": tournament_rounds_completed,
+		"tournament_attempt_finished": tournament_attempt_finished,
+		"tournament_finish_reason": tournament_finish_reason,
 		"rounds_played": rounds_played,
 		"correct_answers": correct_answers,
 		"total_errors": total_errors,
@@ -245,9 +251,29 @@ func _reset_runtime_context() -> void:
 	tournament_max_rounds = 0
 	tournament_attempt_duration_seconds = 0
 	tournament_attempt_started_at = 0.0
+	tournament_rounds_completed = 0
+	tournament_attempt_finished = false
+	tournament_finish_reason = ""
 	live_round_seed = ""
 	pending_live_round_seed = ""
 	_force_exit_in_progress = false
+
+
+func mark_tournament_round_completed() -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	if tournament_attempt_finished:
+		return
+	tournament_rounds_completed += 1
+
+
+func finish_tournament_attempt(reason: String) -> void:
+	if current_mode != Mode.TOURNAMENT:
+		return
+	if tournament_attempt_finished:
+		return
+	tournament_attempt_finished = true
+	tournament_finish_reason = reason
 
 
 func _calc_accuracy() -> float:

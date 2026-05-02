@@ -184,6 +184,11 @@ var game_state_controller: GameStateController
 @onready var tournament_participant_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentParticipantLabel
 @onready var tournament_rounds_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentRoundsLabel
 @onready var tournament_time_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentTimeLabel
+@onready var tournament_finish_overlay: Control = $TopUI/TournamentFinishOverlay
+@onready var tournament_finish_reason_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishReasonLabel
+@onready var tournament_finish_rounds_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishRoundsLabel
+@onready var tournament_finish_time_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishTimeLabel
+@onready var tournament_finish_menu_btn: Button = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMenuBtn
 @onready var guest_sprites: Dictionary = {
 	1: $G_1,
 	2: $G_2,
@@ -251,6 +256,8 @@ func _ready():
 	
 	# Начало новой раздачи: увеличиваем счетчик раздач
 	EventBus.round_started.connect(_on_round_started)
+	if not EventBus.all_bets_processed.is_connected(_on_tournament_round_completed):
+		EventBus.all_bets_processed.connect(_on_tournament_round_completed)
 	
 	# Heart Bet: триггеры обрабатываются через ChanceCardManager
 	# Старые сигналы оставлены для обратной совместимости
@@ -324,6 +331,10 @@ func _ready():
 	_update_rounds_counter()
 	_refresh_top_bar_texts()
 	_update_tournament_info_panel()
+	if tournament_finish_overlay:
+		tournament_finish_overlay.visible = false
+	if tournament_finish_menu_btn and not tournament_finish_menu_btn.pressed.is_connected(_on_tournament_finish_menu_pressed):
+		tournament_finish_menu_btn.pressed.connect(_on_tournament_finish_menu_pressed)
 	
 	# Инициализируем менеджер индикаторов терпения и баланса гостей
 	_setup_patience_indicators()
@@ -1963,7 +1974,7 @@ func _update_tournament_info_panel() -> void:
 	var title_text: String = str(sm.get("tournament_title")).strip_edges()
 	var code_text: String = str(sm.get("tournament_code")).strip_edges()
 	var participant_text: String = str(sm.get("tournament_participant_display_name")).strip_edges()
-	var rounds_played: int = int(sm.get("rounds_played"))
+	var rounds_completed: int = int(sm.get("tournament_rounds_completed"))
 	var max_rounds: int = int(sm.get("tournament_max_rounds"))
 	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
 	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
@@ -1983,7 +1994,7 @@ func _update_tournament_info_panel() -> void:
 	if tournament_participant_label:
 		tournament_participant_label.text = "Участник: %s" % participant_text
 	if tournament_rounds_label:
-		tournament_rounds_label.text = "Раздачи: %d / %d" % [rounds_played, max_rounds]
+		tournament_rounds_label.text = "Раздачи: %d / %d" % [rounds_completed, max_rounds]
 	if tournament_time_label:
 		tournament_time_label.text = "Время: %s" % _format_duration_mmss(remaining_seconds)
 
@@ -2006,6 +2017,8 @@ func _update_tournament_countdown_if_needed() -> void:
 		return
 	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
 		return
+	if bool(sm.get("tournament_attempt_finished")):
+		return
 
 	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
 	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
@@ -2014,7 +2027,127 @@ func _update_tournament_countdown_if_needed() -> void:
 
 	var elapsed_seconds: int = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
 	var remaining_seconds: int = max(attempt_duration_seconds - elapsed_seconds, 0)
+	if remaining_seconds <= 0:
+		_finish_tournament_attempt("time_limit")
+		return
 	if remaining_seconds == _last_tournament_remaining_seconds:
 		return
 
 	_update_tournament_info_panel()
+
+
+func _on_tournament_round_completed() -> void:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	if sm == null:
+		return
+	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
+		return
+	if bool(sm.get("tournament_attempt_finished")):
+		return
+	if not sm.has_method("mark_tournament_round_completed"):
+		return
+
+	sm.mark_tournament_round_completed()
+	_update_tournament_info_panel()
+
+	var rounds_completed: int = int(sm.get("tournament_rounds_completed"))
+	var max_rounds: int = int(sm.get("tournament_max_rounds"))
+	if max_rounds > 0 and rounds_completed >= max_rounds:
+		_finish_tournament_attempt("round_limit")
+
+
+func _finish_tournament_attempt(reason: String) -> void:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	if sm == null:
+		return
+	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
+		return
+	if bool(sm.get("tournament_attempt_finished")):
+		return
+	if not sm.has_method("finish_tournament_attempt"):
+		return
+
+	sm.finish_tournament_attempt(reason)
+	_update_tournament_info_panel()
+	_show_tournament_finish_overlay(reason)
+
+	var input_context_manager: Variant = null
+	if Engine.has_singleton("InputContextManager"):
+		input_context_manager = Engine.get_singleton("InputContextManager")
+	else:
+		input_context_manager = get_node_or_null("/root/InputContextManager")
+	if input_context_manager != null and input_context_manager.has_method("set_global_block"):
+		input_context_manager.set_global_block(true)
+
+
+func _show_tournament_finish_overlay(reason: String) -> void:
+	if not tournament_finish_overlay:
+		return
+
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	var reason_text: String = "Попытка завершена"
+	match reason:
+		"round_limit":
+			reason_text = "Лимит раздач достигнут"
+		"time_limit":
+			reason_text = "Время вышло"
+
+	var rounds_completed: int = 0
+	var max_rounds: int = 0
+	var remaining_seconds: int = 0
+	if sm != null:
+		rounds_completed = int(sm.get("tournament_rounds_completed"))
+		max_rounds = int(sm.get("tournament_max_rounds"))
+		var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
+		var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
+		if reason == "time_limit":
+			remaining_seconds = 0
+		elif attempt_started_at > 0.0:
+			var elapsed_seconds: int = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
+			remaining_seconds = max(attempt_duration_seconds - elapsed_seconds, 0)
+		else:
+			remaining_seconds = max(attempt_duration_seconds, 0)
+
+	if tournament_finish_reason_label:
+		tournament_finish_reason_label.text = reason_text
+	if tournament_finish_rounds_label:
+		tournament_finish_rounds_label.text = "Раздачи: %d / %d" % [rounds_completed, max_rounds]
+	if tournament_finish_time_label:
+		tournament_finish_time_label.text = "Время: %s" % _format_duration_mmss(remaining_seconds)
+
+	tournament_finish_overlay.visible = true
+
+
+func _on_tournament_finish_menu_pressed() -> void:
+	var input_context_manager: Variant = null
+	if Engine.has_singleton("InputContextManager"):
+		input_context_manager = Engine.get_singleton("InputContextManager")
+	else:
+		input_context_manager = get_node_or_null("/root/InputContextManager")
+	if input_context_manager != null and input_context_manager.has_method("set_global_block"):
+		input_context_manager.set_global_block(false)
+
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+	if sm != null and sm.has_method("end_session"):
+		sm.end_session()
+
+	get_tree().change_scene_to_file("res://scenes/StartScreen.tscn")

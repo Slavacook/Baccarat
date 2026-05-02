@@ -235,6 +235,81 @@ theme_override_font_sizes/font_size = 18
 text = "Время: 00:00"
 autowrap_mode = 2
 
+[node name="TournamentFinishOverlay" type="Control" parent="TopUI"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 0
+
+[node name="OverlayShade" type="ColorRect" parent="TopUI/TournamentFinishOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+color = Color(0, 0, 0, 0.62)
+
+[node name="CenterContainer" type="CenterContainer" parent="TopUI/TournamentFinishOverlay"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 1
+
+[node name="TournamentFinishPanel" type="PanelContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer"]
+custom_minimum_size = Vector2(460, 0)
+layout_mode = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 24
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 24
+theme_override_constants/margin_bottom = 20
+
+[node name="TournamentFinishContainer" type="VBoxContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TournamentFinishTitleLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 26
+text = "Попытка завершена"
+horizontal_alignment = 1
+
+[node name="TournamentFinishReasonLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "Лимит раздач достигнут"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TournamentFinishRoundsLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Раздачи: 0 / 0"
+horizontal_alignment = 1
+
+[node name="TournamentFinishTimeLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Время: 00:00"
+horizontal_alignment = 1
+
+[node name="TournamentFinishMenuBtn" type="Button" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
+custom_minimum_size = Vector2(0, 52)
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "В меню"
+
 [node name="Background5" type="TextureRect" parent="."]
 offset_left = -1690.0
 offset_top = -1636.0
