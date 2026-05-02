@@ -1775,8 +1775,14 @@ function setDashboardStage(stage) {
 
 function formatDuration(seconds) {
   const s = Number(seconds || 0);
-  const mm = Math.floor(s / 60);
-  const ss = s % 60;
+  if (!Number.isFinite(s) || s < 0) return "0:00";
+  const totalSeconds = Math.floor(s);
+  const hh = Math.floor(totalSeconds / 3600);
+  const mm = Math.floor((totalSeconds % 3600) / 60);
+  const ss = totalSeconds % 60;
+  if (hh > 0) {
+    return `${hh}:${String(mm).padStart(2, "0")}:${String(ss).padStart(2, "0")}`;
+  }
   return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
@@ -2066,6 +2072,18 @@ function formatParticipantPhaseSummary(dealerId) {
   return `Фаза: ${getParticipantPhaseLabel(dealerId)}`;
 }
 
+function getParticipantErrorsCount(dealerId) {
+  const summary = getParticipantResultsSummary(dealerId);
+  if (!summary || typeof summary.errors_total !== "number") return 0;
+  return Number(summary.errors_total || 0);
+}
+
+function getParticipantLiveSeconds(dealerId) {
+  const summary = getParticipantResultsSummary(dealerId);
+  if (!summary || typeof summary.live_seconds !== "number") return null;
+  return Number(summary.live_seconds || 0);
+}
+
 async function copyPendingPersonalInviteCode(code, button) {
   const value = String(code || "").trim();
   if (!value) return false;
@@ -2111,7 +2129,7 @@ function renderRoomParticipants(participants, invites) {
   if (participantItems.length === 0 && inviteItems.length === 0) {
     const tr = document.createElement("tr");
     const td = document.createElement("td");
-    td.colSpan = 3;
+    td.colSpan = 5;
     td.className = "muted";
     td.textContent = "Участников пока нет.";
     tr.appendChild(td);
@@ -2141,26 +2159,20 @@ function renderRoomParticipants(participants, invites) {
     }
 
     const cName = document.createElement("td");
-    const nameWrap = document.createElement("div");
-    nameWrap.className = "participant-name-cell";
-    const title = document.createElement("span");
-    title.textContent = participant.display_name || "—";
-    nameWrap.appendChild(title);
-    const errorsSubtitle = document.createElement("span");
-    errorsSubtitle.className = "participant-subtitle";
-    errorsSubtitle.textContent = formatParticipantErrorsSummary(participantDealerId);
-    nameWrap.appendChild(errorsSubtitle);
-    const phaseSubtitle = document.createElement("span");
-    phaseSubtitle.className = "participant-subtitle";
-    phaseSubtitle.textContent = formatParticipantPhaseSummary(participantDealerId);
-    nameWrap.appendChild(phaseSubtitle);
-    cName.appendChild(nameWrap);
+    cName.textContent = participant.display_name || "—";
 
     const cStatus = document.createElement("td");
     const badge = document.createElement("span");
     badge.className = `status-badge ${participantStatusClass(participant.online_status, "participant")}`;
     badge.textContent = participantStatusLabel(participant.online_status, "participant");
     cStatus.appendChild(badge);
+
+    const cErrors = document.createElement("td");
+    cErrors.textContent = String(getParticipantErrorsCount(participantDealerId));
+
+    const cTime = document.createElement("td");
+    const participantLiveSeconds = getParticipantLiveSeconds(participantDealerId);
+    cTime.textContent = participantLiveSeconds == null ? "—" : formatDuration(participantLiveSeconds);
 
     const cActions = document.createElement("td");
     const deleteBtn = document.createElement("button");
@@ -2175,6 +2187,8 @@ function renderRoomParticipants(participants, invites) {
 
     tr.appendChild(cName);
     tr.appendChild(cStatus);
+    tr.appendChild(cErrors);
+    tr.appendChild(cTime);
     tr.appendChild(cActions);
     tbody.appendChild(tr);
   }
@@ -2210,13 +2224,20 @@ function renderRoomParticipants(participants, invites) {
     badge.textContent = participantStatusLabel(invite.status, "pending-invite");
     cStatus.appendChild(badge);
 
+    const cErrors = document.createElement("td");
+    cErrors.textContent = "—";
+
+    const cTime = document.createElement("td");
+    cTime.textContent = "—";
+
     const cActions = document.createElement("td");
     if (inviteCode) {
       const copyBtn = document.createElement("button");
       copyBtn.type = "button";
       copyBtn.className = "ghost table-action-button";
       copyBtn.textContent = "Скопировать";
-      copyBtn.addEventListener("click", () => {
+      copyBtn.addEventListener("click", (event) => {
+        event.stopPropagation();
         void copyPendingPersonalInviteCode(inviteCode, copyBtn);
       });
       cActions.appendChild(copyBtn);
@@ -2225,11 +2246,16 @@ function renderRoomParticipants(participants, invites) {
     deleteBtn.type = "button";
     deleteBtn.className = "danger table-action-button";
     deleteBtn.textContent = "Удалить";
-    deleteBtn.addEventListener("click", () => revokePendingPersonalInvite(accessId));
+    deleteBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      revokePendingPersonalInvite(accessId);
+    });
     cActions.appendChild(deleteBtn);
 
     tr.appendChild(cName);
     tr.appendChild(cStatus);
+    tr.appendChild(cErrors);
+    tr.appendChild(cTime);
     tr.appendChild(cActions);
     tbody.appendChild(tr);
   }
@@ -3151,15 +3177,17 @@ async function fetchRoomDealersOnce() {
     return;
   }
   const mapped = data.map((d) => ({
+    ...(latestDealersSnapshot.find((item) => String(item.dealer_id || "") === String(d.dealer_id || "")) || {
+      rounds_completed: 0,
+      errors_total: 0,
+      cards_errors: 0,
+      payout_errors: 0,
+      chips_errors: 0,
+      live_seconds: 0,
+      avg_accuracy: 0,
+    }),
     dealer_id: String(d.dealer_id || ""),
     display_name: d.display_name || "—",
-    rounds_completed: 0,
-    errors_total: 0,
-    cards_errors: 0,
-    payout_errors: 0,
-    chips_errors: 0,
-    live_seconds: 0,
-    avg_accuracy: 0,
   }));
   renderDealers(mapped);
 }
