@@ -17,7 +17,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    tournament_status = sa.Enum("active", "closed", name="tournamentstatus")
+    tournament_status = postgresql.ENUM(
+        "active",
+        "closed",
+        name="tournamentstatus",
+        create_type=False,
+    )
     tournament_status.create(op.get_bind(), checkfirst=True)
 
     op.create_table(
@@ -48,5 +53,10 @@ def downgrade() -> None:
     op.drop_index("idx_tournaments_trainer_id", table_name="tournaments")
     op.drop_table("tournaments")
 
-    tournament_status = sa.Enum("active", "closed", name="tournamentstatus")
+    tournament_status = postgresql.ENUM(
+        "active",
+        "closed",
+        name="tournamentstatus",
+        create_type=False,
+    )
     tournament_status.drop(op.get_bind(), checkfirst=True)
