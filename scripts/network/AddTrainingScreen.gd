@@ -5,6 +5,7 @@ signal go_back
 signal training_added(record: Dictionary)
 
 const ACCESS_CODE_ALLOWED_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+const PlayerDisplayNameStoreScript = preload("res://scripts/network/PlayerDisplayNameStore.gd")
 
 var access_code_input: LineEdit
 var display_name_input: LineEdit
@@ -20,6 +21,7 @@ var _keyboard_focus_version: int = 0
 
 var _api_service = null
 var _access_store = null
+var _display_name_store: Node = null
 
 
 func _ready() -> void:
@@ -35,6 +37,9 @@ func _ready() -> void:
 
 	_api_service = _find_api_service()
 	_access_store = _find_dealer_access_store()
+	_display_name_store = PlayerDisplayNameStoreScript.new()
+	_display_name_store.name = "PlayerDisplayNameStore_Local"
+	add_child(_display_name_store)
 
 	if connect_btn and not connect_btn.pressed.is_connected(_on_connect_pressed):
 		connect_btn.pressed.connect(_on_connect_pressed)
@@ -55,6 +60,7 @@ func _ready() -> void:
 
 	_hide_error()
 	_set_status("")
+	_apply_saved_display_name()
 
 
 func _on_connect_pressed() -> void:
@@ -73,6 +79,9 @@ func _on_connect_pressed() -> void:
 	if _access_store == null:
 		_show_error("DealerAccessStore не найден")
 		return
+
+	if _display_name_store:
+		_display_name_store.call("save_display_name", display_name)
 
 	_hide_error()
 	_set_loading(true)
@@ -362,6 +371,20 @@ func _dictionary_or_empty(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return value as Dictionary
 	return {}
+
+
+func _apply_saved_display_name() -> void:
+	if display_name_input == null:
+		return
+	if not display_name_input.text.strip_edges().is_empty():
+		return
+	if _display_name_store == null:
+		return
+
+	var saved_name_variant: Variant = _display_name_store.call("load_display_name")
+	var saved_name := str(saved_name_variant).strip_edges()
+	if not saved_name.is_empty():
+		display_name_input.text = saved_name
 
 
 func _on_back_pressed() -> void:

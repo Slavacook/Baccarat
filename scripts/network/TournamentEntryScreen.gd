@@ -5,6 +5,7 @@ const MAIN_MENU_SCENE_PATH := "res://scenes/StartScreen.tscn"
 const MY_TOURNAMENTS_SCENE_PATH := "res://scenes/network/MyTournamentsScreen.tscn"
 const TOURNAMENT_CODE_ALLOWED_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
+const PlayerDisplayNameStoreScript = preload("res://scripts/network/PlayerDisplayNameStore.gd")
 
 var tournament_code_input: LineEdit
 var display_name_input: LineEdit
@@ -26,6 +27,7 @@ var summary_name_value: Label
 
 var _api_service = null
 var _tournament_access_store: Node = null
+var _display_name_store: Node = null
 var _saved_tournament_access: Dictionary = {}
 
 
@@ -52,6 +54,9 @@ func _ready() -> void:
 	_tournament_access_store = TournamentAccessStoreScript.new()
 	_tournament_access_store.name = "TournamentAccessStore_Local"
 	add_child(_tournament_access_store)
+	_display_name_store = PlayerDisplayNameStoreScript.new()
+	_display_name_store.name = "PlayerDisplayNameStore_Local"
+	add_child(_display_name_store)
 
 	if enter_btn and not enter_btn.pressed.is_connected(_on_enter_pressed):
 		enter_btn.pressed.connect(_on_enter_pressed)
@@ -76,6 +81,7 @@ func _ready() -> void:
 	_set_summary_visible(false)
 	_set_start_attempt_visible(false)
 	_set_edit_access_visible(false)
+	_apply_saved_display_name()
 
 
 func _on_enter_pressed() -> void:
@@ -94,6 +100,9 @@ func _on_enter_pressed() -> void:
 	if _tournament_access_store == null:
 		_show_error("TournamentAccessStore не найден")
 		return
+
+	if _display_name_store:
+		_display_name_store.call("save_display_name", display_name)
 
 	_hide_error()
 	_set_summary_visible(false)
@@ -287,6 +296,20 @@ func _dictionary_or_empty(value: Variant) -> Dictionary:
 	if value is Dictionary:
 		return value as Dictionary
 	return {}
+
+
+func _apply_saved_display_name() -> void:
+	if display_name_input == null:
+		return
+	if not display_name_input.text.strip_edges().is_empty():
+		return
+	if _display_name_store == null:
+		return
+
+	var saved_name_variant: Variant = _display_name_store.call("load_display_name")
+	var saved_name := str(saved_name_variant).strip_edges()
+	if not saved_name.is_empty():
+		display_name_input.text = saved_name
 
 
 func _show_error(text: String) -> void:

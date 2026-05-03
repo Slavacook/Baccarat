@@ -93,7 +93,7 @@ custom_minimum_size = Vector2(420, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
-placeholder_text = "Ваше имя"
+placeholder_text = "Фамилия и Имя"
 max_length = 100
 
 [node name="ErrorLabel" type="Label" parent="Margin/FormScroll/Center/Container"]
