@@ -1,7 +1,83 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/StartScreen.gd" id="1_start_screen"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/start_screen_bg.png" id="2_start_screen_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.035, 0.045, 0.07, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.68, 0.28, 0.22)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 8
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.11, 0.14, 0.19, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9, 0.72, 0.42, 0.22)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.22)
+shadow_size = 4
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.15, 0.19, 0.25, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.75, 0.44, 0.3)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.24)
+shadow_size = 5
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.07, 0.09, 0.13, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.66, 0.38, 0.16)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.18)
+shadow_size = 2
+shadow_offset = Vector2(0, 1)
 
 [node name="StartScreen" type="Control"]
 layout_mode = 3
@@ -31,28 +107,22 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 offset_left = 20.0
-offset_top = 20.0
+offset_top = 28.0
 offset_right = -20.0
-offset_bottom = -20.0
+offset_bottom = -28.0
 
-[node name="ContentShell" type="VBoxContainer" parent="Margin"]
+[node name="Center" type="CenterContainer" parent="Margin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 20
-alignment = 1
 
-[node name="Center" type="CenterContainer" parent="Margin/ContentShell"]
+[node name="Content" type="VBoxContainer" parent="Margin/Center"]
+custom_minimum_size = Vector2(460, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_constants/separation = 14
 
-[node name="Content" type="VBoxContainer" parent="Margin/ContentShell/Center"]
-custom_minimum_size = Vector2(420, 0)
-layout_mode = 2
-theme_override_constants/separation = 20
-alignment = 1
-
-[node name="Title" type="Label" parent="Margin/ContentShell/Center/Content"]
+[node name="Title" type="Label" parent="Margin/Center/Content"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 40
 theme_override_constants/outline_size = 8
@@ -60,27 +130,50 @@ theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "Baccarat Trainer"
 horizontal_alignment = 1
 
-[node name="Spacer" type="Control" parent="Margin/ContentShell/Center/Content"]
-custom_minimum_size = Vector2(0, 16)
+[node name="MenuCard" type="PanelContainer" parent="Margin/Center/Content"]
+custom_minimum_size = Vector2(460, 0)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
-[node name="PlayButton" type="Button" parent="Margin/ContentShell/Center/Content"]
+[node name="MenuPadding" type="MarginContainer" parent="Margin/Center/Content/MenuCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 20
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 20
+
+[node name="MenuContent" type="VBoxContainer" parent="Margin/Center/Content/MenuCard/MenuPadding"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 12
+
+[node name="PlayButton" type="Button" parent="Margin/Center/Content/MenuCard/MenuPadding/MenuContent"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Игра"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="OnlineButton" type="Button" parent="Margin/ContentShell/Center/Content"]
+[node name="OnlineButton" type="Button" parent="Margin/Center/Content/MenuCard/MenuPadding/MenuContent"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Онлайн-тренировка"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="TournamentButton" type="Button" parent="Margin/ContentShell/Center/Content"]
+[node name="TournamentButton" type="Button" parent="Margin/Center/Content/MenuCard/MenuPadding/MenuContent"]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 56)
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "🏆 Турнир"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
