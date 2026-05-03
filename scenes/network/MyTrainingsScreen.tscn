@@ -1,7 +1,83 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/network/MyTrainingsScreen.gd" id="1_my_trainings"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/start_screen_bg.png" id="2_trainings_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.035, 0.045, 0.07, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.68, 0.28, 0.22)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 8
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.11, 0.14, 0.19, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.9, 0.72, 0.42, 0.22)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.22)
+shadow_size = 4
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.15, 0.19, 0.25, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.75, 0.44, 0.3)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.24)
+shadow_size = 5
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.07, 0.09, 0.13, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.82, 0.66, 0.38, 0.16)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.18)
+shadow_size = 2
+shadow_offset = Vector2(0, 1)
 
 [node name="MyTrainingsScreen" type="Control"]
 layout_mode = 3
@@ -31,56 +107,49 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 offset_left = 20.0
-offset_top = 20.0
+offset_top = 28.0
 offset_right = -20.0
-offset_bottom = -20.0
+offset_bottom = -28.0
 
 [node name="Center" type="CenterContainer" parent="Margin"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 
-[node name="MainContainer" type="MarginContainer" parent="Margin/Center"]
-custom_minimum_size = Vector2(420, 0)
-layout_mode = 2
-size_flags_vertical = 3
-theme_override_constants/margin_left = 28
-theme_override_constants/margin_top = 28
-theme_override_constants/margin_right = 28
-theme_override_constants/margin_bottom = 28
-
-[node name="Content" type="VBoxContainer" parent="Margin/Center/MainContainer"]
+[node name="MainContainer" type="VBoxContainer" parent="Margin/Center"]
+custom_minimum_size = Vector2(520, 640)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
-theme_override_constants/separation = 16
-alignment = 1
+theme_override_constants/separation = 14
 
-[node name="HeaderRow" type="HBoxContainer" parent="Margin/Center/MainContainer/Content"]
+[node name="HeaderRow" type="HBoxContainer" parent="Margin/Center/MainContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="HeaderSpacer" type="Control" parent="Margin/Center/MainContainer/Content/HeaderRow"]
+[node name="HeaderSpacer" type="Control" parent="Margin/Center/MainContainer/HeaderRow"]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 
-[node name="Title" type="Label" parent="Margin/Center/MainContainer/Content/HeaderRow"]
+[node name="Title" type="Label" parent="Margin/Center/MainContainer/HeaderRow"]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 36
+theme_override_font_sizes/font_size = 28
 theme_override_constants/outline_size = 8
 theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
 text = "Мои тренировки"
 horizontal_alignment = 1
 
-[node name="RefreshButton" type="Button" parent="Margin/Center/MainContainer/Content/HeaderRow"]
+[node name="RefreshButton" type="Button" parent="Margin/Center/MainContainer/HeaderRow"]
 custom_minimum_size = Vector2(48, 48)
 layout_mode = 2
 theme_override_font_sizes/font_size = 24
 text = "⟳"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="StatusLabel" type="Label" parent="Margin/Center/MainContainer/Content"]
+[node name="StatusLabel" type="Label" parent="Margin/Center/MainContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 19
 theme_override_constants/outline_size = 6
@@ -89,7 +158,7 @@ text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="ErrorLabel" type="Label" parent="Margin/Center/MainContainer/Content"]
+[node name="ErrorLabel" type="Label" parent="Margin/Center/MainContainer"]
 layout_mode = 2
 visible = false
 theme_override_font_sizes/font_size = 19
@@ -98,43 +167,86 @@ theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
 text = "Ошибка"
 horizontal_alignment = 1
 autowrap_mode = 2
-add_theme_color_override("font_color", Color(1, 0.3, 0.3, 1))
+theme_override_colors/font_color = Color(1, 0.3, 0.3, 1)
 
-[node name="EmptyStateContainer" type="VBoxContainer" parent="Margin/Center/MainContainer/Content"]
+[node name="ListPanel" type="PanelContainer" parent="Margin/Center/MainContainer"]
+custom_minimum_size = Vector2(520, 440)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="ListPadding" type="MarginContainer" parent="Margin/Center/MainContainer/ListPanel"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="ListRoot" type="VBoxContainer" parent="Margin/Center/MainContainer/ListPanel/ListPadding"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="EmptyStateContainer" type="VBoxContainer" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot"]
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 12
 alignment = 1
 
-[node name="TrainingsScroll" type="ScrollContainer" parent="Margin/Center/MainContainer/Content"]
+[node name="EmptyStateLabel" type="Label" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot/EmptyStateContainer"]
+custom_minimum_size = Vector2(0, 160)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Сохранённых тренировок пока нет"
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
+[node name="TrainingsScroll" type="ScrollContainer" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot"]
 visible = false
 custom_minimum_size = Vector2(0, 300)
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="TrainingsList" type="VBoxContainer" parent="Margin/Center/MainContainer/Content/TrainingsScroll"]
+[node name="TrainingsList" type="VBoxContainer" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot/TrainingsScroll"]
 layout_mode = 2
 size_flags_horizontal = 3
+size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/MainContainer/Content"]
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/MainContainer"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="BackButton" type="Button" parent="Margin/Center/MainContainer/Content/ActionsRow"]
+[node name="BackButton" type="Button" parent="Margin/Center/MainContainer/ActionsRow"]
 custom_minimum_size = Vector2(132, 56)
 layout_mode = 2
 size_flags_horizontal = 1
 theme_override_font_sizes/font_size = 21
 text = "← Назад"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="AddTrainingButton" type="Button" parent="Margin/Center/MainContainer/Content/ActionsRow"]
+[node name="AddTrainingButton" type="Button" parent="Margin/Center/MainContainer/ActionsRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 21
 text = "Ввести код доступа"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
