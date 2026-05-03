@@ -19,8 +19,12 @@ const CARD_STATUS_LABELS := {
 	"unknown": "Неизвестно"
 }
 
+const LOADING_SPINNER_FRAMES := ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"]
+
 var status_label: Label
 var error_label: Label
+var loading_container: Control
+var loading_spinner_label: Label
 var empty_container: Control
 var list_scroll: ScrollContainer
 var trainings_list: VBoxContainer
@@ -28,6 +32,9 @@ var refresh_button: Button
 var add_button: Button
 var back_button: Button
 var _enter_in_progress: bool = false
+var _is_loading: bool = false
+var _loading_spinner_timer: Timer = null
+var _loading_spinner_index: int = 0
 
 var _api_service = null
 var _access_store = null
@@ -36,6 +43,8 @@ var _access_store = null
 func _ready() -> void:
 	status_label = find_child("StatusLabel", true, false)
 	error_label = find_child("ErrorLabel", true, false)
+	loading_container = find_child("LoadingStateContainer", true, false)
+	loading_spinner_label = find_child("LoadingSpinnerLabel", true, false)
 	empty_container = find_child("EmptyStateContainer", true, false)
 	list_scroll = find_child("TrainingsScroll", true, false)
 	trainings_list = find_child("TrainingsList", true, false)
@@ -53,11 +62,9 @@ func _ready() -> void:
 	if back_button and not back_button.pressed.is_connected(_on_back_pressed):
 		back_button.pressed.connect(_on_back_pressed)
 
+	_setup_loading_spinner_timer()
 	_hide_error()
-	if empty_container:
-		empty_container.visible = false
-	if list_scroll:
-		list_scroll.visible = false
+	_apply_list_content_visibility(false, false)
 	await _load_trainings()
 
 
@@ -226,10 +233,7 @@ func _render_records(records: Array[Dictionary]) -> void:
 	_clear_trainings_list()
 
 	var is_empty := records.is_empty()
-	if empty_container:
-		empty_container.visible = is_empty
-	if list_scroll:
-		list_scroll.visible = not is_empty
+	_apply_list_content_visibility(_is_loading, is_empty)
 
 	for record in records:
 		trainings_list.add_child(_create_training_card(record))
@@ -362,6 +366,40 @@ func _clear_trainings_list() -> void:
 		child.queue_free()
 
 
+func _setup_loading_spinner_timer() -> void:
+	if _loading_spinner_timer != null:
+		return
+
+	_loading_spinner_timer = Timer.new()
+	_loading_spinner_timer.wait_time = 0.1
+	_loading_spinner_timer.one_shot = false
+	_loading_spinner_timer.name = "MyTrainingsLoadingSpinnerTimer"
+	add_child(_loading_spinner_timer)
+	if not _loading_spinner_timer.timeout.is_connected(_on_loading_spinner_tick):
+		_loading_spinner_timer.timeout.connect(_on_loading_spinner_tick)
+
+
+func _on_loading_spinner_tick() -> void:
+	if loading_spinner_label == null:
+		return
+	if LOADING_SPINNER_FRAMES.is_empty():
+		return
+
+	_loading_spinner_index += 1
+	if _loading_spinner_index >= LOADING_SPINNER_FRAMES.size():
+		_loading_spinner_index = 0
+	loading_spinner_label.text = LOADING_SPINNER_FRAMES[_loading_spinner_index]
+
+
+func _apply_list_content_visibility(loading: bool, is_empty: bool) -> void:
+	if loading_container:
+		loading_container.visible = loading
+	if empty_container:
+		empty_container.visible = (not loading) and is_empty
+	if list_scroll:
+		list_scroll.visible = (not loading) and (not is_empty)
+
+
 func _on_refresh_pressed() -> void:
 	await _load_trainings()
 
@@ -380,7 +418,8 @@ func _on_enter_training_pressed(record: Dictionary, action_button: Button) -> vo
 
 	_enter_in_progress = true
 	_hide_error()
-	_set_loading(true)
+	if refresh_button:
+		refresh_button.disabled = true
 	_set_status("Входим в тренировку...")
 	var original_text := ""
 	if action_button:
@@ -402,7 +441,9 @@ func _on_enter_training_pressed(record: Dictionary, action_button: Button) -> vo
 		_show_error(_exchange_error_text(code, body))
 
 	_enter_in_progress = false
-	_set_loading(false)
+	if refresh_button:
+		refresh_button.disabled = false
+	_set_status("")
 	if action_button:
 		action_button.disabled = false
 		action_button.text = original_text
@@ -439,13 +480,28 @@ func _set_status(text: String) -> void:
 
 
 func _set_loading(loading: bool) -> void:
+	_is_loading = loading
 	if refresh_button:
 		refresh_button.disabled = loading
 	if add_button:
-		add_button.disabled = loading
+		add_button.disabled = false
 	if back_button:
-		back_button.disabled = loading
-	_set_status("Загружаем тренировки..." if loading else "")
+		back_button.disabled = false
+	if loading_spinner_label:
+		_loading_spinner_index = 0
+		if not LOADING_SPINNER_FRAMES.is_empty():
+			loading_spinner_label.text = LOADING_SPINNER_FRAMES[0]
+	if _loading_spinner_timer:
+		if loading:
+			_loading_spinner_timer.start()
+		else:
+			_loading_spinner_timer.stop()
+
+	var is_empty := true
+	if trainings_list:
+		is_empty = trainings_list.get_child_count() == 0
+	_apply_list_content_visibility(loading, is_empty)
+	_set_status("" if loading else "")
 
 
 func _exchange_error_text(code: int, body: Variant) -> String:

@@ -191,6 +191,34 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
+[node name="LoadingStateContainer" type="VBoxContainer" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot"]
+visible = false
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+alignment = 1
+
+[node name="LoadingSpinnerLabel" type="Label" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot/LoadingStateContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 30
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "⠋"
+horizontal_alignment = 1
+
+[node name="LoadingTextLabel" type="Label" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot/LoadingStateContainer"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 4
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Загружаем тренировки..."
+horizontal_alignment = 1
+vertical_alignment = 1
+autowrap_mode = 2
+
 [node name="EmptyStateContainer" type="VBoxContainer" parent="Margin/Center/MainContainer/ListPanel/ListPadding/ListRoot"]
 visible = false
 layout_mode = 2
