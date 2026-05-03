@@ -1,7 +1,115 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/network/TournamentEntryScreen.gd" id="1_tournament_entry"]
 [ext_resource type="Texture2D" path="res://assets/backgrounds/start_screen_bg.png" id="2_tournament_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+content_margin_left = 2.0
+content_margin_top = 2.0
+content_margin_right = 2.0
+content_margin_bottom = 2.0
+bg_color = Color(0.035, 0.045, 0.07, 0.82)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.12)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 8
+shadow_offset = Vector2(0, 3)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.11, 0.14, 0.19, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.2)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.22)
+shadow_size = 4
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.15, 0.19, 0.25, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.28)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.24)
+shadow_size = 5
+shadow_offset = Vector2(0, 2)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.07, 0.09, 0.13, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.14)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.18)
+shadow_size = 2
+shadow_offset = Vector2(0, 1)
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_normal"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.06, 0.08, 0.11, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.18)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_input_focus"]
+content_margin_left = 16.0
+content_margin_top = 12.0
+content_margin_right = 16.0
+content_margin_bottom = 12.0
+bg_color = Color(0.075, 0.095, 0.13, 0.94)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 1, 1, 0.3)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
 
 [node name="TournamentEntryScreen" type="Control"]
 script = ExtResource("1_tournament_entry")
@@ -29,9 +137,9 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 20.0
-offset_top = 20.0
+offset_top = 28.0
 offset_right = -20.0
-offset_bottom = -20.0
+offset_bottom = -28.0
 
 [node name="Center" type="CenterContainer" parent="Margin"]
 layout_mode = 2
@@ -39,8 +147,9 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 
 [node name="Container" type="VBoxContainer" parent="Margin/Center"]
-custom_minimum_size = Vector2(460, 560)
+custom_minimum_size = Vector2(480, 620)
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 14
 alignment = 1
 
@@ -62,63 +171,103 @@ text = "Введите код турнира и ваше имя"
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="HomeBlock" type="VBoxContainer" parent="Margin/Center/Container"]
+[node name="HomeBlock" type="PanelContainer" parent="Margin/Center/Container"]
 custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="HomePadding" type="MarginContainer" parent="Margin/Center/Container/HomeBlock"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="HomeContent" type="VBoxContainer" parent="Margin/Center/Container/HomeBlock/HomePadding"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="MyTournamentsBtn" type="Button" parent="Margin/Center/Container/HomeBlock"]
+[node name="MyTournamentsBtn" type="Button" parent="Margin/Center/Container/HomeBlock/HomePadding/HomeContent"]
 custom_minimum_size = Vector2(420, 52)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Мои турниры"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="NewCodeEntryBtn" type="Button" parent="Margin/Center/Container/HomeBlock"]
+[node name="NewCodeEntryBtn" type="Button" parent="Margin/Center/Container/HomeBlock/HomePadding/HomeContent"]
 custom_minimum_size = Vector2(420, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Новый"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="HomeBackBtn" type="Button" parent="Margin/Center/Container/HomeBlock"]
+[node name="HomeBackBtn" type="Button" parent="Margin/Center/Container/HomeBlock/HomePadding/HomeContent"]
 custom_minimum_size = Vector2(420, 52)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "← Назад"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="FormBlock" type="VBoxContainer" parent="Margin/Center/Container"]
+[node name="FormBlock" type="PanelContainer" parent="Margin/Center/Container"]
 visible = false
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="FormPadding" type="MarginContainer" parent="Margin/Center/Container/FormBlock"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 18
+
+[node name="FormContent" type="VBoxContainer" parent="Margin/Center/Container/FormBlock/FormPadding"]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 14
 
-[node name="CodeRow" type="HBoxContainer" parent="Margin/Center/Container/FormBlock"]
+[node name="CodeRow" type="HBoxContainer" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container/FormBlock/CodeRow"]
+[node name="TournamentCodeInput" type="LineEdit" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent/CodeRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 placeholder_text = "Код турнира: XXXX-XXXX"
 max_length = 9
+theme_override_styles/normal = SubResource("StyleBoxFlat_input_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_input_focus")
 
-[node name="PasteCodeBtn" type="Button" parent="Margin/Center/Container/FormBlock/CodeRow"]
+[node name="PasteCodeBtn" type="Button" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent/CodeRow"]
 custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 text = "Вставить"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="DisplayNameInput" type="LineEdit" parent="Margin/Center/Container/FormBlock"]
+[node name="DisplayNameInput" type="LineEdit" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent"]
 custom_minimum_size = Vector2(420, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 alignment = 1
 placeholder_text = "Фамилия и Имя"
 max_length = 100
+theme_override_styles/normal = SubResource("StyleBoxFlat_input_normal")
+theme_override_styles/focus = SubResource("StyleBoxFlat_input_focus")
 
 [node name="ErrorLabel" type="Label" parent="Margin/Center/Container"]
 custom_minimum_size = Vector2(420, 0)
@@ -140,29 +289,36 @@ text = ""
 horizontal_alignment = 1
 autowrap_mode = 2
 
-[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container/FormBlock"]
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent"]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 12
 
-[node name="BackBtn" type="Button" parent="Margin/Center/Container/FormBlock/ActionsRow"]
+[node name="BackBtn" type="Button" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent/ActionsRow"]
 custom_minimum_size = Vector2(120, 56)
 layout_mode = 2
 size_flags_horizontal = 1
 text = "← Назад"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="EnterBtn" type="Button" parent="Margin/Center/Container/FormBlock/ActionsRow"]
+[node name="EnterBtn" type="Button" parent="Margin/Center/Container/FormBlock/FormPadding/FormContent/ActionsRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Войти"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
 [node name="SummaryBlock" type="PanelContainer" parent="Margin/Center/Container"]
 visible = false
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="SummaryPadding" type="MarginContainer" parent="Margin/Center/Container/SummaryBlock"]
 layout_mode = 2
@@ -236,6 +392,9 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 22
 text = "Начать попытку"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
 [node name="EditAccessBtn" type="Button" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
 visible = false
@@ -243,9 +402,15 @@ custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Другой код"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
 [node name="ConnectedBackBtn" type="Button" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
 custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 3
 text = "← Назад"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
