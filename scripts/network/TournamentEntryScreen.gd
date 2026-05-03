@@ -159,7 +159,7 @@ func _on_enter_pressed() -> void:
 	_show_summary(_saved_tournament_access)
 	_set_start_attempt_visible(true)
 	_set_edit_access_visible(true)
-	_set_status("Вход в турнир сохранён")
+	_set_status("")
 	_set_screen_state(SCREEN_CONNECTED)
 
 
@@ -364,7 +364,7 @@ func _set_screen_state(state: String) -> void:
 
 	if description_label:
 		if state == SCREEN_HOME:
-			description_label.text = "Выберите, как открыть турнир"
+			description_label.text = ""
 		elif state == SCREEN_CODE_ENTRY:
 			description_label.text = "Введите код турнира и ваше имя"
 		else:

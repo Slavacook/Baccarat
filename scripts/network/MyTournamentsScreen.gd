@@ -50,7 +50,7 @@ func _build_access_item(access_record: Dictionary) -> Control:
 	var tournament := _dictionary_or_empty(_dict_value(access_record, "tournament", {}))
 
 	var item_button := Button.new()
-	item_button.custom_minimum_size = Vector2(0, 92)
+	item_button.custom_minimum_size = Vector2(0, 64)
 	item_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	item_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	item_button.text = ""
@@ -58,33 +58,29 @@ func _build_access_item(access_record: Dictionary) -> Control:
 
 	var padding := MarginContainer.new()
 	padding.add_theme_constant_override("margin_left", 14)
-	padding.add_theme_constant_override("margin_top", 14)
+	padding.add_theme_constant_override("margin_top", 12)
 	padding.add_theme_constant_override("margin_right", 14)
-	padding.add_theme_constant_override("margin_bottom", 14)
+	padding.add_theme_constant_override("margin_bottom", 12)
 	item_button.add_child(padding)
 
-	var content := VBoxContainer.new()
+	var content := HBoxContainer.new()
 	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 6)
+	content.add_theme_constant_override("separation", 12)
 	padding.add_child(content)
 
 	var title_label := Label.new()
 	title_label.text = _safe_title(tournament)
 	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	title_label.add_theme_font_size_override("font_size", 20)
+	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(title_label)
 
 	var status_label := Label.new()
-	status_label.text = "Статус: %s" % _safe_status(tournament)
+	status_label.text = _safe_status(tournament)
+	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	content.add_child(status_label)
-
-	var hint_label := Label.new()
-	hint_label.text = "Нажмите, чтобы начать попытку"
-	hint_label.modulate = Color(1, 1, 1, 0.72)
-	hint_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(hint_label)
 
 	return item_button
 

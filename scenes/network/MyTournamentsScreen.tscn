@@ -53,6 +53,7 @@ text = "Мои турниры"
 horizontal_alignment = 1
 
 [node name="Description" type="Label" parent="Margin/Center/Container"]
+visible = false
 layout_mode = 2
 theme_override_font_sizes/font_size = 18
 theme_override_constants/outline_size = 6
