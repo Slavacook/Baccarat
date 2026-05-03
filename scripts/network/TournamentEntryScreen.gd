@@ -2,6 +2,7 @@
 extends Control
 
 const MAIN_MENU_SCENE_PATH := "res://scenes/StartScreen.tscn"
+const MY_TOURNAMENTS_SCENE_PATH := "res://scenes/network/MyTournamentsScreen.tscn"
 const TOURNAMENT_CODE_ALLOWED_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
 
@@ -10,6 +11,7 @@ var display_name_input: LineEdit
 var paste_code_btn: Button
 var enter_btn: Button
 var back_btn: Button
+var my_tournaments_btn: Button
 var start_attempt_btn: Button
 var edit_access_btn: Button
 var form_block: Control
@@ -33,6 +35,7 @@ func _ready() -> void:
 	paste_code_btn = find_child("PasteCodeBtn", true, false)
 	enter_btn = find_child("EnterBtn", true, false)
 	back_btn = find_child("BackBtn", true, false)
+	my_tournaments_btn = find_child("MyTournamentsBtn", true, false)
 	start_attempt_btn = find_child("StartAttemptBtn", true, false)
 	edit_access_btn = find_child("EditAccessBtn", true, false)
 	form_block = find_child("FormBlock", true, false)
@@ -56,6 +59,8 @@ func _ready() -> void:
 		paste_code_btn.pressed.connect(_on_paste_code_pressed)
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
+	if my_tournaments_btn and not my_tournaments_btn.pressed.is_connected(_on_my_tournaments_pressed):
+		my_tournaments_btn.pressed.connect(_on_my_tournaments_pressed)
 	if start_attempt_btn and not start_attempt_btn.pressed.is_connected(_on_start_attempt_pressed):
 		start_attempt_btn.pressed.connect(_on_start_attempt_pressed)
 	if edit_access_btn and not edit_access_btn.pressed.is_connected(_on_edit_access_pressed):
@@ -149,6 +154,11 @@ func _on_start_attempt_pressed() -> void:
 	session_manager.call("start_tournament_session", _saved_tournament_access)
 	if get_tree():
 		get_tree().change_scene_to_file("res://scenes/Game.tscn")
+
+
+func _on_my_tournaments_pressed() -> void:
+	if get_tree():
+		get_tree().change_scene_to_file(MY_TOURNAMENTS_SCENE_PATH)
 
 
 func _on_edit_access_pressed() -> void:
@@ -304,6 +314,8 @@ func _set_loading(loading: bool) -> void:
 		paste_code_btn.disabled = loading
 	if back_btn:
 		back_btn.disabled = loading
+	if my_tournaments_btn:
+		my_tournaments_btn.disabled = loading
 	if start_attempt_btn:
 		start_attempt_btn.disabled = loading
 	if edit_access_btn:
