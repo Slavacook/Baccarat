@@ -6,6 +6,9 @@ const MY_TOURNAMENTS_SCENE_PATH := "res://scenes/network/MyTournamentsScreen.tsc
 const TOURNAMENT_CODE_ALLOWED_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
 const PlayerDisplayNameStoreScript = preload("res://scripts/network/PlayerDisplayNameStore.gd")
+const SCREEN_HOME := "home"
+const SCREEN_CODE_ENTRY := "code_entry"
+const SCREEN_CONNECTED := "connected"
 
 var tournament_code_input: LineEdit
 var display_name_input: LineEdit
@@ -13,12 +16,17 @@ var paste_code_btn: Button
 var enter_btn: Button
 var back_btn: Button
 var my_tournaments_btn: Button
+var new_code_entry_btn: Button
+var home_back_btn: Button
 var start_attempt_btn: Button
 var edit_access_btn: Button
+var connected_back_btn: Button
+var home_block: Control
 var form_block: Control
 var error_label: Label
 var status_label: Label
 var summary_block: Control
+var description_label: Label
 var summary_title_value: Label
 var summary_code_value: Label
 var summary_status_value: Label
@@ -38,12 +46,17 @@ func _ready() -> void:
 	enter_btn = find_child("EnterBtn", true, false)
 	back_btn = find_child("BackBtn", true, false)
 	my_tournaments_btn = find_child("MyTournamentsBtn", true, false)
+	new_code_entry_btn = find_child("NewCodeEntryBtn", true, false)
+	home_back_btn = find_child("HomeBackBtn", true, false)
 	start_attempt_btn = find_child("StartAttemptBtn", true, false)
 	edit_access_btn = find_child("EditAccessBtn", true, false)
+	connected_back_btn = find_child("ConnectedBackBtn", true, false)
+	home_block = find_child("HomeBlock", true, false)
 	form_block = find_child("FormBlock", true, false)
 	error_label = find_child("ErrorLabel", true, false)
 	status_label = find_child("StatusLabel", true, false)
 	summary_block = find_child("SummaryBlock", true, false)
+	description_label = find_child("Description", true, false)
 	summary_title_value = find_child("SummaryTitleValue", true, false)
 	summary_code_value = find_child("SummaryCodeValue", true, false)
 	summary_status_value = find_child("SummaryStatusValue", true, false)
@@ -66,10 +79,16 @@ func _ready() -> void:
 		back_btn.pressed.connect(_on_back_pressed)
 	if my_tournaments_btn and not my_tournaments_btn.pressed.is_connected(_on_my_tournaments_pressed):
 		my_tournaments_btn.pressed.connect(_on_my_tournaments_pressed)
+	if new_code_entry_btn and not new_code_entry_btn.pressed.is_connected(_on_new_code_entry_pressed):
+		new_code_entry_btn.pressed.connect(_on_new_code_entry_pressed)
+	if home_back_btn and not home_back_btn.pressed.is_connected(_on_home_back_pressed):
+		home_back_btn.pressed.connect(_on_home_back_pressed)
 	if start_attempt_btn and not start_attempt_btn.pressed.is_connected(_on_start_attempt_pressed):
 		start_attempt_btn.pressed.connect(_on_start_attempt_pressed)
 	if edit_access_btn and not edit_access_btn.pressed.is_connected(_on_edit_access_pressed):
 		edit_access_btn.pressed.connect(_on_edit_access_pressed)
+	if connected_back_btn and not connected_back_btn.pressed.is_connected(_on_connected_back_pressed):
+		connected_back_btn.pressed.connect(_on_connected_back_pressed)
 	if tournament_code_input and not tournament_code_input.text_changed.is_connected(_on_tournament_code_changed):
 		tournament_code_input.text_changed.connect(_on_tournament_code_changed)
 	if display_name_input and not display_name_input.text_changed.is_connected(_on_input_changed):
@@ -77,11 +96,13 @@ func _ready() -> void:
 
 	_hide_error()
 	_set_status("")
-	_set_form_visible(true)
+	_set_home_visible(false)
+	_set_form_visible(false)
 	_set_summary_visible(false)
 	_set_start_attempt_visible(false)
 	_set_edit_access_visible(false)
 	_apply_saved_display_name()
+	_set_screen_state(SCREEN_HOME)
 
 
 func _on_enter_pressed() -> void:
@@ -136,15 +157,16 @@ func _on_enter_pressed() -> void:
 
 	_saved_tournament_access = (saved as Dictionary).duplicate(true)
 	_show_summary(_saved_tournament_access)
-	_set_form_visible(false)
 	_set_start_attempt_visible(true)
 	_set_edit_access_visible(true)
 	_set_status("Вход в турнир сохранён")
+	_set_screen_state(SCREEN_CONNECTED)
 
 
 func _on_back_pressed() -> void:
-	if get_tree():
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
+	_hide_error()
+	_set_status("")
+	_set_screen_state(SCREEN_HOME)
 
 
 func _on_start_attempt_pressed() -> void:
@@ -170,14 +192,28 @@ func _on_my_tournaments_pressed() -> void:
 		get_tree().change_scene_to_file(MY_TOURNAMENTS_SCENE_PATH)
 
 
+func _on_new_code_entry_pressed() -> void:
+	_hide_error()
+	_set_status("")
+	_set_screen_state(SCREEN_CODE_ENTRY)
+
+
+func _on_home_back_pressed() -> void:
+	if get_tree():
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE_PATH)
+
+
+func _on_connected_back_pressed() -> void:
+	_hide_error()
+	_set_status("")
+	_set_screen_state(SCREEN_HOME)
+
+
 func _on_edit_access_pressed() -> void:
 	_saved_tournament_access.clear()
 	_hide_error()
 	_set_status("")
-	_set_form_visible(true)
-	_set_summary_visible(false)
-	_set_start_attempt_visible(false)
-	_set_edit_access_visible(false)
+	_set_screen_state(SCREEN_CODE_ENTRY)
 
 
 func _on_tournament_code_changed(text: String) -> void:
@@ -213,8 +249,7 @@ func _on_input_changed(_text: String) -> void:
 	_saved_tournament_access.clear()
 	_hide_error()
 	_set_status("")
-	_set_form_visible(true)
-	_set_summary_visible(false)
+	_set_screen_state(SCREEN_CODE_ENTRY)
 	_set_start_attempt_visible(false)
 	_set_edit_access_visible(false)
 
@@ -247,19 +282,27 @@ func _activation_error_message(status_code: int, _body: Variant) -> String:
 
 
 func _show_summary(saved_access: Dictionary) -> void:
-	var tournament := _dictionary_or_empty(saved_access.get("tournament", {}))
-	var participant := _dictionary_or_empty(saved_access.get("participant", {}))
+	var tournament_value: Variant = {}
+	if saved_access.has("tournament"):
+		tournament_value = saved_access["tournament"]
+	var tournament := _dictionary_or_empty(tournament_value)
+	var title_text := _dictionary_string(tournament, "title")
+	if title_text.is_empty():
+		title_text = "Турнир"
+	var status_text := _format_tournament_status(_dictionary_string(tournament, "status"))
+	if status_text.is_empty():
+		status_text = "—"
 
 	if summary_title_value:
-		summary_title_value.text = str(tournament.get("title", "")).strip_edges()
+		summary_title_value.text = title_text
 	if summary_code_value:
-		summary_code_value.text = str(tournament.get("code", "")).strip_edges()
+		summary_code_value.text = ""
 	if summary_status_value:
-		summary_status_value.text = _format_tournament_status(str(tournament.get("status", "")).strip_edges())
+		summary_status_value.text = "Статус: %s" % status_text
 	if summary_rules_value:
-		summary_rules_value.text = _format_tournament_rules(tournament)
+		summary_rules_value.text = "Правила: %s" % _format_tournament_rules(tournament)
 	if summary_name_value:
-		summary_name_value.text = str(participant.get("display_name", "")).strip_edges()
+		summary_name_value.text = ""
 
 	_set_summary_visible(true)
 
@@ -274,8 +317,8 @@ func _format_tournament_status(status: String) -> String:
 
 
 func _format_tournament_rules(tournament: Dictionary) -> String:
-	var rounds := int(tournament.get("max_rounds", 0))
-	var seconds := int(tournament.get("attempt_duration_seconds", 0))
+	var rounds := _dictionary_int(tournament, "max_rounds")
+	var seconds := _dictionary_int(tournament, "attempt_duration_seconds")
 	var minutes := int(seconds / 60)
 	return "%d раздач / %d мин" % [rounds, minutes]
 
@@ -312,6 +355,39 @@ func _apply_saved_display_name() -> void:
 		display_name_input.text = saved_name
 
 
+func _set_screen_state(state: String) -> void:
+	_set_home_visible(state == SCREEN_HOME)
+	_set_form_visible(state == SCREEN_CODE_ENTRY)
+	_set_summary_visible(state == SCREEN_CONNECTED)
+	_set_start_attempt_visible(state == SCREEN_CONNECTED and not _saved_tournament_access.is_empty())
+	_set_edit_access_visible(false)
+
+	if description_label:
+		if state == SCREEN_HOME:
+			description_label.text = "Выберите, как открыть турнир"
+		elif state == SCREEN_CODE_ENTRY:
+			description_label.text = "Введите код турнира и ваше имя"
+		else:
+			description_label.text = ""
+
+
+func _set_home_visible(visible: bool) -> void:
+	if home_block:
+		home_block.visible = visible
+
+
+func _dictionary_string(source: Dictionary, key: String) -> String:
+	if source.has(key):
+		return str(source[key]).strip_edges()
+	return ""
+
+
+func _dictionary_int(source: Dictionary, key: String) -> int:
+	if source.has(key):
+		return int(source[key])
+	return 0
+
+
 func _show_error(text: String) -> void:
 	if error_label:
 		error_label.text = text
@@ -339,10 +415,16 @@ func _set_loading(loading: bool) -> void:
 		back_btn.disabled = loading
 	if my_tournaments_btn:
 		my_tournaments_btn.disabled = loading
+	if new_code_entry_btn:
+		new_code_entry_btn.disabled = loading
+	if home_back_btn:
+		home_back_btn.disabled = loading
 	if start_attempt_btn:
 		start_attempt_btn.disabled = loading
 	if edit_access_btn:
 		edit_access_btn.disabled = loading
+	if connected_back_btn:
+		connected_back_btn.disabled = loading
 	if tournament_code_input:
 		tournament_code_input.editable = not loading
 	if display_name_input:

@@ -62,7 +62,32 @@ text = "Введите код турнира и ваше имя"
 horizontal_alignment = 1
 autowrap_mode = 2
 
+[node name="HomeBlock" type="VBoxContainer" parent="Margin/Center/Container"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 14
+
+[node name="MyTournamentsBtn" type="Button" parent="Margin/Center/Container/HomeBlock"]
+custom_minimum_size = Vector2(420, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Мои турниры"
+
+[node name="NewCodeEntryBtn" type="Button" parent="Margin/Center/Container/HomeBlock"]
+custom_minimum_size = Vector2(420, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Новый вход по коду"
+
+[node name="HomeBackBtn" type="Button" parent="Margin/Center/Container/HomeBlock"]
+custom_minimum_size = Vector2(420, 52)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "← Назад"
+
 [node name="FormBlock" type="VBoxContainer" parent="Margin/Center/Container"]
+visible = false
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -163,15 +188,18 @@ horizontal_alignment = 1
 autowrap_mode = 2
 
 [node name="SummaryCodeLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
 layout_mode = 2
 text = "Код"
 
 [node name="SummaryCodeValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
 layout_mode = 2
 text = ""
 autowrap_mode = 2
 
 [node name="SummaryStatusLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
 layout_mode = 2
 text = "Статус"
 
@@ -181,6 +209,7 @@ text = ""
 autowrap_mode = 2
 
 [node name="SummaryRulesLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
 layout_mode = 2
 text = "Правила"
 
@@ -190,10 +219,12 @@ text = ""
 autowrap_mode = 2
 
 [node name="SummaryNameLabel" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
 layout_mode = 2
 text = "Участник"
 
 [node name="SummaryNameValue" type="Label" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+visible = false
 layout_mode = 2
 text = ""
 autowrap_mode = 2
@@ -213,8 +244,8 @@ layout_mode = 2
 size_flags_horizontal = 3
 text = "Другой код"
 
-[node name="MyTournamentsBtn" type="Button" parent="Margin/Center/Container"]
-custom_minimum_size = Vector2(420, 48)
+[node name="ConnectedBackBtn" type="Button" parent="Margin/Center/Container/SummaryBlock/SummaryPadding/SummaryContainer"]
+custom_minimum_size = Vector2(0, 52)
 layout_mode = 2
 size_flags_horizontal = 3
-text = "Мои турниры"
+text = "← Назад"
