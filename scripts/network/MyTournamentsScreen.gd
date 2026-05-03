@@ -57,10 +57,11 @@ func _build_access_item(access_record: Dictionary) -> Control:
 	var status := _safe_status(tournament)
 
 	var item_button := Button.new()
-	item_button.custom_minimum_size = Vector2(0, 56)
+	item_button.custom_minimum_size = Vector2(0, 60)
 	item_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	item_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
 	item_button.text = _format_tournament_list_row(title, status)
+	_apply_access_item_style(item_button)
 	item_button.pressed.connect(_on_start_attempt_pressed.bind(access_record.duplicate(true)))
 
 	return item_button
@@ -93,6 +94,72 @@ func _clear_list() -> void:
 		return
 	for child in list_container.get_children():
 		child.queue_free()
+
+
+func _apply_access_item_style(item_button: Button) -> void:
+	if item_button == null:
+		return
+
+	var normal_style := StyleBoxFlat.new()
+	normal_style.content_margin_left = 18.0
+	normal_style.content_margin_top = 12.0
+	normal_style.content_margin_right = 18.0
+	normal_style.content_margin_bottom = 12.0
+	normal_style.bg_color = Color(0.11, 0.14, 0.19, 0.92)
+	normal_style.border_width_left = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_bottom = 1
+	normal_style.border_color = Color(0.9, 0.72, 0.42, 0.22)
+	normal_style.corner_radius_top_left = 10
+	normal_style.corner_radius_top_right = 10
+	normal_style.corner_radius_bottom_right = 10
+	normal_style.corner_radius_bottom_left = 10
+	normal_style.shadow_color = Color(0, 0, 0, 0.22)
+	normal_style.shadow_size = 4
+	normal_style.shadow_offset = Vector2(0, 2)
+
+	var hover_style := StyleBoxFlat.new()
+	hover_style.content_margin_left = 18.0
+	hover_style.content_margin_top = 12.0
+	hover_style.content_margin_right = 18.0
+	hover_style.content_margin_bottom = 12.0
+	hover_style.bg_color = Color(0.15, 0.19, 0.25, 0.96)
+	hover_style.border_width_left = 1
+	hover_style.border_width_top = 1
+	hover_style.border_width_right = 1
+	hover_style.border_width_bottom = 1
+	hover_style.border_color = Color(0.95, 0.75, 0.44, 0.3)
+	hover_style.corner_radius_top_left = 10
+	hover_style.corner_radius_top_right = 10
+	hover_style.corner_radius_bottom_right = 10
+	hover_style.corner_radius_bottom_left = 10
+	hover_style.shadow_color = Color(0, 0, 0, 0.24)
+	hover_style.shadow_size = 5
+	hover_style.shadow_offset = Vector2(0, 2)
+
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.content_margin_left = 18.0
+	pressed_style.content_margin_top = 12.0
+	pressed_style.content_margin_right = 18.0
+	pressed_style.content_margin_bottom = 12.0
+	pressed_style.bg_color = Color(0.07, 0.09, 0.13, 0.96)
+	pressed_style.border_width_left = 1
+	pressed_style.border_width_top = 1
+	pressed_style.border_width_right = 1
+	pressed_style.border_width_bottom = 1
+	pressed_style.border_color = Color(0.82, 0.66, 0.38, 0.16)
+	pressed_style.corner_radius_top_left = 10
+	pressed_style.corner_radius_top_right = 10
+	pressed_style.corner_radius_bottom_right = 10
+	pressed_style.corner_radius_bottom_left = 10
+	pressed_style.shadow_color = Color(0, 0, 0, 0.18)
+	pressed_style.shadow_size = 2
+	pressed_style.shadow_offset = Vector2(0, 1)
+
+	item_button.add_theme_stylebox_override("normal", normal_style)
+	item_button.add_theme_stylebox_override("hover", hover_style)
+	item_button.add_theme_stylebox_override("pressed", pressed_style)
 
 
 func _find_session_manager():
