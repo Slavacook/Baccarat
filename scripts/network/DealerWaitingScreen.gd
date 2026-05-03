@@ -10,6 +10,7 @@ var _api_service: Node = null
 var _poll_timer: Timer = null
 var _is_check_running: bool = false
 var _is_starting_game: bool = false
+var _is_exiting: bool = false
 var _session_id: String = ""
 
 
@@ -43,6 +44,8 @@ func _stop_polling() -> void:
 
 
 func _on_poll_timeout() -> void:
+	if _is_exiting:
+		return
 	if _is_check_running or _is_starting_game:
 		return
 	_is_check_running = true
@@ -51,6 +54,8 @@ func _on_poll_timeout() -> void:
 
 
 func _check_training_state() -> void:
+	if _is_exiting:
+		return
 	if not (_api_service and _api_service.auth_manager):
 		_show_error("Нет данных авторизации. Войдите заново.")
 		return
@@ -62,6 +67,8 @@ func _check_training_state() -> void:
 		return
 
 	var fetch_res: Dictionary = await _api_service.fetch_active_live_session_async(room_code)
+	if _is_exiting:
+		return
 	var code: int = int(fetch_res.get("code", 0))
 	var body: Variant = fetch_res.get("body", {})
 
@@ -103,6 +110,8 @@ func _check_training_state() -> void:
 		_hide_error()
 		_set_status("Тренировка подготовлена. Ждём старт от тренера...")
 		var sync: Dictionary = await lsc.await_session_started(1.5)
+		if _is_exiting:
+			return
 		if sync.is_empty():
 			return
 		round_seed = str(sync.get("round_seed", round_seed)).strip_edges()
@@ -115,6 +124,8 @@ func _check_training_state() -> void:
 
 
 func _start_game(session_id: String, user: Dictionary, room_code: String, round_seed: String) -> void:
+	if _is_exiting:
+		return
 	if _is_starting_game:
 		return
 	_is_starting_game = true
@@ -137,13 +148,21 @@ func _start_game(session_id: String, user: Dictionary, room_code: String, round_
 
 
 func _on_back_pressed() -> void:
+	if _is_exiting:
+		return
+	_is_exiting = true
+	if back_btn:
+		back_btn.disabled = true
 	_stop_polling()
+	while _is_check_running:
+		await get_tree().process_frame
 	if Engine.has_singleton("LiveSessionClient"):
 		LiveSessionClient.disconnect_live()
 	get_tree().change_scene_to_file("res://scenes/network/MyTrainingsScreen.tscn")
 
 
 func _exit_tree() -> void:
+	_is_exiting = true
 	_stop_polling()
 
 
