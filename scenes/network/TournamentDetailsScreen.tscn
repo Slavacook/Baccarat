@@ -1,0 +1,269 @@
+[gd_scene load_steps=8 format=3]
+
+[ext_resource type="Script" path="res://scripts/network/TournamentDetailsScreen.gd" id="1_details"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/start_screen_bg.png" id="2_bg"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.05, 0.06, 0.09, 0.76)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.08)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_header"]
+bg_color = Color(1, 1, 1, 0.06)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_normal"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.05, 0.06, 0.09, 0.78)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.1)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.08, 0.1, 0.14, 0.86)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.16)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_button_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.03, 0.04, 0.07, 0.92)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(1, 1, 1, 0.2)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+
+[node name="TournamentDetailsScreen" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_details")
+
+[node name="Background" type="TextureRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+texture = ExtResource("2_bg")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="Margin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 28.0
+offset_right = -20.0
+offset_bottom = -28.0
+
+[node name="Center" type="CenterContainer" parent="Margin"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+
+[node name="Container" type="VBoxContainer" parent="Margin/Center"]
+custom_minimum_size = Vector2(980, 660)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="ContentScroll" type="VBoxContainer" parent="Margin/Center/Container"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Content" type="VBoxContainer" parent="Margin/Center/Container/ContentScroll"]
+custom_minimum_size = Vector2(980, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 12
+
+[node name="Title" type="Label" parent="Margin/Center/Container/ContentScroll/Content"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 8
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.75)
+text = "Турнир"
+horizontal_alignment = 1
+
+[node name="TournamentTitleLabel" type="Label" parent="Margin/Center/Container/ContentScroll/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 28
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Турнир"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="TournamentInfoCard" type="PanelContainer" parent="Margin/Center/Container/ContentScroll/Content"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="InfoPadding" type="MarginContainer" parent="Margin/Center/Container/ContentScroll/Content/TournamentInfoCard"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="InfoContent" type="VBoxContainer" parent="Margin/Center/Container/ContentScroll/Content/TournamentInfoCard/InfoPadding"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="TournamentStatusLabel" type="Label" parent="Margin/Center/Container/ContentScroll/Content/TournamentInfoCard/InfoPadding/InfoContent"]
+layout_mode = 2
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Статус: —"
+autowrap_mode = 2
+
+[node name="TournamentRulesLabel" type="Label" parent="Margin/Center/Container/ContentScroll/Content/TournamentInfoCard/InfoPadding/InfoContent"]
+layout_mode = 2
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = "Правила: 0 раздач · 0 мин"
+autowrap_mode = 2
+
+[node name="StatusLabel" type="Label" parent="Margin/Center/Container/ContentScroll/Content"]
+layout_mode = 2
+theme_override_constants/outline_size = 6
+theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.72)
+text = ""
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="LeaderboardPanel" type="PanelContainer" parent="Margin/Center/Container/ContentScroll/Content"]
+custom_minimum_size = Vector2(980, 390)
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="LeaderboardPadding" type="MarginContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 16
+
+[node name="LeaderboardRoot" type="VBoxContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 8
+
+[node name="LeaderboardTitleLabel" type="Label" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot"]
+layout_mode = 2
+text = "Турнирная таблица"
+
+[node name="LeaderboardHeaderPanel" type="PanelContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_header")
+
+[node name="LeaderboardHeaderPadding" type="MarginContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot/LeaderboardHeaderPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="LeaderboardHeaderHost" type="VBoxContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot/LeaderboardHeaderPanel/LeaderboardHeaderPadding"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="LeaderboardDivider" type="ColorRect" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot"]
+custom_minimum_size = Vector2(0, 1)
+layout_mode = 2
+color = Color(1, 1, 1, 0.12)
+
+[node name="EmptyLeaderboardLabel" type="Label" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot"]
+layout_mode = 2
+text = "Таблица пока пустая"
+horizontal_alignment = 1
+autowrap_mode = 2
+
+[node name="LeaderboardScroll" type="ScrollContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="LeaderboardList" type="VBoxContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel/LeaderboardPadding/LeaderboardRoot/LeaderboardScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container"]
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 8
+theme_override_constants/separation = 12
+
+[node name="BackBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+custom_minimum_size = Vector2(140, 56)
+layout_mode = 2
+size_flags_horizontal = 1
+text = "← Назад"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+
+[node name="StartAttemptBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+custom_minimum_size = Vector2(0, 56)
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Начать попытку"
+theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")

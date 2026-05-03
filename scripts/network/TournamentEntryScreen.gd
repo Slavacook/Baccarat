@@ -3,9 +3,11 @@ extends Control
 
 const MAIN_MENU_SCENE_PATH := "res://scenes/StartScreen.tscn"
 const MY_TOURNAMENTS_SCENE_PATH := "res://scenes/network/MyTournamentsScreen.tscn"
+const TOURNAMENT_DETAILS_SCENE_PATH := "res://scenes/network/TournamentDetailsScreen.tscn"
 const TOURNAMENT_CODE_ALLOWED_CHARS := "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
 const PlayerDisplayNameStoreScript = preload("res://scripts/network/PlayerDisplayNameStore.gd")
+const TournamentNavigationStoreScript = preload("res://scripts/network/TournamentNavigationStore.gd")
 const SCREEN_HOME := "home"
 const SCREEN_CODE_ENTRY := "code_entry"
 const SCREEN_CONNECTED := "connected"
@@ -36,6 +38,7 @@ var summary_name_value: Label
 var _api_service = null
 var _tournament_access_store: Node = null
 var _display_name_store: Node = null
+var _navigation_store: Node = null
 var _saved_tournament_access: Dictionary = {}
 
 
@@ -70,6 +73,9 @@ func _ready() -> void:
 	_display_name_store = PlayerDisplayNameStoreScript.new()
 	_display_name_store.name = "PlayerDisplayNameStore_Local"
 	add_child(_display_name_store)
+	_navigation_store = TournamentNavigationStoreScript.new()
+	_navigation_store.name = "TournamentNavigationStore_Local"
+	add_child(_navigation_store)
 
 	if enter_btn and not enter_btn.pressed.is_connected(_on_enter_pressed):
 		enter_btn.pressed.connect(_on_enter_pressed)
@@ -156,11 +162,21 @@ func _on_enter_pressed() -> void:
 		return
 
 	_saved_tournament_access = (saved as Dictionary).duplicate(true)
-	_show_summary(_saved_tournament_access)
-	_set_start_attempt_visible(true)
-	_set_edit_access_visible(true)
-	_set_status("")
-	_set_screen_state(SCREEN_CONNECTED)
+	if _navigation_store == null:
+		_show_error("Не удалось открыть страницу турнира")
+		return
+
+	var navigation_saved: Variant = _navigation_store.call(
+		"save_pending_access",
+		_saved_tournament_access,
+		"res://scenes/network/TournamentEntryScreen.tscn"
+	)
+	if not bool(navigation_saved):
+		_show_error("Не удалось открыть страницу турнира")
+		return
+
+	if get_tree():
+		get_tree().change_scene_to_file(TOURNAMENT_DETAILS_SCENE_PATH)
 
 
 func _on_back_pressed() -> void:

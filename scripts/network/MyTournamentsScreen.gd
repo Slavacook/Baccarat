@@ -2,14 +2,16 @@
 extends Control
 
 const TOURNAMENT_ENTRY_SCENE_PATH := "res://scenes/network/TournamentEntryScreen.tscn"
-const GAME_SCENE_PATH := "res://scenes/Game.tscn"
+const TOURNAMENT_DETAILS_SCENE_PATH := "res://scenes/network/TournamentDetailsScreen.tscn"
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
+const TournamentNavigationStoreScript = preload("res://scripts/network/TournamentNavigationStore.gd")
 
 var back_btn: Button
 var empty_state_label: Label
 var list_container: VBoxContainer
 
 var _tournament_access_store: Node = null
+var _navigation_store: Node = null
 
 
 func _ready() -> void:
@@ -20,6 +22,9 @@ func _ready() -> void:
 	_tournament_access_store = TournamentAccessStoreScript.new()
 	_tournament_access_store.name = "TournamentAccessStore_Local"
 	add_child(_tournament_access_store)
+	_navigation_store = TournamentNavigationStoreScript.new()
+	_navigation_store.name = "TournamentNavigationStore_Local"
+	add_child(_navigation_store)
 
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
@@ -62,17 +67,20 @@ func _build_access_item(access_record: Dictionary) -> Control:
 
 
 func _on_start_attempt_pressed(access_record: Dictionary) -> void:
-	var session_manager: Variant = _find_session_manager()
-	if session_manager == null:
-		push_warning("MyTournamentsScreen: SessionManager не найден.")
+	if _navigation_store == null:
+		push_warning("MyTournamentsScreen: TournamentNavigationStore не найден.")
 		return
-	if not session_manager.has_method("start_tournament_session"):
-		push_warning("MyTournamentsScreen: tournament launch недоступен.")
+	var saved_ok: Variant = _navigation_store.call(
+		"save_pending_access",
+		access_record,
+		"res://scenes/network/MyTournamentsScreen.tscn"
+	)
+	if not bool(saved_ok):
+		push_warning("MyTournamentsScreen: не удалось сохранить переход к турниру.")
 		return
 
-	session_manager.call("start_tournament_session", access_record)
 	if get_tree():
-		get_tree().change_scene_to_file(GAME_SCENE_PATH)
+		get_tree().change_scene_to_file(TOURNAMENT_DETAILS_SCENE_PATH)
 
 
 func _on_back_pressed() -> void:

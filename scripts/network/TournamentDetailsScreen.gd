@@ -1,0 +1,482 @@
+## Страница турнира перед стартом попытки.
+extends Control
+
+const DEFAULT_RETURN_SCENE_PATH := "res://scenes/network/TournamentEntryScreen.tscn"
+const GAME_SCENE_PATH := "res://scenes/Game.tscn"
+const TournamentNavigationStoreScript = preload("res://scripts/network/TournamentNavigationStore.gd")
+const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
+
+var tournament_title_label: Label
+var tournament_status_label: Label
+var tournament_rules_label: Label
+var status_label: Label
+var empty_leaderboard_label: Label
+var leaderboard_list: VBoxContainer
+var leaderboard_header_panel: Control
+var leaderboard_header_host: VBoxContainer
+var start_attempt_btn: Button
+var back_btn: Button
+
+var _navigation_store: Node = null
+var _tournament_access_store: Node = null
+var _api_service = null
+var _access_record: Dictionary = {}
+var _return_scene_path := DEFAULT_RETURN_SCENE_PATH
+
+
+func _ready() -> void:
+	tournament_title_label = find_child("TournamentTitleLabel", true, false)
+	tournament_status_label = find_child("TournamentStatusLabel", true, false)
+	tournament_rules_label = find_child("TournamentRulesLabel", true, false)
+	status_label = find_child("StatusLabel", true, false)
+	empty_leaderboard_label = find_child("EmptyLeaderboardLabel", true, false)
+	leaderboard_list = find_child("LeaderboardList", true, false)
+	leaderboard_header_panel = find_child("LeaderboardHeaderPanel", true, false)
+	leaderboard_header_host = find_child("LeaderboardHeaderHost", true, false)
+	start_attempt_btn = find_child("StartAttemptBtn", true, false)
+	back_btn = find_child("BackBtn", true, false)
+
+	_navigation_store = TournamentNavigationStoreScript.new()
+	_navigation_store.name = "TournamentNavigationStore_Local"
+	add_child(_navigation_store)
+
+	_tournament_access_store = TournamentAccessStoreScript.new()
+	_tournament_access_store.name = "TournamentAccessStore_Local"
+	add_child(_tournament_access_store)
+
+	_api_service = _find_api_service()
+
+	if start_attempt_btn and not start_attempt_btn.pressed.is_connected(_on_start_attempt_pressed):
+		start_attempt_btn.pressed.connect(_on_start_attempt_pressed)
+	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
+		back_btn.pressed.connect(_on_back_pressed)
+
+	_render_leaderboard_header()
+	_clear_leaderboard()
+	_set_status("")
+	_load_pending_payload()
+	_render_access_record()
+	_load_public_tournament()
+
+
+func _load_pending_payload() -> void:
+	if _navigation_store == null:
+		_access_record.clear()
+		return
+
+	var payload_variant: Variant = _navigation_store.call("load_pending_access")
+	if payload_variant is Dictionary:
+		var payload: Dictionary = payload_variant as Dictionary
+		if payload.has("access_record") and payload["access_record"] is Dictionary:
+			_access_record = (payload["access_record"] as Dictionary).duplicate(true)
+		if payload.has("return_scene_path"):
+			var path: String = str(payload["return_scene_path"]).strip_edges()
+			if not path.is_empty():
+				_return_scene_path = path
+	_navigation_store.call("clear_pending_access")
+
+
+func _render_access_record() -> void:
+	var tournament: Dictionary = _access_tournament()
+	var title: String = _dictionary_string(tournament, "title")
+	if title.is_empty():
+		title = "Турнир"
+
+	var status_text: String = _format_tournament_status(_dictionary_string(tournament, "status"))
+	if status_text.is_empty():
+		status_text = "—"
+
+	if tournament_title_label:
+		tournament_title_label.text = "Турнир · \"%s\"" % title
+	if tournament_status_label:
+		tournament_status_label.text = "Статус: %s" % status_text
+	if tournament_rules_label:
+		tournament_rules_label.text = "Правила: %s" % _format_tournament_rules(tournament)
+	if start_attempt_btn:
+		start_attempt_btn.disabled = not _has_valid_access_record()
+
+	if not _has_valid_access_record():
+		_set_status("Не удалось открыть данные турнира")
+
+
+func _load_public_tournament() -> void:
+	if not _has_valid_access_record():
+		return
+	if _api_service == null:
+		_set_status("Не удалось загрузить таблицу")
+		_show_empty_leaderboard(true)
+		return
+
+	var tournament: Dictionary = _access_tournament()
+	var code: String = _dictionary_string(tournament, "code")
+	if code.is_empty():
+		_set_status("Таблица пока пустая")
+		_show_empty_leaderboard(true)
+		return
+
+	_set_status("Загружаем таблицу...")
+	var result: Dictionary = await _api_service.get_public_tournament(code)
+	var status_code := _response_code(result)
+	var body: Variant = _response_body(result)
+
+	if status_code < 200 or status_code >= 300:
+		_set_status("Не удалось загрузить таблицу")
+		_show_empty_leaderboard(true)
+		return
+	if not (body is Dictionary):
+		_set_status("Таблица пока пустая")
+		_show_empty_leaderboard(true)
+		return
+
+	var body_dict: Dictionary = body as Dictionary
+	_apply_public_tournament_data(body_dict)
+	var leaderboard: Array = _extract_leaderboard(body_dict)
+	if leaderboard.is_empty():
+		_set_status("")
+		_show_empty_leaderboard(true)
+		return
+
+	_render_leaderboard(leaderboard)
+	_set_status("")
+
+
+func _apply_public_tournament_data(body: Dictionary) -> void:
+	var tournament_data: Dictionary = _extract_tournament_dictionary(body)
+	if tournament_data.is_empty():
+		return
+
+	var local_tournament: Dictionary = _access_tournament()
+	var merged: Dictionary = local_tournament.duplicate(true)
+	for key in ["title", "status", "max_rounds", "attempt_duration_seconds"]:
+		if tournament_data.has(key):
+			merged[key] = tournament_data[key]
+
+	if tournament_title_label:
+		var title := _dictionary_string(merged, "title")
+		tournament_title_label.text = "Турнир · \"%s\"" % (title if not title.is_empty() else "Турнир")
+	if tournament_status_label:
+		var status_text := _format_tournament_status(_dictionary_string(merged, "status"))
+		tournament_status_label.text = "Статус: %s" % (status_text if not status_text.is_empty() else "—")
+	if tournament_rules_label:
+		tournament_rules_label.text = "Правила: %s" % _format_tournament_rules(merged)
+
+
+func _extract_tournament_dictionary(body: Dictionary) -> Dictionary:
+	for key in ["tournament", "data", "item"]:
+		if body.has(key) and body[key] is Dictionary:
+			var candidate: Dictionary = body[key] as Dictionary
+			if candidate.has("title") or candidate.has("status") or candidate.has("max_rounds"):
+				return candidate
+	return body
+
+
+func _extract_leaderboard(body: Dictionary) -> Array:
+	var direct_rows: Array = _extract_array_from_dictionary(body)
+	if not direct_rows.is_empty():
+		return direct_rows
+
+	if body.has("leaderboard") and body["leaderboard"] is Dictionary:
+		var leaderboard_dict: Dictionary = body["leaderboard"] as Dictionary
+		var leaderboard_rows: Array = _extract_array_from_dictionary(leaderboard_dict)
+		if not leaderboard_rows.is_empty():
+			return leaderboard_rows
+
+	for nested_key in ["data", "tournament"]:
+		if body.has(nested_key) and body[nested_key] is Dictionary:
+			var nested_dict: Dictionary = body[nested_key] as Dictionary
+			var nested_rows: Array = _extract_array_from_dictionary(nested_dict)
+			if not nested_rows.is_empty():
+				return nested_rows
+			if nested_dict.has("leaderboard") and nested_dict["leaderboard"] is Dictionary:
+				var nested_leaderboard: Dictionary = nested_dict["leaderboard"] as Dictionary
+				var nested_leaderboard_rows: Array = _extract_array_from_dictionary(nested_leaderboard)
+				if not nested_leaderboard_rows.is_empty():
+					return nested_leaderboard_rows
+
+	return []
+
+
+func _render_leaderboard(rows: Array) -> void:
+	if leaderboard_list == null:
+		_show_empty_leaderboard(true)
+		return
+
+	_clear_leaderboard()
+	var added_count := 0
+
+	for row in rows:
+		if row is Dictionary:
+			var row_dict: Dictionary = row as Dictionary
+			leaderboard_list.add_child(_build_leaderboard_row(row_dict))
+			added_count += 1
+
+	_show_empty_leaderboard(added_count == 0)
+	_set_header_visible(true)
+
+
+func _build_leaderboard_row(row: Dictionary) -> Control:
+	var rank: String = _first_rank_string(row, ["rank", "place", "position"])
+	var name: String = _first_non_empty_string(row, ["display_name", "participant_name", "name"])
+	var errors: String = _first_numeric_string(row, ["errors_total", "errors"])
+	var time_text: String = _time_string_from_row(row)
+
+	if rank.is_empty():
+		rank = "—"
+	if name.is_empty():
+		name = "—"
+	if errors.is_empty():
+		errors = "—"
+	if time_text.is_empty():
+		time_text = "—"
+
+	return _build_table_row(rank, name, errors, time_text, false)
+
+
+func _render_leaderboard_header() -> void:
+	if leaderboard_header_host == null:
+		return
+	for child in leaderboard_header_host.get_children():
+		child.queue_free()
+	leaderboard_header_host.add_child(_build_table_row("Место", "Участник", "Ошибки", "Время", true))
+
+
+func _build_table_row(place_text: String, name_text: String, errors_text: String, time_text: String, is_header: bool) -> Control:
+	var panel := PanelContainer.new()
+	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+
+	var style := StyleBoxFlat.new()
+	style.bg_color = Color(1, 1, 1, 0.08) if is_header else Color(0.02, 0.03, 0.05, 0.34)
+	style.border_width_bottom = 1
+	style.border_color = Color(1, 1, 1, 0.12) if is_header else Color(1, 1, 1, 0.08)
+	style.corner_radius_top_left = 8
+	style.corner_radius_top_right = 8
+	style.corner_radius_bottom_left = 8
+	style.corner_radius_bottom_right = 8
+	panel.add_theme_stylebox_override("panel", style)
+
+	var padding := MarginContainer.new()
+	padding.add_theme_constant_override("margin_left", 12)
+	padding.add_theme_constant_override("margin_top", 10)
+	padding.add_theme_constant_override("margin_right", 12)
+	padding.add_theme_constant_override("margin_bottom", 10)
+	panel.add_child(padding)
+
+	var row_box := HBoxContainer.new()
+	row_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row_box.add_theme_constant_override("separation", 12)
+	padding.add_child(row_box)
+
+	row_box.add_child(_build_table_cell(place_text, 80, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_column_separator())
+	row_box.add_child(_build_table_cell(name_text, 0, HORIZONTAL_ALIGNMENT_LEFT, is_header, true))
+	row_box.add_child(_build_column_separator())
+	row_box.add_child(_build_table_cell(errors_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_column_separator())
+	row_box.add_child(_build_table_cell(time_text, 110, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+
+	return panel
+
+
+func _build_table_cell(text: String, min_width: int, alignment: HorizontalAlignment, is_header: bool, expand: bool) -> Control:
+	var label := Label.new()
+	label.text = text
+	label.horizontal_alignment = alignment
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF if is_header else TextServer.AUTOWRAP_WORD_SMART
+	if is_header:
+		label.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
+	else:
+		label.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
+	if min_width > 0:
+		label.custom_minimum_size = Vector2(min_width, 0)
+	if expand:
+		label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	return label
+
+
+func _build_column_separator() -> Control:
+	var separator := ColorRect.new()
+	separator.custom_minimum_size = Vector2(1, 24)
+	separator.color = Color(1, 1, 1, 0.12)
+	return separator
+
+
+func _time_string_from_row(row: Dictionary) -> String:
+	for key in ["time_spent_seconds", "time_seconds"]:
+		if row.has(key):
+			return _format_duration_mmss(int(row[key]))
+	return ""
+
+
+func _on_start_attempt_pressed() -> void:
+	if not _has_valid_access_record():
+		_set_status("Турнир недоступен для старта")
+		return
+
+	var session_manager: Variant = _find_session_manager()
+	if session_manager == null:
+		_set_status("SessionManager не найден")
+		return
+	if not session_manager.has_method("start_tournament_session"):
+		_set_status("Tournament launch недоступен")
+		return
+
+	session_manager.call("start_tournament_session", _access_record)
+	if get_tree():
+		get_tree().change_scene_to_file(GAME_SCENE_PATH)
+
+
+func _on_back_pressed() -> void:
+	var path := _return_scene_path
+	if path.is_empty():
+		path = DEFAULT_RETURN_SCENE_PATH
+	if get_tree():
+		get_tree().change_scene_to_file(path)
+
+
+func _clear_leaderboard() -> void:
+	if leaderboard_list == null:
+		return
+	for child in leaderboard_list.get_children():
+		child.queue_free()
+
+
+func _show_empty_leaderboard(visible: bool) -> void:
+	if empty_leaderboard_label:
+		empty_leaderboard_label.visible = visible
+
+
+func _set_header_visible(visible: bool) -> void:
+	if leaderboard_header_panel:
+		leaderboard_header_panel.visible = visible
+
+
+func _set_status(text: String) -> void:
+	if status_label:
+		status_label.text = text
+
+
+func _find_api_service():
+	if Engine.has_singleton("ApiService"):
+		return Engine.get_singleton("ApiService")
+	return get_node_or_null("/root/ApiService")
+
+
+func _find_session_manager():
+	if Engine.has_singleton("SessionManager"):
+		return Engine.get_singleton("SessionManager")
+	return get_node_or_null("/root/SessionManager")
+
+
+func _access_tournament() -> Dictionary:
+	if _access_record.has("tournament") and _access_record["tournament"] is Dictionary:
+		return (_access_record["tournament"] as Dictionary).duplicate(true)
+	return {}
+
+
+func _has_valid_access_record() -> bool:
+	if _access_record.is_empty():
+		return false
+	if not _access_record.has("participant_token"):
+		return false
+	if not (_access_record["participant_token"] is String):
+		return false
+	if str(_access_record["participant_token"]).strip_edges().is_empty():
+		return false
+
+	var tournament: Dictionary = _access_tournament()
+	return not tournament.is_empty()
+
+
+func _dictionary_string(source: Dictionary, key: String) -> String:
+	if source.has(key):
+		return str(source[key]).strip_edges()
+	return ""
+
+
+func _format_tournament_status(status: String) -> String:
+	match status:
+		"active":
+			return "Активен"
+		"closed":
+			return "Закрыт"
+	return status
+
+
+func _format_tournament_rules(tournament: Dictionary) -> String:
+	var rounds := 0
+	if tournament.has("max_rounds"):
+		rounds = int(tournament["max_rounds"])
+	var seconds := 0
+	if tournament.has("attempt_duration_seconds"):
+		seconds = int(tournament["attempt_duration_seconds"])
+	var minutes := int(seconds / 60)
+	return "%d раздач · %d мин" % [rounds, minutes]
+
+
+func _response_code(packet: Dictionary) -> int:
+	if packet.has("code"):
+		return int(packet["code"])
+	return 0
+
+
+func _response_body(packet: Dictionary) -> Variant:
+	if packet.has("body"):
+		return packet["body"]
+	return {}
+
+
+func _dictionary_or_empty(value: Variant) -> Dictionary:
+	if value is Dictionary:
+		return value as Dictionary
+	return {}
+
+
+func _extract_array_from_dictionary(source: Dictionary) -> Array:
+	for key in ["leaderboard", "results", "participants", "entries", "items"]:
+		if source.has(key) and source[key] is Array:
+			return (source[key] as Array).duplicate(true)
+	return []
+
+
+func _first_non_empty_string(source: Dictionary, keys: Array[String]) -> String:
+	for key in keys:
+		if source.has(key):
+			var value := str(source[key]).strip_edges()
+			if not value.is_empty():
+				return value
+	return ""
+
+
+func _first_numeric_string(source: Dictionary, keys: Array[String]) -> String:
+	for key in keys:
+		if source.has(key):
+			return str(int(source[key]))
+	return ""
+
+
+func _first_rank_string(source: Dictionary, keys: Array[String]) -> String:
+	for key in keys:
+		if source.has(key):
+			var value: Variant = source[key]
+			if value is int:
+				return str(value)
+			if value is float:
+				return str(int(value))
+			var text := str(value).strip_edges()
+			if text.is_empty():
+				continue
+			if text.contains("."):
+				var as_float := text.to_float()
+				return str(int(as_float))
+			if text.is_valid_int():
+				return text
+			return text
+	return ""
+
+
+func _format_duration_mmss(total_seconds: int) -> String:
+	var clamped_seconds: int = max(total_seconds, 0)
+	var minutes: int = int(clamped_seconds / 60)
+	var seconds: int = int(clamped_seconds % 60)
+	return "%02d:%02d" % [minutes, seconds]
