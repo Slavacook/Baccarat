@@ -216,20 +216,20 @@ func _render_leaderboard(rows: Array) -> void:
 
 func _build_leaderboard_row(row: Dictionary) -> Control:
 	var rank: String = _first_rank_string(row, ["rank", "place", "position"])
-	var name: String = _first_non_empty_string(row, ["display_name", "participant_name", "name"])
+	var participant_name: String = _first_non_empty_string(row, ["display_name", "participant_name", "name"])
 	var errors: String = _first_numeric_string(row, ["errors_total", "errors"])
 	var time_text: String = _time_string_from_row(row)
 
 	if rank.is_empty():
 		rank = "—"
-	if name.is_empty():
-		name = "—"
+	if participant_name.is_empty():
+		participant_name = "—"
 	if errors.is_empty():
 		errors = "—"
 	if time_text.is_empty():
 		time_text = "—"
 
-	return _build_table_row(rank, name, errors, time_text, false)
+	return _build_table_row(rank, participant_name, errors, time_text, false)
 
 
 func _render_leaderboard_header() -> void:
@@ -341,14 +341,14 @@ func _clear_leaderboard() -> void:
 		child.queue_free()
 
 
-func _show_empty_leaderboard(visible: bool) -> void:
+func _show_empty_leaderboard(should_show: bool) -> void:
 	if empty_leaderboard_label:
-		empty_leaderboard_label.visible = visible
+		empty_leaderboard_label.visible = should_show
 
 
-func _set_header_visible(visible: bool) -> void:
+func _set_header_visible(should_show: bool) -> void:
 	if leaderboard_header_panel:
-		leaderboard_header_panel.visible = visible
+		leaderboard_header_panel.visible = should_show
 
 
 func _set_status(text: String) -> void:
@@ -410,7 +410,7 @@ func _format_tournament_rules(tournament: Dictionary) -> String:
 	var seconds := 0
 	if tournament.has("attempt_duration_seconds"):
 		seconds = int(tournament["attempt_duration_seconds"])
-	var minutes := int(seconds / 60)
+	var minutes: int = int(float(seconds) / 60.0)
 	return "%d раздач · %d мин" % [rounds, minutes]
 
 
@@ -477,6 +477,6 @@ func _first_rank_string(source: Dictionary, keys: Array[String]) -> String:
 
 func _format_duration_mmss(total_seconds: int) -> String:
 	var clamped_seconds: int = max(total_seconds, 0)
-	var minutes: int = int(clamped_seconds / 60)
+	var minutes: int = int(float(clamped_seconds) / 60.0)
 	var seconds: int = int(clamped_seconds % 60)
 	return "%02d:%02d" % [minutes, seconds]

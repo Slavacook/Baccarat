@@ -335,7 +335,7 @@ func _format_tournament_status(status: String) -> String:
 func _format_tournament_rules(tournament: Dictionary) -> String:
 	var rounds := _dictionary_int(tournament, "max_rounds")
 	var seconds := _dictionary_int(tournament, "attempt_duration_seconds")
-	var minutes := int(seconds / 60)
+	var minutes: int = int(float(seconds) / 60.0)
 	return "%d раздач / %d мин" % [rounds, minutes]
 
 
@@ -387,9 +387,9 @@ func _set_screen_state(state: String) -> void:
 			description_label.text = ""
 
 
-func _set_home_visible(visible: bool) -> void:
+func _set_home_visible(should_show: bool) -> void:
 	if home_block:
-		home_block.visible = visible
+		home_block.visible = should_show
 
 
 func _dictionary_string(source: Dictionary, key: String) -> String:
@@ -448,21 +448,21 @@ func _set_loading(loading: bool) -> void:
 	_set_status("Проверяем турнир..." if loading else "")
 
 
-func _set_summary_visible(visible: bool) -> void:
+func _set_summary_visible(should_show: bool) -> void:
 	if summary_block:
-		summary_block.visible = visible
+		summary_block.visible = should_show
 
 
-func _set_start_attempt_visible(visible: bool) -> void:
+func _set_start_attempt_visible(should_show: bool) -> void:
 	if start_attempt_btn:
-		start_attempt_btn.visible = visible
+		start_attempt_btn.visible = should_show
 
 
-func _set_edit_access_visible(visible: bool) -> void:
+func _set_edit_access_visible(should_show: bool) -> void:
 	if edit_access_btn:
-		edit_access_btn.visible = visible
+		edit_access_btn.visible = should_show
 
 
-func _set_form_visible(visible: bool) -> void:
+func _set_form_visible(should_show: bool) -> void:
 	if form_block:
-		form_block.visible = visible
+		form_block.visible = should_show
