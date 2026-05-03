@@ -48,39 +48,15 @@ func _reload_accesses() -> void:
 
 func _build_access_item(access_record: Dictionary) -> Control:
 	var tournament := _dictionary_or_empty(_dict_value(access_record, "tournament", {}))
+	var title := _safe_title(tournament)
+	var status := _safe_status(tournament)
 
 	var item_button := Button.new()
-	item_button.custom_minimum_size = Vector2(0, 64)
+	item_button.custom_minimum_size = Vector2(0, 56)
 	item_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	item_button.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	item_button.text = ""
+	item_button.text = _format_tournament_list_row(title, status)
 	item_button.pressed.connect(_on_start_attempt_pressed.bind(access_record.duplicate(true)))
-
-	var padding := MarginContainer.new()
-	padding.add_theme_constant_override("margin_left", 14)
-	padding.add_theme_constant_override("margin_top", 12)
-	padding.add_theme_constant_override("margin_right", 14)
-	padding.add_theme_constant_override("margin_bottom", 12)
-	item_button.add_child(padding)
-
-	var content := HBoxContainer.new()
-	content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	content.add_theme_constant_override("separation", 12)
-	padding.add_child(content)
-
-	var title_label := Label.new()
-	title_label.text = _safe_title(tournament)
-	title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title_label.add_theme_font_size_override("font_size", 20)
-	title_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(title_label)
-
-	var status_label := Label.new()
-	status_label.text = _safe_status(tournament)
-	status_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	status_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.add_child(status_label)
 
 	return item_button
 
@@ -145,3 +121,7 @@ func _safe_status(tournament: Dictionary) -> String:
 	if value == "closed":
 		return "Закрыт"
 	return value
+
+
+func _format_tournament_list_row(title: String, status: String) -> String:
+	return "%s  —  %s" % [title, status]
