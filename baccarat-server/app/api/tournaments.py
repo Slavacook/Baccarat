@@ -11,7 +11,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.database import get_db
 from app.dependencies import get_current_trainer
 from app.models.tournament_attempt import TournamentAttempt, TournamentAttemptStatus
-from app.models.tournament import Tournament, TournamentStatus
+from app.models.tournament import (
+    Tournament,
+    TournamentStatus,
+    clone_tournament_settings,
+)
 from app.models.tournament_participant import TournamentParticipant
 from app.models.tournament_participant_token import (
     TournamentParticipantToken,
@@ -306,6 +310,7 @@ async def create_tournament(
         status=TournamentStatus.ACTIVE,
         max_rounds=DEFAULT_TOURNAMENT_MAX_ROUNDS,
         attempt_duration_seconds=DEFAULT_TOURNAMENT_ATTEMPT_DURATION_SECONDS,
+        tournament_settings=clone_tournament_settings(body.tournament_settings),
     )
     db.add(tournament)
     await db.commit()

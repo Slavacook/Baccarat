@@ -1,8 +1,10 @@
 import enum
 import uuid
+from copy import deepcopy
 from datetime import datetime
+from typing import Any
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, String, func
+from sqlalchemy import JSON, DateTime, Enum, ForeignKey, Integer, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,6 +14,35 @@ from app.database import Base
 class TournamentStatus(str, enum.Enum):
     ACTIVE = "active"
     CLOSED = "closed"
+
+
+def default_tournament_settings() -> dict[str, Any]:
+    return {
+        "limits_mode": "classic",
+        "guests_enabled": [True, True, True, True, True, True],
+        "bets": {
+            "banker": True,
+            "player": True,
+            "tie": True,
+            "pairs": True,
+        },
+        "first_four_cards": {
+            "banker_1": "RANDOM",
+            "banker_2": "RANDOM",
+            "player_1": "RANDOM",
+            "player_2": "RANDOM",
+        },
+        "guest_story_enabled": True,
+        "tip_percentage": 0.3,
+        "chance_cards_enabled": False,
+        "auto_mode_switch_enabled": True,
+    }
+
+
+def clone_tournament_settings(settings: dict[str, Any] | None = None) -> dict[str, Any]:
+    if settings is None:
+        return default_tournament_settings()
+    return deepcopy(settings)
 
 
 class Tournament(Base):
@@ -34,6 +65,11 @@ class Tournament(Base):
     )
     max_rounds: Mapped[int] = mapped_column(Integer, nullable=False, default=50)
     attempt_duration_seconds: Mapped[int] = mapped_column(Integer, nullable=False, default=600)
+    tournament_settings: Mapped[dict[str, Any]] = mapped_column(
+        JSON,
+        nullable=False,
+        default=default_tournament_settings,
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )

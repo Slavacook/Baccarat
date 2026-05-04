@@ -1,12 +1,16 @@
 """Pydantic schemas for tournaments."""
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
+
+from app.models.tournament import clone_tournament_settings
 
 
 class TournamentCreateRequest(BaseModel):
     title: str | None = None
+    tournament_settings: dict[str, Any] | None = None
 
     @field_validator("title")
     @classmethod
@@ -28,6 +32,7 @@ class TournamentResponse(BaseModel):
     status: str
     max_rounds: int
     attempt_duration_seconds: int
+    tournament_settings: dict[str, Any]
     created_at: datetime | None = None
     updated_at: datetime | None = None
     closed_at: datetime | None = None
@@ -41,6 +46,7 @@ class TournamentResponse(BaseModel):
             status=tournament.status.value if hasattr(tournament.status, "value") else str(tournament.status),
             max_rounds=int(tournament.max_rounds),
             attempt_duration_seconds=int(tournament.attempt_duration_seconds),
+            tournament_settings=clone_tournament_settings(tournament.tournament_settings),
             created_at=tournament.created_at,
             updated_at=tournament.updated_at,
             closed_at=tournament.closed_at,
@@ -87,6 +93,7 @@ class TournamentActivationTournamentResponse(BaseModel):
     status: str
     max_rounds: int
     attempt_duration_seconds: int
+    tournament_settings: dict[str, Any]
 
     @classmethod
     def from_model(cls, tournament) -> "TournamentActivationTournamentResponse":
@@ -97,6 +104,7 @@ class TournamentActivationTournamentResponse(BaseModel):
             status=tournament.status.value if hasattr(tournament.status, "value") else str(tournament.status),
             max_rounds=int(tournament.max_rounds),
             attempt_duration_seconds=int(tournament.attempt_duration_seconds),
+            tournament_settings=clone_tournament_settings(tournament.tournament_settings),
         )
 
 
