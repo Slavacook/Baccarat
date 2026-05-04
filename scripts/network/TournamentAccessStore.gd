@@ -136,6 +136,9 @@ func _normalize_access(source: Dictionary) -> Dictionary:
 
 	var tournament_source := tournament_variant as Dictionary
 	var participant_source := participant_variant as Dictionary
+	var tournament_settings: Dictionary = {}
+	if tournament_source.has("tournament_settings") and tournament_source["tournament_settings"] is Dictionary:
+		tournament_settings = (tournament_source["tournament_settings"] as Dictionary).duplicate(true)
 
 	var tournament_id := str(tournament_source.get("id", "")).strip_edges()
 	var participant_id := str(participant_source.get("id", "")).strip_edges()
@@ -149,7 +152,8 @@ func _normalize_access(source: Dictionary) -> Dictionary:
 		"code": str(tournament_source.get("code", "")).strip_edges(),
 		"status": str(tournament_source.get("status", "")).strip_edges(),
 		"max_rounds": int(tournament_source.get("max_rounds", 0)),
-		"attempt_duration_seconds": int(tournament_source.get("attempt_duration_seconds", 0))
+		"attempt_duration_seconds": int(tournament_source.get("attempt_duration_seconds", 0)),
+		"tournament_settings": tournament_settings,
 	}
 
 	var participant: Dictionary = {

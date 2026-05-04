@@ -27,6 +27,7 @@ var tournament_id: String = ""
 var tournament_code: String = ""
 var tournament_title: String = ""
 var tournament_status: String = ""
+var tournament_settings: Dictionary = {}
 var tournament_participant_token: String = ""
 var tournament_participant_id: String = ""
 var tournament_participant_display_name: String = ""
@@ -131,6 +132,10 @@ func start_tournament_session(access_record: Dictionary) -> void:
 	tournament_code = str(_dict_value(tournament, "code", "")).strip_edges()
 	tournament_title = str(_dict_value(tournament, "title", "")).strip_edges()
 	tournament_status = str(_dict_value(tournament, "status", "")).strip_edges()
+	if tournament.has("tournament_settings") and tournament["tournament_settings"] is Dictionary:
+		tournament_settings = (tournament["tournament_settings"] as Dictionary).duplicate(true)
+	else:
+		tournament_settings = {}
 	tournament_participant_token = str(_dict_value(access_record, "participant_token", "")).strip_edges()
 	tournament_participant_id = str(_dict_value(participant, "id", "")).strip_edges()
 	tournament_participant_display_name = str(_dict_value(participant, "display_name", "")).strip_edges()
@@ -216,6 +221,7 @@ func get_session_stats() -> Dictionary:
 		"tournament_code": tournament_code,
 		"tournament_title": tournament_title,
 		"tournament_status": tournament_status,
+		"tournament_settings": tournament_settings.duplicate(true),
 		"tournament_participant_token": tournament_participant_token,
 		"tournament_participant_id": tournament_participant_id,
 		"tournament_participant_display_name": tournament_participant_display_name,
@@ -267,6 +273,7 @@ func _reset_runtime_context() -> void:
 	tournament_code = ""
 	tournament_title = ""
 	tournament_status = ""
+	tournament_settings = {}
 	tournament_participant_token = ""
 	tournament_participant_id = ""
 	tournament_participant_display_name = ""
