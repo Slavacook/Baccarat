@@ -37,6 +37,7 @@ var exit_button: Button = null
 # === ОБЛАСТЬ КОНТЕНТА ===
 @onready var content_area: VBoxContainer = find_child("ContentArea", true, false)
 @onready var content_footer_separator: HSeparator = find_child("HSeparator4", true, false)
+@onready var control_buttons: HBoxContainer = find_child("ControlButtons", true, false)
 
 # === ПОДМЕНЮ ===
 @onready var limits_submenu: VBoxContainer = find_child("LimitsSubmenu", true, false)
@@ -127,6 +128,9 @@ var tween: Tween
 # === НАВИГАТОР КЛАВИАТУРЫ ===
 var keyboard_navigator: SettingsKeyboardNavigator = SettingsKeyboardNavigator.new()
 
+const TOURNAMENT_SETTINGS_HIDDEN_BUTTON_FOCUS_MODE := Control.FOCUS_NONE
+const TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE := Control.FOCUS_ALL
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -179,6 +183,100 @@ func _ready() -> void:
 	
 	# Настраиваем навигацию с клавиатуры
 	_setup_keyboard_navigation()
+
+func _is_tournament_mode() -> bool:
+	"""Проверить, запущена ли текущая игра в режиме турнирной попытки."""
+	var session_manager = get_node_or_null("/root/SessionManager")
+	if not session_manager:
+		return false
+
+	return session_manager.current_mode == session_manager.Mode.TOURNAMENT
+
+func _set_menu_button_availability(button: Button, should_show: bool) -> void:
+	"""Показать или скрыть кнопку раздела настроек."""
+	if not button:
+		return
+
+	button.visible = should_show
+	button.disabled = not should_show
+	button.focus_mode = TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE if should_show else TOURNAMENT_SETTINGS_HIDDEN_BUTTON_FOCUS_MODE
+	button.mouse_filter = Control.MOUSE_FILTER_STOP if should_show else Control.MOUSE_FILTER_IGNORE
+
+func _apply_tournament_settings_lock() -> void:
+	"""Скрыть игровые настройки в tournament mode и оставить только кнопку выхода."""
+	current_menu = "main"
+
+	_set_menu_button_availability(limits_button, false)
+	_set_menu_button_availability(bets_filter_button, false)
+	_set_menu_button_availability(guests_button, false)
+	_set_menu_button_availability(story_button, false)
+	_set_menu_button_availability(advanced_settings_button, false)
+	_set_menu_button_availability(training_button, false)
+
+	if main_menu_container:
+		main_menu_container.visible = true
+	if limits_submenu:
+		limits_submenu.visible = false
+	if bets_filter_submenu:
+		bets_filter_submenu.visible = false
+	if advanced_settings_submenu:
+		advanced_settings_submenu.visible = false
+	if story_submenu:
+		story_submenu.visible = false
+	if story_toggle_button:
+		story_toggle_button.visible = false
+	if content_area:
+		content_area.visible = false
+	if content_footer_separator:
+		content_footer_separator.visible = false
+	if guest_return_container:
+		guest_return_container.visible = false
+	if apply_button:
+		apply_button.visible = false
+		apply_button.disabled = true
+	if back_button:
+		back_button.visible = false
+	if hseparator_bottom:
+		hseparator_bottom.visible = false
+	if title_label:
+		title_label.text = Localization.t("SETTINGS_TITLE") if Localization else "НАСТРОЙКИ"
+		title_label.visible = true
+	if exit_button:
+		exit_button.visible = true
+		exit_button.disabled = false
+		exit_button.focus_mode = TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE
+		exit_button.mouse_filter = Control.MOUSE_FILTER_STOP
+		exit_button.grab_focus()
+
+func _restore_standard_settings_ui() -> void:
+	"""Вернуть обычный вид меню для offline/online режимов."""
+	_set_menu_button_availability(limits_button, true)
+	_set_menu_button_availability(bets_filter_button, true)
+	_set_menu_button_availability(guests_button, true)
+	_set_menu_button_availability(story_button, true)
+	_set_menu_button_availability(advanced_settings_button, true)
+	_set_menu_button_availability(training_button, SHOW_TRAINING_MENU_ENTRY)
+
+	if main_menu_container:
+		main_menu_container.visible = true
+	if content_area:
+		content_area.visible = true
+	if content_footer_separator:
+		content_footer_separator.visible = (current_menu != "story")
+	if guest_return_container:
+		guest_return_container.visible = (current_menu == "main")
+	if apply_button:
+		apply_button.visible = true
+		apply_button.disabled = false
+	if back_button:
+		back_button.visible = false
+	if hseparator_bottom:
+		hseparator_bottom.visible = false
+	if exit_button:
+		exit_button.visible = true
+		exit_button.disabled = false
+		exit_button.focus_mode = TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE
+		exit_button.mouse_filter = Control.MOUSE_FILTER_STOP
 
 func _connect_signals() -> void:
 	"""Подключение всех сигналов UI элементов
@@ -330,6 +428,11 @@ func open_settings() -> void:
 	
 	# Показываем главное меню при открытии
 	_show_menu("main")
+
+	if _is_tournament_mode():
+		_apply_tournament_settings_lock()
+	else:
+		_restore_standard_settings_ui()
 	
 	print("⚙️  Окно настроек открыто")
 
@@ -339,6 +442,10 @@ func open_settings() -> void:
 
 func _show_menu(menu_name: String) -> void:
 	"""Показать указанное меню и скрыть остальные"""
+	if _is_tournament_mode():
+		_apply_tournament_settings_lock()
+		return
+
 	current_menu = menu_name
 	
 	# Скрываем все меню в области контента
@@ -1056,6 +1163,10 @@ func _on_training_button_pressed() -> void:
 
 func _on_guest_settings_pressed():
 	"""Обработка нажатия кнопки 'ГОСТИ' для открытия меню настроек гостей"""
+	if _is_tournament_mode():
+		_apply_tournament_settings_lock()
+		return
+
 	# Ищем меню в сцене Game
 	var game_scene = get_tree().get_first_node_in_group("game")
 	if not game_scene:
@@ -1464,7 +1575,9 @@ func _update_bet_button_style(button: Button, enabled: bool) -> void:
 func _create_exit_button() -> void:
 	"""Создаёт кнопку «Выйти» в главном меню настроек."""
 	var target_parent: Node = null
-	if advanced_settings_button:
+	if control_buttons:
+		target_parent = control_buttons
+	elif advanced_settings_button:
 		target_parent = advanced_settings_button.get_parent()
 	elif main_menu_container:
 		target_parent = main_menu_container
