@@ -197,6 +197,7 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 	# PairBettingManager
 	result["pair_betting_manager"] = PairBettingManager.new()
 	DebugLogger.log_init("PairBettingManager инициализирован")
+	_apply_runtime_payout_state(result["pair_betting_manager"])
 
 	# PayoutQueueManager (создается пустым, будет пересоздан при подготовке выплат)
 	result["payout_queue_manager"] = PayoutQueueManager.new()
@@ -205,6 +206,75 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 	# HandManager (Task 2.2 - управление руками игрока и банкира)
 	result["hand_manager"] = HandManager.new()
 	DebugLogger.log_init("HandManager инициализирован")
+
+
+static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager) -> void:
+	var session_manager: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		session_manager = Engine.get_singleton("SessionManager")
+	else:
+		var tree := Engine.get_main_loop()
+		if tree is SceneTree:
+			session_manager = (tree as SceneTree).root.get_node_or_null("SessionManager")
+
+	if session_manager != null and session_manager.current_mode == session_manager.Mode.TOURNAMENT:
+		_apply_tournament_payout_state(session_manager, pair_betting_manager)
+		return
+
+	_restore_local_payout_state(pair_betting_manager)
+
+
+static func _apply_tournament_payout_state(session_manager: Variant, pair_betting_manager: PairBettingManager) -> void:
+	var player_enabled := PayoutSettingsManager.player_payout_enabled
+	var banker_enabled := PayoutSettingsManager.banker_payout_enabled
+	var tie_enabled := PayoutSettingsManager.tie_payout_enabled
+	var pairs_enabled := PayoutSettingsManager.player_pair_payout_enabled and PayoutSettingsManager.banker_pair_payout_enabled
+
+	var tournament_settings_variant: Variant = session_manager.tournament_settings
+	if tournament_settings_variant is Dictionary:
+		var tournament_settings := tournament_settings_variant as Dictionary
+		if tournament_settings.has("bets") and tournament_settings["bets"] is Dictionary:
+			var bets := tournament_settings["bets"] as Dictionary
+			if bets.has("player") and bets["player"] is bool:
+				player_enabled = bets["player"]
+			if bets.has("banker") and bets["banker"] is bool:
+				banker_enabled = bets["banker"]
+			if bets.has("tie") and bets["tie"] is bool:
+				tie_enabled = bets["tie"]
+			if bets.has("pairs") and bets["pairs"] is bool:
+				pairs_enabled = bets["pairs"]
+
+	PayoutSettingsManager.set_all(player_enabled, banker_enabled, tie_enabled, pairs_enabled, pairs_enabled)
+	if pair_betting_manager != null:
+		pair_betting_manager.toggle_pair_player_bet(pairs_enabled)
+		pair_betting_manager.toggle_pair_banker_bet(pairs_enabled)
+
+
+static func _restore_local_payout_state(pair_betting_manager: PairBettingManager) -> void:
+	var player_enabled := PayoutSettingsManager.player_payout_enabled
+	var banker_enabled := PayoutSettingsManager.banker_payout_enabled
+	var tie_enabled := PayoutSettingsManager.tie_payout_enabled
+	var player_pair_enabled := PayoutSettingsManager.player_pair_payout_enabled
+	var banker_pair_enabled := PayoutSettingsManager.banker_pair_payout_enabled
+
+	var settings_variant: Variant = SaveManager.load_payout_settings()
+	if settings_variant is Dictionary:
+		var settings := settings_variant as Dictionary
+		if settings.has("player") and settings["player"] is bool:
+			player_enabled = settings["player"]
+		if settings.has("banker") and settings["banker"] is bool:
+			banker_enabled = settings["banker"]
+		if settings.has("tie") and settings["tie"] is bool:
+			tie_enabled = settings["tie"]
+		if settings.has("player_pair") and settings["player_pair"] is bool:
+			player_pair_enabled = settings["player_pair"]
+		if settings.has("banker_pair") and settings["banker_pair"] is bool:
+			banker_pair_enabled = settings["banker_pair"]
+
+	PayoutSettingsManager.set_all(player_enabled, banker_enabled, tie_enabled, player_pair_enabled, banker_pair_enabled)
+	if pair_betting_manager != null:
+		pair_betting_manager.toggle_pair_player_bet(player_pair_enabled)
+		pair_betting_manager.toggle_pair_banker_bet(banker_pair_enabled)
 
 
 static func _setup_phase_manager(_controller: Node2D, result: Dictionary) -> void:
