@@ -336,6 +336,118 @@
       <label for="new-tournament-title">Название турнира</label>
       <input type="text" id="new-tournament-title" maxlength="255" placeholder="Можно оставить пустым" />
       <p class="muted small">Если название не указано, сервер подставит его сам.</p>
+      <section>
+        <h4>Настройки турнира</h4>
+
+        <label for="new-tournament-limits-mode">Лимиты стола</label>
+        <select id="new-tournament-limits-mode">
+          <option value="classic">Стандартные лимиты</option>
+          <option value="alternative">Альтернативные лимиты</option>
+        </select>
+
+        <p class="muted small">Гости за столом</p>
+        <div class="row wrap">
+          <label><input type="checkbox" id="new-tournament-guest-1" checked /> Гость 1</label>
+          <label><input type="checkbox" id="new-tournament-guest-2" checked /> Гость 2</label>
+          <label><input type="checkbox" id="new-tournament-guest-3" checked /> Гость 3</label>
+          <label><input type="checkbox" id="new-tournament-guest-4" checked /> Гость 4</label>
+          <label><input type="checkbox" id="new-tournament-guest-5" checked /> Гость 5</label>
+          <label><input type="checkbox" id="new-tournament-guest-6" checked /> Гость 6</label>
+        </div>
+
+        <p class="muted small">Доступные ставки</p>
+        <div class="row wrap">
+          <label><input type="checkbox" id="new-tournament-bet-banker" checked /> Banker</label>
+          <label><input type="checkbox" id="new-tournament-bet-player" checked /> Player</label>
+          <label><input type="checkbox" id="new-tournament-bet-tie" checked /> Tie</label>
+          <label><input type="checkbox" id="new-tournament-bet-pairs" checked /> Pairs</label>
+        </div>
+
+        <p class="muted small">Первые четыре карты</p>
+        <div class="row wrap">
+          <label for="new-tournament-banker-1-card">Банкир 1</label>
+          <select id="new-tournament-banker-1-card">
+            <option value="RANDOM">Случайная</option>
+            <option value="A">A</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="J">J</option>
+            <option value="Q">Q</option>
+            <option value="K">K</option>
+          </select>
+          <label for="new-tournament-banker-2-card">Банкир 2</label>
+          <select id="new-tournament-banker-2-card">
+            <option value="RANDOM">Случайная</option>
+            <option value="A">A</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="J">J</option>
+            <option value="Q">Q</option>
+            <option value="K">K</option>
+          </select>
+          <label for="new-tournament-player-1-card">Игрок 1</label>
+          <select id="new-tournament-player-1-card">
+            <option value="RANDOM">Случайная</option>
+            <option value="A">A</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="J">J</option>
+            <option value="Q">Q</option>
+            <option value="K">K</option>
+          </select>
+          <label for="new-tournament-player-2-card">Игрок 2</label>
+          <select id="new-tournament-player-2-card">
+            <option value="RANDOM">Случайная</option>
+            <option value="A">A</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+            <option value="7">7</option>
+            <option value="8">8</option>
+            <option value="9">9</option>
+            <option value="J">J</option>
+            <option value="Q">Q</option>
+            <option value="K">K</option>
+          </select>
+        </div>
+
+        <div class="row wrap">
+          <label><input type="checkbox" id="new-tournament-guest-story-enabled" checked /> Сюжет с гостями</label>
+          <label><input type="checkbox" id="new-tournament-chance-cards-enabled" /> Карты шансов</label>
+          <label><input type="checkbox" id="new-tournament-auto-mode-switch-enabled" checked /> Автопереключение режима фишек</label>
+        </div>
+
+        <label for="new-tournament-tip-percentage">Чаевые</label>
+        <input
+          type="number"
+          id="new-tournament-tip-percentage"
+          min="0"
+          max="100"
+          step="0.1"
+          value="0.3"
+        />
+        <p class="muted small">Значение задаётся в процентах: 0.3 = 0.3%. Например, при выигрыше 50000 чаевые будут 150.</p>
+      </section>
       <button type="button" id="btn-create-tournament" class="primary">Создать</button>
       <p id="create-tournament-error" class="error" hidden></p>
     </div>

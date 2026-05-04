@@ -2123,6 +2123,7 @@ async function refreshTournaments() {
 
 function openCreateTournamentModal() {
   showError("create-tournament-error", "");
+  resetCreateTournamentSettings();
   el("create-tournament-modal")?.classList.remove("hidden");
   el("new-tournament-title")?.focus();
 }
@@ -2133,13 +2134,93 @@ function closeCreateTournamentModal(force = false) {
   showError("create-tournament-error", "");
 }
 
+function resetCreateTournamentSettings() {
+  const limitsMode = el("new-tournament-limits-mode");
+  if (limitsMode) limitsMode.value = "classic";
+
+  for (let index = 1; index <= 6; index += 1) {
+    const guestCheckbox = el(`new-tournament-guest-${index}`);
+    if (guestCheckbox) guestCheckbox.checked = true;
+  }
+
+  const betIds = [
+    "new-tournament-bet-banker",
+    "new-tournament-bet-player",
+    "new-tournament-bet-tie",
+    "new-tournament-bet-pairs",
+  ];
+  betIds.forEach((id) => {
+    const checkbox = el(id);
+    if (checkbox) checkbox.checked = true;
+  });
+
+  const firstFourCardIds = [
+    "new-tournament-banker-1-card",
+    "new-tournament-banker-2-card",
+    "new-tournament-player-1-card",
+    "new-tournament-player-2-card",
+  ];
+  firstFourCardIds.forEach((id) => {
+    const select = el(id);
+    if (select) select.value = "RANDOM";
+  });
+
+  const guestStoryEnabled = el("new-tournament-guest-story-enabled");
+  if (guestStoryEnabled) guestStoryEnabled.checked = true;
+
+  const chanceCardsEnabled = el("new-tournament-chance-cards-enabled");
+  if (chanceCardsEnabled) chanceCardsEnabled.checked = false;
+
+  const autoModeSwitchEnabled = el("new-tournament-auto-mode-switch-enabled");
+  if (autoModeSwitchEnabled) autoModeSwitchEnabled.checked = true;
+
+  const tipPercentage = el("new-tournament-tip-percentage");
+  if (tipPercentage) tipPercentage.value = "0.3";
+}
+
+function getCreateTournamentSettings() {
+  const limitsMode = el("new-tournament-limits-mode");
+  const tipPercentageInput = el("new-tournament-tip-percentage");
+  const parsedTipPercentage = Number(tipPercentageInput ? tipPercentageInput.value : "0.3");
+  const tipPercentage = Number.isFinite(parsedTipPercentage)
+    ? Math.min(100, Math.max(0, parsedTipPercentage))
+    : 0.3;
+
+  return {
+    limits_mode: limitsMode ? String(limitsMode.value || "classic") : "classic",
+    guests_enabled: [1, 2, 3, 4, 5, 6].map((index) => {
+      const checkbox = el(`new-tournament-guest-${index}`);
+      return Boolean(checkbox && checkbox.checked);
+    }),
+    bets: {
+      banker: Boolean(el("new-tournament-bet-banker")?.checked),
+      player: Boolean(el("new-tournament-bet-player")?.checked),
+      tie: Boolean(el("new-tournament-bet-tie")?.checked),
+      pairs: Boolean(el("new-tournament-bet-pairs")?.checked),
+    },
+    first_four_cards: {
+      banker_1: String(el("new-tournament-banker-1-card")?.value || "RANDOM"),
+      banker_2: String(el("new-tournament-banker-2-card")?.value || "RANDOM"),
+      player_1: String(el("new-tournament-player-1-card")?.value || "RANDOM"),
+      player_2: String(el("new-tournament-player-2-card")?.value || "RANDOM"),
+    },
+    guest_story_enabled: Boolean(el("new-tournament-guest-story-enabled")?.checked),
+    tip_percentage: tipPercentage,
+    chance_cards_enabled: Boolean(el("new-tournament-chance-cards-enabled")?.checked),
+    auto_mode_switch_enabled: Boolean(el("new-tournament-auto-mode-switch-enabled")?.checked),
+  };
+}
+
 async function createTournament() {
   if (createTournamentInFlight) return;
   showError("create-tournament-error", "");
   const titleInput = el("new-tournament-title");
   const rawTitle = titleInput ? String(titleInput.value || "") : "";
   const title = rawTitle.trim();
-  const body = title ? { title } : {};
+  const body = {
+    tournament_settings: getCreateTournamentSettings(),
+  };
+  if (title) body.title = title;
 
   createTournamentInFlight = true;
   const button = el("btn-create-tournament");
@@ -2160,6 +2241,7 @@ async function createTournament() {
     }
 
     if (titleInput) titleInput.value = "";
+    resetCreateTournamentSettings();
     closeCreateTournamentModal(true);
     tournamentsLoaded = false;
     await refreshTournaments();
