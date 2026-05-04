@@ -1849,6 +1849,50 @@ function formatTournamentRules(item) {
   return `${roundsLabel} / ${durationLabel}`;
 }
 
+function formatTournamentSettingsSummary(tournament) {
+  const settings = tournament && typeof tournament.tournament_settings === "object"
+    ? tournament.tournament_settings
+    : null;
+  if (!settings) {
+    return ["Настройки турнира не найдены"];
+  }
+
+  const limitsMode = String(settings.limits_mode || "—");
+
+  const guestsEnabled = Array.isArray(settings.guests_enabled)
+    ? settings.guests_enabled.filter(Boolean).length
+    : 0;
+
+  const bets = settings.bets && typeof settings.bets === "object" ? settings.bets : null;
+  const activeBets = [];
+  if (bets && bets.banker) activeBets.push("Banker");
+  if (bets && bets.player) activeBets.push("Player");
+  if (bets && bets.tie) activeBets.push("Tie");
+  if (bets && bets.pairs) activeBets.push("Pairs");
+
+  const firstFourCards = settings.first_four_cards && typeof settings.first_four_cards === "object"
+    ? settings.first_four_cards
+    : null;
+  const banker1 = firstFourCards && firstFourCards.banker_1 ? String(firstFourCards.banker_1) : "—";
+  const banker2 = firstFourCards && firstFourCards.banker_2 ? String(firstFourCards.banker_2) : "—";
+  const player1 = firstFourCards && firstFourCards.player_1 ? String(firstFourCards.player_1) : "—";
+  const player2 = firstFourCards && firstFourCards.player_2 ? String(firstFourCards.player_2) : "—";
+
+  const tipPercentageRaw = Number(settings.tip_percentage);
+  const tipPercentage = Number.isFinite(tipPercentageRaw) ? `${tipPercentageRaw}%` : "—";
+
+  return [
+    `Лимиты: ${limitsMode}`,
+    `Гости: ${guestsEnabled} / 6`,
+    `Ставки: ${activeBets.length > 0 ? activeBets.join(", ") : "—"}`,
+    `Первые карты: Banker 1 — ${banker1}, Banker 2 — ${banker2}, Player 1 — ${player1}, Player 2 — ${player2}`,
+    `Сюжет гостей: ${settings.guest_story_enabled ? "вкл" : "выкл"}`,
+    `Чаевые: ${tipPercentage}`,
+    `Карты шансов: ${settings.chance_cards_enabled ? "вкл" : "выкл"}`,
+    `Автопереключение режима фишек: ${settings.auto_mode_switch_enabled ? "вкл" : "выкл"}`,
+  ];
+}
+
 async function copyTextToClipboard(value, button, successText, defaultText, errorMessage) {
   const text = String(value || "").trim();
   if (!text) {
@@ -1941,8 +1985,9 @@ function renderTournamentLeaderboard(tournament, entries) {
   const tbody = table ? table.querySelector("tbody") : null;
   const titleNode = el("tournament-leaderboard-title");
   const metaNode = el("tournament-leaderboard-meta");
+  const settingsNode = el("tournament-settings-summary");
   const emptyNode = el("tournament-leaderboard-empty");
-  if (!card || !tbody || !titleNode || !metaNode || !emptyNode) return;
+  if (!card || !tbody || !titleNode || !metaNode || !settingsNode || !emptyNode) return;
 
   tbody.innerHTML = "";
 
@@ -1950,6 +1995,7 @@ function renderTournamentLeaderboard(tournament, entries) {
     card.classList.add("hidden");
     titleNode.textContent = "Турнир: —";
     metaNode.textContent = "Код: — · Статус: —";
+    settingsNode.textContent = "Настройки турнира не найдены";
     emptyNode.classList.add("hidden");
     return;
   }
@@ -1957,6 +2003,13 @@ function renderTournamentLeaderboard(tournament, entries) {
   card.classList.remove("hidden");
   titleNode.textContent = `Турнир: ${tournament.title || "—"}`;
   metaNode.textContent = `Код: ${tournament.code || "—"} · Статус: ${formatTournamentStatus(tournament.status)}`;
+  settingsNode.innerHTML = "";
+  for (const line of formatTournamentSettingsSummary(tournament)) {
+    const item = document.createElement("p");
+    item.className = "small";
+    item.textContent = line;
+    settingsNode.appendChild(item);
+  }
 
   if (!Array.isArray(entries) || entries.length === 0) {
     emptyNode.classList.remove("hidden");
