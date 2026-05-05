@@ -91,4 +91,3 @@ func _check_is_natural() -> bool:
 	var player_first_two = hand_manager.get_player_initial_score()
 	var banker_first_two = hand_manager.get_banker_initial_score()
 	return player_first_two >= 8 or banker_first_two >= 8
-
