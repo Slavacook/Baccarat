@@ -212,12 +212,29 @@ func generate_guest_bets(guest_id: int) -> Array[Bet]:
 	return bets
 
 func _build_allowed_bets() -> Dictionary:
+	var session_manager: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		session_manager = Engine.get_singleton("SessionManager")
+	else:
+		var tree := Engine.get_main_loop()
+		if tree is SceneTree:
+			session_manager = (tree as SceneTree).root.get_node_or_null("SessionManager")
+
+	if session_manager != null and session_manager.current_mode == session_manager.Mode.TOURNAMENT:
+		return {
+			"Player": PayoutSettingsManager.player_payout_enabled,
+			"Banker": PayoutSettingsManager.banker_payout_enabled,
+			"Tie": PayoutSettingsManager.tie_payout_enabled,
+			"PairPlayer": PayoutSettingsManager.player_pair_payout_enabled,
+			"PairBanker": PayoutSettingsManager.banker_pair_payout_enabled
+		}
+
 	return {
-		"Player": PayoutSettingsManager.player_payout_enabled,
-		"Banker": PayoutSettingsManager.banker_payout_enabled,
-		"Tie": PayoutSettingsManager.tie_payout_enabled,
-		"PairPlayer": PayoutSettingsManager.player_pair_payout_enabled,
-		"PairBanker": PayoutSettingsManager.banker_pair_payout_enabled
+		"Player": true,
+		"Banker": true,
+		"Tie": true,
+		"PairPlayer": true,
+		"PairBanker": true
 	}
 
 func _create_bets_from_planner_package(guest_id: int, sector: int, planned_bets: Array[Dictionary]) -> Array[Bet]:
