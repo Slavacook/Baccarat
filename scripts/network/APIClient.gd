@@ -7,6 +7,8 @@ extends Node
 # НАСТРОЙКИ
 # ═══════════════════════════════════════════════════════════════
 
+const HTTP_TIMEOUT_SECONDS: float = 30.0
+
 @export var base_url: String = "https://baccarat-trainer.ru"
 
 var _http_request: HTTPRequest
@@ -28,7 +30,7 @@ signal request_failed(request_id: int, error_code: int, error_message: String)
 
 func _ready() -> void:
 	_http_request = HTTPRequest.new()
-	_http_request.timeout = 10.0
+	_http_request.timeout = HTTP_TIMEOUT_SECONDS
 	add_child(_http_request)
 	_http_request.request_completed.connect(_on_request_completed)
 
