@@ -289,7 +289,49 @@ func _normalize_tournament_code(value: String) -> String:
 
 func _activation_error_message(status_code: int, _body: Variant) -> String:
 	if status_code == 0:
-		return "Нет связи с сервером"
+		var lines: PackedStringArray = ["DEBUG Android connection error", ""]
+		if _body is Dictionary:
+			var body := _body as Dictionary
+			var operation := "—"
+			if body.has("operation"):
+				operation = str(body["operation"]).strip_edges()
+				if operation.is_empty():
+					operation = "—"
+
+			var debug_reason := "—"
+			if body.has("debug_reason"):
+				debug_reason = str(body["debug_reason"]).strip_edges()
+				if debug_reason.is_empty():
+					debug_reason = "—"
+
+			var error_code_text := "—"
+			if body.has("error_code"):
+				error_code_text = str(body["error_code"]).strip_edges()
+				if error_code_text.is_empty():
+					error_code_text = "—"
+
+			var message_text := "Нет связи с сервером"
+			if body.has("error_message"):
+				var error_message_text := str(body["error_message"]).strip_edges()
+				if not error_message_text.is_empty():
+					message_text = error_message_text
+			elif body.has("detail"):
+				var detail_text := str(body["detail"]).strip_edges()
+				if not detail_text.is_empty():
+					message_text = detail_text
+
+			lines.append("operation: %s" % operation)
+			lines.append("debug_reason: %s" % debug_reason)
+			lines.append("error_code: %s" % error_code_text)
+			lines.append("message: %s" % message_text)
+		else:
+			lines.append("status_code: 0")
+			lines.append("body_type: %s" % type_string(typeof(_body)))
+			lines.append("message: Нет связи с сервером")
+
+		var debug_summary := "\n".join(lines)
+		print(debug_summary)
+		return debug_summary
 	if status_code == 404:
 		return "Турнир не найден"
 	if status_code == 409:
