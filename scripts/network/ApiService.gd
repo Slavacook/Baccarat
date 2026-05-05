@@ -306,6 +306,8 @@ func _on_request_failed(_request_id: int, _error_code: int, error_message: Strin
 	if _http_op != "":
 		var op: String = _http_op
 		_http_op = ""
+		if op == "activate_tournament":
+			_send_activate_tournament_diagnostics(error_code, error_message, debug_reason)
 		var failure_body: Dictionary = {
 			"detail": error_message,
 			"network_error": true,
@@ -329,3 +331,44 @@ func _on_request_failed(_request_id: int, _error_code: int, error_message: Strin
 	])
 	print("🔌 Ошибка сети: ", error_message)
 	network_error.emit(error_message)
+
+
+func _send_activate_tournament_diagnostics(error_code: int, error_message: String, debug_reason: String) -> void:
+	var diagnostics_request := HTTPRequest.new()
+	add_child(diagnostics_request)
+
+	var url := "https://baccarat-trainer.ru/api/client-diagnostics"
+	if api_client != null:
+		var base_url := str(api_client.base_url).strip_edges()
+		if not base_url.is_empty():
+			url = base_url + "/api/client-diagnostics"
+
+	var payload: Dictionary = {
+		"event_type": "tournament_activate_failed",
+		"operation": "activate_tournament",
+		"debug_reason": debug_reason,
+		"error_message": error_message,
+		"platform": OS.get_name(),
+		"client_time_iso": Time.get_datetime_string_from_system(true, true),
+		"screen": "TournamentEntryScreen",
+		"error_code": error_code,
+		"api_base_url": str(api_client.base_url).strip_edges() if api_client != null else ""
+	}
+
+	var headers := PackedStringArray([
+		"Content-Type: application/json",
+		"Accept: application/json"
+	])
+	var body := JSON.stringify(payload)
+
+	diagnostics_request.request_completed.connect(
+		func(result: int, response_code: int, _headers: PackedStringArray, _body: PackedByteArray) -> void:
+			print("CLIENT_DIAGNOSTICS sent result=%d response_code=%d" % [result, response_code])
+			diagnostics_request.queue_free(),
+		CONNECT_ONE_SHOT
+	)
+
+	var start_code := diagnostics_request.request(url, headers, HTTPClient.METHOD_POST, body)
+	if start_code != OK:
+		print("CLIENT_DIAGNOSTICS send_start_failed code=%d" % start_code)
+		diagnostics_request.queue_free()
