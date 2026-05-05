@@ -1960,7 +1960,9 @@ async function copyTournamentLink(code, button) {
 async function closeTournament(tournamentId) {
   const id = String(tournamentId || "").trim();
   if (!id) return;
-  const confirmed = window.confirm("Закрыть турнир? Новые попытки больше не будут приниматься.");
+  const confirmed = window.confirm(
+    "Завершить турнир? Он будет перенесён в архив. Новые участники и попытки будут недоступны."
+  );
   if (!confirmed) return;
 
   showError("tournaments-error", "");
@@ -2120,7 +2122,7 @@ function renderTournamentRows(tbody, items, includeCloseAction) {
       const closeBtn = document.createElement("button");
       closeBtn.type = "button";
       closeBtn.className = "danger table-action-button";
-      closeBtn.textContent = "Закрыть";
+      closeBtn.textContent = "Завершить";
       closeBtn.addEventListener("click", () => {
         void closeTournament(item && item.id);
       });
