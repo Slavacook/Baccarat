@@ -24,6 +24,9 @@ func plan_guest_bet_package(
 	var package: Array[Dictionary] = []
 	var used_balance: int = 0
 	var remaining_balance: float = balance
+	var any_main_legal = can_place_main_bet(balance, allowed_bets, limits_manager)
+	var any_side_legal = can_place_any_side_bet(balance, allowed_bets, limits_manager)
+	var any_legal_bet = any_main_legal or any_side_legal
 
 	if balance <= MIN_BALANCE_TO_CONTINUE:
 		return {
@@ -34,12 +37,32 @@ func plan_guest_bet_package(
 			"reason": "balance_too_low"
 		}
 
-	var main_allowed := _is_bet_allowed(allowed_bets, main_choice)
-	var main_available := false
-	if main_allowed:
-		main_available = can_place_main_bet(balance, allowed_bets, limits_manager)
+	if not any_legal_bet:
+		return {
+			"bets": package,
+			"should_leave_table": true,
+			"used_balance": 0,
+			"remaining_balance": balance,
+			"reason": "no_legal_bets"
+		}
 
-	if main_allowed and main_available:
+	var allow_side_processing = true
+	var main_was_chosen = not main_choice.is_empty()
+	var main_chosen_and_allowed = false
+	var main_chosen_and_affordable = false
+
+	if main_was_chosen:
+		main_chosen_and_allowed = _is_bet_allowed(allowed_bets, main_choice)
+		if main_chosen_and_allowed:
+			main_chosen_and_affordable = fit_stake_to_budget(
+				desired_main_stake,
+				main_choice,
+				remaining_balance,
+				limits_manager
+			) > 0
+
+	# Main выбран и физически доступен - добавляем его первым.
+	if main_chosen_and_affordable:
 		remaining_balance = append_bet_if_legal(
 			package,
 			main_choice,
@@ -47,25 +70,22 @@ func plan_guest_bet_package(
 			remaining_balance,
 			limits_manager
 		)
+	# Main не выбрана по вероятности - это не причина ухода.
+	elif not main_was_chosen:
+		allow_side_processing = true
+	# Main выбрана, но недоступна по лимитам/балансу - side-only по характеру.
 	else:
-		if not should_try_side_only(character):
+		allow_side_processing = should_try_side_only(character)
+		if not allow_side_processing:
 			return {
 				"bets": package,
 				"should_leave_table": true,
 				"used_balance": 0,
 				"remaining_balance": balance,
-				"reason": "no_legal_bets"
-			}
-		if not can_place_any_side_bet(balance, allowed_bets, limits_manager):
-			return {
-				"bets": package,
-				"should_leave_table": true,
-				"used_balance": 0,
-				"remaining_balance": balance,
-				"reason": "no_legal_bets"
+				"reason": "side_only_not_allowed"
 			}
 
-	if want_tie and _is_bet_allowed(allowed_bets, "Tie"):
+	if allow_side_processing and want_tie and _is_bet_allowed(allowed_bets, "Tie"):
 		remaining_balance = append_bet_if_legal(
 			package,
 			"Tie",
@@ -74,56 +94,57 @@ func plan_guest_bet_package(
 			limits_manager
 		)
 
-	match pair_choice:
-		"Both":
-			if _is_bet_allowed(allowed_bets, "PairPlayer"):
-				remaining_balance = append_bet_if_legal(
-					package,
-					"PairPlayer",
-					desired_pair_stake,
-					remaining_balance,
-					limits_manager
-				)
-			if _is_bet_allowed(allowed_bets, "PairBanker"):
-				remaining_balance = append_bet_if_legal(
-					package,
-					"PairBanker",
-					desired_pair_stake,
-					remaining_balance,
-					limits_manager
-				)
-		"PlayerPair":
-			if _is_bet_allowed(allowed_bets, "PairPlayer"):
-				remaining_balance = append_bet_if_legal(
-					package,
-					"PairPlayer",
-					desired_pair_stake,
-					remaining_balance,
-					limits_manager
-				)
-		"BankerPair":
-			if _is_bet_allowed(allowed_bets, "PairBanker"):
-				remaining_balance = append_bet_if_legal(
-					package,
-					"PairBanker",
-					desired_pair_stake,
-					remaining_balance,
-					limits_manager
-				)
-		"None":
-			pass
-		_:
-			pass
+	if allow_side_processing:
+		match pair_choice:
+			"Both":
+				if _is_bet_allowed(allowed_bets, "PairPlayer"):
+					remaining_balance = append_bet_if_legal(
+						package,
+						"PairPlayer",
+						desired_pair_stake,
+						remaining_balance,
+						limits_manager
+					)
+				if _is_bet_allowed(allowed_bets, "PairBanker"):
+					remaining_balance = append_bet_if_legal(
+						package,
+						"PairBanker",
+						desired_pair_stake,
+						remaining_balance,
+						limits_manager
+					)
+			"PlayerPair":
+				if _is_bet_allowed(allowed_bets, "PairPlayer"):
+					remaining_balance = append_bet_if_legal(
+						package,
+						"PairPlayer",
+						desired_pair_stake,
+						remaining_balance,
+						limits_manager
+					)
+			"BankerPair":
+				if _is_bet_allowed(allowed_bets, "PairBanker"):
+					remaining_balance = append_bet_if_legal(
+						package,
+						"PairBanker",
+						desired_pair_stake,
+						remaining_balance,
+						limits_manager
+					)
+			"None":
+				pass
+			_:
+				pass
 
 	used_balance = _calculate_used_balance(package)
 
 	if package.is_empty():
 		return {
 			"bets": package,
-			"should_leave_table": true,
+			"should_leave_table": false,
 			"used_balance": 0,
 			"remaining_balance": balance,
-			"reason": "no_legal_bets"
+			"reason": "no_bets_chosen"
 		}
 
 	return {
