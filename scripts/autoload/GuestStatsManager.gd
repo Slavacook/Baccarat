@@ -23,6 +23,7 @@ const MEDIUM_BALANCE_MIN: float = 100000.0
 const MEDIUM_BALANCE_MAX: float = 130000.0
 const RICH_BALANCE_MIN: float = 200000.0
 const RICH_BALANCE_MAX: float = 270000.0
+const MIN_BALANCE_TO_CONTINUE: float = 100.0
 
 # Пороги для изменения статуса богатства (динамическое обновление)
 const WEALTH_THRESHOLD_POOR_TO_MEDIUM: float = 100000.0   # Бедный → Средний
@@ -233,7 +234,7 @@ func reset_saved_balance(guest_id: int) -> void:
 
 # ← Проверить балансы всех гостей в конце раунда
 func check_guests_balance_at_round_end() -> void:
-	"""Проверяет всех включенных гостей и выключает тех, кто ушел в минус"""
+	"""Проверяет всех включенных гостей и выключает тех, у кого баланс слишком низкий"""
 	if not GuestSettingsManager:
 		push_error("GuestStatsManager: GuestSettingsManager не найден!")
 		return
@@ -252,8 +253,8 @@ func check_guests_balance_at_round_end() -> void:
 		
 		var balance = get_guest_balance(guest_id)
 		
-		# Если баланс отрицательный - выключаем гостя и отмечаем уход
-		if balance < 0:
+		# Если баланс меньше или равен порогу - выключаем гостя и отмечаем уход
+		if balance <= MIN_BALANCE_TO_CONTINUE:
 			# Определяем, последний ли это активный гость за столом
 			# ВАЖНО: проверка ДО выключения гостя, чтобы увидеть реальное количество активных
 			var is_single_in_list = false
@@ -272,7 +273,7 @@ func check_guests_balance_at_round_end() -> void:
 			guest_left.emit(guest_id)
 			EventBus.guest_left_due_to_bankruptcy.emit(guest_id)
 			
-			print("👋 Гость %d ушел в минус (баланс: %.0f)" % [guest_id, balance])
+			print("👋 Гость %d ушел из-за низкого баланса (баланс: %.0f, порог: %.0f)" % [guest_id, balance, MIN_BALANCE_TO_CONTINUE])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРОВЕРКА И ОБНОВЛЕНИЕ СТАТУСА БОГАТСТВА
