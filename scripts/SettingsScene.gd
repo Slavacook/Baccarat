@@ -6,6 +6,7 @@ extends CanvasLayer
 class_name SettingsScene
 
 const SHOW_TRAINING_MENU_ENTRY: bool = false
+const ALLOW_FULL_SETTINGS_IN_TOURNAMENT: bool = true
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (для совместимости с GameController)
@@ -191,6 +192,16 @@ func _is_tournament_mode() -> bool:
 		return false
 
 	return session_manager.current_mode == session_manager.Mode.TOURNAMENT
+
+func _should_lock_settings_for_tournament() -> bool:
+	"""Нужно ли скрывать полное меню настроек для tournament mode."""
+	if not _is_tournament_mode():
+		return false
+
+	if ALLOW_FULL_SETTINGS_IN_TOURNAMENT:
+		return false
+
+	return true
 
 func _set_menu_button_availability(button: Button, should_show: bool) -> void:
 	"""Показать или скрыть кнопку раздела настроек."""
@@ -429,7 +440,7 @@ func open_settings() -> void:
 	# Показываем главное меню при открытии
 	_show_menu("main")
 
-	if _is_tournament_mode():
+	if _should_lock_settings_for_tournament():
 		_apply_tournament_settings_lock()
 	else:
 		_restore_standard_settings_ui()
@@ -442,7 +453,7 @@ func open_settings() -> void:
 
 func _show_menu(menu_name: String) -> void:
 	"""Показать указанное меню и скрыть остальные"""
-	if _is_tournament_mode():
+	if _should_lock_settings_for_tournament():
 		_apply_tournament_settings_lock()
 		return
 
@@ -1163,7 +1174,7 @@ func _on_training_button_pressed() -> void:
 
 func _on_guest_settings_pressed():
 	"""Обработка нажатия кнопки 'ГОСТИ' для открытия меню настроек гостей"""
-	if _is_tournament_mode():
+	if _should_lock_settings_for_tournament():
 		_apply_tournament_settings_lock()
 		return
 
