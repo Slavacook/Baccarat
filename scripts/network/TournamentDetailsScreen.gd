@@ -243,6 +243,7 @@ func _render_leaderboard_header() -> void:
 func _build_table_row(place_text: String, name_text: String, errors_text: String, time_text: String, is_header: bool) -> Control:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 	var style := StyleBoxFlat.new()
 	style.bg_color = Color(1, 1, 1, 0.08) if is_header else Color(0.02, 0.03, 0.05, 0.34)
@@ -255,6 +256,7 @@ func _build_table_row(place_text: String, name_text: String, errors_text: String
 	panel.add_theme_stylebox_override("panel", style)
 
 	var padding := MarginContainer.new()
+	padding.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	padding.add_theme_constant_override("margin_left", 12)
 	padding.add_theme_constant_override("margin_top", 10)
 	padding.add_theme_constant_override("margin_right", 12)
@@ -263,6 +265,7 @@ func _build_table_row(place_text: String, name_text: String, errors_text: String
 
 	var row_box := HBoxContainer.new()
 	row_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row_box.add_theme_constant_override("separation", 12)
 	padding.add_child(row_box)
 
@@ -280,6 +283,7 @@ func _build_table_row(place_text: String, name_text: String, errors_text: String
 func _build_table_cell(text: String, min_width: int, alignment: HorizontalAlignment, is_header: bool, expand: bool) -> Control:
 	var label := Label.new()
 	label.text = text
+	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = alignment
 	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF if is_header else TextServer.AUTOWRAP_WORD_SMART
@@ -297,6 +301,7 @@ func _build_table_cell(text: String, min_width: int, alignment: HorizontalAlignm
 func _build_column_separator() -> Control:
 	var separator := ColorRect.new()
 	separator.custom_minimum_size = Vector2(1, 24)
+	separator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	separator.color = Color(1, 1, 1, 0.12)
 	return separator
 
