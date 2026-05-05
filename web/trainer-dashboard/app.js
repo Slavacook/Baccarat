@@ -2068,22 +2068,9 @@ async function loadTournamentLeaderboard(tournamentId) {
   renderTournamentLeaderboard(selectedTournamentSnapshot, tournamentLeaderboardSnapshot);
 }
 
-function renderTournaments(items) {
-  const listCard = el("tournaments-list-card");
-  const emptyState = el("tournaments-empty-state");
-  const table = el("tournaments-table");
-  const tbody = table ? table.querySelector("tbody") : null;
-  if (!tbody || !listCard || !emptyState) return;
+function renderTournamentRows(tbody, items, includeCloseAction) {
+  if (!tbody) return;
   tbody.innerHTML = "";
-
-  if (!Array.isArray(items) || items.length === 0) {
-    listCard.classList.add("hidden");
-    emptyState.classList.remove("hidden");
-    return;
-  }
-
-  emptyState.classList.add("hidden");
-  listCard.classList.remove("hidden");
 
   for (const item of items) {
     const tr = document.createElement("tr");
@@ -2129,7 +2116,7 @@ function renderTournaments(items) {
     });
     cActions.appendChild(copyBtn);
 
-    if (String(item && item.status ? item.status : "").trim().toLowerCase() === "active") {
+    if (includeCloseAction) {
       const closeBtn = document.createElement("button");
       closeBtn.type = "button";
       closeBtn.className = "danger table-action-button";
@@ -2146,6 +2133,62 @@ function renderTournaments(items) {
     tr.appendChild(cRules);
     tr.appendChild(cActions);
     tbody.appendChild(tr);
+  }
+}
+
+function renderTournaments(items) {
+  const listCard = el("tournaments-list-card");
+  const archiveCard = el("archive-tournaments-card");
+  const emptyState = el("tournaments-empty-state");
+  const activeTable = el("tournaments-table");
+  const archiveTable = el("archive-tournaments-table");
+  const activeBody = activeTable ? activeTable.querySelector("tbody") : null;
+  const archiveBody = archiveTable ? archiveTable.querySelector("tbody") : null;
+  if (!activeBody || !archiveBody || !listCard || !archiveCard || !emptyState) return;
+
+  activeBody.innerHTML = "";
+  archiveBody.innerHTML = "";
+
+  if (!Array.isArray(items) || items.length === 0) {
+    listCard.classList.add("hidden");
+    archiveCard.classList.add("hidden");
+    emptyState.classList.remove("hidden");
+    return;
+  }
+
+  const activeItems = [];
+  const closedItems = [];
+
+  for (const item of items) {
+    const status = String(item && item.status ? item.status : "").trim().toLowerCase();
+    if (status === "active") {
+      activeItems.push(item);
+    } else if (status === "closed") {
+      closedItems.push(item);
+    }
+  }
+
+  if (activeItems.length === 0 && closedItems.length === 0) {
+    listCard.classList.add("hidden");
+    archiveCard.classList.add("hidden");
+    emptyState.classList.remove("hidden");
+    return;
+  }
+
+  emptyState.classList.add("hidden");
+
+  if (activeItems.length > 0) {
+    listCard.classList.remove("hidden");
+    renderTournamentRows(activeBody, activeItems, true);
+  } else {
+    listCard.classList.add("hidden");
+  }
+
+  if (closedItems.length > 0) {
+    archiveCard.classList.remove("hidden");
+    renderTournamentRows(archiveBody, closedItems, false);
+  } else {
+    archiveCard.classList.add("hidden");
   }
 }
 
