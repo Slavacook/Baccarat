@@ -154,6 +154,19 @@ function formatInviteExpiresAt(value) {
   });
 }
 
+function formatTournamentClosedAt(value) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return date.toLocaleString("ru-RU", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
 function showRoomInviteMessage(message) {
   roomInviteTransientMessage = message ? String(message) : "";
   const node = el("room-invite-message");
@@ -2070,7 +2083,7 @@ async function loadTournamentLeaderboard(tournamentId) {
   renderTournamentLeaderboard(selectedTournamentSnapshot, tournamentLeaderboardSnapshot);
 }
 
-function renderTournamentRows(tbody, items, includeCloseAction) {
+function renderTournamentRows(tbody, items, includeCloseAction, showClosedAtColumn) {
   if (!tbody) return;
   tbody.innerHTML = "";
 
@@ -2086,6 +2099,12 @@ function renderTournamentRows(tbody, items, includeCloseAction) {
 
     const cStatus = document.createElement("td");
     cStatus.textContent = formatTournamentStatus(item && item.status);
+
+    let cClosedAt = null;
+    if (showClosedAtColumn) {
+      cClosedAt = document.createElement("td");
+      cClosedAt.textContent = formatTournamentClosedAt(item && item.closed_at);
+    }
 
     const cRules = document.createElement("td");
     cRules.textContent = formatTournamentRules(item);
@@ -2132,6 +2151,9 @@ function renderTournamentRows(tbody, items, includeCloseAction) {
     tr.appendChild(cTitle);
     tr.appendChild(cCode);
     tr.appendChild(cStatus);
+    if (cClosedAt) {
+      tr.appendChild(cClosedAt);
+    }
     tr.appendChild(cRules);
     tr.appendChild(cActions);
     tbody.appendChild(tr);
@@ -2181,14 +2203,14 @@ function renderTournaments(items) {
 
   if (activeItems.length > 0) {
     listCard.classList.remove("hidden");
-    renderTournamentRows(activeBody, activeItems, true);
+    renderTournamentRows(activeBody, activeItems, true, false);
   } else {
     listCard.classList.add("hidden");
   }
 
   if (closedItems.length > 0) {
     archiveCard.classList.remove("hidden");
-    renderTournamentRows(archiveBody, closedItems, false);
+    renderTournamentRows(archiveBody, closedItems, false, true);
   } else {
     archiveCard.classList.add("hidden");
   }
