@@ -238,14 +238,7 @@ func check_guests_balance_at_round_end() -> void:
 	if not GuestSettingsManager:
 		push_error("GuestStatsManager: GuestSettingsManager не найден!")
 		return
-	
-	if not GuestReturnManager:
-		push_error("GuestStatsManager: GuestReturnManager не найден!")
-		return
-	
-	# Получаем текущий номер раунда
-	var current_round = GuestReturnManager.get_current_round()
-	
+
 	# Проверяем всех включенных гостей
 	for guest_id in range(1, 7):
 		if not GuestSettingsManager.is_guest_enabled(guest_id):
@@ -255,25 +248,40 @@ func check_guests_balance_at_round_end() -> void:
 		
 		# Если баланс меньше или равен порогу - выключаем гостя и отмечаем уход
 		if balance <= MIN_BALANCE_TO_CONTINUE:
-			# Определяем, последний ли это активный гость за столом
-			# ВАЖНО: проверка ДО выключения гостя, чтобы увидеть реальное количество активных
-			var is_single_in_list = false
-			if GuestSettingsManager:
-				var active_guests = GuestSettingsManager.get_active_guests()
-				# Проверяем, что активных гостей сейчас 1 (этот гость еще активен, но мы его выключаем)
-				is_single_in_list = active_guests.size() == 1
-			
-			# Выключаем гостя
-			GuestSettingsManager.set_guest_enabled(guest_id, false)
-			
-			# Отмечаем в GuestReturnManager (причина ухода: банкротство)
-			GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.BANKRUPTCY, is_single_in_list)
-			
-			# Эмитим сигнал с причиной ухода
-			guest_left.emit(guest_id)
-			EventBus.guest_left_due_to_bankruptcy.emit(guest_id)
-			
-			print("👋 Гость %d ушел из-за низкого баланса (баланс: %.0f, порог: %.0f)" % [guest_id, balance, MIN_BALANCE_TO_CONTINUE])
+			force_guest_leave_due_to_insufficient_balance(guest_id)
+
+func force_guest_leave_due_to_insufficient_balance(guest_id: int) -> void:
+	"""Принудительно убрать гостя из-за недостатка средств, используя существующую причину банкротства"""
+	if guest_id < 1 or guest_id > 6:
+		push_error("GuestStatsManager: неверный guest_id %d" % guest_id)
+		return
+
+	if not GuestSettingsManager:
+		push_error("GuestStatsManager: GuestSettingsManager не найден!")
+		return
+
+	if not GuestReturnManager:
+		push_error("GuestStatsManager: GuestReturnManager не найден!")
+		return
+
+	if not GuestSettingsManager.is_guest_enabled(guest_id):
+		return
+
+	var current_round = GuestReturnManager.get_current_round()
+	var balance = get_guest_balance(guest_id)
+	var active_guests = GuestSettingsManager.get_active_guests()
+	var is_single_in_list = active_guests.size() == 1
+
+	GuestSettingsManager.set_guest_enabled(guest_id, false)
+	GuestReturnManager.mark_guest_left(guest_id, current_round, GuestReturnManager.LeaveReason.BANKRUPTCY, is_single_in_list)
+	guest_left.emit(guest_id)
+	EventBus.guest_left_due_to_bankruptcy.emit(guest_id)
+
+	print("👋 Гость %d ушел из-за недостатка средств (баланс: %.0f, порог: %.0f)" % [
+		guest_id,
+		balance,
+		MIN_BALANCE_TO_CONTINUE
+	])
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРОВЕРКА И ОБНОВЛЕНИЕ СТАТУСА БОГАТСТВА
