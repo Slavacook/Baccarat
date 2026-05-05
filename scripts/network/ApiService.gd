@@ -295,10 +295,37 @@ func _on_request_completed(_request_id: int, response_code: int, body: Variant) 
 
 
 func _on_request_failed(_request_id: int, _error_code: int, error_message: String) -> void:
+	var error_code := _error_code
+	var debug_reason := "network_or_http_request_error"
+	if api_client and api_client.has_method("get_last_failure_debug_reason"):
+		var reason_variant: Variant = api_client.call("get_last_failure_debug_reason")
+		var reason_text := str(reason_variant).strip_edges()
+		if not reason_text.is_empty():
+			debug_reason = reason_text
+
 	if _http_op != "":
 		var op: String = _http_op
 		_http_op = ""
-		http_operation_completed.emit({"operation": op, "code": 0, "body": {"detail": error_message}})
+		var failure_body: Dictionary = {
+			"detail": error_message,
+			"network_error": true,
+			"error_code": error_code,
+			"error_message": error_message,
+			"operation": op,
+			"debug_reason": debug_reason
+		}
+		print("🧪 ApiService TRACE named_failure operation=%s error_code=%d debug_reason=%s body=%s" % [
+			op,
+			error_code,
+			debug_reason,
+			str(failure_body)
+		])
+		http_operation_completed.emit({"operation": op, "code": 0, "body": failure_body})
 		return
+	print("🧪 ApiService TRACE request_failed error_code=%d debug_reason=%s message=%s" % [
+		error_code,
+		debug_reason,
+		error_message
+	])
 	print("🔌 Ошибка сети: ", error_message)
 	network_error.emit(error_message)
