@@ -8,6 +8,7 @@ from .auth import (
     TrainerRegisterResponse,
     WhoamiResponse,
 )
+from .client_diagnostics import ClientDiagnosticsRequest
 from .dealer_access import (
     DealerAccessActivateRequest,
     DealerAccessActivateResponse,
@@ -60,6 +61,7 @@ from .tournament import (
 __all__ = [
     "DealerJoinRequest",
     "DealerJoinResponse",
+    "ClientDiagnosticsRequest",
     "DealerAccessActivateRequest",
     "DealerAccessActivateResponse",
     "DealerAccessDealerResponse",

@@ -15,6 +15,7 @@ from app.api.dealer_access import (
     my_rooms_router,
     router as dealer_access_router,
 )
+from app.api.client_diagnostics import router as client_diagnostics_router
 from app.api.rooms import router as rooms_router
 from app.api.sessions import router as sessions_router, ws_router as sessions_ws_router
 from app.api.tournaments import router as tournaments_router
@@ -68,6 +69,7 @@ app.include_router(auth_router, prefix=f"{settings.API_PREFIX}/auth", tags=["А�
 app.include_router(dealer_access_router, prefix=settings.API_PREFIX, tags=["Dealer Access"])
 app.include_router(dealer_invite_router, prefix=settings.API_PREFIX, tags=["Dealer Invites"])
 app.include_router(my_rooms_router, prefix=settings.API_PREFIX, tags=["Dealer Rooms"])
+app.include_router(client_diagnostics_router, prefix=settings.API_PREFIX, tags=["Client Diagnostics"])
 app.include_router(rooms_router, prefix=settings.API_PREFIX, tags=["Комнаты"])
 app.include_router(tournaments_router, prefix=settings.API_PREFIX, tags=["Турниры"])
 app.include_router(sessions_router, prefix=settings.API_PREFIX, tags=["Сессии"])
