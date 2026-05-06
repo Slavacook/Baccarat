@@ -66,6 +66,9 @@ class GuestSettings:
 var guests: Array[GuestSettings] = []
 var _runtime_guests_enabled_override_active: bool = false
 var _runtime_guests_snapshot: Array[GuestSettings] = []
+var _runtime_persistence_suspended: bool = false
+var _runtime_story_snapshot_active: bool = false
+var _runtime_story_snapshot: Array[GuestSettings] = []
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -99,7 +102,8 @@ func set_guest_enabled(guest_id: int, enabled: bool) -> void:
 		return
 	
 	guests[guest_id - 1].enabled = enabled
-	_save_settings()
+	if not _runtime_persistence_suspended:
+		_save_settings()
 	guest_settings_changed.emit(guest_id)
 	print("👥 Гость %d: %s" % [guest_id, "включён" if enabled else "выключен"])
 	
@@ -119,7 +123,8 @@ func set_guest_character(guest_id: int, character: GuestCharacter) -> void:
 		return
 	
 	guests[guest_id - 1].character = character
-	_save_settings()
+	if not _runtime_persistence_suspended:
+		_save_settings()
 	guest_settings_changed.emit(guest_id)
 	print("👥 Гость %d: характер = %s" % [guest_id, GuestCharacter.keys()[character]])
 
@@ -137,13 +142,61 @@ func set_guest_wealth(guest_id: int, wealth: GuestWealth, preserve_balance: bool
 		return
 	
 	guests[guest_id - 1].wealth = wealth
-	_save_settings()
+	if not _runtime_persistence_suspended:
+		_save_settings()
 	guest_settings_changed.emit(guest_id)
 	print("👥 Гость %d: обеспеченность = %s" % [guest_id, GuestWealth.keys()[wealth]])
 	
 	# Переинициализируем баланс ТОЛЬКО если preserve_balance = false
 	if not preserve_balance and GuestStatsManager:
 		GuestStatsManager.initialize_guest_balance(guest_id)
+
+func set_runtime_persistence_suspended(suspended: bool) -> void:
+	_runtime_persistence_suspended = suspended
+
+func capture_runtime_story_snapshot() -> void:
+	if _runtime_story_snapshot_active:
+		return
+	_runtime_story_snapshot = _duplicate_guests_array(guests)
+	_runtime_story_snapshot_active = true
+
+func restore_runtime_story_snapshot() -> void:
+	if not _runtime_story_snapshot_active:
+		return
+
+	var changed_guest_ids: Array[int] = []
+	for i in range(6):
+		var guest_id := i + 1
+		var snapshot_guest := _runtime_story_snapshot[i]
+		var guest_changed := false
+		if guests[i].enabled != snapshot_guest.enabled:
+			guest_changed = true
+		elif guests[i].character != snapshot_guest.character:
+			guest_changed = true
+		elif guests[i].wealth != snapshot_guest.wealth:
+			guest_changed = true
+
+		guests[i].enabled = snapshot_guest.enabled
+		guests[i].character = snapshot_guest.character
+		guests[i].wealth = snapshot_guest.wealth
+
+		if not guest_changed:
+			continue
+
+		changed_guest_ids.append(guest_id)
+
+		if GuestStatsManager:
+			if snapshot_guest.enabled:
+				GuestStatsManager.initialize_guest_balance(guest_id)
+			else:
+				GuestStatsManager.reset_guest_balance(guest_id)
+
+	for guest_id in changed_guest_ids:
+		guest_settings_changed.emit(guest_id)
+
+	_runtime_story_snapshot.clear()
+	_runtime_story_snapshot_active = false
+	print("🧪 TOURNAMENT SETTINGS TRACE guest story snapshot restored active_guests=%s" % str(get_active_guests()))
 
 func set_runtime_guests_enabled_override(enabled_flags: Array[bool]) -> void:
 	"""Применить runtime override состава гостей без записи в локальные настройки."""

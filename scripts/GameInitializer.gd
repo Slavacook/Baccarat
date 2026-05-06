@@ -450,44 +450,68 @@ static func _apply_tournament_guests_enabled(session_manager: Variant) -> void:
 		return
 
 	var tournament_settings := tournament_settings_variant as Dictionary
-	if not tournament_settings.has("guests_enabled"):
-		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: not found")
-		GuestProgressionManager.set_runtime_progression_suspended(false)
-		GuestSettingsManager.clear_runtime_guests_enabled_override()
-		return
-	if not (tournament_settings["guests_enabled"] is Array):
-		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid type")
-		GuestProgressionManager.set_runtime_progression_suspended(false)
-		GuestSettingsManager.clear_runtime_guests_enabled_override()
-		return
-
-	var guests_enabled_variant := tournament_settings["guests_enabled"] as Array
-	if guests_enabled_variant.size() != 6:
-		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid size=%d" % guests_enabled_variant.size())
-		GuestProgressionManager.set_runtime_progression_suspended(false)
-		GuestSettingsManager.clear_runtime_guests_enabled_override()
-		return
+	var guest_story_enabled := false
+	if tournament_settings.has("guest_story_enabled") and tournament_settings["guest_story_enabled"] is bool:
+		guest_story_enabled = tournament_settings["guest_story_enabled"]
+	print("🧪 TOURNAMENT SETTINGS TRACE guest_story_enabled=%s" % ("true" if guest_story_enabled else "false"))
 
 	var enabled_flags: Array[bool] = []
-	for value in guests_enabled_variant:
-		if not (value is bool):
-			print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid item=%s" % str(value))
-			GuestProgressionManager.set_runtime_progression_suspended(false)
-			GuestSettingsManager.clear_runtime_guests_enabled_override()
-			return
-		enabled_flags.append(value)
+	var has_valid_guests_enabled := false
+	if tournament_settings.has("guests_enabled") and tournament_settings["guests_enabled"] is Array:
+		var guests_enabled_variant := tournament_settings["guests_enabled"] as Array
+		if guests_enabled_variant.size() == 6:
+			has_valid_guests_enabled = true
+			for value in guests_enabled_variant:
+				if not (value is bool):
+					has_valid_guests_enabled = false
+					break
+				enabled_flags.append(value)
 
+	if not has_valid_guests_enabled:
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid_or_missing")
+		GuestProgressionManager.clear_runtime_story_override()
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		GuestSettingsManager.restore_runtime_story_snapshot()
+		GuestSettingsManager.set_runtime_persistence_suspended(false)
+		return
+
+	if guest_story_enabled:
+		var start_count := 0
+		for value in enabled_flags:
+			if value:
+				start_count += 1
+		start_count = clampi(start_count, 1, 6)
+
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		GuestSettingsManager.capture_runtime_story_snapshot()
+		GuestSettingsManager.set_runtime_persistence_suspended(true)
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestProgressionManager.set_runtime_story_override(start_count)
+		GuestProgressionManager.initialize_runtime_story_guests()
+		print("🧪 TOURNAMENT SETTINGS TRACE story_mode start_count=%d active_guests=%s" % [
+			start_count,
+			str(GuestSettingsManager.get_active_guests())
+		])
+		return
+
+	GuestProgressionManager.clear_runtime_story_override()
+	GuestSettingsManager.restore_runtime_story_snapshot()
+	GuestSettingsManager.set_runtime_persistence_suspended(true)
 	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: found=%s" % str(enabled_flags))
 	GuestProgressionManager.set_runtime_progression_suspended(true)
 	GuestSettingsManager.set_runtime_guests_enabled_override(enabled_flags)
-	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled applied active_guests=%s" % str(GuestSettingsManager.get_active_guests()))
+	print("🧪 TOURNAMENT SETTINGS TRACE fixed_mode active_guests=%s" % str(GuestSettingsManager.get_active_guests()))
 
 
 static func _clear_tournament_guests_enabled_override() -> void:
 	if GuestProgressionManager != null:
 		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestProgressionManager.clear_runtime_story_override()
 	if GuestSettingsManager != null:
 		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		GuestSettingsManager.restore_runtime_story_snapshot()
+		GuestSettingsManager.set_runtime_persistence_suspended(false)
 
 
 static func _restore_local_payout_state(pair_betting_manager: PairBettingManager) -> void:

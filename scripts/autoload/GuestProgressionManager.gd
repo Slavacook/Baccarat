@@ -39,6 +39,8 @@ var last_new_guest_activation_round: int = 0
 ## Текущий номер раунда (отслеживается через round_started)
 var current_round: int = 0
 var _runtime_progression_suspended: bool = false
+var _runtime_story_override_active: bool = false
+var _runtime_story_start_count: int = 1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -69,6 +71,38 @@ func set_runtime_progression_suspended(suspended: bool) -> void:
 	_runtime_progression_suspended = suspended
 	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled progression_suspended=%s" % ("true" if suspended else "false"))
 
+func set_runtime_story_override(start_count: int) -> void:
+	_runtime_story_override_active = true
+	_runtime_story_start_count = clampi(start_count, 1, 6)
+	print("🧪 TOURNAMENT SETTINGS TRACE guest_story_enabled=true")
+	print("🧪 TOURNAMENT SETTINGS TRACE story_mode start_count=%d" % _runtime_story_start_count)
+
+func clear_runtime_story_override() -> void:
+	if not _runtime_story_override_active:
+		return
+	_runtime_story_override_active = false
+	_runtime_story_start_count = 1
+	print("🧪 TOURNAMENT SETTINGS TRACE story override cleared")
+
+func initialize_runtime_story_guests() -> void:
+	if not _runtime_story_override_active:
+		return
+	if not GuestSettingsManager:
+		return
+
+	var active_guests = GuestSettingsManager.get_active_guests()
+	for guest_id in active_guests:
+		GuestSettingsManager.set_guest_enabled(guest_id, false)
+
+	var target_count := clampi(_runtime_story_start_count, 1, 6)
+	var activated := activate_random_guests(target_count)
+	last_new_guest_activation_round = current_round
+	initial_guest_initialized = true
+	print("🧪 TOURNAMENT SETTINGS TRACE story_mode initialized active_guests=%s requested=%d" % [
+		str(activated),
+		target_count
+	])
+
 func initialize_first_guest() -> void:
 	"""Инициализировать первого случайного гостя при первом запуске
 	
@@ -78,6 +112,9 @@ func initialize_first_guest() -> void:
 	с неправильным статусом (например, RICH вместо POOR).
 	"""
 	if _runtime_progression_suspended:
+		return
+	if _runtime_story_override_active:
+		initialize_runtime_story_guests()
 		return
 
 	if not GuestSettingsManager:
@@ -156,7 +193,7 @@ func check_and_update_guests(allow_deactivation: bool = false) -> void:
 		return
 
 	# Проверить, включен ли автоматический режим
-	if not auto_mode_enabled:
+	if not _is_auto_mode_effective():
 		return
 	
 	# Получить текущие чаевые из SaveManager
@@ -573,6 +610,9 @@ func _on_all_bets_processed() -> void:
 	"""
 	if _runtime_progression_suspended:
 		return
+	if _runtime_story_override_active:
+		check_and_update_guests()
+		return
 
 	if auto_mode_enabled:
 		check_and_update_guests()
@@ -584,6 +624,12 @@ func _on_game_restarted() -> void:
 	ВАЖНО: Принудительно отключаем всех гостей, затем активируем только необходимое количество.
 	"""
 	if _runtime_progression_suspended:
+		return
+	if _runtime_story_override_active:
+		initial_guest_initialized = false
+		last_new_guest_activation_round = 0
+		current_round = 0
+		initialize_runtime_story_guests()
 		return
 
 	initial_guest_initialized = false
@@ -675,3 +721,8 @@ func _save_thresholds() -> void:
 func _save_auto_mode() -> void:
 	"""Сохранить состояние автоматического режима в SaveManager"""
 	SaveManager.save_guest_progression_auto_mode(auto_mode_enabled)
+
+func _is_auto_mode_effective() -> bool:
+	if _runtime_story_override_active:
+		return true
+	return auto_mode_enabled
