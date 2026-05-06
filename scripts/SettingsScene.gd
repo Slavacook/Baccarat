@@ -243,16 +243,13 @@ func _apply_tournament_settings_lock() -> void:
 	if guest_return_container:
 		guest_return_container.visible = false
 	if apply_button:
-		apply_button.visible = false
-		apply_button.disabled = true
+		apply_button.visible = true
+		apply_button.disabled = false
+		apply_button.text = "Назад"
+		apply_button.focus_mode = TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE
+		apply_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	if back_button:
-		back_button.visible = true
-		back_button.disabled = false
-		back_button.focus_mode = TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE
-		back_button.mouse_filter = Control.MOUSE_FILTER_STOP
-		back_button.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		back_button.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		back_button.custom_minimum_size = Vector2(180, 55)
+		back_button.visible = false
 	if hseparator_bottom:
 		hseparator_bottom.visible = false
 	if title_label:
@@ -287,9 +284,6 @@ func _restore_standard_settings_ui() -> void:
 		apply_button.disabled = false
 	if back_button:
 		back_button.visible = false
-		back_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		back_button.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		back_button.custom_minimum_size = Vector2(200, 50)
 	if hseparator_bottom:
 		hseparator_bottom.visible = false
 	if exit_button:
