@@ -46,6 +46,8 @@ let generatedRoomAccesses = [];
 let tournamentsSnapshot = [];
 let tournamentsLoaded = false;
 let createTournamentInFlight = false;
+let tournamentEditorMode = "create";
+let editingTournamentId = "";
 let selectedTournamentId = "";
 let selectedTournamentSnapshot = null;
 let tournamentLeaderboardSnapshot = [];
@@ -2138,6 +2140,15 @@ function renderTournamentRows(tbody, items, includeCloseAction, showClosedAtColu
     cActions.appendChild(copyBtn);
 
     if (includeCloseAction) {
+      const editBtn = document.createElement("button");
+      editBtn.type = "button";
+      editBtn.className = "secondary table-action-button";
+      editBtn.textContent = "Редактировать";
+      editBtn.addEventListener("click", () => {
+        openEditTournamentModal(item);
+      });
+      cActions.appendChild(editBtn);
+
       const closeBtn = document.createElement("button");
       closeBtn.type = "button";
       closeBtn.className = "danger table-action-button";
@@ -2242,6 +2253,7 @@ async function refreshTournaments() {
 }
 
 function openCreateTournamentModal() {
+  resetTournamentEditorState();
   showError("create-tournament-error", "");
   resetCreateTournamentSettings();
   el("create-tournament-modal")?.classList.remove("hidden");
@@ -2252,9 +2264,37 @@ function closeCreateTournamentModal(force = false) {
   if (createTournamentInFlight && !force) return;
   el("create-tournament-modal")?.classList.add("hidden");
   showError("create-tournament-error", "");
+  resetTournamentEditorState();
+}
+
+function setTournamentEditorMode(mode) {
+  tournamentEditorMode = mode === "edit" ? "edit" : "create";
+
+  const title = el("create-tournament-title");
+  if (title) {
+    title.textContent = tournamentEditorMode === "edit" ? "Редактировать турнир" : "Новый турнир";
+  }
+
+  const submitButton = el("btn-create-tournament");
+  if (submitButton && !createTournamentInFlight) {
+    submitButton.textContent = tournamentEditorMode === "edit" ? "Сохранить" : "Создать";
+  }
+
+  const warning = el("create-tournament-edit-warning");
+  if (warning) {
+    warning.hidden = tournamentEditorMode !== "edit";
+  }
+}
+
+function resetTournamentEditorState() {
+  editingTournamentId = "";
+  setTournamentEditorMode("create");
 }
 
 function resetCreateTournamentSettings() {
+  const titleInput = el("new-tournament-title");
+  if (titleInput) titleInput.value = "";
+
   const limitsMode = el("new-tournament-limits-mode");
   if (limitsMode) limitsMode.value = "classic";
 
@@ -2296,6 +2336,101 @@ function resetCreateTournamentSettings() {
 
   const tipPercentage = el("new-tournament-tip-percentage");
   if (tipPercentage) tipPercentage.value = "0.3";
+}
+
+function setTournamentSelectValue(id, value) {
+  const select = el(id);
+  if (!select || typeof value !== "string") return;
+  const nextValue = String(value);
+  const hasOption = Array.from(select.options || []).some((option) => option.value === nextValue);
+  if (hasOption) {
+    select.value = nextValue;
+  }
+}
+
+function prefillTournamentForm(tournament) {
+  resetCreateTournamentSettings();
+
+  const titleInput = el("new-tournament-title");
+  if (titleInput) {
+    titleInput.value = tournament && tournament.title ? String(tournament.title) : "";
+  }
+
+  const settings =
+    tournament && tournament.tournament_settings && typeof tournament.tournament_settings === "object"
+      ? tournament.tournament_settings
+      : null;
+  if (!settings) return;
+
+  const limitsMode = el("new-tournament-limits-mode");
+  if (limitsMode && typeof settings.limits_mode === "string" && settings.limits_mode) {
+    limitsMode.value = settings.limits_mode;
+  }
+
+  if (Array.isArray(settings.guests_enabled)) {
+    for (let index = 1; index <= 6; index += 1) {
+      const checkbox = el(`new-tournament-guest-${index}`);
+      if (checkbox) {
+        checkbox.checked = Boolean(settings.guests_enabled[index - 1]);
+      }
+    }
+  }
+
+  const bets = settings.bets && typeof settings.bets === "object" ? settings.bets : null;
+  if (bets) {
+    const bankerCheckbox = el("new-tournament-bet-banker");
+    if (bankerCheckbox && "banker" in bets) bankerCheckbox.checked = Boolean(bets.banker);
+    const playerCheckbox = el("new-tournament-bet-player");
+    if (playerCheckbox && "player" in bets) playerCheckbox.checked = Boolean(bets.player);
+    const tieCheckbox = el("new-tournament-bet-tie");
+    if (tieCheckbox && "tie" in bets) tieCheckbox.checked = Boolean(bets.tie);
+    const pairsCheckbox = el("new-tournament-bet-pairs");
+    if (pairsCheckbox && "pairs" in bets) pairsCheckbox.checked = Boolean(bets.pairs);
+  }
+
+  const firstFourCards =
+    settings.first_four_cards && typeof settings.first_four_cards === "object" ? settings.first_four_cards : null;
+  if (firstFourCards) {
+    setTournamentSelectValue("new-tournament-banker-1-card", firstFourCards.banker_1);
+    setTournamentSelectValue("new-tournament-banker-2-card", firstFourCards.banker_2);
+    setTournamentSelectValue("new-tournament-player-1-card", firstFourCards.player_1);
+    setTournamentSelectValue("new-tournament-player-2-card", firstFourCards.player_2);
+  }
+
+  const guestStoryEnabled = el("new-tournament-guest-story-enabled");
+  if (guestStoryEnabled && typeof settings.guest_story_enabled === "boolean") {
+    guestStoryEnabled.checked = settings.guest_story_enabled;
+  }
+
+  const chanceCardsEnabled = el("new-tournament-chance-cards-enabled");
+  if (chanceCardsEnabled && typeof settings.chance_cards_enabled === "boolean") {
+    chanceCardsEnabled.checked = settings.chance_cards_enabled;
+  }
+
+  const autoModeSwitchEnabled = el("new-tournament-auto-mode-switch-enabled");
+  if (autoModeSwitchEnabled && typeof settings.auto_mode_switch_enabled === "boolean") {
+    autoModeSwitchEnabled.checked = settings.auto_mode_switch_enabled;
+  }
+
+  const tipPercentage = el("new-tournament-tip-percentage");
+  if (tipPercentage) {
+    const parsedTipPercentage = Number(settings.tip_percentage);
+    if (Number.isFinite(parsedTipPercentage)) {
+      tipPercentage.value = String(Math.min(100, Math.max(0, parsedTipPercentage)));
+    }
+  }
+}
+
+function openEditTournamentModal(tournament) {
+  const tournamentId = tournament && tournament.id ? String(tournament.id).trim() : "";
+  if (!tournamentId) return;
+
+  editingTournamentId = tournamentId;
+  setTournamentEditorMode("edit");
+  showError("create-tournament-error", "");
+  prefillTournamentForm(tournament);
+  el("create-tournament-modal")?.classList.remove("hidden");
+  el("new-tournament-title")?.focus();
 }
 
 function getCreateTournamentSettings() {
@@ -2373,6 +2508,59 @@ async function createTournament() {
       button.textContent = prevText || "Создать";
     }
   }
+}
+
+async function updateTournament() {
+  if (createTournamentInFlight) return;
+  const tournamentId = String(editingTournamentId || "").trim();
+  if (!tournamentId) return;
+
+  showError("create-tournament-error", "");
+  const titleInput = el("new-tournament-title");
+  const rawTitle = titleInput ? String(titleInput.value || "") : "";
+  const title = rawTitle.trim();
+  const body = {
+    tournament_settings: getCreateTournamentSettings(),
+  };
+  if (title) body.title = title;
+
+  createTournamentInFlight = true;
+  const button = el("btn-create-tournament");
+  const prevText = button ? button.textContent : "";
+  if (button) {
+    button.disabled = true;
+    button.textContent = "Сохранение...";
+  }
+
+  try {
+    const { ok, status, data } = await api("PATCH", `/api/tournaments/${encodeURIComponent(tournamentId)}`, body);
+    if (!ok) {
+      showError(
+        "create-tournament-error",
+        formatApiError(data) || `Не удалось сохранить турнир (${status})`,
+      );
+      return;
+    }
+
+    closeCreateTournamentModal(true);
+    tournamentsLoaded = false;
+    await refreshTournaments();
+    setDashboardStage("tournaments");
+  } finally {
+    createTournamentInFlight = false;
+    if (button) {
+      button.disabled = false;
+      button.textContent = prevText || (tournamentEditorMode === "edit" ? "Сохранить" : "Создать");
+    }
+  }
+}
+
+function submitTournamentEditor() {
+  if (tournamentEditorMode === "edit") {
+    void updateTournament();
+    return;
+  }
+  void createTournament();
 }
 
 async function openDashboardSection(section) {
@@ -4126,7 +4314,7 @@ function wire() {
     if (ev.target === el("create-tournament-modal")) closeCreateTournamentModal();
   });
   el("btn-create-tournament")?.addEventListener("click", () => {
-    void createTournament();
+    submitTournamentEditor();
   });
   el("btn-open-create-room-modal").addEventListener("click", () => openCreateRoomModal());
   el("btn-close-create-room-modal").addEventListener("click", () => closeCreateRoomModal());
