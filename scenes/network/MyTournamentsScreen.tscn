@@ -186,3 +186,8 @@ text = "← Назад"
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
+
+[node name="RemoveTournamentAccessDialog" type="ConfirmationDialog" parent="."]
+title = "Убрать турнир"
+ok_button_text = "Убрать"
+dialog_text = "Убрать этот турнир из списка \"Мои турниры\"?"

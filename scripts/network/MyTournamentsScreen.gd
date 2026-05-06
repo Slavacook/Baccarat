@@ -9,15 +9,19 @@ const TournamentNavigationStoreScript = preload("res://scripts/network/Tournamen
 var back_btn: Button
 var empty_state_label: Label
 var list_container: VBoxContainer
+var remove_dialog: ConfirmationDialog
 
 var _tournament_access_store: Node = null
 var _navigation_store: Node = null
+var _pending_remove_tournament_id: String = ""
+var _pending_remove_tournament_title: String = ""
 
 
 func _ready() -> void:
 	back_btn = find_child("BackBtn", true, false)
 	empty_state_label = find_child("EmptyStateLabel", true, false)
 	list_container = find_child("ListContainer", true, false)
+	remove_dialog = find_child("RemoveTournamentAccessDialog", true, false)
 
 	_tournament_access_store = TournamentAccessStoreScript.new()
 	_tournament_access_store.name = "TournamentAccessStore_Local"
@@ -28,6 +32,8 @@ func _ready() -> void:
 
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
+	if remove_dialog and not remove_dialog.confirmed.is_connected(_on_remove_confirmed):
+		remove_dialog.confirmed.connect(_on_remove_confirmed)
 
 	_reload_accesses()
 
@@ -55,6 +61,11 @@ func _build_access_item(access_record: Dictionary) -> Control:
 	var tournament := _dictionary_or_empty(_dict_value(access_record, "tournament", {}))
 	var title := _safe_title(tournament)
 	var status := _safe_status(tournament)
+	var tournament_id := str(_dict_value(tournament, "id", "")).strip_edges()
+
+	var row := HBoxContainer.new()
+	row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_theme_constant_override("separation", 10)
 
 	var item_button := Button.new()
 	item_button.custom_minimum_size = Vector2(0, 60)
@@ -63,8 +74,17 @@ func _build_access_item(access_record: Dictionary) -> Control:
 	item_button.text = _format_tournament_list_row(title, status)
 	_apply_access_item_style(item_button)
 	item_button.pressed.connect(_on_start_attempt_pressed.bind(access_record.duplicate(true)))
+	row.add_child(item_button)
 
-	return item_button
+	var remove_button := Button.new()
+	remove_button.custom_minimum_size = Vector2(116, 60)
+	remove_button.text = "Убрать"
+	remove_button.tooltip_text = "Убрать турнир из локального списка"
+	_apply_remove_button_style(remove_button)
+	remove_button.pressed.connect(_on_remove_pressed.bind(tournament_id, title))
+	row.add_child(remove_button)
+
+	return row
 
 
 func _on_start_attempt_pressed(access_record: Dictionary) -> void:
@@ -87,6 +107,31 @@ func _on_start_attempt_pressed(access_record: Dictionary) -> void:
 func _on_back_pressed() -> void:
 	if get_tree():
 		get_tree().change_scene_to_file(TOURNAMENT_ENTRY_SCENE_PATH)
+
+
+func _on_remove_pressed(tournament_id: String, tournament_title: String) -> void:
+	if tournament_id.is_empty():
+		return
+
+	_pending_remove_tournament_id = tournament_id
+	_pending_remove_tournament_title = tournament_title.strip_edges()
+
+	if remove_dialog:
+		if _pending_remove_tournament_title.is_empty():
+			remove_dialog.dialog_text = "Убрать этот турнир из списка \"Мои турниры\"?"
+		else:
+			remove_dialog.dialog_text = "Убрать турнир \"%s\" из списка \"Мои турниры\"?" % _pending_remove_tournament_title
+		remove_dialog.popup_centered()
+
+
+func _on_remove_confirmed() -> void:
+	if _pending_remove_tournament_id.is_empty():
+		return
+	if _tournament_access_store:
+		_tournament_access_store.call("remove_access", _pending_remove_tournament_id)
+	_pending_remove_tournament_id = ""
+	_pending_remove_tournament_title = ""
+	_reload_accesses()
 
 
 func _clear_list() -> void:
@@ -157,6 +202,64 @@ func _apply_access_item_style(item_button: Button) -> void:
 	pressed_style.shadow_size = 2
 	pressed_style.shadow_offset = Vector2(0, 1)
 
+	item_button.add_theme_stylebox_override("normal", normal_style)
+	item_button.add_theme_stylebox_override("hover", hover_style)
+	item_button.add_theme_stylebox_override("pressed", pressed_style)
+
+
+func _apply_remove_button_style(item_button: Button) -> void:
+	if item_button == null:
+		return
+
+	var normal_style := StyleBoxFlat.new()
+	normal_style.content_margin_left = 14.0
+	normal_style.content_margin_top = 12.0
+	normal_style.content_margin_right = 14.0
+	normal_style.content_margin_bottom = 12.0
+	normal_style.bg_color = Color(0.24, 0.1, 0.1, 0.92)
+	normal_style.border_width_left = 1
+	normal_style.border_width_top = 1
+	normal_style.border_width_right = 1
+	normal_style.border_width_bottom = 1
+	normal_style.border_color = Color(0.96, 0.46, 0.4, 0.26)
+	normal_style.corner_radius_top_left = 10
+	normal_style.corner_radius_top_right = 10
+	normal_style.corner_radius_bottom_right = 10
+	normal_style.corner_radius_bottom_left = 10
+
+	var hover_style := StyleBoxFlat.new()
+	hover_style.content_margin_left = 14.0
+	hover_style.content_margin_top = 12.0
+	hover_style.content_margin_right = 14.0
+	hover_style.content_margin_bottom = 12.0
+	hover_style.bg_color = Color(0.3, 0.12, 0.12, 0.96)
+	hover_style.border_width_left = 1
+	hover_style.border_width_top = 1
+	hover_style.border_width_right = 1
+	hover_style.border_width_bottom = 1
+	hover_style.border_color = Color(1, 0.54, 0.46, 0.34)
+	hover_style.corner_radius_top_left = 10
+	hover_style.corner_radius_top_right = 10
+	hover_style.corner_radius_bottom_right = 10
+	hover_style.corner_radius_bottom_left = 10
+
+	var pressed_style := StyleBoxFlat.new()
+	pressed_style.content_margin_left = 14.0
+	pressed_style.content_margin_top = 12.0
+	pressed_style.content_margin_right = 14.0
+	pressed_style.content_margin_bottom = 12.0
+	pressed_style.bg_color = Color(0.18, 0.08, 0.08, 0.96)
+	pressed_style.border_width_left = 1
+	pressed_style.border_width_top = 1
+	pressed_style.border_width_right = 1
+	pressed_style.border_width_bottom = 1
+	pressed_style.border_color = Color(0.84, 0.4, 0.35, 0.22)
+	pressed_style.corner_radius_top_left = 10
+	pressed_style.corner_radius_top_right = 10
+	pressed_style.corner_radius_bottom_right = 10
+	pressed_style.corner_radius_bottom_left = 10
+
+	item_button.add_theme_font_size_override("font_size", 18)
 	item_button.add_theme_stylebox_override("normal", normal_style)
 	item_button.add_theme_stylebox_override("hover", hover_style)
 	item_button.add_theme_stylebox_override("pressed", pressed_style)
