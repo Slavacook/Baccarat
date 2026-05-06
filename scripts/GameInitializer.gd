@@ -219,6 +219,7 @@ static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager
 
 	if session_manager != null and session_manager.current_mode == session_manager.Mode.TOURNAMENT:
 		_apply_tournament_payout_state(session_manager, pair_betting_manager)
+		_apply_tournament_first_four_cards(session_manager)
 		return
 
 	_restore_local_payout_state(pair_betting_manager)
@@ -248,6 +249,112 @@ static func _apply_tournament_payout_state(session_manager: Variant, pair_bettin
 	if pair_betting_manager != null:
 		pair_betting_manager.toggle_pair_player_bet(pairs_enabled)
 		pair_betting_manager.toggle_pair_banker_bet(pairs_enabled)
+
+
+static func _apply_tournament_first_four_cards(session_manager: Variant) -> void:
+	if TestCardsManager == null:
+		print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards: TestCardsManager not available")
+		return
+
+	var tournament_settings_variant: Variant = session_manager.tournament_settings
+	if not (tournament_settings_variant is Dictionary):
+		print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards: tournament_settings missing")
+		return
+
+	var tournament_settings := tournament_settings_variant as Dictionary
+	if not tournament_settings.has("first_four_cards"):
+		print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards: not found")
+		return
+	if not (tournament_settings["first_four_cards"] is Dictionary):
+		print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards: invalid type")
+		return
+
+	var first_four_cards := tournament_settings["first_four_cards"] as Dictionary
+	print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards: found")
+
+	TestCardsManager.clear_all()
+
+	var mappings: Array[Dictionary] = [
+		{"source": "player_1", "target": "player1"},
+		{"source": "player_2", "target": "player2"},
+		{"source": "banker_1", "target": "banker1"},
+		{"source": "banker_2", "target": "banker2"}
+	]
+	var applied_positions: Array[String] = []
+	var has_fixed_cards := false
+
+	for mapping_variant in mappings:
+		if not (mapping_variant is Dictionary):
+			continue
+		var mapping := mapping_variant as Dictionary
+		if not mapping.has("source") or not mapping.has("target"):
+			continue
+
+		var source_key := str(mapping["source"]).strip_edges()
+		var target_key := str(mapping["target"]).strip_edges()
+		var raw_value := ""
+		if first_four_cards.has(source_key):
+			raw_value = str(first_four_cards[source_key]).strip_edges()
+
+		if raw_value.is_empty() or raw_value.to_upper() == "RANDOM":
+			continue
+
+		var card_value := _map_tournament_card_value(raw_value)
+		if card_value <= 0:
+			print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards: skip unknown value key=%s value=%s" % [
+				source_key,
+				raw_value
+			])
+			continue
+
+		TestCardsManager.set_test_card(target_key, 0, card_value)
+		has_fixed_cards = true
+		applied_positions.append("%s=%s" % [target_key, raw_value.to_upper()])
+
+	TestCardsManager.set_enabled(has_fixed_cards)
+
+	print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards applied=%s enabled=%s" % [
+		str(applied_positions),
+		"true" if has_fixed_cards else "false"
+	])
+	if TestCardsManager.has_method("get_summary"):
+		print("🧪 TOURNAMENT SETTINGS TRACE first_four_cards summary=%s" % str(TestCardsManager.get_summary()))
+
+
+static func _map_tournament_card_value(raw_value: String) -> int:
+	var normalized := raw_value.strip_edges().to_upper()
+	if normalized.is_empty():
+		return 0
+
+	match normalized:
+		"A":
+			return 1
+		"2":
+			return 2
+		"3":
+			return 3
+		"4":
+			return 4
+		"5":
+			return 5
+		"6":
+			return 6
+		"7":
+			return 7
+		"8":
+			return 8
+		"9":
+			return 9
+		"10":
+			return 10
+		"J":
+			return 11
+		"Q":
+			return 12
+		"K":
+			return 13
+		_:
+			return 0
 
 
 static func _restore_local_payout_state(pair_betting_manager: PairBettingManager) -> void:
