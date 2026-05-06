@@ -10,6 +10,8 @@ const SETTINGS_PATH = "user://baccarat_settings.save"
 var score: int = 0
 var _runtime_chance_cards_enabled_override_active: bool = false
 var _runtime_chance_cards_enabled_override: bool = false
+var _runtime_tip_percentage_override_active: bool = false
+var _runtime_tip_percentage_override: float = 0.0
 
 func _init():
 	if instance == null:
@@ -317,8 +319,20 @@ func save_tip_percentage(percentage: float):
 	settings["tip_percentage"] = percentage
 	save_settings(settings)
 
+func set_runtime_tip_percentage_override(value: float) -> void:
+	"""Установить runtime override для процента чаевых без записи в локальные настройки."""
+	_runtime_tip_percentage_override_active = true
+	_runtime_tip_percentage_override = value
+
+func clear_runtime_tip_percentage_override() -> void:
+	"""Очистить runtime override для процента чаевых."""
+	_runtime_tip_percentage_override_active = false
+	_runtime_tip_percentage_override = 0.0
+
 func load_tip_percentage() -> float:
 	"""Загрузить процент чаевых (по умолчанию 0.3 = 0.3%)"""
+	if _runtime_tip_percentage_override_active:
+		return _runtime_tip_percentage_override
 	var settings = load_settings()
 	return settings.get("tip_percentage", 0.3)
 

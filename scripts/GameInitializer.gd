@@ -221,9 +221,11 @@ static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager
 		_apply_tournament_payout_state(session_manager, pair_betting_manager)
 		_apply_tournament_first_four_cards(session_manager)
 		_apply_tournament_chance_cards_enabled(session_manager)
+		_apply_tournament_tip_percentage(session_manager)
 		return
 
 	_clear_tournament_chance_cards_enabled_override()
+	_clear_tournament_tip_percentage_override()
 	_restore_local_payout_state(pair_betting_manager)
 
 
@@ -392,6 +394,41 @@ static func _clear_tournament_chance_cards_enabled_override() -> void:
 		return
 	SaveManager.instance.clear_runtime_chance_cards_enabled_override()
 	print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled override cleared")
+
+
+static func _apply_tournament_tip_percentage(session_manager: Variant) -> void:
+	if SaveManager == null or SaveManager.instance == null:
+		print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage: SaveManager not available")
+		return
+
+	var tournament_settings_variant: Variant = session_manager.tournament_settings
+	if not (tournament_settings_variant is Dictionary):
+		print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage: tournament_settings missing, override cleared")
+		SaveManager.instance.clear_runtime_tip_percentage_override()
+		return
+
+	var tournament_settings := tournament_settings_variant as Dictionary
+	if not tournament_settings.has("tip_percentage"):
+		print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage: not found, override cleared")
+		SaveManager.instance.clear_runtime_tip_percentage_override()
+		return
+
+	var tip_variant: Variant = tournament_settings["tip_percentage"]
+	if not (tip_variant is float) and not (tip_variant is int):
+		print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage: invalid type, override cleared")
+		SaveManager.instance.clear_runtime_tip_percentage_override()
+		return
+
+	var tip_percentage := float(tip_variant)
+	SaveManager.instance.set_runtime_tip_percentage_override(tip_percentage)
+	print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage applied=%.3f" % tip_percentage)
+
+
+static func _clear_tournament_tip_percentage_override() -> void:
+	if SaveManager == null or SaveManager.instance == null:
+		return
+	SaveManager.instance.clear_runtime_tip_percentage_override()
+	print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage override cleared")
 
 
 static func _restore_local_payout_state(pair_betting_manager: PairBettingManager) -> void:
