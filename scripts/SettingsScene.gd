@@ -6,7 +6,7 @@ extends CanvasLayer
 class_name SettingsScene
 
 const SHOW_TRAINING_MENU_ENTRY: bool = false
-const ALLOW_FULL_SETTINGS_IN_TOURNAMENT: bool = true
+const ALLOW_FULL_SETTINGS_IN_TOURNAMENT: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (для совместимости с GameController)
@@ -246,7 +246,10 @@ func _apply_tournament_settings_lock() -> void:
 		apply_button.visible = false
 		apply_button.disabled = true
 	if back_button:
-		back_button.visible = false
+		back_button.visible = true
+		back_button.disabled = false
+		back_button.focus_mode = TOURNAMENT_SETTINGS_VISIBLE_BUTTON_FOCUS_MODE
+		back_button.mouse_filter = Control.MOUSE_FILTER_STOP
 	if hseparator_bottom:
 		hseparator_bottom.visible = false
 	if title_label:
