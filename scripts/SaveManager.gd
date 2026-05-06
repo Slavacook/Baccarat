@@ -8,6 +8,8 @@ const SETTINGS_PATH = "user://baccarat_settings.save"
 
 ## Деньги (начальное значение 0, копятся за правильные действия)
 var score: int = 0
+var _runtime_chance_cards_enabled_override_active: bool = false
+var _runtime_chance_cards_enabled_override: bool = false
 
 func _init():
 	if instance == null:
@@ -327,8 +329,20 @@ func save_chance_cards_enabled(enabled: bool):
 	settings["chance_cards_enabled"] = enabled
 	save_settings(settings)
 
+func set_runtime_chance_cards_enabled_override(enabled: bool) -> void:
+	"""Установить runtime override для карт шансов без записи в локальные настройки."""
+	_runtime_chance_cards_enabled_override_active = true
+	_runtime_chance_cards_enabled_override = enabled
+
+func clear_runtime_chance_cards_enabled_override() -> void:
+	"""Очистить runtime override для карт шансов."""
+	_runtime_chance_cards_enabled_override_active = false
+	_runtime_chance_cards_enabled_override = false
+
 func load_chance_cards_enabled() -> bool:
 	"""Загрузить состояние карт шансов (по умолчанию false - выключены)"""
+	if _runtime_chance_cards_enabled_override_active:
+		return _runtime_chance_cards_enabled_override
 	var settings = load_settings()
 	return settings.get("chance_cards_enabled", false)
 

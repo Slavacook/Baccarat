@@ -220,8 +220,10 @@ static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager
 	if session_manager != null and session_manager.current_mode == session_manager.Mode.TOURNAMENT:
 		_apply_tournament_payout_state(session_manager, pair_betting_manager)
 		_apply_tournament_first_four_cards(session_manager)
+		_apply_tournament_chance_cards_enabled(session_manager)
 		return
 
+	_clear_tournament_chance_cards_enabled_override()
 	_restore_local_payout_state(pair_betting_manager)
 
 
@@ -355,6 +357,41 @@ static func _map_tournament_card_value(raw_value: String) -> int:
 			return 13
 		_:
 			return 0
+
+
+static func _apply_tournament_chance_cards_enabled(session_manager: Variant) -> void:
+	if SaveManager == null or SaveManager.instance == null:
+		print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled: SaveManager not available")
+		return
+
+	var tournament_settings_variant: Variant = session_manager.tournament_settings
+	if not (tournament_settings_variant is Dictionary):
+		print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled: tournament_settings missing, override cleared")
+		SaveManager.instance.clear_runtime_chance_cards_enabled_override()
+		return
+
+	var tournament_settings := tournament_settings_variant as Dictionary
+	if not tournament_settings.has("chance_cards_enabled"):
+		print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled: not found, override cleared")
+		SaveManager.instance.clear_runtime_chance_cards_enabled_override()
+		return
+	if not (tournament_settings["chance_cards_enabled"] is bool):
+		print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled: invalid type, override cleared")
+		SaveManager.instance.clear_runtime_chance_cards_enabled_override()
+		return
+
+	var enabled := tournament_settings["chance_cards_enabled"] as bool
+	SaveManager.instance.set_runtime_chance_cards_enabled_override(enabled)
+	print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled applied=%s" % [
+		"true" if enabled else "false"
+	])
+
+
+static func _clear_tournament_chance_cards_enabled_override() -> void:
+	if SaveManager == null or SaveManager.instance == null:
+		return
+	SaveManager.instance.clear_runtime_chance_cards_enabled_override()
+	print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled override cleared")
 
 
 static func _restore_local_payout_state(pair_betting_manager: PairBettingManager) -> void:
