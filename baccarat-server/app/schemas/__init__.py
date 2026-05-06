@@ -56,6 +56,7 @@ from .tournament import (
     TournamentParticipantResponse,
     TournamentPublicPageResponse,
     TournamentResponse,
+    TournamentUpdateRequest,
 )
 
 __all__ = [
@@ -110,4 +111,5 @@ __all__ = [
     "TournamentParticipantResponse",
     "TournamentPublicPageResponse",
     "TournamentResponse",
+    "TournamentUpdateRequest",
 ]

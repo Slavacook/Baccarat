@@ -25,6 +25,23 @@ class TournamentCreateRequest(BaseModel):
         return normalized
 
 
+class TournamentUpdateRequest(BaseModel):
+    title: str | None = None
+    tournament_settings: dict[str, Any] | None = None
+
+    @field_validator("title")
+    @classmethod
+    def normalize_title(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
+        if len(normalized) > 255:
+            raise ValueError("Название турнира не должно превышать 255 символов")
+        return normalized
+
+
 class TournamentResponse(BaseModel):
     id: str
     title: str

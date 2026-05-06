@@ -35,6 +35,7 @@ from app.schemas.tournament import (
     TournamentParticipantResponse,
     TournamentPublicPageResponse,
     TournamentResponse,
+    TournamentUpdateRequest,
 )
 from app.utils.access_codes import (
     generate_participant_token,
@@ -532,6 +533,28 @@ async def get_tournament(
     db: AsyncSession = Depends(get_db),
 ):
     tournament = await get_owned_tournament_or_404(tournament_id, trainer, db)
+    return TournamentResponse.from_model(tournament)
+
+
+@router.patch("/{tournament_id}", response_model=TournamentResponse)
+async def update_tournament(
+    tournament_id: str,
+    body: TournamentUpdateRequest,
+    trainer: Trainer = Depends(get_current_trainer),
+    db: AsyncSession = Depends(get_db),
+):
+    tournament = await get_owned_tournament_or_404(tournament_id, trainer, db)
+
+    if body.title is not None:
+        tournament.title = body.title
+
+    if body.tournament_settings is not None:
+        tournament.tournament_settings = clone_tournament_settings(body.tournament_settings)
+
+    if body.title is not None or body.tournament_settings is not None:
+        await db.commit()
+        await db.refresh(tournament)
+
     return TournamentResponse.from_model(tournament)
 
 
