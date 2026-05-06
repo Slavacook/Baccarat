@@ -222,8 +222,10 @@ static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager
 		_apply_tournament_first_four_cards(session_manager)
 		_apply_tournament_chance_cards_enabled(session_manager)
 		_apply_tournament_tip_percentage(session_manager)
+		_apply_tournament_guests_enabled(session_manager)
 		return
 
+	_clear_tournament_guests_enabled_override()
 	_clear_tournament_chance_cards_enabled_override()
 	_clear_tournament_tip_percentage_override()
 	_restore_local_payout_state(pair_betting_manager)
@@ -429,6 +431,63 @@ static func _clear_tournament_tip_percentage_override() -> void:
 		return
 	SaveManager.instance.clear_runtime_tip_percentage_override()
 	print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage override cleared")
+
+
+static func _apply_tournament_guests_enabled(session_manager: Variant) -> void:
+	if GuestSettingsManager == null:
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: GuestSettingsManager not available")
+		return
+
+	if GuestProgressionManager == null:
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: GuestProgressionManager not available")
+		return
+
+	var tournament_settings_variant: Variant = session_manager.tournament_settings
+	if not (tournament_settings_variant is Dictionary):
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: tournament_settings missing")
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		return
+
+	var tournament_settings := tournament_settings_variant as Dictionary
+	if not tournament_settings.has("guests_enabled"):
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: not found")
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		return
+	if not (tournament_settings["guests_enabled"] is Array):
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid type")
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		return
+
+	var guests_enabled_variant := tournament_settings["guests_enabled"] as Array
+	if guests_enabled_variant.size() != 6:
+		print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid size=%d" % guests_enabled_variant.size())
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
+		return
+
+	var enabled_flags: Array[bool] = []
+	for value in guests_enabled_variant:
+		if not (value is bool):
+			print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: invalid item=%s" % str(value))
+			GuestProgressionManager.set_runtime_progression_suspended(false)
+			GuestSettingsManager.clear_runtime_guests_enabled_override()
+			return
+		enabled_flags.append(value)
+
+	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled: found=%s" % str(enabled_flags))
+	GuestProgressionManager.set_runtime_progression_suspended(true)
+	GuestSettingsManager.set_runtime_guests_enabled_override(enabled_flags)
+	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled applied active_guests=%s" % str(GuestSettingsManager.get_active_guests()))
+
+
+static func _clear_tournament_guests_enabled_override() -> void:
+	if GuestProgressionManager != null:
+		GuestProgressionManager.set_runtime_progression_suspended(false)
+	if GuestSettingsManager != null:
+		GuestSettingsManager.clear_runtime_guests_enabled_override()
 
 
 static func _restore_local_payout_state(pair_betting_manager: PairBettingManager) -> void:

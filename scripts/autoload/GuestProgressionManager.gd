@@ -38,6 +38,7 @@ var last_new_guest_activation_round: int = 0
 
 ## Текущий номер раунда (отслеживается через round_started)
 var current_round: int = 0
+var _runtime_progression_suspended: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -64,6 +65,10 @@ func _ready():
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
 
+func set_runtime_progression_suspended(suspended: bool) -> void:
+	_runtime_progression_suspended = suspended
+	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled progression_suspended=%s" % ("true" if suspended else "false"))
+
 func initialize_first_guest() -> void:
 	"""Инициализировать первого случайного гостя при первом запуске
 	
@@ -72,6 +77,9 @@ func initialize_first_guest() -> void:
 	Это нужно, чтобы избежать проблем, когда гость был включен вручную в настройках
 	с неправильным статусом (например, RICH вместо POOR).
 	"""
+	if _runtime_progression_suspended:
+		return
+
 	if not GuestSettingsManager:
 		return
 	
@@ -144,6 +152,9 @@ func check_and_update_guests(allow_deactivation: bool = false) -> void:
 			true - деактивировать лишних (при включении режима, изменении порогов, рестарте)
 			false - не деактивировать (при получении чаевых, штрафах, обработке ставок)
 	"""
+	if _runtime_progression_suspended:
+		return
+
 	# Проверить, включен ли автоматический режим
 	if not auto_mode_enabled:
 		return
@@ -560,6 +571,9 @@ func _on_all_bets_processed() -> void:
 	
 	Это момент, когда можно активировать нового гостя (за шаг до начала новой раздачи).
 	"""
+	if _runtime_progression_suspended:
+		return
+
 	if auto_mode_enabled:
 		check_and_update_guests()
 
@@ -569,6 +583,9 @@ func _on_game_restarted() -> void:
 	При рестарте чаевые сбрасываются, нужно пересчитать гостей.
 	ВАЖНО: Принудительно отключаем всех гостей, затем активируем только необходимое количество.
 	"""
+	if _runtime_progression_suspended:
+		return
+
 	initial_guest_initialized = false
 	
 	# Сбрасываем отслеживание активаций

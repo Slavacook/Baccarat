@@ -64,6 +64,8 @@ class GuestSettings:
 
 # Настройки 6 гостей (индекс 0-5 соответствует гостю 1-6)
 var guests: Array[GuestSettings] = []
+var _runtime_guests_enabled_override_active: bool = false
+var _runtime_guests_snapshot: Array[GuestSettings] = []
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -143,6 +145,78 @@ func set_guest_wealth(guest_id: int, wealth: GuestWealth, preserve_balance: bool
 	if not preserve_balance and GuestStatsManager:
 		GuestStatsManager.initialize_guest_balance(guest_id)
 
+func set_runtime_guests_enabled_override(enabled_flags: Array[bool]) -> void:
+	"""Применить runtime override состава гостей без записи в локальные настройки."""
+	if enabled_flags.size() != 6:
+		push_error("GuestSettingsManager: enabled_flags должен содержать 6 элементов")
+		return
+
+	if not _runtime_guests_enabled_override_active:
+		_runtime_guests_snapshot = _duplicate_guests_array(guests)
+		_runtime_guests_enabled_override_active = true
+
+	var changed_guest_ids: Array[int] = []
+	for i in range(6):
+		var guest_id := i + 1
+		var new_enabled := enabled_flags[i]
+		if guests[i].enabled == new_enabled:
+			continue
+
+		guests[i].enabled = new_enabled
+		changed_guest_ids.append(guest_id)
+
+		if GuestStatsManager:
+			if new_enabled:
+				GuestStatsManager.initialize_guest_balance(guest_id)
+			else:
+				GuestStatsManager.reset_guest_balance(guest_id)
+
+		if new_enabled and GuestReturnManager:
+			GuestReturnManager.register_guest_activation(guest_id)
+
+	for guest_id in changed_guest_ids:
+		guest_settings_changed.emit(guest_id)
+
+	var active_guests := get_active_guests()
+	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled override applied active_guests=%s" % str(active_guests))
+
+func clear_runtime_guests_enabled_override() -> void:
+	"""Очистить runtime override и вернуть локальные настройки гостей."""
+	if not _runtime_guests_enabled_override_active:
+		return
+
+	var changed_guest_ids: Array[int] = []
+	for i in range(6):
+		var guest_id := i + 1
+		var snapshot_guest := _runtime_guests_snapshot[i]
+		var was_enabled := guests[i].enabled
+		var restored_enabled := snapshot_guest.enabled
+
+		guests[i].enabled = snapshot_guest.enabled
+		guests[i].character = snapshot_guest.character
+		guests[i].wealth = snapshot_guest.wealth
+
+		if was_enabled == restored_enabled:
+			continue
+
+		changed_guest_ids.append(guest_id)
+
+		if GuestStatsManager:
+			if restored_enabled:
+				GuestStatsManager.initialize_guest_balance(guest_id)
+			else:
+				GuestStatsManager.reset_guest_balance(guest_id)
+
+		if restored_enabled and GuestReturnManager:
+			GuestReturnManager.register_guest_activation(guest_id)
+
+	for guest_id in changed_guest_ids:
+		guest_settings_changed.emit(guest_id)
+
+	_runtime_guests_snapshot.clear()
+	_runtime_guests_enabled_override_active = false
+	print("🧪 TOURNAMENT SETTINGS TRACE guests_enabled override cleared active_guests=%s" % str(get_active_guests()))
+
 # ← Получить список активных гостей (возвращает массив guest_id: 1-6)
 func get_active_guests() -> Array[int]:
 	var active: Array[int] = []
@@ -204,3 +278,9 @@ func _load_settings() -> void:
 		else:
 			# Нет данных для этого гостя - используем значения по умолчанию
 			guests[i] = GuestSettings.new()
+
+func _duplicate_guests_array(source_guests: Array[GuestSettings]) -> Array[GuestSettings]:
+	var result: Array[GuestSettings] = []
+	for guest in source_guests:
+		result.append(GuestSettings.new(guest.enabled, guest.character, guest.wealth))
+	return result
