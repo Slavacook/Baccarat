@@ -2291,6 +2291,31 @@ function resetTournamentEditorState() {
   setTournamentEditorMode("create");
 }
 
+function updateTournamentGuestsModeUI() {
+  const guestStoryEnabled = Boolean(el("new-tournament-guest-story-enabled")?.checked);
+  const storyBlock = el("new-tournament-story-guests-block");
+  const fixedBlock = el("new-tournament-fixed-guests-block");
+
+  if (storyBlock) {
+    storyBlock.hidden = !guestStoryEnabled;
+  }
+  if (fixedBlock) {
+    fixedBlock.hidden = guestStoryEnabled;
+  }
+}
+
+function buildGuestsEnabledFromCount(count) {
+  const parsedCount = Number(count);
+  const normalizedCount = Number.isFinite(parsedCount) ? Math.min(6, Math.max(1, Math.floor(parsedCount))) : 1;
+  return [1, 2, 3, 4, 5, 6].map((index) => index <= normalizedCount);
+}
+
+function countEnabledGuests(flags) {
+  if (!Array.isArray(flags)) return 1;
+  const count = flags.filter(Boolean).length;
+  return count > 0 ? Math.min(6, count) : 1;
+}
+
 function resetCreateTournamentSettings() {
   const titleInput = el("new-tournament-title");
   if (titleInput) titleInput.value = "";
@@ -2328,6 +2353,9 @@ function resetCreateTournamentSettings() {
   const guestStoryEnabled = el("new-tournament-guest-story-enabled");
   if (guestStoryEnabled) guestStoryEnabled.checked = true;
 
+  const storyGuestCount = el("new-tournament-story-guest-count");
+  if (storyGuestCount) storyGuestCount.value = "6";
+
   const chanceCardsEnabled = el("new-tournament-chance-cards-enabled");
   if (chanceCardsEnabled) chanceCardsEnabled.checked = false;
 
@@ -2336,6 +2364,8 @@ function resetCreateTournamentSettings() {
 
   const tipPercentage = el("new-tournament-tip-percentage");
   if (tipPercentage) tipPercentage.value = "0.3";
+
+  updateTournamentGuestsModeUI();
 }
 
 function setTournamentSelectValue(id, value) {
@@ -2402,6 +2432,11 @@ function prefillTournamentForm(tournament) {
     guestStoryEnabled.checked = settings.guest_story_enabled;
   }
 
+  const storyGuestCount = el("new-tournament-story-guest-count");
+  if (storyGuestCount) {
+    storyGuestCount.value = String(countEnabledGuests(settings.guests_enabled));
+  }
+
   const chanceCardsEnabled = el("new-tournament-chance-cards-enabled");
   if (chanceCardsEnabled && typeof settings.chance_cards_enabled === "boolean") {
     chanceCardsEnabled.checked = settings.chance_cards_enabled;
@@ -2419,6 +2454,8 @@ function prefillTournamentForm(tournament) {
       tipPercentage.value = String(Math.min(100, Math.max(0, parsedTipPercentage)));
     }
   }
+
+  updateTournamentGuestsModeUI();
 }
 
 function openEditTournamentModal(tournament) {
@@ -2440,13 +2477,18 @@ function getCreateTournamentSettings() {
   const tipPercentage = Number.isFinite(parsedTipPercentage)
     ? Math.min(100, Math.max(0, parsedTipPercentage))
     : 0.3;
+  const guestStoryEnabled = Boolean(el("new-tournament-guest-story-enabled")?.checked);
+  const storyGuestCount = el("new-tournament-story-guest-count");
+  const guestsEnabled = guestStoryEnabled
+    ? buildGuestsEnabledFromCount(storyGuestCount ? storyGuestCount.value : 1)
+    : [1, 2, 3, 4, 5, 6].map((index) => {
+      const checkbox = el(`new-tournament-guest-${index}`);
+      return Boolean(checkbox && checkbox.checked);
+    });
 
   return {
     limits_mode: limitsMode ? String(limitsMode.value || "classic") : "classic",
-    guests_enabled: [1, 2, 3, 4, 5, 6].map((index) => {
-      const checkbox = el(`new-tournament-guest-${index}`);
-      return Boolean(checkbox && checkbox.checked);
-    }),
+    guests_enabled: guestsEnabled,
     bets: {
       banker: Boolean(el("new-tournament-bet-banker")?.checked),
       player: Boolean(el("new-tournament-bet-player")?.checked),
@@ -2459,7 +2501,7 @@ function getCreateTournamentSettings() {
       player_1: String(el("new-tournament-player-1-card")?.value || "RANDOM"),
       player_2: String(el("new-tournament-player-2-card")?.value || "RANDOM"),
     },
-    guest_story_enabled: Boolean(el("new-tournament-guest-story-enabled")?.checked),
+    guest_story_enabled: guestStoryEnabled,
     tip_percentage: tipPercentage,
     chance_cards_enabled: Boolean(el("new-tournament-chance-cards-enabled")?.checked),
     auto_mode_switch_enabled: Boolean(el("new-tournament-auto-mode-switch-enabled")?.checked),
@@ -4312,6 +4354,9 @@ function wire() {
   el("btn-close-create-tournament-modal")?.addEventListener("click", () => closeCreateTournamentModal());
   el("create-tournament-modal")?.addEventListener("click", (ev) => {
     if (ev.target === el("create-tournament-modal")) closeCreateTournamentModal();
+  });
+  el("new-tournament-guest-story-enabled")?.addEventListener("change", () => {
+    updateTournamentGuestsModeUI();
   });
   el("btn-create-tournament")?.addEventListener("click", () => {
     submitTournamentEditor();

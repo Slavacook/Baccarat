@@ -371,7 +371,19 @@
         </select>
 
         <p class="muted small">Гости за столом</p>
-        <div class="row wrap">
+        <div id="new-tournament-story-guests-block">
+          <label for="new-tournament-story-guest-count">Количество гостей</label>
+          <select id="new-tournament-story-guest-count">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+            <option value="6">6</option>
+          </select>
+          <p class="muted small">В сюжетном режиме выбирается стартовое количество гостей, а не конкретные места.</p>
+        </div>
+        <div id="new-tournament-fixed-guests-block" class="row wrap" hidden>
           <label><input type="checkbox" id="new-tournament-guest-1" checked /> Гость 1</label>
           <label><input type="checkbox" id="new-tournament-guest-2" checked /> Гость 2</label>
           <label><input type="checkbox" id="new-tournament-guest-3" checked /> Гость 3</label>
