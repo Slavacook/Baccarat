@@ -40,7 +40,7 @@ func plan_guest_bet_package(
 	if not any_legal_bet:
 		return {
 			"bets": package,
-			"should_leave_table": true,
+			"should_leave_table": false,
 			"used_balance": 0,
 			"remaining_balance": balance,
 			"reason": "no_legal_bets"
