@@ -120,11 +120,11 @@ func _load_public_tournament() -> void:
 	var body: Variant = _response_body(result)
 
 	if status_code < 200 or status_code >= 300:
-		_set_status("Не удалось загрузить таблицу")
+		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
 		_show_empty_leaderboard(true)
 		return
 	if not (body is Dictionary):
-		_set_status("Таблица пока пустая")
+		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
 		_show_empty_leaderboard(true)
 		return
 
@@ -145,11 +145,8 @@ func _apply_public_tournament_data(body: Dictionary) -> void:
 	if tournament_data.is_empty():
 		return
 
-	var local_tournament: Dictionary = _access_tournament()
-	var merged: Dictionary = local_tournament.duplicate(true)
-	for key in ["title", "status", "max_rounds", "attempt_duration_seconds"]:
-		if tournament_data.has(key):
-			merged[key] = tournament_data[key]
+	var merged := _merge_public_tournament_into_access_record(tournament_data)
+	_save_refreshed_access_record()
 
 	if tournament_title_label:
 		var title := _dictionary_string(merged, "title")
@@ -159,6 +156,32 @@ func _apply_public_tournament_data(body: Dictionary) -> void:
 		tournament_status_label.text = "Статус: %s" % (status_text if not status_text.is_empty() else "—")
 	if tournament_rules_label:
 		tournament_rules_label.text = "Правила: %s" % _format_tournament_rules(merged)
+
+
+func _merge_public_tournament_into_access_record(tournament_data: Dictionary) -> Dictionary:
+	var local_tournament: Dictionary = _access_tournament()
+	var merged: Dictionary = local_tournament.duplicate(true)
+
+	for key in ["id", "title", "code", "status", "max_rounds", "attempt_duration_seconds"]:
+		if tournament_data.has(key):
+			merged[key] = tournament_data[key]
+
+	if tournament_data.has("tournament_settings") and tournament_data["tournament_settings"] is Dictionary:
+		merged["tournament_settings"] = (tournament_data["tournament_settings"] as Dictionary).duplicate(true)
+
+	_access_record["tournament"] = merged.duplicate(true)
+	return merged
+
+
+func _save_refreshed_access_record() -> void:
+	if _tournament_access_store == null:
+		return
+
+	var saved_variant: Variant = _tournament_access_store.call("save_access", _access_record)
+	if saved_variant is Dictionary:
+		var saved_record := saved_variant as Dictionary
+		if not saved_record.is_empty():
+			_access_record = saved_record.duplicate(true)
 
 
 func _extract_tournament_dictionary(body: Dictionary) -> Dictionary:
