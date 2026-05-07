@@ -650,7 +650,7 @@ button:disabled {
 
 .public-tournament-page .leaderboard-row {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 14px;
   align-items: center;
   padding: 12px 14px;
@@ -664,7 +664,7 @@ button:disabled {
 
 .public-tournament-page .leaderboard-row-content {
   display: grid;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
@@ -716,12 +716,34 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.public-tournament-page .leaderboard-row-meta {
-  margin: 0;
-  color: #c8d0c2;
-  font-size: 0.84rem;
-  line-height: 1.35;
-  overflow-wrap: anywhere;
+.public-tournament-page .leaderboard-row-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(56px, auto));
+  gap: 16px;
+  align-items: center;
+  justify-content: end;
+}
+
+.public-tournament-page .leaderboard-metric {
+  display: grid;
+  gap: 3px;
+  justify-items: end;
+  text-align: right;
+}
+
+.public-tournament-page .leaderboard-metric-label {
+  color: #bda983;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.public-tournament-page .leaderboard-metric-value {
+  color: #edf1e8;
+  font-size: 0.96rem;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .public-tournament-page .leaderboard-row.leaderboard-rank-first {
@@ -771,6 +793,17 @@ button:disabled {
 
   .public-tournament-page .leaderboard-row-name {
     font-size: 1rem;
+  }
+
+  .public-tournament-page .leaderboard-row-metrics {
+    justify-content: start;
+    grid-template-columns: repeat(3, minmax(0, auto));
+    gap: 12px;
+  }
+
+  .public-tournament-page .leaderboard-metric {
+    justify-items: start;
+    text-align: left;
   }
 }
 
@@ -837,7 +870,21 @@ button:disabled {
     font-size: 0.94rem;
   }
 
-  .public-tournament-page .leaderboard-row-meta {
+  .public-tournament-page .leaderboard-row-metrics {
+    grid-column: 2;
+    grid-template-columns: repeat(3, minmax(0, auto));
+    gap: 8px;
+  }
+
+  .public-tournament-page .leaderboard-metric {
+    gap: 2px;
+  }
+
+  .public-tournament-page .leaderboard-metric-label {
+    font-size: 0.62rem;
+  }
+
+  .public-tournament-page .leaderboard-metric-value {
     font-size: 0.76rem;
   }
 }
@@ -872,8 +919,16 @@ button:disabled {
     font-size: 0.92rem;
   }
 
-  .public-tournament-page .leaderboard-row-meta {
-    font-size: 0.72rem;
+  .public-tournament-page .leaderboard-row-metrics {
+    gap: 6px;
+  }
+
+  .public-tournament-page .leaderboard-metric-label {
+    font-size: 0.58rem;
+  }
+
+  .public-tournament-page .leaderboard-metric-value {
+    font-size: 0.7rem;
   }
 }
 

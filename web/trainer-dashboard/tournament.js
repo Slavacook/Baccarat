@@ -119,17 +119,50 @@ function renderLeaderboard(entries) {
     name.className = "leaderboard-row-name";
     name.textContent = entry && entry.display_name ? String(entry.display_name) : "—";
 
-    const meta = document.createElement("p");
-    meta.className = "leaderboard-row-meta";
-    const errorsLabel = `${entry && entry.errors_total != null ? entry.errors_total : "—"} ошибок`;
-    const timeLabel = formatDuration(entry && entry.time_spent_seconds != null ? entry.time_spent_seconds : 0);
-    const attemptLabel = `попытка ${entry && entry.attempt_number != null ? entry.attempt_number : "—"}`;
-    meta.textContent = `${errorsLabel} · ${timeLabel} · ${attemptLabel}`;
+    const metrics = document.createElement("div");
+    metrics.className = "leaderboard-row-metrics";
+
+    const attemptMetric = document.createElement("div");
+    attemptMetric.className = "leaderboard-metric leaderboard-metric-attempt";
+    const attemptLabel = document.createElement("span");
+    attemptLabel.className = "leaderboard-metric-label";
+    attemptLabel.textContent = "Попытка";
+    const attemptValue = document.createElement("span");
+    attemptValue.className = "leaderboard-metric-value";
+    attemptValue.textContent = String(entry && entry.attempt_number != null ? entry.attempt_number : "—");
+    attemptMetric.appendChild(attemptLabel);
+    attemptMetric.appendChild(attemptValue);
+
+    const timeMetric = document.createElement("div");
+    timeMetric.className = "leaderboard-metric leaderboard-metric-time";
+    const timeLabel = document.createElement("span");
+    timeLabel.className = "leaderboard-metric-label";
+    timeLabel.textContent = "Время";
+    const timeValue = document.createElement("span");
+    timeValue.className = "leaderboard-metric-value";
+    timeValue.textContent = formatDuration(entry && entry.time_spent_seconds != null ? entry.time_spent_seconds : 0);
+    timeMetric.appendChild(timeLabel);
+    timeMetric.appendChild(timeValue);
+
+    const errorsMetric = document.createElement("div");
+    errorsMetric.className = "leaderboard-metric leaderboard-metric-errors";
+    const errorsLabel = document.createElement("span");
+    errorsLabel.className = "leaderboard-metric-label";
+    errorsLabel.textContent = "Ошибки";
+    const errorsValue = document.createElement("span");
+    errorsValue.className = "leaderboard-metric-value";
+    errorsValue.textContent = String(entry && entry.errors_total != null ? entry.errors_total : "—");
+    errorsMetric.appendChild(errorsLabel);
+    errorsMetric.appendChild(errorsValue);
+
+    metrics.appendChild(attemptMetric);
+    metrics.appendChild(timeMetric);
+    metrics.appendChild(errorsMetric);
 
     content.appendChild(name);
-    content.appendChild(meta);
     row.appendChild(rankBadge);
     row.appendChild(content);
+    row.appendChild(metrics);
     list.appendChild(row);
   }
 }
