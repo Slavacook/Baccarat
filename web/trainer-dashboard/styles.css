@@ -570,6 +570,125 @@ button:disabled {
   margin-bottom: 6px;
 }
 
+.public-tournament-page {
+  background:
+    radial-gradient(circle at top, rgba(201, 168, 107, 0.12), transparent 30%),
+    linear-gradient(180deg, #0d241d 0%, #081611 60%, #06110d 100%);
+  min-height: 100vh;
+}
+
+.public-tournament-page .layout {
+  max-width: 1320px;
+  padding-top: 40px;
+}
+
+.tournament-hero {
+  display: grid;
+  gap: 14px;
+  padding: 40px 42px;
+  border: 1px solid rgba(201, 168, 107, 0.22);
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(20, 53, 41, 0.96), rgba(9, 24, 19, 0.96));
+  box-shadow:
+    0 22px 50px rgba(0, 0, 0, 0.28),
+    inset 0 1px 0 rgba(255, 248, 220, 0.05);
+}
+
+.tournament-hero-brand {
+  margin: 0;
+  color: #d8c29a;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tournament-hero-title {
+  margin: 0;
+  color: #f6edd8;
+  font-size: clamp(2rem, 4vw, 3.6rem);
+  line-height: 1.1;
+}
+
+.tournament-meta {
+  margin: 0;
+  color: #d3d9cb;
+  font-size: 1.05rem;
+}
+
+.public-tournament-page #tournament-page-error {
+  margin: 4px 0 0;
+}
+
+.tournament-leaderboard-card {
+  margin-top: 24px;
+  border: 1px solid rgba(201, 168, 107, 0.18);
+  border-radius: 18px;
+  background: rgba(8, 20, 16, 0.88);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+}
+
+.tournament-leaderboard-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.tournament-leaderboard-head h2 {
+  margin: 0;
+  color: #f6edd8;
+  font-size: 1.5rem;
+}
+
+.public-tournament-page .table-wrap {
+  border: 1px solid rgba(201, 168, 107, 0.14);
+  border-radius: 14px;
+  overflow: hidden;
+  background: rgba(14, 35, 28, 0.72);
+}
+
+.public-tournament-page table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.public-tournament-page thead {
+  background: rgba(201, 168, 107, 0.12);
+}
+
+.public-tournament-page th,
+.public-tournament-page td {
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(201, 168, 107, 0.1);
+  font-size: 1rem;
+}
+
+.public-tournament-page th {
+  color: #e5d8b8;
+  font-weight: 700;
+  text-align: left;
+}
+
+.public-tournament-page td {
+  color: #edf1e8;
+}
+
+.public-tournament-page tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.public-tournament-page tbody tr:nth-child(odd) {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.public-tournament-page #tournament-public-leaderboard-empty {
+  margin: 16px 4px 0;
+  color: #c7cfbe;
+}
+
 .auth-pane {
   margin-top: 4px;
 }

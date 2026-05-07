@@ -18,15 +18,19 @@ function formatTournamentStatus(status) {
   return "—";
 }
 
-function formatTournamentRules(tournament) {
+function formatTournamentMeta(tournament) {
+  if (!tournament) {
+    return "Статус: —";
+  }
+
+  const statusLabel = formatTournamentStatus(tournament.status);
   const maxRounds = Number(tournament && tournament.max_rounds);
   const attemptDurationSeconds = Number(tournament && tournament.attempt_duration_seconds);
   const roundsLabel = Number.isFinite(maxRounds) && maxRounds > 0 ? `${maxRounds} раздач` : "—";
   const minutes = Number.isFinite(attemptDurationSeconds) && attemptDurationSeconds > 0
-    ? Math.floor(attemptDurationSeconds / 60)
-    : 0;
-  const durationLabel = minutes > 0 ? `${minutes} мин` : "—";
-  return `${roundsLabel} / ${durationLabel}`;
+    ? `${Math.floor(attemptDurationSeconds / 60)} мин`
+    : "—";
+  return `${statusLabel} · ${roundsLabel} · ${minutes}`;
 }
 
 function formatDuration(seconds) {
@@ -42,28 +46,19 @@ function formatDuration(seconds) {
   return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
-function renderTournamentInfo(tournament) {
-  const card = el("tournament-public-info-card");
+function renderTournamentHero(tournament) {
   const title = el("tournament-public-title");
-  const code = el("tournament-public-code");
-  const status = el("tournament-public-status");
-  const rules = el("tournament-public-rules");
-  if (!card || !title || !code || !status || !rules) return;
+  const meta = el("tournament-public-meta");
+  if (!title || !meta) return;
 
   if (!tournament) {
-    card.classList.add("hidden");
     title.textContent = "Турнир";
-    code.textContent = "Код: —";
-    status.textContent = "Статус: —";
-    rules.textContent = "Правила: —";
+    meta.textContent = "Статус: —";
     return;
   }
 
-  card.classList.remove("hidden");
   title.textContent = tournament.title || "Турнир";
-  code.textContent = `Код: ${tournament.code || "—"}`;
-  status.textContent = `Статус: ${formatTournamentStatus(tournament.status)}`;
-  rules.textContent = `Правила: ${formatTournamentRules(tournament)}`;
+  meta.textContent = formatTournamentMeta(tournament);
 }
 
 function renderLeaderboard(entries) {
@@ -112,7 +107,7 @@ function renderLeaderboard(entries) {
 async function loadTournamentPage() {
   if (!currentTournamentCode) {
     showPageError("Код турнира не указан");
-    renderTournamentInfo(null);
+    renderTournamentHero(null);
     renderLeaderboard([]);
     return;
   }
@@ -135,13 +130,13 @@ async function loadTournamentPage() {
     } else {
       showPageError("Не удалось загрузить турнир");
     }
-    renderTournamentInfo(null);
+    renderTournamentHero(null);
     renderLeaderboard([]);
     return;
   }
 
   showPageError("");
-  renderTournamentInfo(data && data.tournament ? data.tournament : null);
+  renderTournamentHero(data && data.tournament ? data.tournament : null);
   renderLeaderboard(data && data.leaderboard && Array.isArray(data.leaderboard.entries) ? data.leaderboard.entries : []);
 }
 
@@ -155,9 +150,6 @@ function startAutoRefresh() {
 function init() {
   const params = new URLSearchParams(window.location.search);
   currentTournamentCode = String(params.get("code") || "").trim();
-  el("btn-refresh-tournament")?.addEventListener("click", () => {
-    void loadTournamentPage();
-  });
   void loadTournamentPage();
   startAutoRefresh();
 }

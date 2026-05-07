@@ -6,32 +6,19 @@
   <title>Baccarat Trainer — турнир</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
-<body>
+<body class="public-tournament-page">
   <div class="layout">
-    <header class="header">
-      <h1>Baccarat Trainer</h1>
-      <p class="subtitle">Публичная страница турнира</p>
+    <header id="tournament-public-hero" class="tournament-hero">
+      <p class="tournament-hero-brand">Baccarat Trainer</p>
+      <h1 id="tournament-public-title" class="tournament-hero-title">Турнир</h1>
+      <p id="tournament-public-meta" class="tournament-meta">Статус: —</p>
+      <p id="tournament-page-error" class="error hidden"></p>
     </header>
 
-    <section class="card">
-      <p class="muted">Эта страница доступна всем, у кого есть ссылка.</p>
-      <div class="row wrap">
-        <button type="button" id="btn-refresh-tournament" class="secondary">Обновить</button>
+    <section id="tournament-public-leaderboard-card" class="card tournament-leaderboard-card hidden">
+      <div class="tournament-leaderboard-head">
+        <h2>Полный рейтинг</h2>
       </div>
-      <p id="tournament-page-error" class="error hidden"></p>
-    </section>
-
-    <section id="tournament-public-info-card" class="card hidden">
-      <h2 id="tournament-public-title">Турнир</h2>
-      <div class="tournament-public-meta">
-        <p id="tournament-public-code" class="mono muted">Код: —</p>
-        <p id="tournament-public-status" class="muted">Статус: —</p>
-        <p id="tournament-public-rules" class="muted">Правила: —</p>
-      </div>
-    </section>
-
-    <section id="tournament-public-leaderboard-card" class="card hidden">
-      <h2>Таблица результатов</h2>
       <div class="table-wrap">
         <table id="tournament-public-leaderboard-table">
           <thead>
