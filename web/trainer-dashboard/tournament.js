@@ -46,6 +46,18 @@ function formatDuration(seconds) {
   return `${mm}:${String(ss).padStart(2, "0")}`;
 }
 
+function getPodiumClass(rank) {
+  if (rank === 1) return "podium-first";
+  if (rank === 2) return "podium-second";
+  return "podium-third";
+}
+
+function getPodiumMedal(rank) {
+  if (rank === 1) return "🥇";
+  if (rank === 2) return "🥈";
+  return "🥉";
+}
+
 function renderTournamentHero(tournament) {
   const title = el("tournament-public-title");
   const meta = el("tournament-public-meta");
@@ -59,6 +71,88 @@ function renderTournamentHero(tournament) {
 
   title.textContent = tournament.title || "Турнир";
   meta.textContent = formatTournamentMeta(tournament);
+}
+
+function renderTournamentPodium(entries) {
+  const card = el("tournament-public-podium-card");
+  const container = el("tournament-public-podium");
+  if (!card || !container) return;
+
+  container.innerHTML = "";
+
+  if (!Array.isArray(entries) || entries.length === 0) {
+    card.classList.add("hidden");
+    return;
+  }
+
+  const podiumEntries = entries.filter((entry) => {
+    const rank = Number(entry && entry.rank);
+    return rank >= 1 && rank <= 3;
+  }).slice(0, 3);
+
+  if (podiumEntries.length === 0) {
+    card.classList.add("hidden");
+    return;
+  }
+
+  const displayOrder = [];
+  const second = podiumEntries.find((entry) => Number(entry && entry.rank) === 2);
+  const first = podiumEntries.find((entry) => Number(entry && entry.rank) === 1);
+  const third = podiumEntries.find((entry) => Number(entry && entry.rank) === 3);
+  if (second) displayOrder.push(second);
+  if (first) displayOrder.push(first);
+  if (third) displayOrder.push(third);
+
+  for (const entry of displayOrder) {
+    const rank = Number(entry && entry.rank);
+    const cardNode = document.createElement("article");
+    cardNode.className = `podium-slot ${getPodiumClass(rank)}`;
+
+    const badge = document.createElement("div");
+    badge.className = "podium-badge";
+    badge.textContent = getPodiumMedal(rank);
+
+    const place = document.createElement("p");
+    place.className = "podium-place";
+    place.textContent = `${rank} место`;
+
+    const name = document.createElement("h3");
+    name.className = "podium-name";
+    name.textContent = entry && entry.display_name ? String(entry.display_name) : "—";
+
+    const stats = document.createElement("dl");
+    stats.className = "podium-stats";
+
+    const errorsTerm = document.createElement("dt");
+    errorsTerm.textContent = "Ошибки";
+    const errorsValue = document.createElement("dd");
+    errorsValue.textContent = String(entry && entry.errors_total != null ? entry.errors_total : "—");
+
+    const timeTerm = document.createElement("dt");
+    timeTerm.textContent = "Время";
+    const timeValue = document.createElement("dd");
+    timeValue.textContent = formatDuration(entry && entry.time_spent_seconds != null ? entry.time_spent_seconds : 0);
+
+    const attemptTerm = document.createElement("dt");
+    attemptTerm.textContent = "Попытка";
+    const attemptValue = document.createElement("dd");
+    attemptValue.textContent = String(entry && entry.attempt_number != null ? entry.attempt_number : "—");
+
+    stats.appendChild(errorsTerm);
+    stats.appendChild(errorsValue);
+    stats.appendChild(timeTerm);
+    stats.appendChild(timeValue);
+    stats.appendChild(attemptTerm);
+    stats.appendChild(attemptValue);
+
+    cardNode.appendChild(badge);
+    cardNode.appendChild(place);
+    cardNode.appendChild(name);
+    cardNode.appendChild(stats);
+    container.appendChild(cardNode);
+  }
+
+  card.classList.remove("hidden");
 }
 
 function renderLeaderboard(entries) {
@@ -108,6 +202,7 @@ async function loadTournamentPage() {
   if (!currentTournamentCode) {
     showPageError("Код турнира не указан");
     renderTournamentHero(null);
+    renderTournamentPodium([]);
     renderLeaderboard([]);
     return;
   }
@@ -131,13 +226,16 @@ async function loadTournamentPage() {
       showPageError("Не удалось загрузить турнир");
     }
     renderTournamentHero(null);
+    renderTournamentPodium([]);
     renderLeaderboard([]);
     return;
   }
 
   showPageError("");
   renderTournamentHero(data && data.tournament ? data.tournament : null);
-  renderLeaderboard(data && data.leaderboard && Array.isArray(data.leaderboard.entries) ? data.leaderboard.entries : []);
+  const entries = data && data.leaderboard && Array.isArray(data.leaderboard.entries) ? data.leaderboard.entries : [];
+  renderTournamentPodium(entries);
+  renderLeaderboard(entries);
 }
 
 function startAutoRefresh() {
