@@ -10,8 +10,13 @@
   <div class="layout">
     <header id="tournament-public-hero" class="tournament-hero">
       <p class="tournament-hero-brand">Baccarat Trainer</p>
+      <div class="tournament-hero-head">
+        <div class="tournament-hero-copy">
       <h1 id="tournament-public-title" class="tournament-hero-title">Турнир</h1>
       <p id="tournament-public-meta" class="tournament-meta">Статус: —</p>
+        </div>
+        <button type="button" id="btn-open-join-tournament-modal" class="tournament-hero-cta">Принять участие</button>
+      </div>
       <p id="tournament-page-error" class="error hidden"></p>
     </header>
 
@@ -22,6 +27,21 @@
       <div id="tournament-public-leaderboard-list" class="tournament-leaderboard-list"></div>
       <p id="tournament-public-leaderboard-empty" class="muted hidden">Пока нет успешных результатов</p>
     </section>
+  </div>
+
+  <div id="join-tournament-modal" class="join-tournament-modal hidden" role="dialog" aria-modal="true" aria-labelledby="join-tournament-modal-title">
+    <div class="join-tournament-modal-card">
+      <div class="join-tournament-modal-head">
+        <h3 id="join-tournament-modal-title">Как принять участие</h3>
+        <button type="button" id="btn-close-join-tournament-modal" class="join-tournament-modal-close">Закрыть</button>
+      </div>
+      <p class="join-tournament-modal-copy">Скачайте приложение и вставьте код доступа в игре.</p>
+      <div class="join-tournament-modal-actions">
+        <button type="button" id="btn-open-telegram-channel" class="join-tournament-modal-primary">Скачать приложение</button>
+        <button type="button" id="btn-copy-tournament-code" class="join-tournament-modal-secondary">Скопировать код доступа</button>
+      </div>
+      <p id="join-tournament-modal-status" class="join-tournament-modal-status" aria-live="polite"></p>
+    </div>
   </div>
 
   <script src="./tournament.js" type="module"></script>

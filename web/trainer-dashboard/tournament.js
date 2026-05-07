@@ -1,7 +1,10 @@
 const el = (id) => document.getElementById(id);
 
+const TELEGRAM_CHANNEL_URL = "https://t.me/baccarat_tr";
+
 let refreshTimer = null;
 let currentTournamentCode = "";
+let currentTournamentSnapshot = null;
 
 function showPageError(message) {
   const node = el("tournament-page-error");
@@ -9,6 +12,12 @@ function showPageError(message) {
   const text = String(message || "").trim();
   node.textContent = text;
   node.classList.toggle("hidden", !text);
+}
+
+function showJoinTournamentStatus(message) {
+  const node = el("join-tournament-modal-status");
+  if (!node) return;
+  node.textContent = String(message || "").trim();
 }
 
 function formatTournamentStatus(status) {
@@ -69,16 +78,89 @@ function getLeaderboardRankClass(rank) {
 function renderTournamentHero(tournament) {
   const title = el("tournament-public-title");
   const meta = el("tournament-public-meta");
+  const joinButton = el("btn-open-join-tournament-modal");
   if (!title || !meta) return;
 
   if (!tournament) {
     title.textContent = "Турнир";
     meta.textContent = "Статус: —";
+    if (joinButton) {
+      joinButton.disabled = true;
+    }
     return;
   }
 
   title.textContent = tournament.title || "Турнир";
   meta.textContent = formatTournamentMeta(tournament);
+  if (joinButton) {
+    joinButton.disabled = false;
+  }
+}
+
+function openJoinTournamentModal() {
+  const modal = el("join-tournament-modal");
+  if (!modal) return;
+  showJoinTournamentStatus("");
+  modal.classList.remove("hidden");
+}
+
+function closeJoinTournamentModal() {
+  const modal = el("join-tournament-modal");
+  if (!modal) return;
+  modal.classList.add("hidden");
+  showJoinTournamentStatus("");
+}
+
+function openTelegramChannel() {
+  window.open(TELEGRAM_CHANNEL_URL, "_blank", "noopener");
+}
+
+async function copyTextToClipboard(text) {
+  const value = String(text || "").trim();
+  if (!value) {
+    throw new Error("empty_text");
+  }
+
+  if (navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(value);
+      return;
+    } catch {
+      // Continue to textarea fallback below.
+    }
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.appendChild(textarea);
+  textarea.select();
+  textarea.setSelectionRange(0, textarea.value.length);
+  const copied = document.execCommand("copy");
+  document.body.removeChild(textarea);
+
+  if (!copied) {
+    throw new Error("copy_failed");
+  }
+}
+
+async function copyTournamentCode() {
+  const tournamentCode = currentTournamentSnapshot && currentTournamentSnapshot.code
+    ? String(currentTournamentSnapshot.code).trim()
+    : "";
+  if (!tournamentCode) {
+    showJoinTournamentStatus("Код турнира недоступен");
+    return;
+  }
+
+  try {
+    await copyTextToClipboard(tournamentCode);
+    showJoinTournamentStatus("Код скопирован");
+  } catch {
+    showJoinTournamentStatus("Не удалось скопировать код");
+  }
 }
 
 function renderLeaderboard(entries) {
@@ -169,6 +251,7 @@ function renderLeaderboard(entries) {
 
 async function loadTournamentPage() {
   if (!currentTournamentCode) {
+    currentTournamentSnapshot = null;
     showPageError("Код турнира не указан");
     renderTournamentHero(null);
     renderLeaderboard([]);
@@ -188,6 +271,7 @@ async function loadTournamentPage() {
   }
 
   if (!response.ok) {
+    currentTournamentSnapshot = null;
     if (response.status === 404) {
       showPageError("Турнир не найден");
     } else {
@@ -199,7 +283,8 @@ async function loadTournamentPage() {
   }
 
   showPageError("");
-  renderTournamentHero(data && data.tournament ? data.tournament : null);
+  currentTournamentSnapshot = data && data.tournament ? data.tournament : null;
+  renderTournamentHero(currentTournamentSnapshot);
   const entries = data && data.leaderboard && Array.isArray(data.leaderboard.entries) ? data.leaderboard.entries : [];
   renderLeaderboard(entries);
 }
@@ -214,6 +299,28 @@ function startAutoRefresh() {
 function init() {
   const params = new URLSearchParams(window.location.search);
   currentTournamentCode = String(params.get("code") || "").trim();
+  el("btn-open-join-tournament-modal")?.addEventListener("click", () => {
+    openJoinTournamentModal();
+  });
+  el("btn-close-join-tournament-modal")?.addEventListener("click", () => {
+    closeJoinTournamentModal();
+  });
+  el("btn-open-telegram-channel")?.addEventListener("click", () => {
+    openTelegramChannel();
+  });
+  el("btn-copy-tournament-code")?.addEventListener("click", () => {
+    void copyTournamentCode();
+  });
+  el("join-tournament-modal")?.addEventListener("click", (event) => {
+    if (event.target === el("join-tournament-modal")) {
+      closeJoinTournamentModal();
+    }
+  });
+  document.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      closeJoinTournamentModal();
+    }
+  });
   void loadTournamentPage();
   startAutoRefresh();
 }

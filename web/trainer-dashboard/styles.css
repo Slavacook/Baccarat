@@ -718,6 +718,17 @@ body:not(.public-tournament-page) .auth-tabs .tab.active {
     inset 0 1px 0 rgba(255, 248, 220, 0.05);
 }
 
+.public-tournament-page .tournament-hero-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.public-tournament-page .tournament-hero-copy {
+  min-width: 0;
+}
+
 .tournament-hero-brand {
   margin: 0;
   color: #d8c29a;
@@ -742,6 +753,29 @@ body:not(.public-tournament-page) .auth-tabs .tab.active {
 
 .public-tournament-page #tournament-page-error {
   margin: 2px 0 0;
+}
+
+.public-tournament-page .tournament-hero-cta {
+  margin: 0;
+  min-height: 44px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid rgba(233, 204, 133, 0.34);
+  background: linear-gradient(180deg, rgba(214, 184, 119, 0.2), rgba(140, 107, 44, 0.2));
+  color: #f6edd8;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 220, 0.08),
+    0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.public-tournament-page .tournament-hero-cta:hover:not(:disabled) {
+  border-color: rgba(233, 204, 133, 0.5);
+  background: linear-gradient(180deg, rgba(214, 184, 119, 0.28), rgba(140, 107, 44, 0.24));
+}
+
+.public-tournament-page .tournament-hero-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .tournament-leaderboard-card {
@@ -886,6 +920,86 @@ body:not(.public-tournament-page) .auth-tabs .tab.active {
   color: #c7cfbe;
 }
 
+.public-tournament-page .join-tournament-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+  background: rgba(3, 9, 7, 0.72);
+}
+
+.public-tournament-page .join-tournament-modal.hidden {
+  display: none;
+}
+
+.public-tournament-page .join-tournament-modal-card {
+  width: min(440px, calc(100vw - 24px));
+  padding: 18px;
+  border-radius: 18px;
+  border: 1px solid rgba(201, 168, 107, 0.2);
+  background: linear-gradient(180deg, rgba(18, 43, 34, 0.98), rgba(9, 24, 19, 0.98));
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 248, 220, 0.04);
+}
+
+.public-tournament-page .join-tournament-modal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.public-tournament-page .join-tournament-modal-head h3 {
+  margin: 0;
+  color: #f6edd8;
+  font-size: 1.14rem;
+}
+
+.public-tournament-page .join-tournament-modal-close {
+  margin: 0;
+}
+
+.public-tournament-page .join-tournament-modal-copy {
+  margin: 12px 0 0;
+  color: #ccd3c7;
+  font-size: 0.92rem;
+}
+
+.public-tournament-page .join-tournament-modal-actions {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.public-tournament-page .join-tournament-modal-primary,
+.public-tournament-page .join-tournament-modal-secondary {
+  margin: 0;
+  width: 100%;
+}
+
+.public-tournament-page .join-tournament-modal-primary {
+  border-color: rgba(233, 204, 133, 0.38);
+  background: linear-gradient(180deg, rgba(214, 184, 119, 0.2), rgba(140, 107, 44, 0.2));
+  color: #f6edd8;
+}
+
+.public-tournament-page .join-tournament-modal-secondary {
+  border-color: rgba(201, 168, 107, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+  color: #e7dcc1;
+}
+
+.public-tournament-page .join-tournament-modal-status {
+  min-height: 1.2em;
+  margin: 12px 0 0;
+  color: #b8c2b4;
+  font-size: 0.84rem;
+}
+
 @media (max-width: 960px) {
   .public-tournament-page .layout {
     padding-top: 18px;
@@ -902,6 +1016,15 @@ body:not(.public-tournament-page) .auth-tabs .tab.active {
 
   .public-tournament-page .tournament-meta {
     font-size: 0.9rem;
+  }
+
+  .public-tournament-page .tournament-hero-head {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .public-tournament-page .tournament-hero-cta {
+    width: fit-content;
   }
 
   .public-tournament-page .leaderboard-row {
@@ -947,6 +1070,10 @@ body:not(.public-tournament-page) .auth-tabs .tab.active {
   .public-tournament-page .tournament-meta {
     font-size: 0.86rem;
     line-height: 1.4;
+  }
+
+  .public-tournament-page .tournament-hero-cta {
+    width: 100%;
   }
 
   .public-tournament-page .tournament-leaderboard-card {
@@ -1009,6 +1136,11 @@ body:not(.public-tournament-page) .auth-tabs .tab.active {
 
   .public-tournament-page .leaderboard-metric-value {
     font-size: 0.76rem;
+  }
+
+  .public-tournament-page .join-tournament-modal-card {
+    width: min(440px, calc(100vw - 24px));
+    padding: 16px;
   }
 }
 
