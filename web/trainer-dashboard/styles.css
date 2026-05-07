@@ -544,6 +544,129 @@ button:disabled {
   border-color: var(--accent);
 }
 
+body:not(.public-tournament-page) {
+  background:
+    radial-gradient(circle at top, rgba(201, 168, 107, 0.08), transparent 32%),
+    linear-gradient(180deg, #0d241d 0%, #081611 58%, #06110d 100%);
+  color: #f1ead9;
+}
+
+body:not(.public-tournament-page) .layout {
+  max-width: 1680px;
+  padding: 24px 16px 48px;
+}
+
+body:not(.public-tournament-page) .header h1 {
+  color: #f6edd8;
+  font-size: 1.82rem;
+}
+
+body:not(.public-tournament-page) .subtitle {
+  color: #b8c2b4;
+}
+
+body:not(.public-tournament-page) .card {
+  background: linear-gradient(180deg, rgba(18, 43, 34, 0.96), rgba(9, 24, 19, 0.96));
+  border-color: rgba(201, 168, 107, 0.16);
+  border-radius: 14px;
+  box-shadow:
+    0 16px 36px rgba(0, 0, 0, 0.2),
+    inset 0 1px 0 rgba(255, 248, 220, 0.04);
+}
+
+body:not(.public-tournament-page) .card h2 {
+  color: #f3ead3;
+}
+
+body:not(.public-tournament-page) label {
+  color: #b8c2b4;
+}
+
+body:not(.public-tournament-page) input,
+body:not(.public-tournament-page) select {
+  border-color: rgba(201, 168, 107, 0.16);
+  background: rgba(7, 18, 14, 0.78);
+  color: #f1ead9;
+  box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.03);
+}
+
+body:not(.public-tournament-page) button {
+  border-color: rgba(201, 168, 107, 0.16);
+  background: rgba(255, 255, 255, 0.02);
+  color: #efe7d6;
+  box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.04);
+}
+
+body:not(.public-tournament-page) button:hover:not(:disabled) {
+  border-color: rgba(214, 184, 119, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+body:not(.public-tournament-page) button:focus-visible,
+body:not(.public-tournament-page) input:focus-visible,
+body:not(.public-tournament-page) select:focus-visible {
+  outline: 2px solid rgba(214, 184, 119, 0.35);
+  outline-offset: 2px;
+}
+
+body:not(.public-tournament-page) .primary {
+  background: linear-gradient(180deg, #d6b877, #b99252);
+  color: #24180c;
+  border-color: rgba(233, 204, 133, 0.42);
+}
+
+body:not(.public-tournament-page) .secondary {
+  background: rgba(214, 184, 119, 0.08);
+  color: #ead6af;
+  border-color: rgba(214, 184, 119, 0.2);
+}
+
+body:not(.public-tournament-page) .ghost {
+  background: transparent;
+  color: #c1cabd;
+  border-color: rgba(201, 168, 107, 0.1);
+}
+
+body:not(.public-tournament-page) .danger {
+  background: rgba(167, 58, 58, 0.16);
+  color: #f0b6ae;
+  border-color: rgba(208, 102, 102, 0.24);
+}
+
+body:not(.public-tournament-page) .muted {
+  color: #b8c2b4;
+}
+
+body:not(.public-tournament-page) .error {
+  color: #f0b6ae;
+}
+
+body:not(.public-tournament-page) .modal {
+  background: rgba(4, 10, 8, 0.76);
+}
+
+body:not(.public-tournament-page) .modal-card {
+  background: linear-gradient(180deg, rgba(18, 43, 34, 0.98), rgba(9, 24, 19, 0.98));
+  border-color: rgba(201, 168, 107, 0.18);
+  border-radius: 16px;
+  box-shadow:
+    0 24px 60px rgba(0, 0, 0, 0.34),
+    inset 0 1px 0 rgba(255, 248, 220, 0.04);
+}
+
+body:not(.public-tournament-page) .auth-tabs .tab {
+  background: rgba(7, 18, 14, 0.72);
+  color: #b8c2b4;
+  border-color: rgba(201, 168, 107, 0.12);
+}
+
+body:not(.public-tournament-page) .auth-tabs .tab.active {
+  background: linear-gradient(180deg, rgba(42, 69, 53, 0.98), rgba(20, 37, 29, 0.98));
+  color: #f3ead3;
+  border-color: rgba(214, 184, 119, 0.32);
+  box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.05);
+}
+
 .dashboard-section-switcher {
   padding: 16px 20px;
 }
