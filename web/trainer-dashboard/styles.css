@@ -755,45 +755,113 @@ button:disabled {
   text-align: right;
 }
 
-.public-tournament-page .table-wrap {
-  border: 1px solid rgba(201, 168, 107, 0.14);
-  border-radius: 14px;
-  overflow: hidden;
-  background: rgba(14, 35, 28, 0.72);
+.public-tournament-page .tournament-leaderboard-list {
+  display: grid;
+  gap: 14px;
 }
 
-.public-tournament-page table {
-  width: 100%;
-  border-collapse: collapse;
-}
-
-.public-tournament-page thead {
-  background: rgba(201, 168, 107, 0.12);
-}
-
-.public-tournament-page th,
-.public-tournament-page td {
+.public-tournament-page .leaderboard-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 18px;
+  align-items: center;
   padding: 18px 20px;
-  border-bottom: 1px solid rgba(201, 168, 107, 0.1);
-  font-size: 1rem;
+  border-radius: 16px;
+  border: 1px solid rgba(201, 168, 107, 0.14);
+  background: linear-gradient(180deg, rgba(14, 35, 28, 0.88), rgba(10, 25, 20, 0.9));
+  box-shadow:
+    inset 0 1px 0 rgba(255, 248, 220, 0.04),
+    0 12px 26px rgba(0, 0, 0, 0.18);
 }
 
-.public-tournament-page th {
-  color: #e5d8b8;
+.public-tournament-page .leaderboard-row-content {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.public-tournament-page .leaderboard-rank-badge {
+  display: grid;
+  place-items: center;
+  min-width: 68px;
+  height: 68px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(216, 194, 154, 0.26);
+  background: rgba(255, 248, 220, 0.05);
+  color: #f0ead8;
+  font-size: 1.2rem;
   font-weight: 700;
-  text-align: left;
+  box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.06);
 }
 
-.public-tournament-page td {
-  color: #edf1e8;
+.public-tournament-page .leaderboard-rank-first,
+.public-tournament-page .leaderboard-rank-second,
+.public-tournament-page .leaderboard-rank-third {
+  font-size: 1.9rem;
 }
 
-.public-tournament-page tbody tr:last-child td {
-  border-bottom: none;
+.public-tournament-page .leaderboard-rank-first {
+  border-color: rgba(233, 204, 133, 0.52);
+  background: radial-gradient(circle at 30% 30%, rgba(250, 230, 170, 0.26), rgba(181, 142, 63, 0.12));
 }
 
-.public-tournament-page tbody tr:nth-child(odd) {
-  background: rgba(255, 255, 255, 0.02);
+.public-tournament-page .leaderboard-rank-second {
+  border-color: rgba(218, 226, 233, 0.38);
+  background: radial-gradient(circle at 30% 30%, rgba(222, 229, 235, 0.18), rgba(111, 129, 145, 0.12));
+}
+
+.public-tournament-page .leaderboard-rank-third {
+  border-color: rgba(198, 157, 115, 0.42);
+  background: radial-gradient(circle at 30% 30%, rgba(212, 177, 143, 0.2), rgba(136, 86, 55, 0.12));
+}
+
+.public-tournament-page .leaderboard-row-place {
+  margin: 0;
+  color: #d8c29a;
+  font-size: 0.92rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.public-tournament-page .leaderboard-row-name {
+  margin: 0;
+  color: #f6edd8;
+  font-size: 1.32rem;
+  line-height: 1.15;
+  overflow-wrap: anywhere;
+}
+
+.public-tournament-page .leaderboard-row-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.public-tournament-page .leaderboard-stat {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(201, 168, 107, 0.12);
+  background: rgba(255, 255, 255, 0.03);
+  color: #dbe3d8;
+  font-size: 0.95rem;
+  white-space: nowrap;
+}
+
+.public-tournament-page .leaderboard-row.leaderboard-rank-first {
+  border-color: rgba(233, 204, 133, 0.28);
+}
+
+.public-tournament-page .leaderboard-row.leaderboard-rank-second {
+  border-color: rgba(218, 226, 233, 0.18);
+}
+
+.public-tournament-page .leaderboard-row.leaderboard-rank-third {
+  border-color: rgba(198, 157, 115, 0.22);
 }
 
 .public-tournament-page #tournament-public-leaderboard-empty {
@@ -812,6 +880,24 @@ button:disabled {
 
   .public-tournament-page .podium-slot {
     min-height: 0;
+  }
+
+  .public-tournament-page .leaderboard-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .public-tournament-page .leaderboard-rank-badge {
+    min-width: 60px;
+    height: 60px;
+  }
+
+  .public-tournament-page .leaderboard-row-name {
+    font-size: 1.18rem;
+  }
+
+  .public-tournament-page .leaderboard-stat {
+    white-space: normal;
   }
 }
 

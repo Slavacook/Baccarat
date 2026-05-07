@@ -58,6 +58,13 @@ function getPodiumMedal(rank) {
   return "🥉";
 }
 
+function getLeaderboardRankClass(rank) {
+  if (rank === 1) return "leaderboard-rank-first";
+  if (rank === 2) return "leaderboard-rank-second";
+  if (rank === 3) return "leaderboard-rank-third";
+  return "";
+}
+
 function renderTournamentHero(tournament) {
   const title = el("tournament-public-title");
   const meta = el("tournament-public-meta");
@@ -157,44 +164,70 @@ function renderTournamentPodium(entries) {
 
 function renderLeaderboard(entries) {
   const card = el("tournament-public-leaderboard-card");
-  const table = el("tournament-public-leaderboard-table");
-  const tbody = table ? table.querySelector("tbody") : null;
+  const list = el("tournament-public-leaderboard-list");
   const empty = el("tournament-public-leaderboard-empty");
-  if (!card || !tbody || !empty) return;
+  if (!card || !list || !empty) return;
 
-  tbody.innerHTML = "";
+  list.replaceChildren();
   card.classList.remove("hidden");
 
   if (!Array.isArray(entries) || entries.length === 0) {
     empty.classList.remove("hidden");
+    list.classList.add("hidden");
     return;
   }
 
   empty.classList.add("hidden");
+  list.classList.remove("hidden");
   for (const entry of entries) {
-    const tr = document.createElement("tr");
+    const rank = Number(entry && entry.rank);
+    const row = document.createElement("article");
+    row.className = "leaderboard-row";
 
-    const cRank = document.createElement("td");
-    cRank.textContent = String(entry && entry.rank != null ? entry.rank : "—");
+    const rankBadge = document.createElement("div");
+    rankBadge.className = "leaderboard-rank-badge";
+    const rankClass = getLeaderboardRankClass(rank);
+    if (rankClass) {
+      rankBadge.classList.add(rankClass);
+      row.classList.add(rankClass);
+    }
+    rankBadge.textContent = rank >= 1 && rank <= 3 ? getPodiumMedal(rank) : String(entry && entry.rank != null ? entry.rank : "—");
 
-    const cName = document.createElement("td");
-    cName.textContent = entry && entry.display_name ? String(entry.display_name) : "—";
+    const content = document.createElement("div");
+    content.className = "leaderboard-row-content";
 
-    const cErrors = document.createElement("td");
-    cErrors.textContent = String(entry && entry.errors_total != null ? entry.errors_total : "—");
+    const place = document.createElement("p");
+    place.className = "leaderboard-row-place";
+    place.textContent = rank >= 1 && rank <= 3 ? `${rank} место` : `Место ${entry && entry.rank != null ? entry.rank : "—"}`;
 
-    const cTime = document.createElement("td");
-    cTime.textContent = formatDuration(entry && entry.time_spent_seconds != null ? entry.time_spent_seconds : 0);
+    const name = document.createElement("h3");
+    name.className = "leaderboard-row-name";
+    name.textContent = entry && entry.display_name ? String(entry.display_name) : "—";
 
-    const cAttempt = document.createElement("td");
-    cAttempt.textContent = String(entry && entry.attempt_number != null ? entry.attempt_number : "—");
+    const stats = document.createElement("div");
+    stats.className = "leaderboard-row-stats";
 
-    tr.appendChild(cRank);
-    tr.appendChild(cName);
-    tr.appendChild(cErrors);
-    tr.appendChild(cTime);
-    tr.appendChild(cAttempt);
-    tbody.appendChild(tr);
+    const errors = document.createElement("span");
+    errors.className = "leaderboard-stat";
+    errors.textContent = `Ошибки: ${entry && entry.errors_total != null ? entry.errors_total : "—"}`;
+
+    const time = document.createElement("span");
+    time.className = "leaderboard-stat";
+    time.textContent = `Время: ${formatDuration(entry && entry.time_spent_seconds != null ? entry.time_spent_seconds : 0)}`;
+
+    const attempt = document.createElement("span");
+    attempt.className = "leaderboard-stat";
+    attempt.textContent = `Попытка: ${entry && entry.attempt_number != null ? entry.attempt_number : "—"}`;
+
+    stats.appendChild(errors);
+    stats.appendChild(time);
+    stats.appendChild(attempt);
+    content.appendChild(place);
+    content.appendChild(name);
+    content.appendChild(stats);
+    row.appendChild(rankBadge);
+    row.appendChild(content);
+    list.appendChild(row);
   }
 }
 
