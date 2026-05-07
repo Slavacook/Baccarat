@@ -1,6 +1,7 @@
 const el = (id) => document.getElementById(id);
 
 const TELEGRAM_CHANNEL_URL = "https://t.me/baccarat_tr";
+const TRAINER_DASHBOARD_URL = "/";
 
 let refreshTimer = null;
 let currentTournamentCode = "";
@@ -113,6 +114,10 @@ function closeJoinTournamentModal() {
 
 function openTelegramChannel() {
   window.open(TELEGRAM_CHANNEL_URL, "_blank", "noopener");
+}
+
+function openTrainerDashboard() {
+  window.location.href = TRAINER_DASHBOARD_URL;
 }
 
 async function copyTextToClipboard(text) {
@@ -307,6 +312,9 @@ function init() {
   });
   el("btn-open-telegram-channel")?.addEventListener("click", () => {
     openTelegramChannel();
+  });
+  el("btn-open-trainer-dashboard")?.addEventListener("click", () => {
+    openTrainerDashboard();
   });
   el("btn-copy-tournament-code")?.addEventListener("click", () => {
     void copyTournamentCode();
