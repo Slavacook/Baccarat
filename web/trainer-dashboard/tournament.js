@@ -13,14 +13,21 @@ function showPageError(message) {
 
 function formatTournamentStatus(status) {
   const normalized = String(status || "").trim().toLowerCase();
-  if (normalized === "active") return "Активен";
-  if (normalized === "closed") return "Закрыт";
-  return "—";
+  if (normalized === "active" || normalized === "open" || normalized === "started") {
+    return "Активный турнир";
+  }
+  if (normalized === "closed" || normalized === "finished" || normalized === "completed") {
+    return "Завершённый турнир";
+  }
+  if (!normalized) {
+    return "Турнир";
+  }
+  return "Турнир";
 }
 
 function formatTournamentMeta(tournament) {
   if (!tournament) {
-    return "Статус: —";
+    return "Турнир · — · лимит —";
   }
 
   const statusLabel = formatTournamentStatus(tournament.status);
@@ -28,7 +35,7 @@ function formatTournamentMeta(tournament) {
   const attemptDurationSeconds = Number(tournament && tournament.attempt_duration_seconds);
   const roundsLabel = Number.isFinite(maxRounds) && maxRounds > 0 ? `${maxRounds} раздач` : "—";
   const minutes = Number.isFinite(attemptDurationSeconds) && attemptDurationSeconds > 0
-    ? `${Math.floor(attemptDurationSeconds / 60)} мин`
+    ? `лимит ${Math.floor(attemptDurationSeconds / 60)} мин`
     : "—";
   return `${statusLabel} · ${roundsLabel} · ${minutes}`;
 }
