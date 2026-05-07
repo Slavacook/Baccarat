@@ -7,6 +7,8 @@
 class_name GamePhaseManager
 extends RefCounted
 
+const TrainingHintManagerScript = preload("res://scripts/TrainingHintManager.gd")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ЗАВИСИМОСТИ (Dependency Injection)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -38,6 +40,9 @@ var winner_validator: WinnerSelectionValidator = null
 
 ## Резолвер действий по фазам
 var phase_resolver: PhaseActionResolver = null
+
+## Read-only адаптер для debug-подсказок следующего действия
+var training_hint_manager: RefCounted = null
 
 ## Координатор завершения раунда
 var round_completion_coordinator: RoundCompletionCoordinator = null
@@ -186,6 +191,10 @@ func _init(
 	# Инициализируем резолвер действий по фазам
 	phase_resolver = PhaseActionResolver.new()
 	DebugLogger.log("✅ PhaseActionResolver инициализирован в GamePhaseManager")
+
+	# Инициализируем read-only менеджер отладочных подсказок
+	training_hint_manager = TrainingHintManagerScript.new(phase_resolver)
+	DebugLogger.log("✅ TrainingHintManager инициализирован в GamePhaseManager")
 	
 	# Инициализируем координатор завершения раунда
 	round_completion_coordinator = RoundCompletionCoordinator.new()
@@ -1538,6 +1547,8 @@ func _update_game_state_manager() -> void:
 	"""
 	# Используем обновлятор для обновления состояния игры
 	game_state_updater.update_game_state(hand_manager)
+	if training_hint_manager:
+		training_hint_manager.log_debug_hint_if_changed(is_table_prepared)
 
 
 func remove_third_cards_and_recalculate() -> void:
