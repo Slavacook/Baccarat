@@ -629,14 +629,6 @@ button:disabled {
   box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
 }
 
-.tournament-podium-card {
-  margin-top: 16px;
-  border: 1px solid rgba(201, 168, 107, 0.2);
-  border-radius: 18px;
-  background: rgba(8, 20, 16, 0.88);
-  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
-}
-
 .tournament-leaderboard-head {
   display: flex;
   align-items: center;
@@ -649,110 +641,6 @@ button:disabled {
   margin: 0;
   color: #f6edd8;
   font-size: 1.24rem;
-}
-
-.public-tournament-page .tournament-podium {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-  align-items: end;
-}
-
-.public-tournament-page .podium-slot {
-  position: relative;
-  display: grid;
-  gap: 10px;
-  min-height: 168px;
-  padding: 16px 16px 14px;
-  border-radius: 18px;
-  border: 1px solid rgba(216, 194, 154, 0.16);
-  background: linear-gradient(180deg, rgba(22, 50, 40, 0.94), rgba(10, 23, 18, 0.94));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 248, 220, 0.05),
-    0 14px 30px rgba(0, 0, 0, 0.2);
-}
-
-.public-tournament-page .podium-slot::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: inherit;
-  pointer-events: none;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent 40%);
-}
-
-.public-tournament-page .podium-first {
-  min-height: 196px;
-  transform: translateY(-8px);
-  border-color: rgba(217, 183, 104, 0.45);
-  background: linear-gradient(180deg, rgba(61, 48, 22, 0.96), rgba(19, 33, 24, 0.96));
-  box-shadow:
-    inset 0 1px 0 rgba(255, 248, 220, 0.08),
-    0 20px 36px rgba(0, 0, 0, 0.3),
-    0 0 0 1px rgba(217, 183, 104, 0.1);
-}
-
-.public-tournament-page .podium-second,
-.public-tournament-page .podium-third {
-  border-color: rgba(216, 194, 154, 0.22);
-}
-
-.public-tournament-page .podium-badge {
-  display: grid;
-  place-items: center;
-  width: 46px;
-  height: 46px;
-  border-radius: 999px;
-  background: rgba(255, 248, 220, 0.08);
-  border: 1px solid rgba(216, 194, 154, 0.3);
-  font-size: 1.35rem;
-  box-shadow: inset 0 1px 0 rgba(255, 248, 220, 0.08);
-}
-
-.public-tournament-page .podium-first .podium-badge {
-  background: radial-gradient(circle at 30% 30%, rgba(250, 230, 170, 0.32), rgba(181, 142, 63, 0.18));
-  border-color: rgba(233, 204, 133, 0.55);
-}
-
-.public-tournament-page .podium-place {
-  margin: 0;
-  color: #d8c29a;
-  font-size: 0.82rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.public-tournament-page .podium-name {
-  margin: 0;
-  color: #f6edd8;
-  font-size: 1.18rem;
-  line-height: 1.15;
-}
-
-.public-tournament-page .podium-first .podium-name {
-  font-size: 1.36rem;
-}
-
-.public-tournament-page .podium-stats {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 12px;
-  margin: 0;
-}
-
-.public-tournament-page .podium-stats dt {
-  margin: 0;
-  color: #aeb9aa;
-  font-size: 0.82rem;
-}
-
-.public-tournament-page .podium-stats dd {
-  margin: 0;
-  color: #edf1e8;
-  font-size: 0.9rem;
-  font-weight: 600;
-  text-align: right;
 }
 
 .public-tournament-page .tournament-leaderboard-list {
@@ -776,7 +664,7 @@ button:disabled {
 
 .public-tournament-page .leaderboard-row-content {
   display: grid;
-  gap: 6px;
+  gap: 4px;
   min-width: 0;
 }
 
@@ -817,12 +705,7 @@ button:disabled {
 }
 
 .public-tournament-page .leaderboard-row-place {
-  margin: 0;
-  color: #d8c29a;
-  font-size: 0.78rem;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
+  display: none;
 }
 
 .public-tournament-page .leaderboard-row-name {
@@ -833,23 +716,12 @@ button:disabled {
   overflow-wrap: anywhere;
 }
 
-.public-tournament-page .leaderboard-row-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.public-tournament-page .leaderboard-stat {
-  display: inline-flex;
-  align-items: center;
-  min-height: 30px;
-  padding: 6px 10px;
-  border-radius: 999px;
-  border: 1px solid rgba(201, 168, 107, 0.12);
-  background: rgba(255, 255, 255, 0.03);
-  color: #dbe3d8;
-  font-size: 0.85rem;
-  white-space: nowrap;
+.public-tournament-page .leaderboard-row-meta {
+  margin: 0;
+  color: #c8d0c2;
+  font-size: 0.84rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .public-tournament-page .leaderboard-row.leaderboard-rank-first {
@@ -887,24 +759,6 @@ button:disabled {
     font-size: 0.9rem;
   }
 
-  .public-tournament-page .tournament-podium {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: stretch;
-  }
-
-  .public-tournament-page .podium-first {
-    grid-column: 1 / -1;
-    transform: none;
-  }
-
-  .public-tournament-page .podium-slot {
-    min-height: 0;
-  }
-
-  .public-tournament-page .podium-first .podium-name {
-    font-size: 1.28rem;
-  }
-
   .public-tournament-page .leaderboard-row {
     grid-template-columns: 1fr;
     gap: 12px;
@@ -917,10 +771,6 @@ button:disabled {
 
   .public-tournament-page .leaderboard-row-name {
     font-size: 1rem;
-  }
-
-  .public-tournament-page .leaderboard-stat {
-    white-space: normal;
   }
 }
 
@@ -943,34 +793,8 @@ button:disabled {
     line-height: 1.4;
   }
 
-  .public-tournament-page .tournament-podium-card,
   .public-tournament-page .tournament-leaderboard-card {
     margin-top: 14px;
-  }
-
-  .public-tournament-page .tournament-podium {
-    grid-template-columns: 1fr;
-    gap: 10px;
-  }
-
-  .public-tournament-page .podium-slot,
-  .public-tournament-page .podium-first {
-    min-height: 0;
-    padding: 14px 14px 12px;
-  }
-
-  .public-tournament-page .podium-badge {
-    width: 42px;
-    height: 42px;
-    font-size: 1.2rem;
-  }
-
-  .public-tournament-page .podium-name {
-    font-size: 1.08rem;
-  }
-
-  .public-tournament-page .podium-first .podium-name {
-    font-size: 1.18rem;
   }
 
   .public-tournament-page .tournament-leaderboard-head {
@@ -1013,13 +837,7 @@ button:disabled {
     font-size: 0.94rem;
   }
 
-  .public-tournament-page .leaderboard-row-stats {
-    gap: 5px 6px;
-  }
-
-  .public-tournament-page .leaderboard-stat {
-    min-height: 24px;
-    padding: 4px 8px;
+  .public-tournament-page .leaderboard-row-meta {
     font-size: 0.76rem;
   }
 }
@@ -1035,11 +853,6 @@ button:disabled {
 
   .public-tournament-page .tournament-meta {
     font-size: 0.82rem;
-  }
-
-  .public-tournament-page .podium-place,
-  .public-tournament-page .leaderboard-row-place {
-    font-size: 0.74rem;
   }
 
   .public-tournament-page .leaderboard-row-name {
@@ -1059,9 +872,7 @@ button:disabled {
     font-size: 0.92rem;
   }
 
-  .public-tournament-page .leaderboard-stat {
-    min-height: 22px;
-    padding: 4px 7px;
+  .public-tournament-page .leaderboard-row-meta {
     font-size: 0.72rem;
   }
 }
