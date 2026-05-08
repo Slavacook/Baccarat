@@ -193,7 +193,7 @@ func _init(
 	DebugLogger.log("✅ PhaseActionResolver инициализирован в GamePhaseManager")
 
 	# Инициализируем read-only менеджер отладочных подсказок
-	training_hint_manager = TrainingHintManagerScript.new(phase_resolver)
+	training_hint_manager = TrainingHintManagerScript.new(phase_resolver, hand_manager)
 	DebugLogger.log("✅ TrainingHintManager инициализирован в GamePhaseManager")
 	
 	# Инициализируем координатор завершения раунда
