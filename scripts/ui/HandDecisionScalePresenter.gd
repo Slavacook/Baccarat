@@ -7,6 +7,8 @@ extends RefCounted
 const CELL_COUNT := 10
 const PLAYER_SCALE := "player"
 const BANKER_SCALE := "banker"
+const SCALE_FADE_OUT_DURATION_SEC: float = 0.2
+const SCALE_FADE_OUT_STEPS: int = 6
 
 var player_container: Control = null
 var banker_container: Control = null
@@ -20,6 +22,8 @@ var _player_last_target_index: int = -1
 var _banker_last_target_index: int = -1
 var _player_scale_visible: bool = false
 var _banker_scale_visible: bool = false
+var _player_visibility_token: int = 0
+var _banker_visibility_token: int = 0
 
 func setup(player_container_ref: Control, banker_container_ref: Control) -> void:
 	player_container = player_container_ref
@@ -35,13 +39,14 @@ func update_from_hint_payload(payload: Dictionary) -> void:
 	var expected_action := str(payload.get("expected_action", "")).strip_edges()
 	var current_state := str(payload.get("current_state", "")).strip_edges()
 	var any_natural := bool(player_source.get("is_natural", false)) or bool(banker_source.get("is_natural", false))
+	var banker_has_third_card: bool = bool(banker_source.get("has_third_card", false))
 
 	_update_scale(
 		player_container,
 		_player_cells,
 		player_source,
 		PLAYER_SCALE,
-		_should_show_player_scale(player_source, any_natural, expected_action, current_state)
+		_should_show_player_scale(player_source, any_natural, banker_has_third_card, expected_action, current_state)
 	)
 	_update_scale(
 		banker_container,
@@ -54,6 +59,8 @@ func update_from_hint_payload(payload: Dictionary) -> void:
 func reset() -> void:
 	_player_animation_token += 1
 	_banker_animation_token += 1
+	_player_visibility_token += 1
+	_banker_visibility_token += 1
 	_player_active_index = -1
 	_banker_active_index = -1
 	_player_last_target_index = -1
@@ -110,7 +117,7 @@ func _update_scale(
 		_hide_scale(container, cells, scale_type)
 		return
 
-	container.visible = true
+	_prepare_scale_for_show(container, scale_type)
 	var active_index := int(source.get("scale_position", -1))
 	if active_index < 0:
 		active_index = int(source.get("decision_score", 0))
@@ -264,11 +271,70 @@ func _play_tick_sound() -> void:
 		SoundManager.play_decision_scale_tick()
 
 func _hide_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
+	if not container:
+		return
+
+	var was_visible := container.visible and _is_scale_visible(scale_type)
+	var token := _next_visibility_token(scale_type)
 	_cancel_animation(scale_type)
+	if not was_visible:
+		_reset_scale(container, cells, scale_type)
+		return
+
+	_fade_out_scale(container, cells, scale_type, token)
+
+func _prepare_scale_for_show(container: Control, scale_type: String) -> void:
+	if not container:
+		return
+
+	_next_visibility_token(scale_type)
+	container.visible = true
+	_set_container_alpha(container, 1.0)
+
+func _fade_out_scale(
+	container: Control,
+	cells: Array[Dictionary],
+	scale_type: String,
+	token: int
+) -> void:
+	if not container or not container.get_tree():
+		_reset_scale(container, cells, scale_type)
+		return
+
+	var step_delay: float = SCALE_FADE_OUT_DURATION_SEC / float(SCALE_FADE_OUT_STEPS)
+	for step in range(1, SCALE_FADE_OUT_STEPS + 1):
+		await container.get_tree().create_timer(step_delay).timeout
+		if not _is_visibility_token_current(scale_type, token):
+			return
+		var alpha: float = 1.0 - (float(step) / float(SCALE_FADE_OUT_STEPS))
+		_set_container_alpha(container, alpha)
+
+	if not _is_visibility_token_current(scale_type, token):
+		return
 	_reset_scale(container, cells, scale_type)
+
+func _next_visibility_token(scale_type: String) -> int:
+	if scale_type == PLAYER_SCALE:
+		_player_visibility_token += 1
+		return _player_visibility_token
+	_banker_visibility_token += 1
+	return _banker_visibility_token
+
+func _is_visibility_token_current(scale_type: String, token: int) -> bool:
+	if scale_type == PLAYER_SCALE:
+		return token == _player_visibility_token
+	return token == _banker_visibility_token
+
+func _set_container_alpha(container: Control, alpha: float) -> void:
+	if not container:
+		return
+	var color := container.modulate
+	color.a = alpha
+	container.modulate = color
 
 func _reset_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
 	if container:
+		_set_container_alpha(container, 1.0)
 		container.visible = false
 
 	for cell in cells:
@@ -316,6 +382,7 @@ func _dict_value(payload: Dictionary, key: String) -> Dictionary:
 func _should_show_player_scale(
 	player_source: Dictionary,
 	any_natural: bool,
+	banker_has_third_card: bool,
 	_expected_action: String,
 	_current_state: String
 ) -> bool:
@@ -324,6 +391,8 @@ func _should_show_player_scale(
 	if any_natural:
 		return false
 	if bool(player_source.get("has_third_card", false)):
+		return false
+	if banker_has_third_card:
 		return false
 	return true
 
