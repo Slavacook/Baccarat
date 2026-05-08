@@ -33,6 +33,7 @@ var marker_ui: MarkerUIManager          # Управление маркерам�
 var payout_toggle_ui: PayoutToggleManager  # Управление переключателями выплат
 var hand_score_hint_presenter: RefCounted   # Минимальный presenter сумм под руками
 var inspector_hint_presenter: RefCounted    # Постоянная верхняя строка инспектора
+var training_hints_enabled: bool = true     # Глобальный флаг показа учебных подсказок
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРЯМЫЕ ССЫЛКИ НА UI УЗЛЫ (для обратной совместимости)
@@ -200,6 +201,9 @@ func update_banker_third_card_ui(state: String, card: Card = null):
 
 func update_hand_score_hints(payload: Dictionary):
 	"""Обновить минимальные подписи сумм под руками из готового hint payload"""
+	if not training_hints_enabled:
+		reset_hand_score_hints()
+		return
 	if hand_score_hint_presenter:
 		hand_score_hint_presenter.update_from_hint_payload(payload)
 
@@ -210,6 +214,9 @@ func reset_hand_score_hints():
 
 func update_inspector_hint(payload: Dictionary):
 	"""Обновить постоянную верхнюю строку инспектора из готового hint payload"""
+	if not training_hints_enabled:
+		reset_inspector_hint()
+		return
 	if inspector_hint_presenter:
 		inspector_hint_presenter.update_from_hint_payload(payload)
 
@@ -217,6 +224,13 @@ func reset_inspector_hint():
 	"""Скрыть строку инспектора и очистить текст"""
 	if inspector_hint_presenter:
 		inspector_hint_presenter.reset()
+
+func set_training_hints_enabled(enabled: bool) -> void:
+	"""Включить или выключить все учебные подсказки дилера"""
+	training_hints_enabled = enabled
+	if not enabled:
+		reset_hand_score_hints()
+		reset_inspector_hint()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ КНОПКАМИ (→ ButtonUIManager)

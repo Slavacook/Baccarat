@@ -102,6 +102,9 @@ var current_menu: String = "main"  # "main", "limits", "bets", "advanced", "stor
 # === РАЗДЕЛ 4.6.5: АВТОМАТИЧЕСКОЕ ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ ===
 @onready var auto_mode_switch_checkbox: CheckBox = find_child("AutoModeSwitchCheckbox", true, false)
 
+# === РАЗДЕЛ 4.6.6: УЧЕБНЫЕ ПОДСКАЗКИ ДИЛЕРА ===
+@onready var training_hints_checkbox: CheckBox = find_child("TrainingHintsCheckbox", true, false)
+
 # === РАЗДЕЛ 4.7: ВОЗВРАТ ГОСТЕЙ ===
 @onready var guest_return_container: VBoxContainer = find_child("GuestReturnContainer", true, false)
 var guest_return_counter_ui: GuestReturnCounterUI = null
@@ -351,6 +354,10 @@ func _connect_signals() -> void:
 	# Автоматическое переключение режимов
 	if auto_mode_switch_checkbox:
 		auto_mode_switch_checkbox.toggled.connect(_on_auto_mode_switch_toggled)
+
+	# Учебные подсказки дилера
+	if training_hints_checkbox:
+		training_hints_checkbox.toggled.connect(_on_training_hints_toggled)
 
 	# Язык
 	if ru_button:
@@ -949,6 +956,10 @@ func _load_current_values() -> void:
 	if auto_mode_switch_checkbox:
 		auto_mode_switch_checkbox.button_pressed = SaveManager.instance.load_auto_mode_switch_enabled()
 
+	# Учебные подсказки дилера
+	if training_hints_checkbox:
+		training_hints_checkbox.button_pressed = SaveManager.instance.load_training_hints_enabled()
+
 	# Язык
 	_update_lang_buttons()
 
@@ -1264,6 +1275,18 @@ func _on_auto_mode_switch_toggled(pressed: bool):
 	"""Обработка переключения автоматического переключения режимов"""
 	SaveManager.instance.save_auto_mode_switch_enabled(pressed)
 	print("🔄 Автоматическое переключение режимов: %s" % ("включено" if pressed else "выключено"))
+
+func _on_training_hints_toggled(pressed: bool):
+	"""Обработка переключения учебных подсказок дилера"""
+	if not SaveManager or not SaveManager.instance:
+		return
+
+	SaveManager.instance.save_training_hints_enabled(pressed)
+	print("🎓 Учебные подсказки дилера: %s" % ("включены" if pressed else "выключены"))
+
+	var game_controller = get_tree().get_first_node_in_group("game_controller")
+	if game_controller and game_controller.has_method("apply_training_hints_enabled"):
+		game_controller.apply_training_hints_enabled(pressed)
 
 func _update_chance_card_storage_visibility() -> void:
 	"""Обновить видимость ChanceCardStorage в зависимости от настройки"""

@@ -139,6 +139,11 @@ func _ensure_default_settings(settings: Dictionary) -> void:
 	if not settings.has("immortality_enabled"):
 		settings["immortality_enabled"] = false
 		settings_changed = true
+
+	# Учебные подсказки дилера - включены по умолчанию
+	if not settings.has("training_hints_enabled"):
+		settings["training_hints_enabled"] = true
+		settings_changed = true
 	
 	# Сохраняем обновленные настройки только если были добавлены дефолты
 	# Это нужно, чтобы при следующем запуске дефолты уже были в файле
@@ -383,6 +388,18 @@ func load_immortality_enabled() -> bool:
 	"""Загрузить состояние бессмертия (по умолчанию false - выключено)"""
 	var settings = load_settings()
 	return settings.get("immortality_enabled", false)
+
+# ← Настройки учебных подсказок дилера
+func save_training_hints_enabled(enabled: bool):
+	"""Сохранить состояние учебных подсказок дилера (включены/выключены)"""
+	var settings = load_settings()
+	settings["training_hints_enabled"] = enabled
+	save_settings(settings)
+
+func load_training_hints_enabled() -> bool:
+	"""Загрузить состояние учебных подсказок дилера (по умолчанию true - включены)"""
+	var settings = load_settings()
+	return settings.get("training_hints_enabled", true)
 
 # ← Настройки прогрессии гостей
 func save_guest_progression_thresholds(thresholds: Dictionary):

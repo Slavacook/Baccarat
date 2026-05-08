@@ -95,6 +95,8 @@ static func _initialize_core_managers(controller: Node2D, result: Dictionary) ->
 	var ui_manager: UIManager = UIManager.new(controller, result["card_manager"])
 	ui_manager.set_main_node(controller)
 	ui_manager.set_flip_cards(controller.flip_cards)
+	if SaveManager and SaveManager.instance:
+		ui_manager.set_training_hints_enabled(SaveManager.instance.load_training_hints_enabled())
 	result["ui_manager"] = ui_manager
 
 	StatsManager.instance.set_label(ui_manager.stats_label)

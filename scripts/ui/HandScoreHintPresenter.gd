@@ -14,15 +14,19 @@ func setup(player_label_ref: Label, banker_label_ref: Label) -> void:
 
 func update_from_hint_payload(payload: Dictionary) -> void:
 	if player_label:
+		player_label.visible = true
 		player_label.text = _build_hand_text(_dict_value(payload, "player"), "Player")
 	if banker_label:
+		banker_label.visible = true
 		banker_label.text = _build_hand_text(_dict_value(payload, "banker"), "Banker")
 
 func reset() -> void:
 	if player_label:
-		player_label.text = "—"
+		player_label.text = ""
+		player_label.visible = false
 	if banker_label:
-		banker_label.text = "—"
+		banker_label.text = ""
+		banker_label.visible = false
 
 func _build_hand_text(source: Dictionary, prefix: String) -> String:
 	var card_count := int(source.get("card_count", 0))

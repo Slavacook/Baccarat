@@ -1438,6 +1438,11 @@ func _on_settings_closed():
 	else:
 		push_error("❌ UIEventHandler не инициализирован!")
 
+func apply_training_hints_enabled(enabled: bool) -> void:
+	"""Применить настройку показа учебных подсказок дилера к текущему UI"""
+	if ui_manager:
+		ui_manager.set_training_hints_enabled(enabled)
+
 # Методы управления видимостью UI элементов перенесены в UIEventHandler
 # _hide_game_ui_elements -> ui_event_handler.hide_game_ui_elements
 # _show_game_ui_elements -> ui_event_handler.show_game_ui_elements
