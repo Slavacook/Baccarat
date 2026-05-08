@@ -5,6 +5,7 @@ class_name InspectorHintPresenter
 extends RefCounted
 
 const INSPECTOR_HINT_DELAY_SEC: float = 5.0
+const INSPECTOR_FINAL_HINT_DELAY_SEC: float = 15.0
 
 var panel: Control = null
 var label: Label = null
@@ -18,8 +19,9 @@ func setup(panel_ref: Control, label_ref: Label) -> void:
 func update_from_hint_payload(payload: Dictionary) -> void:
 	var inspector := _dict_value(payload, "inspector")
 	var short_message := str(inspector.get("short_message", "")).strip_edges()
+	var final_message := str(inspector.get("final_message", "")).strip_edges()
 
-	if short_message.is_empty():
+	if short_message.is_empty() and final_message.is_empty():
 		reset()
 		return
 
@@ -31,14 +33,30 @@ func update_from_hint_payload(payload: Dictionary) -> void:
 	if not panel.get_tree():
 		return
 
-	await panel.get_tree().create_timer(INSPECTOR_HINT_DELAY_SEC).timeout
+	if not short_message.is_empty():
+		await panel.get_tree().create_timer(INSPECTOR_HINT_DELAY_SEC).timeout
+
+		if token != _show_token:
+			return
+		if not panel or not label:
+			return
+
+		label.text = short_message
+		panel.visible = true
+
+	if final_message.is_empty():
+		return
+
+	var extra_delay: float = INSPECTOR_FINAL_HINT_DELAY_SEC - INSPECTOR_HINT_DELAY_SEC
+	if extra_delay > 0.0:
+		await panel.get_tree().create_timer(extra_delay).timeout
 
 	if token != _show_token:
 		return
 	if not panel or not label:
 		return
 
-	label.text = short_message
+	label.text = final_message
 	panel.visible = true
 
 func reset() -> void:

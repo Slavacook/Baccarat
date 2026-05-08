@@ -285,6 +285,7 @@ func _build_inspector_payload(
 		"title": title,
 		"message": message,
 		"short_message": _build_inspector_short_message(expected_action, player_insight, banker_insight),
+		"final_message": _build_inspector_final_message(expected_action),
 		"severity": "info",
 		"reason_code": resolver_action
 	}
@@ -308,6 +309,25 @@ func _build_inspector_short_message(
 			return "Раздача окончена. Выбери победителя."
 		_:
 			return ""
+
+func _build_inspector_final_message(expected_action: String) -> String:
+	if expected_action != "choose_winner":
+		return ""
+	if not hand_manager:
+		return ""
+
+	var winner := BaccaratRules.get_winner(
+		hand_manager.get_player_hand_ref(),
+		hand_manager.get_banker_hand_ref()
+	)
+
+	match winner:
+		"Player":
+			return "Победил Игрок."
+		"Banker":
+			return "Победил Банкир."
+		_:
+			return "Эгалите."
 
 func _string_field(source: Variant, key: String) -> String:
 	if source is Dictionary:
