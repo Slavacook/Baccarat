@@ -24,6 +24,7 @@ var _player_scale_visible: bool = false
 var _banker_scale_visible: bool = false
 var _player_visibility_token: int = 0
 var _banker_visibility_token: int = 0
+var _scale_sequence_token: int = 0
 
 func setup(player_container_ref: Control, banker_container_ref: Control) -> void:
 	player_container = player_container_ref
@@ -36,31 +37,34 @@ func setup(player_container_ref: Control, banker_container_ref: Control) -> void
 func update_from_hint_payload(payload: Dictionary) -> void:
 	var player_source := _dict_value(payload, "player")
 	var banker_source := _dict_value(payload, "banker")
-	var expected_action := str(payload.get("expected_action", "")).strip_edges()
-	var current_state := str(payload.get("current_state", "")).strip_edges()
 	var any_natural := bool(player_source.get("is_natural", false)) or bool(banker_source.get("is_natural", false))
 	var banker_has_third_card: bool = bool(banker_source.get("has_third_card", false))
+	var player_should_show: bool = _should_show_player_scale(player_source, any_natural, banker_has_third_card, "", "")
+	var banker_should_show: bool = _should_show_banker_scale(banker_source, any_natural, "", "")
+	var player_target_index: int = _resolve_target_index(player_source)
+	var banker_target_index: int = _resolve_target_index(banker_source)
+	var sequence_token: int = _next_scale_sequence_token()
 
-	_update_scale(
-		player_container,
-		_player_cells,
-		player_source,
-		PLAYER_SCALE,
-		_should_show_player_scale(player_source, any_natural, banker_has_third_card, expected_action, current_state)
-	)
-	_update_scale(
-		banker_container,
-		_banker_cells,
-		banker_source,
-		BANKER_SCALE,
-		_should_show_banker_scale(banker_source, any_natural, expected_action, current_state)
-	)
+	if not player_should_show:
+		_hide_scale(player_container, _player_cells, PLAYER_SCALE)
+	if not banker_should_show:
+		_hide_scale(banker_container, _banker_cells, BANKER_SCALE)
+
+	if player_should_show and banker_should_show and not _is_scale_visible(PLAYER_SCALE) and not _is_scale_visible(BANKER_SCALE):
+		_run_scale_sequence(player_target_index, banker_target_index, sequence_token)
+		return
+
+	if player_should_show:
+		_update_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index)
+	if banker_should_show:
+		_update_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index)
 
 func reset() -> void:
 	_player_animation_token += 1
 	_banker_animation_token += 1
 	_player_visibility_token += 1
 	_banker_visibility_token += 1
+	_scale_sequence_token += 1
 	_player_active_index = -1
 	_banker_active_index = -1
 	_player_last_target_index = -1
@@ -106,39 +110,44 @@ func _build_scale(container: Control) -> Array[Dictionary]:
 func _update_scale(
 	container: Control,
 	cells: Array[Dictionary],
-	source: Dictionary,
 	scale_type: String,
-	should_show: bool
+	active_index: int
 ) -> void:
 	if not container:
 		return
 
-	if not should_show:
-		_hide_scale(container, cells, scale_type)
+	if not _is_scale_visible(scale_type):
+		_show_scale(container, cells, scale_type, active_index)
 		return
 
 	_prepare_scale_for_show(container, scale_type)
-	var active_index := int(source.get("scale_position", -1))
-	if active_index < 0:
-		active_index = int(source.get("decision_score", 0))
-	active_index = clampi(active_index, 0, CELL_COUNT - 1)
-
-	if not _is_scale_visible(scale_type):
-		_mark_scale_visible(scale_type, true)
-		_set_last_target_index(scale_type, active_index)
-		_start_scale_animation(container, cells, scale_type, active_index)
-		return
-
 	if active_index == _get_last_target_index(scale_type):
 		return
 
 	_set_last_target_index(scale_type, active_index)
 	_set_active_index(cells, scale_type, active_index)
 
+func _run_scale_sequence(player_target_index: int, banker_target_index: int, sequence_token: int) -> void:
+	await _show_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index)
+	if not _is_sequence_token_current(sequence_token):
+		return
+	if not _is_scale_visible(PLAYER_SCALE):
+		return
+	await _show_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index)
+
+func _show_scale(container: Control, cells: Array[Dictionary], scale_type: String, target_index: int) -> void:
+	if not container:
+		return
+
+	_prepare_scale_for_show(container, scale_type)
+	_mark_scale_visible(scale_type, true)
+	_set_last_target_index(scale_type, target_index)
+	await _start_scale_animation(container, cells, scale_type, target_index)
+
 func _start_scale_animation(container: Control, cells: Array[Dictionary], scale_type: String, target_index: int) -> void:
 	var token := _next_animation_token(scale_type)
 	_set_active_index(cells, scale_type, 0)
-	_animate_scale_to_target(container, cells, scale_type, target_index, token)
+	await _animate_scale_to_target(container, cells, scale_type, target_index, token)
 
 func _animate_scale_to_target(
 	container: Control,
@@ -168,7 +177,7 @@ func _animate_scale_to_target(
 			return
 
 		var progress := float(step_index) / float(total_steps)
-		var delay := lerpf(0.02, 0.075, progress)
+		var delay := lerpf(0.03, 0.095, progress)
 		await container.get_tree().create_timer(delay).timeout
 
 func _build_animation_sequence(target_index: int) -> Array[int]:
@@ -320,6 +329,13 @@ func _next_visibility_token(scale_type: String) -> int:
 	_banker_visibility_token += 1
 	return _banker_visibility_token
 
+func _next_scale_sequence_token() -> int:
+	_scale_sequence_token += 1
+	return _scale_sequence_token
+
+func _is_sequence_token_current(token: int) -> bool:
+	return token == _scale_sequence_token
+
 func _is_visibility_token_current(scale_type: String, token: int) -> bool:
 	if scale_type == PLAYER_SCALE:
 		return token == _player_visibility_token
@@ -378,6 +394,12 @@ func _dict_value(payload: Dictionary, key: String) -> Dictionary:
 	if value is Dictionary:
 		return value
 	return {}
+
+func _resolve_target_index(source: Dictionary) -> int:
+	var active_index: int = int(source.get("scale_position", -1))
+	if active_index < 0:
+		active_index = int(source.get("decision_score", 0))
+	return clampi(active_index, 0, CELL_COUNT - 1)
 
 func _should_show_player_scale(
 	player_source: Dictionary,
