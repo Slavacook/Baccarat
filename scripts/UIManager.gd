@@ -5,6 +5,8 @@
 class_name UIManager
 extends RefCounted
 
+const HandScoreHintPresenterScript = preload("res://scripts/ui/HandScoreHintPresenter.gd")
+
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (Публичный API - проброс от дочерних менеджеров)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -28,6 +30,7 @@ var toggle_ui: ToggleUIManager          # Управление toggles трет�
 var button_ui: ButtonUIManager          # Управление кнопками
 var marker_ui: MarkerUIManager          # Управление маркерами победителя
 var payout_toggle_ui: PayoutToggleManager  # Управление переключателями выплат
+var hand_score_hint_presenter: RefCounted   # Минимальный presenter сумм под руками
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРЯМЫЕ ССЫЛКИ НА UI УЗЛЫ (для обратной совместимости)
@@ -53,6 +56,8 @@ var player_card3: TextureRect
 var banker_card1: TextureRect
 var banker_card2: TextureRect
 var banker_card3: TextureRect
+var player_score_hint_label: Label
+var banker_score_hint_label: Label
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -101,6 +106,13 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	banker_card1 = card_ui.banker_card1
 	banker_card2 = card_ui.banker_card2
 	banker_card3 = card_ui.banker_card3
+	player_score_hint_label = scene.get_node_or_null("PlayerZone/ScoreHintLabel")
+	banker_score_hint_label = scene.get_node_or_null("BankerZone/ScoreHintLabel")
+
+	# Минимальный presenter для текста сумм под руками
+	hand_score_hint_presenter = HandScoreHintPresenterScript.new()
+	if hand_score_hint_presenter:
+		hand_score_hint_presenter.setup(player_score_hint_label, banker_score_hint_label)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ШАГ 3: Проброс сигналов от дочерних менеджеров
@@ -175,6 +187,16 @@ func update_banker_third_card_ui(state: String, card: Card = null):
 	"""Обновление UI переключателя третьей карты банкира"""
 	toggle_ui.update_banker_third_card_ui(state, card)
 
+func update_hand_score_hints(payload: Dictionary):
+	"""Обновить минимальные подписи сумм под руками из готового hint payload"""
+	if hand_score_hint_presenter:
+		hand_score_hint_presenter.update_from_hint_payload(payload)
+
+func reset_hand_score_hints():
+	"""Сбросить подписи сумм под руками в пустое состояние"""
+	if hand_score_hint_presenter:
+		hand_score_hint_presenter.reset()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ КНОПКАМИ (→ ButtonUIManager)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -233,6 +255,9 @@ func reset_ui():
 	# Сброс кнопки действия
 	button_ui.update_action_button(Localization.t("ACTION_BUTTON_CARDS"))
 	button_ui.enable_action_button()
+
+	# Сброс подписей сумм под руками
+	reset_hand_score_hints()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ РУБАШЕК КАРТ

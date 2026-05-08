@@ -1548,7 +1548,9 @@ func _update_game_state_manager() -> void:
 	# Используем обновлятор для обновления состояния игры
 	game_state_updater.update_game_state(hand_manager)
 	if training_hint_manager:
-		training_hint_manager.log_debug_hint_if_changed(is_table_prepared)
+		var hint_payload: Dictionary = training_hint_manager.log_debug_hint_if_changed(is_table_prepared)
+		if ui:
+			ui.update_hand_score_hints(hint_payload)
 
 
 func remove_third_cards_and_recalculate() -> void:

@@ -51,11 +51,11 @@ func build_debug_hint(is_table_prepared: bool) -> Dictionary:
 		"current_state": state_name,
 	}
 
-func log_debug_hint_if_changed(is_table_prepared: bool) -> void:
-	if not OS.is_debug_build():
-		return
-
+func log_debug_hint_if_changed(is_table_prepared: bool) -> Dictionary:
 	var hint := build_debug_hint(is_table_prepared)
+	if not OS.is_debug_build():
+		return hint
+
 	var signature := "%s|%s|%s|%s|%s|%s" % [
 		str(hint.get("state", "")),
 		str(hint.get("expected_action", "")),
@@ -65,7 +65,7 @@ func log_debug_hint_if_changed(is_table_prepared: bool) -> void:
 		_string_field(hint.get("inspector", {}), "reason_code")
 	]
 	if signature == _last_log_signature:
-		return
+		return hint
 
 	_last_log_signature = signature
 	print("[TrainingHint] state=%s(%s) valid_actions=%s expected=%s phase=%s reason=%s title=%s explanation=%s" % [
@@ -85,6 +85,7 @@ func log_debug_hint_if_changed(is_table_prepared: bool) -> void:
 		_string_field(hint.get("banker", {}), "zone"),
 		_string_field(hint.get("inspector", {}), "message")
 	])
+	return hint
 
 func _stringify_actions(actions: Array) -> Array[String]:
 	var result: Array[String] = []
