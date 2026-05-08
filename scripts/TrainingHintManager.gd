@@ -31,6 +31,7 @@ func build_debug_hint(is_table_prepared: bool) -> Dictionary:
 	var expected_action := _map_expected_action(current_state, resolver_action)
 	var player_insight := _build_player_insight()
 	var banker_insight := _build_banker_insight()
+	_apply_short_ui_overrides(player_insight, banker_insight, expected_action)
 	var inspector := _build_inspector_payload(expected_action, resolver_action, resolver_reason, player_insight, banker_insight)
 
 	return {
@@ -141,6 +142,7 @@ func _build_player_insight() -> Dictionary:
 		"label": "Player %d" % score,
 		"zone": zone,
 		"zone_title": zone_title,
+		"short_zone_title": _build_player_short_zone_title(zone),
 		"scale_position": initial_score,
 		"is_natural": is_natural,
 		"has_third_card": has_third_card,
@@ -190,6 +192,7 @@ func _build_banker_insight() -> Dictionary:
 		"label": "Banker %d" % score,
 		"zone": zone,
 		"zone_title": zone_title,
+		"short_zone_title": _build_banker_short_zone_title(zone),
 		"scale_position": initial_score,
 		"is_natural": is_natural,
 		"has_third_card": has_third_card,
@@ -202,6 +205,88 @@ func _is_display_natural(initial_score: int, has_third_card: bool, card_count: i
 	if card_count < 2:
 		return false
 	return initial_score >= 8 and initial_score <= 9
+
+func _build_player_short_zone_title(zone: String) -> String:
+	match zone:
+		"empty":
+			return ""
+		"player_draw_zone":
+			return "Берёт"
+		"player_stand_zone":
+			return "Не берёт"
+		"natural_zone":
+			return "Раздача окончена"
+		"final_only":
+			return "Итог"
+		_:
+			return ""
+
+func _build_banker_short_zone_title(zone: String) -> String:
+	match zone:
+		"empty":
+			return ""
+		"banker_draw_0_2":
+			return "Берёт"
+		"banker_complex_3_6":
+			return "По 3-й карте Игрока"
+		"banker_stand_7":
+			return "Не берёт"
+		"natural_zone":
+			return "Раздача окончена"
+		"final_only":
+			return "Итог"
+		_:
+			return ""
+
+func _apply_short_ui_overrides(player_insight: Dictionary, banker_insight: Dictionary, expected_action: String) -> void:
+	var player_natural := bool(player_insight.get("is_natural", false))
+	var banker_natural := bool(banker_insight.get("is_natural", false))
+	if player_natural or banker_natural:
+		var natural_outcomes := _build_natural_outcome_titles()
+		player_insight["short_zone_title"] = str(natural_outcomes.get("player", "Раздача окончена"))
+		banker_insight["short_zone_title"] = str(natural_outcomes.get("banker", "Раздача окончена"))
+		return
+
+	if str(banker_insight.get("zone", "")) != "banker_complex_3_6":
+		return
+
+	var banker_has_third_card := bool(banker_insight.get("has_third_card", false))
+	if banker_has_third_card:
+		banker_insight["short_zone_title"] = "Итог"
+	elif expected_action == "banker_third":
+		banker_insight["short_zone_title"] = "Берёт"
+	elif expected_action == "choose_winner":
+		banker_insight["short_zone_title"] = "Не берёт"
+	else:
+		banker_insight["short_zone_title"] = "По 3-й карте Игрока"
+
+func _build_natural_outcome_titles() -> Dictionary:
+	if not hand_manager:
+		return {
+			"player": "Раздача окончена",
+			"banker": "Раздача окончена"
+		}
+
+	var winner := BaccaratRules.get_winner(
+		hand_manager.get_player_hand_ref(),
+		hand_manager.get_banker_hand_ref()
+	)
+	match winner:
+		"Player":
+			return {
+				"player": "Победа",
+				"banker": "Проигрыш"
+			}
+		"Banker":
+			return {
+				"player": "Проигрыш",
+				"banker": "Победа"
+			}
+		_:
+			return {
+				"player": "Ничья",
+				"banker": "Ничья"
+			}
 
 func _build_inspector_payload(
 	expected_action: String,

@@ -31,10 +31,17 @@ func _build_hand_text(source: Dictionary, prefix: String) -> String:
 
 	var score := int(source.get("score", 0))
 	var is_natural := bool(source.get("is_natural", false))
+	var first_line := ""
 	if is_natural:
-		return "Natural %d" % score
+		first_line = "Natural %d" % score
+	else:
+		first_line = "%s: %d" % [prefix, score]
 
-	return "%s: %d" % [prefix, score]
+	var short_zone_title := str(source.get("short_zone_title", "")).strip_edges()
+	if short_zone_title.is_empty():
+		return first_line
+
+	return "%s\n%s" % [first_line, short_zone_title]
 
 func _dict_value(payload: Dictionary, key: String) -> Dictionary:
 	var value: Variant = payload.get(key, {})
