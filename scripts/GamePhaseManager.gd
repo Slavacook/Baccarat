@@ -1551,6 +1551,7 @@ func _update_game_state_manager() -> void:
 		var hint_payload: Dictionary = training_hint_manager.log_debug_hint_if_changed(is_table_prepared)
 		if ui:
 			ui.update_hand_score_hints(hint_payload)
+			ui.update_hand_decision_scales(hint_payload)
 			ui.update_inspector_hint(hint_payload)
 
 

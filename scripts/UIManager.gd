@@ -6,6 +6,7 @@ class_name UIManager
 extends RefCounted
 
 const HandScoreHintPresenterScript = preload("res://scripts/ui/HandScoreHintPresenter.gd")
+const HandDecisionScalePresenterScript = preload("res://scripts/ui/HandDecisionScalePresenter.gd")
 const InspectorHintPresenterScript = preload("res://scripts/ui/InspectorHintPresenter.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -32,6 +33,7 @@ var button_ui: ButtonUIManager          # Управление кнопками
 var marker_ui: MarkerUIManager          # Управление маркерами победителя
 var payout_toggle_ui: PayoutToggleManager  # Управление переключателями выплат
 var hand_score_hint_presenter: RefCounted   # Минимальный presenter сумм под руками
+var hand_decision_scale_presenter: RefCounted  # Визуальные шкалы решений 0-9
 var inspector_hint_presenter: RefCounted    # Постоянная верхняя строка инспектора
 var training_hints_enabled: bool = true     # Глобальный флаг показа учебных подсказок
 
@@ -61,6 +63,8 @@ var banker_card2: TextureRect
 var banker_card3: TextureRect
 var player_score_hint_label: Label
 var banker_score_hint_label: Label
+var player_decision_scale_container: Control
+var banker_decision_scale_container: Control
 var inspector_hint_panel: Control
 var inspector_hint_label: Label
 
@@ -113,6 +117,8 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	banker_card3 = card_ui.banker_card3
 	player_score_hint_label = scene.get_node_or_null("PlayerZone/ScoreHintLabel")
 	banker_score_hint_label = scene.get_node_or_null("BankerZone/ScoreHintLabel")
+	player_decision_scale_container = scene.get_node_or_null("PlayerZone/DecisionScaleContainer")
+	banker_decision_scale_container = scene.get_node_or_null("BankerZone/DecisionScaleContainer")
 	inspector_hint_panel = scene.get_node_or_null("TopUI/InspectorHintPanel")
 	inspector_hint_label = scene.get_node_or_null("TopUI/InspectorHintPanel/MarginContainer/InspectorHintLabel")
 
@@ -120,6 +126,11 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	hand_score_hint_presenter = HandScoreHintPresenterScript.new()
 	if hand_score_hint_presenter:
 		hand_score_hint_presenter.setup(player_score_hint_label, banker_score_hint_label)
+
+	# Визуальные шкалы решения 0-9
+	hand_decision_scale_presenter = HandDecisionScalePresenterScript.new()
+	if hand_decision_scale_presenter:
+		hand_decision_scale_presenter.setup(player_decision_scale_container, banker_decision_scale_container)
 
 	# Постоянная верхняя строка инспектора
 	inspector_hint_presenter = InspectorHintPresenterScript.new()
@@ -212,6 +223,19 @@ func reset_hand_score_hints():
 	if hand_score_hint_presenter:
 		hand_score_hint_presenter.reset()
 
+func update_hand_decision_scales(payload: Dictionary):
+	"""Обновить визуальные шкалы решения под руками из готового hint payload"""
+	if not training_hints_enabled:
+		reset_hand_decision_scales()
+		return
+	if hand_decision_scale_presenter:
+		hand_decision_scale_presenter.update_from_hint_payload(payload)
+
+func reset_hand_decision_scales():
+	"""Скрыть визуальные шкалы решения и сбросить подсветку"""
+	if hand_decision_scale_presenter:
+		hand_decision_scale_presenter.reset()
+
 func update_inspector_hint(payload: Dictionary):
 	"""Обновить постоянную верхнюю строку инспектора из готового hint payload"""
 	if not training_hints_enabled:
@@ -230,6 +254,7 @@ func set_training_hints_enabled(enabled: bool) -> void:
 	training_hints_enabled = enabled
 	if not enabled:
 		reset_hand_score_hints()
+		reset_hand_decision_scales()
 		reset_inspector_hint()
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -293,6 +318,9 @@ func reset_ui():
 
 	# Сброс подписей сумм под руками
 	reset_hand_score_hints()
+
+	# Сброс визуальных шкал решений
+	reset_hand_decision_scales()
 
 	# Сброс строки инспектора
 	reset_inspector_hint()
