@@ -6,6 +6,7 @@ class_name UIManager
 extends RefCounted
 
 const HandScoreHintPresenterScript = preload("res://scripts/ui/HandScoreHintPresenter.gd")
+const InspectorHintPresenterScript = preload("res://scripts/ui/InspectorHintPresenter.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (Публичный API - проброс от дочерних менеджеров)
@@ -31,6 +32,7 @@ var button_ui: ButtonUIManager          # Управление кнопками
 var marker_ui: MarkerUIManager          # Управление маркерами победителя
 var payout_toggle_ui: PayoutToggleManager  # Управление переключателями выплат
 var hand_score_hint_presenter: RefCounted   # Минимальный presenter сумм под руками
+var inspector_hint_presenter: RefCounted    # Постоянная верхняя строка инспектора
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ПРЯМЫЕ ССЫЛКИ НА UI УЗЛЫ (для обратной совместимости)
@@ -58,6 +60,8 @@ var banker_card2: TextureRect
 var banker_card3: TextureRect
 var player_score_hint_label: Label
 var banker_score_hint_label: Label
+var inspector_hint_panel: Control
+var inspector_hint_label: Label
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -108,11 +112,18 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	banker_card3 = card_ui.banker_card3
 	player_score_hint_label = scene.get_node_or_null("PlayerZone/ScoreHintLabel")
 	banker_score_hint_label = scene.get_node_or_null("BankerZone/ScoreHintLabel")
+	inspector_hint_panel = scene.get_node_or_null("TopUI/InspectorHintPanel")
+	inspector_hint_label = scene.get_node_or_null("TopUI/InspectorHintPanel/MarginContainer/InspectorHintLabel")
 
 	# Минимальный presenter для текста сумм под руками
 	hand_score_hint_presenter = HandScoreHintPresenterScript.new()
 	if hand_score_hint_presenter:
 		hand_score_hint_presenter.setup(player_score_hint_label, banker_score_hint_label)
+
+	# Постоянная верхняя строка инспектора
+	inspector_hint_presenter = InspectorHintPresenterScript.new()
+	if inspector_hint_presenter:
+		inspector_hint_presenter.setup(inspector_hint_panel, inspector_hint_label)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ШАГ 3: Проброс сигналов от дочерних менеджеров
@@ -197,6 +208,16 @@ func reset_hand_score_hints():
 	if hand_score_hint_presenter:
 		hand_score_hint_presenter.reset()
 
+func update_inspector_hint(payload: Dictionary):
+	"""Обновить постоянную верхнюю строку инспектора из готового hint payload"""
+	if inspector_hint_presenter:
+		inspector_hint_presenter.update_from_hint_payload(payload)
+
+func reset_inspector_hint():
+	"""Скрыть строку инспектора и очистить текст"""
+	if inspector_hint_presenter:
+		inspector_hint_presenter.reset()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ КНОПКАМИ (→ ButtonUIManager)
 # ═══════════════════════════════════════════════════════════════════════════
@@ -258,6 +279,9 @@ func reset_ui():
 
 	# Сброс подписей сумм под руками
 	reset_hand_score_hints()
+
+	# Сброс строки инспектора
+	reset_inspector_hint()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ РУБАШЕК КАРТ

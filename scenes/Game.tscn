@@ -117,6 +117,18 @@ corner_radius_top_right = 16
 corner_radius_bottom_right = 16
 corner_radius_bottom_left = 16
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_inspector_hint_panel"]
+bg_color = Color(0.054902, 0.0784314, 0.101961, 0.88)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.38)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
 [node name="Game" type="Node2D"]
 script = ExtResource("1_aug50")
 
@@ -126,6 +138,34 @@ transform = Transform2D(1, 0, 0, 1, 0, 50)
 
 [node name="TopUI" type="CanvasLayer" parent="."]
 layer = 128
+
+[node name="InspectorHintPanel" type="PanelContainer" parent="TopUI"]
+visible = false
+anchors_preset = 10
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -240.0
+offset_top = 20.0
+offset_right = 240.0
+offset_bottom = 68.0
+grow_horizontal = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_inspector_hint_panel")
+mouse_filter = 2
+
+[node name="MarginContainer" type="MarginContainer" parent="TopUI/InspectorHintPanel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 10
+
+[node name="InspectorHintLabel" type="Label" parent="TopUI/InspectorHintPanel/MarginContainer"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.937255, 0.854902, 0.627451, 1)
+theme_override_font_sizes/font_size = 20
+text = ""
+horizontal_alignment = 1
+vertical_alignment = 1
 
 [node name="SurvivalModeUI" parent="TopUI" instance=ExtResource("4_survival")]
 visible = true

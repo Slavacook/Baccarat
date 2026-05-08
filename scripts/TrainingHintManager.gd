@@ -242,9 +242,8 @@ func _apply_short_ui_overrides(player_insight: Dictionary, banker_insight: Dicti
 	var player_natural := bool(player_insight.get("is_natural", false))
 	var banker_natural := bool(banker_insight.get("is_natural", false))
 	if player_natural or banker_natural:
-		var natural_outcomes := _build_natural_outcome_titles()
-		player_insight["short_zone_title"] = str(natural_outcomes.get("player", "Раздача окончена"))
-		banker_insight["short_zone_title"] = str(natural_outcomes.get("banker", "Раздача окончена"))
+		player_insight["short_zone_title"] = "Раздача окончена"
+		banker_insight["short_zone_title"] = "Раздача окончена"
 		return
 
 	if str(banker_insight.get("zone", "")) != "banker_complex_3_6":
@@ -259,34 +258,6 @@ func _apply_short_ui_overrides(player_insight: Dictionary, banker_insight: Dicti
 		banker_insight["short_zone_title"] = "Не берёт"
 	else:
 		banker_insight["short_zone_title"] = "По 3-й карте Игрока"
-
-func _build_natural_outcome_titles() -> Dictionary:
-	if not hand_manager:
-		return {
-			"player": "Раздача окончена",
-			"banker": "Раздача окончена"
-		}
-
-	var winner := BaccaratRules.get_winner(
-		hand_manager.get_player_hand_ref(),
-		hand_manager.get_banker_hand_ref()
-	)
-	match winner:
-		"Player":
-			return {
-				"player": "Победа",
-				"banker": "Проигрыш"
-			}
-		"Banker":
-			return {
-				"player": "Проигрыш",
-				"banker": "Победа"
-			}
-		_:
-			return {
-				"player": "Ничья",
-				"banker": "Ничья"
-			}
 
 func _build_inspector_payload(
 	expected_action: String,
@@ -313,9 +284,30 @@ func _build_inspector_payload(
 	return {
 		"title": title,
 		"message": message,
+		"short_message": _build_inspector_short_message(expected_action, player_insight, banker_insight),
 		"severity": "info",
 		"reason_code": resolver_action
 	}
+
+func _build_inspector_short_message(
+	expected_action: String,
+	player_insight: Dictionary,
+	banker_insight: Dictionary
+) -> String:
+	if bool(player_insight.get("is_natural", false)) or bool(banker_insight.get("is_natural", false)):
+		return "Natural. Раздача окончена."
+
+	match expected_action:
+		"both_third":
+			return "Карта каждому."
+		"player_third":
+			return "Карта игроку."
+		"banker_third":
+			return "Карта банкиру."
+		"choose_winner":
+			return "Раздача окончена. Выбери победителя."
+		_:
+			return ""
 
 func _string_field(source: Variant, key: String) -> String:
 	if source is Dictionary:
