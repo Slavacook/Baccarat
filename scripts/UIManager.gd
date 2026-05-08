@@ -20,6 +20,9 @@ signal banker_third_toggled(selected: bool)
 signal winner_selected(winner: String)
 signal help_button_pressed()
 signal lang_button_pressed()
+signal first_four_reveal_completed()
+signal player_third_reveal_completed()
+signal banker_third_reveal_completed()
 # TieMarker теперь обрабатывается через WinnerSelectionManager
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -159,6 +162,17 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	)
 	toggle_ui.banker_third_toggled.connect(
 		func(selected): banker_third_toggled.emit(selected)
+	)
+
+	# От CardUIManager
+	card_ui.first_four_reveal_completed.connect(
+		func(): first_four_reveal_completed.emit()
+	)
+	card_ui.player_third_reveal_completed.connect(
+		func(): player_third_reveal_completed.emit()
+	)
+	card_ui.banker_third_reveal_completed.connect(
+		func(): banker_third_reveal_completed.emit()
 	)
 
 	# От MarkerUIManager (в текущей архитектуре не используется, но оставляем для совместимости)

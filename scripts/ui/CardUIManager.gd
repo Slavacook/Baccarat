@@ -5,6 +5,10 @@
 class_name CardUIManager
 extends RefCounted
 
+signal first_four_reveal_completed()
+signal player_third_reveal_completed()
+signal banker_third_reveal_completed()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # UI УЗЛЫ КАРТ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -118,6 +122,7 @@ func show_first_four_cards(player_hand: Array[Card], banker_hand: Array[Card]):
 	banker_card2.texture = banker_cards[1].get_texture(card_manager)
 	banker_card2.visible = true
 	flip_cards[3].visible = false
+	first_four_reveal_completed.emit()
 
 
 func show_player_third_card(card: Card):
@@ -129,6 +134,7 @@ func show_player_third_card(card: Card):
 	player_card3.texture = card.get_texture(card_manager)
 	player_card3.visible = true
 	flip_cards[4].visible = false
+	player_third_reveal_completed.emit()
 
 
 func show_banker_third_card(card: Card):
@@ -140,6 +146,7 @@ func show_banker_third_card(card: Card):
 	banker_card3.texture = card.get_texture(card_manager)
 	banker_card3.visible = true
 	flip_cards[5].visible = false
+	banker_third_reveal_completed.emit()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СБРОС И ИНИЦИАЛИЗАЦИЯ КАРТ

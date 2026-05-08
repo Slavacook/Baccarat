@@ -123,6 +123,8 @@ var banker_third_selected: bool = false
 var is_first_deal: bool = true
 var is_table_prepared: bool = false
 var was_heart_bet_round: bool = false  # Флаг Heart Bet раунда (даже при отказе)
+var _pending_training_hint_payload: Dictionary = {}
+var _delay_training_hints_until_reveal: bool = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ФИЛЬТРА СТАВОК
@@ -171,6 +173,11 @@ func _init(
 	if limits_manager:
 		guest_bet_storage = GuestBetStorage.new()
 		guest_bet_factory = GuestBetFactory.new(limits_manager, guest_bet_storage)
+
+	if ui:
+		ui.first_four_reveal_completed.connect(_flush_pending_training_hints)
+		ui.player_third_reveal_completed.connect(_flush_pending_training_hints)
+		ui.banker_third_reveal_completed.connect(_flush_pending_training_hints)
 	
 	# Инициализируем менеджер ставки сердцем
 	heart_bet_manager = HeartBetManager.new()
@@ -298,6 +305,7 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	"""
 	# Используем координатор для получения инструкций
 	var instructions = game_state_reset_coordinator.get_reset_instructions(update_state, keep_guest_bets)
+	_clear_pending_training_hints()
 	
 	# Сброс рук и флагов
 	if instructions.get("should_reset_hands", false):
@@ -447,6 +455,7 @@ func deal_first_four() -> void:
 	banker_third_selected = false
 	ui.update_player_third_card_ui("?")
 	ui.update_banker_third_card_ui("?")
+	_delay_training_hints_until_reveal = true
 	ui.show_first_four_cards(hand_manager.get_player_hand_ref(), hand_manager.get_banker_hand_ref())
 	ui.set_action_button_state("confirm")
 	
@@ -524,6 +533,7 @@ func draw_player_third() -> void:
 		return
 	
 	ui.update_player_third_card_ui("card", card)  # Скрываем ДО анимации!
+	_delay_training_hints_until_reveal = true
 	ui.show_player_third_card(card)
 	player_third_selected = false
 	_update_game_state_manager()
@@ -553,6 +563,7 @@ func draw_banker_third() -> void:
 		return
 	
 	ui.update_banker_third_card_ui("card", card)  # Скрываем ДО анимации!
+	_delay_training_hints_until_reveal = true
 	ui.show_banker_third_card(card)
 	banker_third_selected = false
 	
@@ -1549,10 +1560,31 @@ func _update_game_state_manager() -> void:
 	game_state_updater.update_game_state(hand_manager)
 	if training_hint_manager:
 		var hint_payload: Dictionary = training_hint_manager.log_debug_hint_if_changed(is_table_prepared)
-		if ui:
-			ui.update_hand_score_hints(hint_payload)
-			ui.update_hand_decision_scales(hint_payload)
-			ui.update_inspector_hint(hint_payload)
+		_queue_or_show_training_hints(hint_payload)
+
+func _show_training_hints(payload: Dictionary) -> void:
+	if not ui:
+		return
+	ui.update_hand_score_hints(payload)
+	ui.update_hand_decision_scales(payload)
+	ui.update_inspector_hint(payload)
+
+func _queue_or_show_training_hints(payload: Dictionary) -> void:
+	if _delay_training_hints_until_reveal:
+		_pending_training_hint_payload = payload.duplicate(true)
+		return
+	_show_training_hints(payload)
+
+func _flush_pending_training_hints() -> void:
+	var payload := _pending_training_hint_payload
+	_clear_pending_training_hints()
+	if payload.is_empty():
+		return
+	_show_training_hints(payload)
+
+func _clear_pending_training_hints() -> void:
+	_pending_training_hint_payload = {}
+	_delay_training_hints_until_reveal = false
 
 
 func remove_third_cards_and_recalculate() -> void:
