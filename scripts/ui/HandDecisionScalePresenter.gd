@@ -14,6 +14,8 @@ var _player_cells: Array[Dictionary] = []
 var _banker_cells: Array[Dictionary] = []
 var _player_animation_token: int = 0
 var _banker_animation_token: int = 0
+var _player_active_index: int = -1
+var _banker_active_index: int = -1
 
 func setup(player_container_ref: Control, banker_container_ref: Control) -> void:
 	player_container = player_container_ref
@@ -30,6 +32,8 @@ func update_from_hint_payload(payload: Dictionary) -> void:
 func reset() -> void:
 	_player_animation_token += 1
 	_banker_animation_token += 1
+	_player_active_index = -1
+	_banker_active_index = -1
 	_reset_scale(player_container, _player_cells, PLAYER_SCALE)
 	_reset_scale(banker_container, _banker_cells, BANKER_SCALE)
 
@@ -108,7 +112,9 @@ func _animate_scale_to_target(
 		if not container.visible:
 			return
 
-		_set_active_index(cells, scale_type, int(sequence[step_index]))
+		var did_change: bool = _set_active_index(cells, scale_type, int(sequence[step_index]))
+		if did_change:
+			_play_tick_sound()
 
 		if step_index == sequence.size() - 1:
 			return
@@ -138,7 +144,11 @@ func _append_range(sequence: Array[int], start_index: int, end_index: int, step:
 			return
 		index += step
 
-func _set_active_index(cells: Array[Dictionary], scale_type: String, active_index: int) -> void:
+func _set_active_index(cells: Array[Dictionary], scale_type: String, active_index: int) -> bool:
+	var previous_index: int = _get_last_active_index(scale_type)
+	var did_change: bool = previous_index != active_index
+	_set_last_active_index(scale_type, active_index)
+
 	for cell in cells:
 		var index := int(cell.get("index", -1))
 		var panel := cell.get("panel") as PanelContainer
@@ -146,6 +156,8 @@ func _set_active_index(cells: Array[Dictionary], scale_type: String, active_inde
 		var is_active := index == active_index
 		if panel:
 			panel.add_theme_stylebox_override("panel", _build_cell_style(zone_color, is_active))
+
+	return did_change
 
 func _next_animation_token(scale_type: String) -> int:
 	if scale_type == PLAYER_SCALE:
@@ -158,14 +170,31 @@ func _next_animation_token(scale_type: String) -> int:
 func _cancel_animation(scale_type: String) -> void:
 	if scale_type == PLAYER_SCALE:
 		_player_animation_token += 1
+		_player_active_index = -1
 		return
 
 	_banker_animation_token += 1
+	_banker_active_index = -1
 
 func _is_animation_token_current(scale_type: String, token: int) -> bool:
 	if scale_type == PLAYER_SCALE:
 		return token == _player_animation_token
 	return token == _banker_animation_token
+
+func _get_last_active_index(scale_type: String) -> int:
+	if scale_type == PLAYER_SCALE:
+		return _player_active_index
+	return _banker_active_index
+
+func _set_last_active_index(scale_type: String, active_index: int) -> void:
+	if scale_type == PLAYER_SCALE:
+		_player_active_index = active_index
+		return
+	_banker_active_index = active_index
+
+func _play_tick_sound() -> void:
+	if SoundManager and SoundManager.has_method("play_decision_scale_tick"):
+		SoundManager.play_decision_scale_tick()
 
 func _reset_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
 	if container:

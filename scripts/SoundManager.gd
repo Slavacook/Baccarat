@@ -12,7 +12,9 @@ const FOCUS_CHANGE_VOLUME: float = 0.3  # Громкость звука focus_ch
 const MODE_SWITCH_VOLUME: float = 0.2  # Громкость звука mode_switch (20% от оригинала)
 const PATIENCE_LOST_VOLUME: float = 0.5  # Громкость звука patience_lost (50% от оригинала)
 const CAMERA_TRANSITION_VOLUME: float = 0.05  # Громкость звука перемещения камеры (50% от оригинала)
+const DECISION_SCALE_TICK_VOLUME: float = 0.18  # Tick шкалы решений
 const MAX_SFX_PLAYERS: int = 5  # Максимум одновременно играющих звуков
+const DECISION_SCALE_TICK_INTERVAL_MS: int = 40  # Ограничение частоты tick-звука
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ЗВУКОВЫЕ ПОТОКИ
@@ -39,6 +41,7 @@ var heart_sound: AudioStream  # Сердце (heart bet)
 var bet_sounds: Array[AudioStream] = []  # Звуки ставок гостей (8 вариантов)
 var camera_transition_sound: AudioStream  # Звук перехода камеры (whoosh_2)
 var payout_open_sound: AudioStream  # Звук открытия окна выплат (whoosh_1)
+var decision_scale_tick_sound: AudioStream  # Tick анимации шкалы решений
 
 # AudioStreamPlayer узлы
 var flip_player: AudioStreamPlayer
@@ -51,6 +54,7 @@ var sfx_volume: float = 1.0
 # Флаги для отслеживания состояния
 var last_patience_values: Dictionary = {}  # {guest_id: patience} для отслеживания потери терпения
 var last_tips_value: int = 0  # Для отслеживания получения чаевых
+var _last_decision_scale_tick_ms: int = 0
 
 func _init():
 	if instance == null:
@@ -182,6 +186,9 @@ func _load_sounds():
 	
 	# whoosh_1.mp3 - Звук открытия окна выплат
 	payout_open_sound = _load_sound_safe(GameConstants.PAYOUT_OPEN_SOUND_PATH)
+
+	# tick.wav - короткий tick для анимации шкалы решений
+	decision_scale_tick_sound = _load_sound_safe("res://assets/sound/tick.wav")
 
 func _load_sound_safe(path: String) -> AudioStream:
 	"""Безопасная загрузка звука (не выдаёт ошибку если файл не найден или не импортирован)
@@ -478,6 +485,18 @@ func play_camera_transition_sound():
 func play_payout_open_sound():
 	"""Звук открытия окна выплат"""
 	play_sound(payout_open_sound)
+
+func play_decision_scale_tick():
+	"""Короткий tick для шагов анимации шкалы решений"""
+	if not decision_scale_tick_sound:
+		return
+
+	var now_ms: int = Time.get_ticks_msec()
+	if now_ms - _last_decision_scale_tick_ms < DECISION_SCALE_TICK_INTERVAL_MS:
+		return
+
+	_last_decision_scale_tick_ms = now_ms
+	play_sound(decision_scale_tick_sound, DECISION_SCALE_TICK_VOLUME)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НАСТРОЙКИ ГРОМКОСТИ
