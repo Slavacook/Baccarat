@@ -224,13 +224,11 @@ func update_banker_third_card_ui(state: String, card: Card = null):
 	"""Обновление UI переключателя третьей карты банкира"""
 	toggle_ui.update_banker_third_card_ui(state, card)
 
-func update_hand_score_hints(payload: Dictionary):
+func update_hand_score_hints(_payload: Dictionary):
 	"""Обновить минимальные подписи сумм под руками из готового hint payload"""
-	if not training_hints_enabled:
-		reset_hand_score_hints()
-		return
-	if hand_score_hint_presenter:
-		hand_score_hint_presenter.update_from_hint_payload(payload)
+	# Временный экспериментальный режим: скрываем текстовые подписи
+	# и оставляем только визуальные шкалы решений.
+	reset_hand_score_hints()
 
 func reset_hand_score_hints():
 	"""Сбросить подписи сумм под руками в пустое состояние"""

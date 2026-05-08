@@ -16,6 +16,10 @@ var _player_animation_token: int = 0
 var _banker_animation_token: int = 0
 var _player_active_index: int = -1
 var _banker_active_index: int = -1
+var _player_last_target_index: int = -1
+var _banker_last_target_index: int = -1
+var _player_scale_visible: bool = false
+var _banker_scale_visible: bool = false
 
 func setup(player_container_ref: Control, banker_container_ref: Control) -> void:
 	player_container = player_container_ref
@@ -26,14 +30,36 @@ func setup(player_container_ref: Control, banker_container_ref: Control) -> void
 	reset()
 
 func update_from_hint_payload(payload: Dictionary) -> void:
-	_update_scale(player_container, _player_cells, _dict_value(payload, "player"), PLAYER_SCALE)
-	_update_scale(banker_container, _banker_cells, _dict_value(payload, "banker"), BANKER_SCALE)
+	var player_source := _dict_value(payload, "player")
+	var banker_source := _dict_value(payload, "banker")
+	var expected_action := str(payload.get("expected_action", "")).strip_edges()
+	var current_state := str(payload.get("current_state", "")).strip_edges()
+	var any_natural := bool(player_source.get("is_natural", false)) or bool(banker_source.get("is_natural", false))
+
+	_update_scale(
+		player_container,
+		_player_cells,
+		player_source,
+		PLAYER_SCALE,
+		_should_show_player_scale(player_source, any_natural, expected_action, current_state)
+	)
+	_update_scale(
+		banker_container,
+		_banker_cells,
+		banker_source,
+		BANKER_SCALE,
+		_should_show_banker_scale(banker_source, any_natural, expected_action, current_state)
+	)
 
 func reset() -> void:
 	_player_animation_token += 1
 	_banker_animation_token += 1
 	_player_active_index = -1
 	_banker_active_index = -1
+	_player_last_target_index = -1
+	_banker_last_target_index = -1
+	_player_scale_visible = false
+	_banker_scale_visible = false
 	_reset_scale(player_container, _player_cells, PLAYER_SCALE)
 	_reset_scale(banker_container, _banker_cells, BANKER_SCALE)
 
@@ -70,14 +96,18 @@ func _build_scale(container: Control) -> Array[Dictionary]:
 
 	return result
 
-func _update_scale(container: Control, cells: Array[Dictionary], source: Dictionary, scale_type: String) -> void:
+func _update_scale(
+	container: Control,
+	cells: Array[Dictionary],
+	source: Dictionary,
+	scale_type: String,
+	should_show: bool
+) -> void:
 	if not container:
 		return
 
-	var card_count := int(source.get("card_count", 0))
-	if card_count < 2:
-		_cancel_animation(scale_type)
-		container.visible = false
+	if not should_show:
+		_hide_scale(container, cells, scale_type)
 		return
 
 	container.visible = true
@@ -85,7 +115,18 @@ func _update_scale(container: Control, cells: Array[Dictionary], source: Diction
 	if active_index < 0:
 		active_index = int(source.get("decision_score", 0))
 	active_index = clampi(active_index, 0, CELL_COUNT - 1)
-	_start_scale_animation(container, cells, scale_type, active_index)
+
+	if not _is_scale_visible(scale_type):
+		_mark_scale_visible(scale_type, true)
+		_set_last_target_index(scale_type, active_index)
+		_start_scale_animation(container, cells, scale_type, active_index)
+		return
+
+	if active_index == _get_last_target_index(scale_type):
+		return
+
+	_set_last_target_index(scale_type, active_index)
+	_set_active_index(cells, scale_type, active_index)
 
 func _start_scale_animation(container: Control, cells: Array[Dictionary], scale_type: String, target_index: int) -> void:
 	var token := _next_animation_token(scale_type)
@@ -171,10 +212,14 @@ func _cancel_animation(scale_type: String) -> void:
 	if scale_type == PLAYER_SCALE:
 		_player_animation_token += 1
 		_player_active_index = -1
+		_player_last_target_index = -1
+		_player_scale_visible = false
 		return
 
 	_banker_animation_token += 1
 	_banker_active_index = -1
+	_banker_last_target_index = -1
+	_banker_scale_visible = false
 
 func _is_animation_token_current(scale_type: String, token: int) -> bool:
 	if scale_type == PLAYER_SCALE:
@@ -192,9 +237,35 @@ func _set_last_active_index(scale_type: String, active_index: int) -> void:
 		return
 	_banker_active_index = active_index
 
+func _get_last_target_index(scale_type: String) -> int:
+	if scale_type == PLAYER_SCALE:
+		return _player_last_target_index
+	return _banker_last_target_index
+
+func _set_last_target_index(scale_type: String, target_index: int) -> void:
+	if scale_type == PLAYER_SCALE:
+		_player_last_target_index = target_index
+		return
+	_banker_last_target_index = target_index
+
+func _is_scale_visible(scale_type: String) -> bool:
+	if scale_type == PLAYER_SCALE:
+		return _player_scale_visible
+	return _banker_scale_visible
+
+func _mark_scale_visible(scale_type: String, visible: bool) -> void:
+	if scale_type == PLAYER_SCALE:
+		_player_scale_visible = visible
+		return
+	_banker_scale_visible = visible
+
 func _play_tick_sound() -> void:
 	if SoundManager and SoundManager.has_method("play_decision_scale_tick"):
 		SoundManager.play_decision_scale_tick()
+
+func _hide_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
+	_cancel_animation(scale_type)
+	_reset_scale(container, cells, scale_type)
 
 func _reset_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
 	if container:
@@ -241,3 +312,31 @@ func _dict_value(payload: Dictionary, key: String) -> Dictionary:
 	if value is Dictionary:
 		return value
 	return {}
+
+func _should_show_player_scale(
+	player_source: Dictionary,
+	any_natural: bool,
+	_expected_action: String,
+	_current_state: String
+) -> bool:
+	if int(player_source.get("card_count", 0)) < 2:
+		return false
+	if any_natural:
+		return false
+	if bool(player_source.get("has_third_card", false)):
+		return false
+	return true
+
+func _should_show_banker_scale(
+	banker_source: Dictionary,
+	any_natural: bool,
+	_expected_action: String,
+	_current_state: String
+) -> bool:
+	if int(banker_source.get("card_count", 0)) < 2:
+		return false
+	if any_natural:
+		return false
+	if bool(banker_source.get("has_third_card", false)):
+		return false
+	return true

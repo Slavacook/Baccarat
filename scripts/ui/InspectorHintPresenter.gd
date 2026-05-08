@@ -4,8 +4,11 @@
 class_name InspectorHintPresenter
 extends RefCounted
 
+const INSPECTOR_HINT_DELAY_SEC: float = 5.0
+
 var panel: Control = null
 var label: Label = null
+var _show_token: int = 0
 
 func setup(panel_ref: Control, label_ref: Label) -> void:
 	panel = panel_ref
@@ -20,12 +23,33 @@ func update_from_hint_payload(payload: Dictionary) -> void:
 		reset()
 		return
 
-	if label:
-		label.text = short_message
-	if panel:
-		panel.visible = true
+	var token: int = _next_show_token()
+	_hide_panel()
+
+	if not panel or not label:
+		return
+	if not panel.get_tree():
+		return
+
+	await panel.get_tree().create_timer(INSPECTOR_HINT_DELAY_SEC).timeout
+
+	if token != _show_token:
+		return
+	if not panel or not label:
+		return
+
+	label.text = short_message
+	panel.visible = true
 
 func reset() -> void:
+	_show_token += 1
+	_hide_panel()
+
+func _next_show_token() -> int:
+	_show_token += 1
+	return _show_token
+
+func _hide_panel() -> void:
 	if label:
 		label.text = ""
 	if panel:
