@@ -199,7 +199,7 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 	# PairBettingManager
 	result["pair_betting_manager"] = PairBettingManager.new()
 	DebugLogger.log_init("PairBettingManager инициализирован")
-	_apply_runtime_payout_state(result["pair_betting_manager"])
+	_apply_runtime_payout_state(result["pair_betting_manager"], controller)
 
 	# PayoutQueueManager (создается пустым, будет пересоздан при подготовке выплат)
 	result["payout_queue_manager"] = PayoutQueueManager.new()
@@ -210,7 +210,7 @@ static func _setup_auxiliary_managers(controller: Node2D, result: Dictionary) ->
 	DebugLogger.log_init("HandManager инициализирован")
 
 
-static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager) -> void:
+static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager, controller: Node2D) -> void:
 	var session_manager: Variant = null
 	if Engine.has_singleton("SessionManager"):
 		session_manager = Engine.get_singleton("SessionManager")
@@ -223,14 +223,18 @@ static func _apply_runtime_payout_state(pair_betting_manager: PairBettingManager
 		_apply_tournament_payout_state(session_manager, pair_betting_manager)
 		_apply_tournament_first_four_cards(session_manager)
 		_apply_tournament_chance_cards_enabled(session_manager)
+		_apply_tournament_training_hints_enabled(session_manager)
 		_apply_tournament_tip_percentage(session_manager)
 		_apply_tournament_guests_enabled(session_manager)
+		_apply_runtime_training_hints_to_ui(controller)
 		return
 
 	_clear_tournament_guests_enabled_override()
 	_clear_tournament_chance_cards_enabled_override()
+	_clear_tournament_training_hints_enabled_override()
 	_clear_tournament_tip_percentage_override()
 	_restore_local_payout_state(pair_betting_manager)
+	_apply_runtime_training_hints_to_ui(controller)
 
 
 static func _apply_tournament_payout_state(session_manager: Variant, pair_betting_manager: PairBettingManager) -> void:
@@ -400,6 +404,41 @@ static func _clear_tournament_chance_cards_enabled_override() -> void:
 	print("🧪 TOURNAMENT SETTINGS TRACE chance_cards_enabled override cleared")
 
 
+static func _apply_tournament_training_hints_enabled(session_manager: Variant) -> void:
+	if SaveManager == null or SaveManager.instance == null:
+		print("🧪 TOURNAMENT SETTINGS TRACE training_hints_enabled: SaveManager not available")
+		return
+
+	var tournament_settings_variant: Variant = session_manager.tournament_settings
+	if not (tournament_settings_variant is Dictionary):
+		print("🧪 TOURNAMENT SETTINGS TRACE training_hints_enabled: tournament_settings missing, override cleared")
+		SaveManager.instance.clear_runtime_training_hints_enabled_override()
+		return
+
+	var tournament_settings := tournament_settings_variant as Dictionary
+	if not tournament_settings.has("training_hints_enabled"):
+		print("🧪 TOURNAMENT SETTINGS TRACE training_hints_enabled: not found, override cleared")
+		SaveManager.instance.clear_runtime_training_hints_enabled_override()
+		return
+	if not (tournament_settings["training_hints_enabled"] is bool):
+		print("🧪 TOURNAMENT SETTINGS TRACE training_hints_enabled: invalid type, override cleared")
+		SaveManager.instance.clear_runtime_training_hints_enabled_override()
+		return
+
+	var enabled := tournament_settings["training_hints_enabled"] as bool
+	SaveManager.instance.set_runtime_training_hints_enabled_override(enabled)
+	print("🧪 TOURNAMENT SETTINGS TRACE training_hints_enabled applied=%s" % [
+		"true" if enabled else "false"
+	])
+
+
+static func _clear_tournament_training_hints_enabled_override() -> void:
+	if SaveManager == null or SaveManager.instance == null:
+		return
+	SaveManager.instance.clear_runtime_training_hints_enabled_override()
+	print("🧪 TOURNAMENT SETTINGS TRACE training_hints_enabled override cleared")
+
+
 static func _apply_tournament_tip_percentage(session_manager: Variant) -> void:
 	if SaveManager == null or SaveManager.instance == null:
 		print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage: SaveManager not available")
@@ -433,6 +472,13 @@ static func _clear_tournament_tip_percentage_override() -> void:
 		return
 	SaveManager.instance.clear_runtime_tip_percentage_override()
 	print("🧪 TOURNAMENT SETTINGS TRACE tip_percentage override cleared")
+
+
+static func _apply_runtime_training_hints_to_ui(controller: Node2D) -> void:
+	if controller == null or SaveManager == null or SaveManager.instance == null:
+		return
+	if controller.ui_manager:
+		controller.ui_manager.set_training_hints_enabled(SaveManager.instance.load_training_hints_enabled())
 
 
 static func _apply_tournament_guests_enabled(session_manager: Variant) -> void:

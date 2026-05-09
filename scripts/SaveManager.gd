@@ -10,6 +10,8 @@ const SETTINGS_PATH = "user://baccarat_settings.save"
 var score: int = 0
 var _runtime_chance_cards_enabled_override_active: bool = false
 var _runtime_chance_cards_enabled_override: bool = false
+var _runtime_training_hints_enabled_override_active: bool = false
+var _runtime_training_hints_enabled_override: bool = true
 var _runtime_tip_percentage_override_active: bool = false
 var _runtime_tip_percentage_override: float = 0.0
 
@@ -396,8 +398,20 @@ func save_training_hints_enabled(enabled: bool):
 	settings["training_hints_enabled"] = enabled
 	save_settings(settings)
 
+func set_runtime_training_hints_enabled_override(enabled: bool) -> void:
+	"""Установить runtime override для учебных подсказок без записи в локальные настройки."""
+	_runtime_training_hints_enabled_override_active = true
+	_runtime_training_hints_enabled_override = enabled
+
+func clear_runtime_training_hints_enabled_override() -> void:
+	"""Очистить runtime override для учебных подсказок."""
+	_runtime_training_hints_enabled_override_active = false
+	_runtime_training_hints_enabled_override = true
+
 func load_training_hints_enabled() -> bool:
 	"""Загрузить состояние учебных подсказок дилера (по умолчанию true - включены)"""
+	if _runtime_training_hints_enabled_override_active:
+		return _runtime_training_hints_enabled_override
 	var settings = load_settings()
 	return settings.get("training_hints_enabled", true)
 

@@ -149,12 +149,22 @@ func _update_scale(
 	return false
 
 func _run_scale_sequence(player_target_index: int, banker_target_index: int, sequence_token: int, flow_token: int) -> void:
+	if not is_instance_valid(player_container):
+		return
+
 	await _show_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index, flow_token, false)
+
 	if not _is_sequence_token_current(sequence_token):
+		return
+	if not _is_scale_flow_token_current(flow_token):
 		return
 	if not _is_scale_visible(PLAYER_SCALE):
 		return
+	if not is_instance_valid(banker_container):
+		return
+
 	await _show_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index, flow_token, false)
+
 	if not _is_scale_flow_token_current(flow_token):
 		return
 	_complete_flow_operation(flow_token)
@@ -167,21 +177,33 @@ func _show_scale(
 	flow_token: int,
 	complete_on_finish: bool
 ) -> void:
-	if not container:
+	if not is_instance_valid(container):
 		return
 
 	_prepare_scale_for_show(container, scale_type)
 	_mark_scale_visible(scale_type, true)
 	_set_last_target_index(scale_type, target_index)
+
+	if not is_instance_valid(container):
+		return
 	await _start_scale_animation(container, cells, scale_type, target_index)
+
+	if not is_instance_valid(container):
+		return
 	if not _is_scale_flow_token_current(flow_token):
 		return
 	if complete_on_finish:
 		_complete_flow_operation(flow_token)
 
 func _start_scale_animation(container: Control, cells: Array[Dictionary], scale_type: String, target_index: int) -> void:
+	if not is_instance_valid(container):
+		return
+
 	var token := _next_animation_token(scale_type)
 	_set_active_index(cells, scale_type, 0)
+
+	if not is_instance_valid(container):
+		return
 	await _animate_scale_to_target(container, cells, scale_type, target_index, token)
 
 func _animate_scale_to_target(
@@ -191,7 +213,7 @@ func _animate_scale_to_target(
 	target_index: int,
 	token: int
 ) -> void:
-	if not container or not container.get_tree():
+	if not is_instance_valid(container) or not container.get_tree():
 		_set_active_index(cells, scale_type, target_index)
 		return
 
@@ -200,6 +222,8 @@ func _animate_scale_to_target(
 
 	for step_index in range(sequence.size()):
 		if not _is_animation_token_current(scale_type, token):
+			return
+		if not is_instance_valid(container):
 			return
 		if not container.visible:
 			return
@@ -213,6 +237,8 @@ func _animate_scale_to_target(
 
 		var progress := float(step_index) / float(total_steps)
 		var delay := lerpf(0.03, 0.095, progress)
+		if not is_instance_valid(container) or not container.get_tree():
+			return
 		await container.get_tree().create_timer(delay).timeout
 
 func _build_animation_sequence(target_index: int) -> Array[int]:
@@ -330,7 +356,7 @@ func _hide_scale(container: Control, cells: Array[Dictionary], scale_type: Strin
 	return true
 
 func _prepare_scale_for_show(container: Control, scale_type: String) -> void:
-	if not container:
+	if not is_instance_valid(container):
 		return
 
 	_next_visibility_token(scale_type)
@@ -344,7 +370,7 @@ func _fade_out_scale(
 	token: int,
 	flow_token: int
 ) -> void:
-	if not container or not container.get_tree():
+	if not is_instance_valid(container) or not container.get_tree():
 		_reset_scale(container, cells, scale_type)
 		if _is_scale_flow_token_current(flow_token):
 			_complete_flow_operation(flow_token)
@@ -352,8 +378,12 @@ func _fade_out_scale(
 
 	var step_delay: float = SCALE_FADE_OUT_DURATION_SEC / float(SCALE_FADE_OUT_STEPS)
 	for step in range(1, SCALE_FADE_OUT_STEPS + 1):
+		if not is_instance_valid(container) or not container.get_tree():
+			return
 		await container.get_tree().create_timer(step_delay).timeout
 		if not _is_visibility_token_current(scale_type, token):
+			return
+		if not is_instance_valid(container):
 			return
 		var alpha: float = 1.0 - (float(step) / float(SCALE_FADE_OUT_STEPS))
 		_set_container_alpha(container, alpha)
@@ -405,14 +435,14 @@ func _is_visibility_token_current(scale_type: String, token: int) -> bool:
 	return token == _banker_visibility_token
 
 func _set_container_alpha(container: Control, alpha: float) -> void:
-	if not container:
+	if not is_instance_valid(container):
 		return
 	var color := container.modulate
 	color.a = alpha
 	container.modulate = color
 
 func _reset_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
-	if container:
+	if is_instance_valid(container):
 		_set_container_alpha(container, 1.0)
 		container.visible = false
 
