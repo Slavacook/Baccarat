@@ -35,7 +35,8 @@ TOURNAMENT_SETTINGS_DEFAULT_JSON = """
   "guest_story_enabled": true,
   "tip_percentage": 0.3,
   "chance_cards_enabled": false,
-  "auto_mode_switch_enabled": true
+  "auto_mode_switch_enabled": true,
+  "training_hints_enabled": true
 }
 """.strip()
 

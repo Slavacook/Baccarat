@@ -36,6 +36,7 @@ def default_tournament_settings() -> dict[str, Any]:
         "tip_percentage": 0.3,
         "chance_cards_enabled": False,
         "auto_mode_switch_enabled": True,
+        "training_hints_enabled": True,
     }
 
 

@@ -1895,6 +1895,8 @@ function formatTournamentSettingsSummary(tournament) {
 
   const tipPercentageRaw = Number(settings.tip_percentage);
   const tipPercentage = Number.isFinite(tipPercentageRaw) ? `${tipPercentageRaw}%` : "—";
+  const trainingHintsEnabled =
+    typeof settings.training_hints_enabled === "boolean" ? settings.training_hints_enabled : true;
 
   return [
     `Лимиты: ${limitsMode}`,
@@ -1905,6 +1907,7 @@ function formatTournamentSettingsSummary(tournament) {
     `Чаевые: ${tipPercentage}`,
     `Карты шансов: ${settings.chance_cards_enabled ? "вкл" : "выкл"}`,
     `Автопереключение режима фишек: ${settings.auto_mode_switch_enabled ? "вкл" : "выкл"}`,
+    `Шкалы и подсказки инспектора: ${trainingHintsEnabled ? "вкл" : "выкл"}`,
   ];
 }
 
@@ -2362,6 +2365,9 @@ function resetCreateTournamentSettings() {
   const autoModeSwitchEnabled = el("new-tournament-auto-mode-switch-enabled");
   if (autoModeSwitchEnabled) autoModeSwitchEnabled.checked = true;
 
+  const trainingHintsEnabled = el("new-tournament-training-hints-enabled");
+  if (trainingHintsEnabled) trainingHintsEnabled.checked = true;
+
   const tipPercentage = el("new-tournament-tip-percentage");
   if (tipPercentage) tipPercentage.value = "0.3";
 
@@ -2447,6 +2453,12 @@ function prefillTournamentForm(tournament) {
     autoModeSwitchEnabled.checked = settings.auto_mode_switch_enabled;
   }
 
+  const trainingHintsEnabled = el("new-tournament-training-hints-enabled");
+  if (trainingHintsEnabled) {
+    trainingHintsEnabled.checked =
+      typeof settings.training_hints_enabled === "boolean" ? settings.training_hints_enabled : true;
+  }
+
   const tipPercentage = el("new-tournament-tip-percentage");
   if (tipPercentage) {
     const parsedTipPercentage = Number(settings.tip_percentage);
@@ -2505,6 +2517,7 @@ function getCreateTournamentSettings() {
     tip_percentage: tipPercentage,
     chance_cards_enabled: Boolean(el("new-tournament-chance-cards-enabled")?.checked),
     auto_mode_switch_enabled: Boolean(el("new-tournament-auto-mode-switch-enabled")?.checked),
+    training_hints_enabled: Boolean(el("new-tournament-training-hints-enabled")?.checked),
   };
 }
 
