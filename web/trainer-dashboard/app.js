@@ -1907,7 +1907,7 @@ function formatTournamentSettingsSummary(tournament) {
     `Чаевые: ${tipPercentage}`,
     `Карты шансов: ${settings.chance_cards_enabled ? "вкл" : "выкл"}`,
     `Автопереключение режима фишек: ${settings.auto_mode_switch_enabled ? "вкл" : "выкл"}`,
-    `Шкалы и подсказки инспектора: ${trainingHintsEnabled ? "вкл" : "выкл"}`,
+    `Режим обучения: ${trainingHintsEnabled ? "вкл" : "выкл"}`,
   ];
 }
 
