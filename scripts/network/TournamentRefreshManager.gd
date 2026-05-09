@@ -6,6 +6,7 @@ const APIClientScript = preload("res://scripts/network/APIClient.gd")
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
 
 signal tournament_refresh_completed(code: String, success: bool)
+signal refresh_all_started()
 signal refresh_all_completed(success_count: int, failed_count: int)
 
 var _api_client: APIClient = null
@@ -37,6 +38,7 @@ func refresh_all_saved_accesses_best_effort() -> void:
 	if _refresh_all_in_progress:
 		return
 	_refresh_all_in_progress = true
+	refresh_all_started.emit()
 	_run_refresh_all.call_deferred()
 
 
@@ -66,6 +68,10 @@ func is_refresh_in_progress_for(code: String) -> bool:
 		return false
 	var state: Dictionary = _state_for_code(normalized_code)
 	return bool(state.get("in_progress", false))
+
+
+func is_refresh_all_in_progress() -> bool:
+	return _refresh_all_in_progress
 
 
 func get_last_public_tournament_body(code: String) -> Dictionary:
