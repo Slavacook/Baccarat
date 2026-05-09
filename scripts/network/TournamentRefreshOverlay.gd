@@ -7,6 +7,8 @@ const REFRESH_FAILURE_TEXT := "Не удалось обновить данные
 const STATUS_HIDE_DELAY_SECONDS := 3.5
 const SPINNER_FRAME_SECONDS := 0.12
 const SPINNER_FRAMES := ["|", "/", "-", "\\"]
+const FADE_IN_DURATION := 0.22
+const FADE_OUT_DURATION := 0.3
 
 var refresh_card: Control
 var spinner_label: Label
@@ -17,6 +19,7 @@ var _visibility_token: int = 0
 var _spinner_active: bool = false
 var _spinner_index: int = 0
 var _spinner_elapsed: float = 0.0
+var _fade_tween: Tween = null
 
 
 func _ready() -> void:
@@ -34,6 +37,7 @@ func _exit_tree() -> void:
 	_disconnect_refresh_manager()
 	_visibility_token += 1
 	_spinner_active = false
+	_kill_fade_tween()
 	set_process(false)
 
 
@@ -104,28 +108,40 @@ func _on_refresh_all_completed(success_count: int, failed_count: int) -> void:
 
 func _show_refresh_started() -> void:
 	_visibility_token += 1
-	_show_card(REFRESH_IN_PROGRESS_TEXT, true)
+	_show_card(REFRESH_IN_PROGRESS_TEXT, true, true)
 
 
 func _show_result_and_hide_later(text: String) -> void:
 	_visibility_token += 1
 	var current_token := _visibility_token
-	_show_card(text, false)
+	_show_card(text, false, false)
 	_hide_after_delay.call_deferred(current_token)
 
 
-func _show_card(text: String, show_spinner: bool) -> void:
-	if refresh_card:
-		refresh_card.visible = true
+func _show_card(text: String, show_spinner: bool, animate_fade_in: bool) -> void:
+	if refresh_card == null:
+		return
+
+	_kill_fade_tween()
+	refresh_card.visible = true
 	if status_label:
 		status_label.text = text
 	_set_spinner_active(show_spinner)
 
+	if animate_fade_in:
+		refresh_card.modulate.a = 0.0
+		_fade_tween = create_tween()
+		_fade_tween.tween_property(refresh_card, "modulate:a", 1.0, FADE_IN_DURATION)
+	else:
+		refresh_card.modulate.a = 1.0
+
 
 func _hide_card_immediately() -> void:
 	_visibility_token += 1
+	_kill_fade_tween()
 	if refresh_card:
 		refresh_card.visible = false
+		refresh_card.modulate.a = 1.0
 	_set_spinner_active(false)
 
 
@@ -151,6 +167,37 @@ func _hide_after_delay(token: int) -> void:
 		return
 	if token != _visibility_token:
 		return
-	if refresh_card:
-		refresh_card.visible = false
+	_start_fade_out(token)
+
+
+func _start_fade_out(token: int) -> void:
+	if refresh_card == null:
+		return
+	if token != _visibility_token:
+		return
+
+	_kill_fade_tween()
+	refresh_card.visible = true
+	refresh_card.modulate.a = 1.0
+	var fade_tween := create_tween()
+	_fade_tween = fade_tween
+	fade_tween.tween_property(refresh_card, "modulate:a", 0.0, FADE_OUT_DURATION)
+	while is_inside_tree() and token == _visibility_token and _fade_tween == fade_tween and fade_tween.is_running():
+		await get_tree().process_frame
+
+	if not is_inside_tree():
+		return
+	if token != _visibility_token:
+		return
+	if _fade_tween != fade_tween:
+		return
+	refresh_card.visible = false
+	refresh_card.modulate.a = 1.0
+	_fade_tween = null
 	_set_spinner_active(false)
+
+
+func _kill_fade_tween() -> void:
+	if _fade_tween != null and is_instance_valid(_fade_tween):
+		_fade_tween.kill()
+	_fade_tween = null

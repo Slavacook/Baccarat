@@ -4,6 +4,7 @@ extends Node
 
 const APIClientScript = preload("res://scripts/network/APIClient.gd")
 const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
+const REFRESH_ALL_COOLDOWN_MS := 5 * 60 * 1000
 
 signal tournament_refresh_completed(code: String, success: bool)
 signal refresh_all_started()
@@ -17,6 +18,7 @@ var _last_public_tournament_bodies: Dictionary = {}
 var _startup_refresh_allowed: bool = true
 var _request_in_progress: bool = false
 var _request_in_progress_code: String = ""
+var _last_refresh_all_finished_ms: int = 0
 
 
 func _ready() -> void:
@@ -36,6 +38,9 @@ func _exit_tree() -> void:
 
 func refresh_all_saved_accesses_best_effort() -> void:
 	if _refresh_all_in_progress:
+		return
+	var now_ms := Time.get_ticks_msec()
+	if _last_refresh_all_finished_ms > 0 and now_ms - _last_refresh_all_finished_ms < REFRESH_ALL_COOLDOWN_MS:
 		return
 	_refresh_all_in_progress = true
 	refresh_all_started.emit()
@@ -93,6 +98,7 @@ func _run_refresh_all() -> void:
 
 	if _tournament_access_store == null or _api_client == null:
 		_refresh_all_in_progress = false
+		_last_refresh_all_finished_ms = Time.get_ticks_msec()
 		refresh_all_completed.emit(success_count, failed_count)
 		return
 
@@ -121,6 +127,7 @@ func _run_refresh_all() -> void:
 				failed_count += 1
 
 	_refresh_all_in_progress = false
+	_last_refresh_all_finished_ms = Time.get_ticks_msec()
 	refresh_all_completed.emit(success_count, failed_count)
 
 
