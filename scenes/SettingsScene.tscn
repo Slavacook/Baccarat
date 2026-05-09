@@ -312,6 +312,24 @@ layout_mode = 2
 size_flags_horizontal = 4
 size_flags_vertical = 0
 
+[node name="TrainingHintsContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn"]
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="SectionTrainingHints" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn/TrainingHintsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
+theme_override_font_sizes/font_size = 22
+text = "Учебные подсказки"
+horizontal_alignment = 1
+
+[node name="TrainingHintsCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/MainMenuContainer/RightColumn/TrainingHintsContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+button_pressed = true
+text = "Включить"
+
 [node name="LimitsSubmenu" type="VBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea"]
 visible = false
 layout_mode = 2
@@ -578,26 +596,6 @@ text = "АВТО ЗБР/ОПЛ"
 horizontal_alignment = 1
 
 [node name="AutoModeSwitchCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/AutoModeSwitchContainer"]
-layout_mode = 2
-size_flags_horizontal = 3
-button_pressed = true
-text = "Включить"
-
-[node name="HSeparatorTrainingHints" type="HSeparator" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
-layout_mode = 2
-
-[node name="TrainingHintsContainer" type="HBoxContainer" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu"]
-layout_mode = 2
-theme_override_constants/separation = 10
-
-[node name="SectionTrainingHints" type="Label" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/TrainingHintsContainer"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.9, 0.9, 0.7, 1)
-theme_override_font_sizes/font_size = 22
-text = "Учебные подсказки"
-horizontal_alignment = 1
-
-[node name="TrainingHintsCheckbox" type="CheckBox" parent="BackgroundPanel/CenterContainer/PanelContainer/MarginContainer/MainVBox/ContentArea/AdvancedSettingsSubmenu/TrainingHintsContainer"]
 layout_mode = 2
 size_flags_horizontal = 3
 button_pressed = true
