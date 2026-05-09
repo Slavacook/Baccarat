@@ -19,7 +19,7 @@ var back_btn: Button
 
 var _navigation_store: Node = null
 var _tournament_access_store: Node = null
-var _api_service = null
+var _refresh_manager = null
 var _access_record: Dictionary = {}
 var _return_scene_path := DEFAULT_RETURN_SCENE_PATH
 
@@ -44,19 +44,20 @@ func _ready() -> void:
 	_tournament_access_store.name = "TournamentAccessStore_Local"
 	add_child(_tournament_access_store)
 
-	_api_service = _find_api_service()
+	_refresh_manager = _find_refresh_manager()
 
 	if start_attempt_btn and not start_attempt_btn.pressed.is_connected(_on_start_attempt_pressed):
 		start_attempt_btn.pressed.connect(_on_start_attempt_pressed)
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
+	_connect_refresh_manager()
 
 	_render_leaderboard_header()
 	_clear_leaderboard()
 	_set_status("")
 	_load_pending_payload()
 	_render_access_record()
-	_load_public_tournament()
+	_request_public_refresh()
 
 
 func _load_pending_payload() -> void:
@@ -99,10 +100,10 @@ func _render_access_record() -> void:
 		_set_status("Не удалось открыть данные турнира")
 
 
-func _load_public_tournament() -> void:
+func _request_public_refresh() -> void:
 	if not _has_valid_access_record():
 		return
-	if _api_service == null:
+	if _refresh_manager == null:
 		_set_status("Не удалось загрузить таблицу")
 		_show_empty_leaderboard(true)
 		return
@@ -115,29 +116,8 @@ func _load_public_tournament() -> void:
 		return
 
 	_set_status("Загружаем таблицу...")
-	var result: Dictionary = await _api_service.get_public_tournament(code)
-	var status_code := _response_code(result)
-	var body: Variant = _response_body(result)
-
-	if status_code < 200 or status_code >= 300:
-		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
-		_show_empty_leaderboard(true)
-		return
-	if not (body is Dictionary):
-		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
-		_show_empty_leaderboard(true)
-		return
-
-	var body_dict: Dictionary = body as Dictionary
-	_apply_public_tournament_data(body_dict)
-	var leaderboard: Array = _extract_leaderboard(body_dict)
-	if leaderboard.is_empty():
-		_set_status("")
-		_show_empty_leaderboard(true)
-		return
-
-	_render_leaderboard(leaderboard)
-	_set_status("")
+	if not bool(_refresh_manager.call("is_refresh_in_progress_for", code)):
+		_refresh_manager.call("refresh_tournament_if_needed", code)
 
 
 func _apply_public_tournament_data(body: Dictionary) -> void:
@@ -159,18 +139,18 @@ func _apply_public_tournament_data(body: Dictionary) -> void:
 
 
 func _merge_public_tournament_into_access_record(tournament_data: Dictionary) -> Dictionary:
-	var local_tournament: Dictionary = _access_tournament()
-	var merged: Dictionary = local_tournament.duplicate(true)
+	if _tournament_access_store == null:
+		var local_tournament: Dictionary = _access_tournament()
+		return local_tournament.duplicate(true)
 
-	for key in ["id", "title", "code", "status", "max_rounds", "attempt_duration_seconds"]:
-		if tournament_data.has(key):
-			merged[key] = tournament_data[key]
-
-	if tournament_data.has("tournament_settings") and tournament_data["tournament_settings"] is Dictionary:
-		merged["tournament_settings"] = (tournament_data["tournament_settings"] as Dictionary).duplicate(true)
-
-	_access_record["tournament"] = merged.duplicate(true)
-	return merged
+	var merged_variant: Variant = _tournament_access_store.call(
+		"merge_public_tournament_data",
+		_access_record,
+		tournament_data
+	)
+	if merged_variant is Dictionary and not (merged_variant as Dictionary).is_empty():
+		_access_record = (merged_variant as Dictionary).duplicate(true)
+	return _access_tournament()
 
 
 func _save_refreshed_access_record() -> void:
@@ -384,16 +364,101 @@ func _set_status(text: String) -> void:
 		status_label.text = text
 
 
-func _find_api_service():
-	if Engine.has_singleton("ApiService"):
-		return Engine.get_singleton("ApiService")
-	return get_node_or_null("/root/ApiService")
+func _find_refresh_manager():
+	if Engine.has_singleton("TournamentRefreshManager"):
+		return Engine.get_singleton("TournamentRefreshManager")
+	return get_node_or_null("/root/TournamentRefreshManager")
 
 
 func _find_session_manager():
 	if Engine.has_singleton("SessionManager"):
 		return Engine.get_singleton("SessionManager")
 	return get_node_or_null("/root/SessionManager")
+
+
+func _connect_refresh_manager() -> void:
+	if _refresh_manager == null:
+		return
+	if _refresh_manager.has_signal("tournament_refresh_completed"):
+		if not _refresh_manager.tournament_refresh_completed.is_connected(_on_tournament_refresh_completed):
+			_refresh_manager.tournament_refresh_completed.connect(_on_tournament_refresh_completed)
+
+
+func _disconnect_refresh_manager() -> void:
+	if _refresh_manager == null:
+		return
+	if _refresh_manager.has_signal("tournament_refresh_completed"):
+		if _refresh_manager.tournament_refresh_completed.is_connected(_on_tournament_refresh_completed):
+			_refresh_manager.tournament_refresh_completed.disconnect(_on_tournament_refresh_completed)
+
+
+func _on_tournament_refresh_completed(code: String, success: bool) -> void:
+	if not is_inside_tree():
+		return
+
+	var current_tournament := _access_tournament()
+	var current_code := _dictionary_string(current_tournament, "code")
+	if current_code.is_empty() or current_code != code:
+		return
+
+	_reload_access_record_from_store()
+	_render_access_record()
+	_apply_refreshed_public_view(code, success)
+
+
+func _reload_access_record_from_store() -> void:
+	if _tournament_access_store == null:
+		return
+
+	var tournament := _access_tournament()
+	var tournament_id := _dictionary_string(tournament, "id")
+	if tournament_id.is_empty():
+		return
+
+	var access_variant: Variant = _tournament_access_store.call("get_access_by_tournament_id", tournament_id)
+	if access_variant is Dictionary and not (access_variant as Dictionary).is_empty():
+		_access_record = (access_variant as Dictionary).duplicate(true)
+
+
+func _apply_refreshed_public_view(code: String, success: bool) -> void:
+	if not success:
+		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
+		_clear_leaderboard()
+		_show_empty_leaderboard(true)
+		_set_header_visible(false)
+		return
+
+	if _refresh_manager == null or not _refresh_manager.has_method("get_last_public_tournament_body"):
+		_set_status("")
+		_clear_leaderboard()
+		_show_empty_leaderboard(true)
+		_set_header_visible(false)
+		return
+
+	var body_variant: Variant = _refresh_manager.call("get_last_public_tournament_body", code)
+	if not (body_variant is Dictionary):
+		_set_status("")
+		_clear_leaderboard()
+		_show_empty_leaderboard(true)
+		_set_header_visible(false)
+		return
+
+	var body_dict := body_variant as Dictionary
+	_apply_public_tournament_data(body_dict)
+	var leaderboard: Array = _extract_leaderboard(body_dict)
+	if leaderboard.is_empty():
+		_clear_leaderboard()
+		_show_empty_leaderboard(true)
+		_set_header_visible(false)
+		_set_status("")
+		return
+
+	_render_leaderboard(leaderboard)
+	_set_status("")
+
+
+func _exit_tree() -> void:
+	_disconnect_refresh_manager()
 
 
 func _access_tournament() -> Dictionary:

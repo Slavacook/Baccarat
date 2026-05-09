@@ -32,6 +32,27 @@ func save_access(activation_response: Dictionary) -> Dictionary:
 	return normalized.duplicate(true)
 
 
+func merge_public_tournament_data(access_record: Dictionary, tournament_data: Dictionary) -> Dictionary:
+	_ensure_loaded()
+	if access_record.is_empty() or tournament_data.is_empty():
+		return access_record.duplicate(true)
+	if not access_record.has("tournament") or not (access_record["tournament"] is Dictionary):
+		return access_record.duplicate(true)
+
+	var merged_record := access_record.duplicate(true)
+	var local_tournament := (merged_record["tournament"] as Dictionary).duplicate(true)
+
+	for key in ["title", "code", "status", "max_rounds", "attempt_duration_seconds"]:
+		if tournament_data.has(key):
+			local_tournament[key] = tournament_data[key]
+
+	if tournament_data.has("tournament_settings") and tournament_data["tournament_settings"] is Dictionary:
+		local_tournament["tournament_settings"] = (tournament_data["tournament_settings"] as Dictionary).duplicate(true)
+
+	merged_record["tournament"] = local_tournament
+	return merged_record
+
+
 func get_all_accesses() -> Array:
 	_ensure_loaded()
 	var result: Array = []

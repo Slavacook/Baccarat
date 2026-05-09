@@ -13,6 +13,7 @@ var remove_dialog: ConfirmationDialog
 
 var _tournament_access_store: Node = null
 var _navigation_store: Node = null
+var _refresh_manager = null
 var _pending_remove_tournament_id: String = ""
 var _pending_remove_tournament_title: String = ""
 
@@ -29,16 +30,20 @@ func _ready() -> void:
 	_navigation_store = TournamentNavigationStoreScript.new()
 	_navigation_store.name = "TournamentNavigationStore_Local"
 	add_child(_navigation_store)
+	_refresh_manager = _find_refresh_manager()
 
 	if back_btn and not back_btn.pressed.is_connected(_on_back_pressed):
 		back_btn.pressed.connect(_on_back_pressed)
 	if remove_dialog and not remove_dialog.confirmed.is_connected(_on_remove_confirmed):
 		remove_dialog.confirmed.connect(_on_remove_confirmed)
+	_connect_refresh_manager()
 
 	_reload_accesses()
+	if _refresh_manager != null and _refresh_manager.has_method("refresh_all_saved_accesses_best_effort"):
+		_refresh_manager.call("refresh_all_saved_accesses_best_effort")
 
 
-func _reload_accesses() -> void:
+func _reload_accesses(_start_background_refresh: bool = false) -> void:
 	_clear_list()
 
 	var added_count := 0
@@ -131,7 +136,7 @@ func _on_remove_confirmed() -> void:
 		_tournament_access_store.call("remove_access", _pending_remove_tournament_id)
 	_pending_remove_tournament_id = ""
 	_pending_remove_tournament_title = ""
-	_reload_accesses()
+	_reload_accesses(false)
 
 
 func _clear_list() -> void:
@@ -269,6 +274,51 @@ func _find_session_manager():
 	if Engine.has_singleton("SessionManager"):
 		return Engine.get_singleton("SessionManager")
 	return get_node_or_null("/root/SessionManager")
+
+
+func _find_refresh_manager():
+	if Engine.has_singleton("TournamentRefreshManager"):
+		return Engine.get_singleton("TournamentRefreshManager")
+	return get_node_or_null("/root/TournamentRefreshManager")
+
+
+func _exit_tree() -> void:
+	_disconnect_refresh_manager()
+
+
+func _connect_refresh_manager() -> void:
+	if _refresh_manager == null:
+		return
+	if not _refresh_manager.has_signal("refresh_all_completed"):
+		return
+	if not _refresh_manager.refresh_all_completed.is_connected(_on_refresh_all_completed):
+		_refresh_manager.refresh_all_completed.connect(_on_refresh_all_completed)
+	if _refresh_manager.has_signal("tournament_refresh_completed"):
+		if not _refresh_manager.tournament_refresh_completed.is_connected(_on_tournament_refresh_completed):
+			_refresh_manager.tournament_refresh_completed.connect(_on_tournament_refresh_completed)
+
+
+func _disconnect_refresh_manager() -> void:
+	if _refresh_manager == null:
+		return
+	if _refresh_manager.has_signal("refresh_all_completed"):
+		if _refresh_manager.refresh_all_completed.is_connected(_on_refresh_all_completed):
+			_refresh_manager.refresh_all_completed.disconnect(_on_refresh_all_completed)
+	if _refresh_manager.has_signal("tournament_refresh_completed"):
+		if _refresh_manager.tournament_refresh_completed.is_connected(_on_tournament_refresh_completed):
+			_refresh_manager.tournament_refresh_completed.disconnect(_on_tournament_refresh_completed)
+
+
+func _on_refresh_all_completed(_success_count: int, _failed_count: int) -> void:
+	if not is_inside_tree():
+		return
+	_reload_accesses(false)
+
+
+func _on_tournament_refresh_completed(_code: String, _success: bool) -> void:
+	if not is_inside_tree():
+		return
+	_reload_accesses(false)
 
 
 func _dictionary_or_empty(value: Variant) -> Dictionary:

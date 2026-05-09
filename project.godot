@@ -47,6 +47,7 @@ FeedbackAnimationManager="*res://scripts/ui/FeedbackAnimationManager.gd"
 SoundManager="*res://scripts/SoundManager.gd"
 ApiService="*res://scripts/network/ApiService.gd"
 DealerAccessStore="*res://scripts/network/DealerAccessStore.gd"
+TournamentRefreshManager="*res://scripts/network/TournamentRefreshManager.gd"
 SessionManager="*res://scripts/session/SessionManager.gd"
 LiveSessionClient="*res://scripts/network/LiveSessionClient.gd"
 

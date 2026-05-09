@@ -43,6 +43,11 @@ func clear_auth_token() -> void:
 	_auth_token = ""
 
 
+func cancel_active_request() -> void:
+	if _http_request != null:
+		_http_request.cancel_request()
+
+
 func get_last_failure_debug_reason() -> String:
 	return _last_failure_debug_reason
 
