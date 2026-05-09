@@ -1,0 +1,89 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/network/TournamentRefreshOverlay.gd" id="1_overlay_script"]
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_refresh_card"]
+content_margin_left = 12.0
+content_margin_top = 8.0
+content_margin_right = 12.0
+content_margin_bottom = 8.0
+bg_color = Color(0.035, 0.045, 0.07, 0.88)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.95, 0.68, 0.28, 0.22)
+corner_radius_top_left = 10
+corner_radius_top_right = 10
+corner_radius_bottom_right = 10
+corner_radius_bottom_left = 10
+shadow_color = Color(0, 0, 0, 0.28)
+shadow_size = 8
+shadow_offset = Vector2(0, 3)
+
+[node name="TournamentRefreshOverlay" type="CanvasLayer"]
+layer = 210
+script = ExtResource("1_overlay_script")
+
+[node name="OverlayRoot" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopRightMargin" type="MarginContainer" parent="OverlayRoot"]
+layout_mode = 1
+anchors_preset = 10
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -332.0
+offset_top = 18.0
+offset_right = -18.0
+offset_bottom = 78.0
+grow_horizontal = 0
+mouse_filter = 2
+theme_override_constants/margin_left = 0
+theme_override_constants/margin_top = 0
+theme_override_constants/margin_right = 0
+theme_override_constants/margin_bottom = 0
+
+[node name="RefreshCard" type="PanelContainer" parent="OverlayRoot/TopRightMargin"]
+visible = false
+custom_minimum_size = Vector2(314, 48)
+layout_mode = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_refresh_card")
+
+[node name="CardPadding" type="MarginContainer" parent="OverlayRoot/TopRightMargin/RefreshCard"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 6
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 6
+
+[node name="CardRow" type="HBoxContainer" parent="OverlayRoot/TopRightMargin/RefreshCard/CardPadding"]
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 8
+
+[node name="SpinnerLabel" type="Label" parent="OverlayRoot/TopRightMargin/RefreshCard/CardPadding/CardRow"]
+custom_minimum_size = Vector2(16, 0)
+layout_mode = 2
+mouse_filter = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.93, 0.82, 0.65, 0.95)
+text = "|"
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="OverlayRoot/TopRightMargin/RefreshCard/CardPadding/CardRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+mouse_filter = 2
+theme_override_font_sizes/font_size = 15
+theme_override_colors/font_color = Color(1, 1, 1, 0.94)
+text = "Обновляем данные турниров…"
+vertical_alignment = 1

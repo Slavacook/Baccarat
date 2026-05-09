@@ -48,6 +48,7 @@ SoundManager="*res://scripts/SoundManager.gd"
 ApiService="*res://scripts/network/ApiService.gd"
 DealerAccessStore="*res://scripts/network/DealerAccessStore.gd"
 TournamentRefreshManager="*res://scripts/network/TournamentRefreshManager.gd"
+TournamentRefreshOverlay="*res://scenes/network/TournamentRefreshOverlay.tscn"
 SessionManager="*res://scripts/session/SessionManager.gd"
 LiveSessionClient="*res://scripts/network/LiveSessionClient.gd"
 

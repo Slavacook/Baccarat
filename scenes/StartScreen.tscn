@@ -177,13 +177,3 @@ text = "🏆 Турнир"
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-
-[node name="RefreshStatusLabel" type="Label" parent="Margin/Center/Content"]
-visible = false
-layout_mode = 2
-theme_override_font_sizes/font_size = 15
-theme_override_constants/outline_size = 6
-theme_override_colors/font_color = Color(0.93, 0.82, 0.65, 0.9)
-theme_override_colors/font_outline_color = Color(0.03, 0.04, 0.07, 0.6)
-text = "Обновляем данные турниров…"
-horizontal_alignment = 1
