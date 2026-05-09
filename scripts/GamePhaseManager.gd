@@ -125,6 +125,8 @@ var is_table_prepared: bool = false
 var was_heart_bet_round: bool = false  # Флаг Heart Bet раунда (даже при отказе)
 var _pending_training_hint_payload: Dictionary = {}
 var _delay_training_hints_until_reveal: bool = false
+var _pending_inspector_hint_payload: Dictionary = {}
+var _pending_inspector_flow_token: int = -1
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОСТОЯНИЕ ФИЛЬТРА СТАВОК
@@ -178,6 +180,7 @@ func _init(
 		ui.first_four_reveal_completed.connect(_flush_pending_training_hints)
 		ui.player_third_reveal_completed.connect(_flush_pending_training_hints)
 		ui.banker_third_reveal_completed.connect(_flush_pending_training_hints)
+		ui.decision_scales_flow_completed.connect(_on_decision_scales_flow_completed)
 	
 	# Инициализируем менеджер ставки сердцем
 	heart_bet_manager = HeartBetManager.new()
@@ -306,6 +309,7 @@ func reset(update_state: bool = true, keep_guest_bets: bool = false):
 	# Используем координатор для получения инструкций
 	var instructions = game_state_reset_coordinator.get_reset_instructions(update_state, keep_guest_bets)
 	_clear_pending_training_hints()
+	_clear_pending_inspector_hint()
 	
 	# Сброс рук и флагов
 	if instructions.get("should_reset_hands", false):
@@ -713,6 +717,8 @@ func on_player_third_toggled(_selected: bool) -> void:
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner(false, false)
 
+	_update_stop_hint_for_third_card_preview()
+
 func on_banker_third_toggled(_selected: bool) -> void:
 	"""Обработчик переключения toggle третьей карты банкира
 	
@@ -743,6 +749,32 @@ func on_banker_third_toggled(_selected: bool) -> void:
 	# Дезактивируем маркер при нажатии на toggle третьей карты
 	if instructions.get("should_deselect_winner", false) and winner_selection_manager:
 		winner_selection_manager.deselect_winner(false, false)
+
+	_update_stop_hint_for_third_card_preview()
+
+func _update_stop_hint_for_third_card_preview() -> void:
+	if not ui:
+		return
+
+	var current_state: GameStateManager.GameState = GameStateManager.get_current_state()
+	var should_show_stop: bool = false
+
+	match current_state:
+		GameStateManager.GameState.WAITING, GameStateManager.GameState.CHOOSE_WINNER:
+			should_show_stop = player_third_selected or banker_third_selected
+		GameStateManager.GameState.CARD_TO_PLAYER:
+			should_show_stop = banker_third_selected
+		GameStateManager.GameState.CARD_TO_BANKER, GameStateManager.GameState.CARD_TO_BANKER_AFTER_PLAYER:
+			should_show_stop = player_third_selected
+		GameStateManager.GameState.CARD_TO_EACH:
+			should_show_stop = false
+		_:
+			should_show_stop = false
+
+	if should_show_stop:
+		ui.show_stop_hint()
+	else:
+		ui.hide_stop_hint()
 
 func cancel_third_card_orders(play_sound: bool = true) -> void:
 	"""Отменить заказ всех третьих карт (игрока и банкира)
@@ -1566,7 +1598,12 @@ func _show_training_hints(payload: Dictionary) -> void:
 	if not ui:
 		return
 	ui.update_hand_score_hints(payload)
-	ui.update_hand_decision_scales(payload)
+	var scale_result: Dictionary = ui.update_hand_decision_scales(payload)
+	if bool(scale_result.get("flow_started", false)):
+		_pending_inspector_hint_payload = payload.duplicate(true)
+		_pending_inspector_flow_token = int(scale_result.get("flow_token", -1))
+		return
+	_clear_pending_inspector_hint()
 	ui.update_inspector_hint(payload)
 
 func _queue_or_show_training_hints(payload: Dictionary) -> void:
@@ -1585,6 +1622,26 @@ func _flush_pending_training_hints() -> void:
 func _clear_pending_training_hints() -> void:
 	_pending_training_hint_payload = {}
 	_delay_training_hints_until_reveal = false
+
+func _on_decision_scales_flow_completed(flow_token: int) -> void:
+	if flow_token != _pending_inspector_flow_token:
+		return
+	if _pending_inspector_hint_payload.is_empty():
+		return
+
+	if winner_selection_manager and winner_selection_manager.is_winner_selected():
+		_clear_pending_inspector_hint()
+		return
+
+	var payload: Dictionary = _pending_inspector_hint_payload
+	_clear_pending_inspector_hint()
+	if not ui:
+		return
+	ui.update_inspector_hint(payload)
+
+func _clear_pending_inspector_hint() -> void:
+	_pending_inspector_hint_payload = {}
+	_pending_inspector_flow_token = -1
 
 
 func remove_third_cards_and_recalculate() -> void:

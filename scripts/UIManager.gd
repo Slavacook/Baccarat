@@ -8,6 +8,7 @@ extends RefCounted
 const HandScoreHintPresenterScript = preload("res://scripts/ui/HandScoreHintPresenter.gd")
 const HandDecisionScalePresenterScript = preload("res://scripts/ui/HandDecisionScalePresenter.gd")
 const InspectorHintPresenterScript = preload("res://scripts/ui/InspectorHintPresenter.gd")
+const StopHintPresenterScript = preload("res://scripts/ui/StopHintPresenter.gd")
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СИГНАЛЫ (Публичный API - проброс от дочерних менеджеров)
@@ -23,6 +24,7 @@ signal lang_button_pressed()
 signal first_four_reveal_completed()
 signal player_third_reveal_completed()
 signal banker_third_reveal_completed()
+signal decision_scales_flow_completed(flow_token: int)
 # TieMarker теперь обрабатывается через WinnerSelectionManager
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -38,6 +40,7 @@ var payout_toggle_ui: PayoutToggleManager  # Управление переклю
 var hand_score_hint_presenter: RefCounted   # Минимальный presenter сумм под руками
 var hand_decision_scale_presenter: RefCounted  # Визуальные шкалы решений 0-9
 var inspector_hint_presenter: RefCounted    # Постоянная верхняя строка инспектора
+var stop_hint_presenter: RefCounted         # Мгновенное STOP-предупреждение preview-ошибок
 var training_hints_enabled: bool = true     # Глобальный флаг показа учебных подсказок
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -70,6 +73,8 @@ var player_decision_scale_container: Control
 var banker_decision_scale_container: Control
 var inspector_hint_panel: Control
 var inspector_hint_label: Label
+var stop_hint_panel: Control
+var stop_hint_label: Label
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -124,6 +129,8 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	banker_decision_scale_container = scene.get_node_or_null("BankerZone/DecisionScaleContainer")
 	inspector_hint_panel = scene.get_node_or_null("TopUI/InspectorHintPanel")
 	inspector_hint_label = scene.get_node_or_null("TopUI/InspectorHintPanel/MarginContainer/InspectorHintLabel")
+	stop_hint_panel = scene.get_node_or_null("TopUI/StopHintPanel")
+	stop_hint_label = scene.get_node_or_null("TopUI/StopHintPanel/MarginContainer/StopHintLabel")
 
 	# Минимальный presenter для текста сумм под руками
 	hand_score_hint_presenter = HandScoreHintPresenterScript.new()
@@ -134,11 +141,18 @@ func _init(scene: Node, card_manager_ref: CardTextureManager):
 	hand_decision_scale_presenter = HandDecisionScalePresenterScript.new()
 	if hand_decision_scale_presenter:
 		hand_decision_scale_presenter.setup(player_decision_scale_container, banker_decision_scale_container)
+		hand_decision_scale_presenter.decision_scales_flow_completed.connect(
+			func(flow_token: int): decision_scales_flow_completed.emit(flow_token)
+		)
 
 	# Постоянная верхняя строка инспектора
 	inspector_hint_presenter = InspectorHintPresenterScript.new()
 	if inspector_hint_presenter:
 		inspector_hint_presenter.setup(inspector_hint_panel, inspector_hint_label)
+
+	stop_hint_presenter = StopHintPresenterScript.new()
+	if stop_hint_presenter:
+		stop_hint_presenter.setup(stop_hint_panel, stop_hint_label)
 
 	# ═══════════════════════════════════════════════════════════════════
 	# ШАГ 3: Проброс сигналов от дочерних менеджеров
@@ -235,13 +249,20 @@ func reset_hand_score_hints():
 	if hand_score_hint_presenter:
 		hand_score_hint_presenter.reset()
 
-func update_hand_decision_scales(payload: Dictionary):
+func update_hand_decision_scales(payload: Dictionary) -> Dictionary:
 	"""Обновить визуальные шкалы решения под руками из готового hint payload"""
 	if not training_hints_enabled:
 		reset_hand_decision_scales()
-		return
+		return {
+			"flow_started": false,
+			"flow_token": -1
+		}
 	if hand_decision_scale_presenter:
-		hand_decision_scale_presenter.update_from_hint_payload(payload)
+		return hand_decision_scale_presenter.update_from_hint_payload(payload)
+	return {
+		"flow_started": false,
+		"flow_token": -1
+	}
 
 func reset_hand_decision_scales():
 	"""Скрыть визуальные шкалы решения и сбросить подсветку"""
@@ -261,6 +282,24 @@ func reset_inspector_hint():
 	if inspector_hint_presenter:
 		inspector_hint_presenter.reset()
 
+func show_stop_hint():
+	"""Показать мгновенное предупреждение STOP для preview-ошибки"""
+	if not training_hints_enabled:
+		reset_stop_hint()
+		return
+	if stop_hint_presenter:
+		stop_hint_presenter.show_stop()
+
+func hide_stop_hint():
+	"""Скрыть STOP-предупреждение"""
+	if stop_hint_presenter:
+		stop_hint_presenter.hide_stop()
+
+func reset_stop_hint():
+	"""Сбросить STOP-предупреждение"""
+	if stop_hint_presenter:
+		stop_hint_presenter.reset()
+
 func set_training_hints_enabled(enabled: bool) -> void:
 	"""Включить или выключить все учебные подсказки дилера"""
 	training_hints_enabled = enabled
@@ -268,6 +307,7 @@ func set_training_hints_enabled(enabled: bool) -> void:
 		reset_hand_score_hints()
 		reset_hand_decision_scales()
 		reset_inspector_hint()
+		reset_stop_hint()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # МЕТОДЫ-ДЕЛЕГАТЫ: УПРАВЛЕНИЕ КНОПКАМИ (→ ButtonUIManager)
@@ -336,6 +376,9 @@ func reset_ui():
 
 	# Сброс строки инспектора
 	reset_inspector_hint()
+
+	# Сброс STOP-предупреждения
+	reset_stop_hint()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ РУБАШЕК КАРТ

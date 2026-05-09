@@ -4,6 +4,8 @@
 class_name HandDecisionScalePresenter
 extends RefCounted
 
+signal decision_scales_flow_completed(flow_token: int)
+
 const CELL_COUNT := 10
 const PLAYER_SCALE := "player"
 const BANKER_SCALE := "banker"
@@ -25,6 +27,8 @@ var _banker_scale_visible: bool = false
 var _player_visibility_token: int = 0
 var _banker_visibility_token: int = 0
 var _scale_sequence_token: int = 0
+var _scale_flow_token: int = 0
+var _pending_flow_operations: int = 0
 
 func setup(player_container_ref: Control, banker_container_ref: Control) -> void:
 	player_container = player_container_ref
@@ -34,7 +38,7 @@ func setup(player_container_ref: Control, banker_container_ref: Control) -> void
 	_banker_cells = _build_scale(banker_container)
 	reset()
 
-func update_from_hint_payload(payload: Dictionary) -> void:
+func update_from_hint_payload(payload: Dictionary) -> Dictionary:
 	var player_source := _dict_value(payload, "player")
 	var banker_source := _dict_value(payload, "banker")
 	var any_natural := bool(player_source.get("is_natural", false)) or bool(banker_source.get("is_natural", false))
@@ -44,20 +48,32 @@ func update_from_hint_payload(payload: Dictionary) -> void:
 	var player_target_index: int = _resolve_target_index(player_source)
 	var banker_target_index: int = _resolve_target_index(banker_source)
 	var sequence_token: int = _next_scale_sequence_token()
+	var flow_token: int = _next_scale_flow_token()
+	var flow_started: bool = false
 
 	if not player_should_show:
-		_hide_scale(player_container, _player_cells, PLAYER_SCALE)
+		flow_started = _hide_scale(player_container, _player_cells, PLAYER_SCALE, flow_token) or flow_started
 	if not banker_should_show:
-		_hide_scale(banker_container, _banker_cells, BANKER_SCALE)
+		flow_started = _hide_scale(banker_container, _banker_cells, BANKER_SCALE, flow_token) or flow_started
 
 	if player_should_show and banker_should_show and not _is_scale_visible(PLAYER_SCALE) and not _is_scale_visible(BANKER_SCALE):
-		_run_scale_sequence(player_target_index, banker_target_index, sequence_token)
-		return
+		_register_flow_operation(flow_token)
+		flow_started = true
+		_run_scale_sequence(player_target_index, banker_target_index, sequence_token, flow_token)
+		return {
+			"flow_started": true,
+			"flow_token": flow_token
+		}
 
 	if player_should_show:
-		_update_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index)
+		flow_started = _update_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index, flow_token) or flow_started
 	if banker_should_show:
-		_update_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index)
+		flow_started = _update_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index, flow_token) or flow_started
+
+	return {
+		"flow_started": flow_started,
+		"flow_token": flow_token if flow_started else -1
+	}
 
 func reset() -> void:
 	_player_animation_token += 1
@@ -65,6 +81,8 @@ func reset() -> void:
 	_player_visibility_token += 1
 	_banker_visibility_token += 1
 	_scale_sequence_token += 1
+	_scale_flow_token += 1
+	_pending_flow_operations = 0
 	_player_active_index = -1
 	_banker_active_index = -1
 	_player_last_target_index = -1
@@ -111,31 +129,44 @@ func _update_scale(
 	container: Control,
 	cells: Array[Dictionary],
 	scale_type: String,
-	active_index: int
-) -> void:
+	active_index: int,
+	flow_token: int
+) -> bool:
 	if not container:
-		return
+		return false
 
 	if not _is_scale_visible(scale_type):
-		_show_scale(container, cells, scale_type, active_index)
-		return
+		_register_flow_operation(flow_token)
+		_show_scale(container, cells, scale_type, active_index, flow_token, true)
+		return true
 
 	_prepare_scale_for_show(container, scale_type)
 	if active_index == _get_last_target_index(scale_type):
-		return
+		return false
 
 	_set_last_target_index(scale_type, active_index)
 	_set_active_index(cells, scale_type, active_index)
+	return false
 
-func _run_scale_sequence(player_target_index: int, banker_target_index: int, sequence_token: int) -> void:
-	await _show_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index)
+func _run_scale_sequence(player_target_index: int, banker_target_index: int, sequence_token: int, flow_token: int) -> void:
+	await _show_scale(player_container, _player_cells, PLAYER_SCALE, player_target_index, flow_token, false)
 	if not _is_sequence_token_current(sequence_token):
 		return
 	if not _is_scale_visible(PLAYER_SCALE):
 		return
-	await _show_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index)
+	await _show_scale(banker_container, _banker_cells, BANKER_SCALE, banker_target_index, flow_token, false)
+	if not _is_scale_flow_token_current(flow_token):
+		return
+	_complete_flow_operation(flow_token)
 
-func _show_scale(container: Control, cells: Array[Dictionary], scale_type: String, target_index: int) -> void:
+func _show_scale(
+	container: Control,
+	cells: Array[Dictionary],
+	scale_type: String,
+	target_index: int,
+	flow_token: int,
+	complete_on_finish: bool
+) -> void:
 	if not container:
 		return
 
@@ -143,6 +174,10 @@ func _show_scale(container: Control, cells: Array[Dictionary], scale_type: Strin
 	_mark_scale_visible(scale_type, true)
 	_set_last_target_index(scale_type, target_index)
 	await _start_scale_animation(container, cells, scale_type, target_index)
+	if not _is_scale_flow_token_current(flow_token):
+		return
+	if complete_on_finish:
+		_complete_flow_operation(flow_token)
 
 func _start_scale_animation(container: Control, cells: Array[Dictionary], scale_type: String, target_index: int) -> void:
 	var token := _next_animation_token(scale_type)
@@ -279,18 +314,20 @@ func _play_tick_sound() -> void:
 	if SoundManager and SoundManager.has_method("play_decision_scale_tick"):
 		SoundManager.play_decision_scale_tick()
 
-func _hide_scale(container: Control, cells: Array[Dictionary], scale_type: String) -> void:
+func _hide_scale(container: Control, cells: Array[Dictionary], scale_type: String, flow_token: int) -> bool:
 	if not container:
-		return
+		return false
 
 	var was_visible := container.visible and _is_scale_visible(scale_type)
 	var token := _next_visibility_token(scale_type)
 	_cancel_animation(scale_type)
 	if not was_visible:
 		_reset_scale(container, cells, scale_type)
-		return
+		return false
 
-	_fade_out_scale(container, cells, scale_type, token)
+	_register_flow_operation(flow_token)
+	_fade_out_scale(container, cells, scale_type, token, flow_token)
+	return true
 
 func _prepare_scale_for_show(container: Control, scale_type: String) -> void:
 	if not container:
@@ -304,10 +341,13 @@ func _fade_out_scale(
 	container: Control,
 	cells: Array[Dictionary],
 	scale_type: String,
-	token: int
+	token: int,
+	flow_token: int
 ) -> void:
 	if not container or not container.get_tree():
 		_reset_scale(container, cells, scale_type)
+		if _is_scale_flow_token_current(flow_token):
+			_complete_flow_operation(flow_token)
 		return
 
 	var step_delay: float = SCALE_FADE_OUT_DURATION_SEC / float(SCALE_FADE_OUT_STEPS)
@@ -321,6 +361,9 @@ func _fade_out_scale(
 	if not _is_visibility_token_current(scale_type, token):
 		return
 	_reset_scale(container, cells, scale_type)
+	if not _is_scale_flow_token_current(flow_token):
+		return
+	_complete_flow_operation(flow_token)
 
 func _next_visibility_token(scale_type: String) -> int:
 	if scale_type == PLAYER_SCALE:
@@ -335,6 +378,26 @@ func _next_scale_sequence_token() -> int:
 
 func _is_sequence_token_current(token: int) -> bool:
 	return token == _scale_sequence_token
+
+func _next_scale_flow_token() -> int:
+	_scale_flow_token += 1
+	_pending_flow_operations = 0
+	return _scale_flow_token
+
+func _is_scale_flow_token_current(token: int) -> bool:
+	return token == _scale_flow_token
+
+func _register_flow_operation(flow_token: int) -> void:
+	if not _is_scale_flow_token_current(flow_token):
+		return
+	_pending_flow_operations += 1
+
+func _complete_flow_operation(flow_token: int) -> void:
+	if not _is_scale_flow_token_current(flow_token):
+		return
+	_pending_flow_operations = maxi(_pending_flow_operations - 1, 0)
+	if _pending_flow_operations == 0:
+		decision_scales_flow_completed.emit(flow_token)
 
 func _is_visibility_token_current(scale_type: String, token: int) -> bool:
 	if scale_type == PLAYER_SCALE:

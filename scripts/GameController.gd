@@ -1579,6 +1579,8 @@ func _on_winner_toggled(winner: String, selected: bool):
 	EventBus.dealer_winner_marker_toggled.emit(winner, selected)
 	if selected:
 		DebugLogger.log("🎯 Выбран: %s" % winner)
+		if ui_manager:
+			ui_manager.reset_inspector_hint()
 		# TieMarker всегда виден (не деактивируется)
 		# Отменяем заказ третьих карт при активации маркера
 		if phase_manager:
@@ -1593,6 +1595,44 @@ func _on_winner_toggled(winner: String, selected: bool):
 	else:
 		DebugLogger.log("🎯 Снят выбор: %s" % winner)
 		# TieMarker всегда виден и доступен (не нужно активировать/деактивировать)
+
+	_update_stop_hint_for_winner_preview()
+
+func _update_stop_hint_for_winner_preview() -> void:
+	if not ui_manager:
+		return
+	if not winner_selection_manager:
+		ui_manager.hide_stop_hint()
+		return
+
+	var selected_winner: String = winner_selection_manager.get_selected_winner()
+	if selected_winner.is_empty():
+		ui_manager.hide_stop_hint()
+		return
+
+	if not GameStateManager.is_action_valid(GameStateManager.Action.SELECT_WINNER):
+		ui_manager.show_stop_hint()
+		return
+
+	if not phase_manager or not phase_manager.winner_validator or not hand_manager:
+		ui_manager.hide_stop_hint()
+		return
+
+	var validation: Dictionary = phase_manager.winner_validator.validate_winner_selection(
+		selected_winner,
+		hand_manager.get_player_hand_ref(),
+		hand_manager.get_banker_hand_ref()
+	)
+
+	if bool(validation.get("is_valid", false)):
+		ui_manager.hide_stop_hint()
+		return
+
+	if bool(validation.get("needs_selection", false)):
+		ui_manager.hide_stop_hint()
+		return
+
+	ui_manager.show_stop_hint()
 
 
 # Методы обработки событий камеры перенесены в CameraNavigationController
