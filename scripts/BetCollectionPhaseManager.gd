@@ -578,13 +578,29 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 		if prev_progress < prev_sequence.size():
 			# Предыдущая группа не закончена
 			DebugLogger.log("  ❌ Группа '%s' не закончена!" % prev_group)
+			var expected_bet = _get_expected_next_bet(prev_group, false)
+			var payment_error_payload: Dictionary = {
+				"type": "payment_error",
+				"phase": "payment",
+				"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+				"actual": _bet_to_payload_dict(bet),
+				"result": "error",
+				"message": "",
+				"reason": "wrong_order"
+			}
 			match prev_group:
 				"main":
+					payment_error_payload["message"] = "ERR_PAY_MAIN_FIRST"
+					EventBus.payment_error.emit(payment_error_payload)
 					return _error_result("wrong_order", "ERR_PAY_MAIN_FIRST")
 				"tie":
+					payment_error_payload["message"] = "ERR_PAY_TIE_FIRST"
+					EventBus.payment_error.emit(payment_error_payload)
 					return _error_result("wrong_order", "ERR_PAY_TIE_FIRST")
 				"pairs":
 					# Пары оплачиваются последними, это не должно произойти
+					payment_error_payload["message"] = "ERR_WRONG_PAY_ORDER"
+					EventBus.payment_error.emit(payment_error_payload)
 					return _error_result("wrong_order", "ERR_WRONG_PAY_ORDER")
 		else:
 			DebugLogger.log("  ✅ Группа '%s' закончена" % prev_group)
