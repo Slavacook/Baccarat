@@ -547,11 +547,16 @@ func _normalize_positive_int_or_null(value: Variant) -> Variant:
 	if value is bool:
 		return null
 	if value is int:
-		return value if int(value) > 0 else null
+		var int_value := int(value)
+		if int_value > 0:
+			return int_value
+		return null
 	if value is float:
 		var float_value := float(value)
 		var int_value := int(float_value)
-		return int_value if float(int_value) == float_value and int_value > 0 else null
+		if float(int_value) == float_value and int_value > 0:
+			return int_value
+		return null
 	if value is String:
 		var normalized := str(value).strip_edges()
 		if normalized.is_empty():
@@ -559,7 +564,9 @@ func _normalize_positive_int_or_null(value: Variant) -> Variant:
 		if not normalized.is_valid_int():
 			return null
 		var parsed := int(normalized)
-		return parsed if parsed > 0 else null
+		if parsed > 0:
+			return parsed
+		return null
 	return null
 
 

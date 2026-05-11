@@ -220,19 +220,25 @@ func _render_leaderboard(rows: Array) -> void:
 func _build_leaderboard_row(row: Dictionary) -> Control:
 	var rank: String = _first_rank_string(row, ["rank", "place", "position"])
 	var participant_name: String = _first_non_empty_string(row, ["display_name", "participant_name", "name"])
+	var rounds_text: String = _first_numeric_string(row, ["rounds_completed", "rounds"])
 	var errors: String = _first_numeric_string(row, ["errors_total", "errors"])
 	var time_text: String = _time_string_from_row(row)
+	var attempt_text: String = _first_numeric_string(row, ["attempt_number", "attempt"])
 
 	if rank.is_empty():
 		rank = "—"
 	if participant_name.is_empty():
 		participant_name = "—"
+	if rounds_text.is_empty():
+		rounds_text = "0"
 	if errors.is_empty():
 		errors = "—"
 	if time_text.is_empty():
 		time_text = "—"
+	if attempt_text.is_empty():
+		attempt_text = "0"
 
-	return _build_table_row(rank, participant_name, errors, time_text, false)
+	return _build_table_row(rank, participant_name, rounds_text, errors, time_text, attempt_text, false)
 
 
 func _render_leaderboard_header() -> void:
@@ -240,10 +246,17 @@ func _render_leaderboard_header() -> void:
 		return
 	for child in leaderboard_header_host.get_children():
 		child.queue_free()
-	leaderboard_header_host.add_child(_build_table_row("Место", "Участник", "Ошибки", "Время", true))
+	leaderboard_header_host.add_child(_build_table_row("Место", "Участник", "Раздачи", "Ошибки", "Время", "Попытка", true))
 
-
-func _build_table_row(place_text: String, name_text: String, errors_text: String, time_text: String, is_header: bool) -> Control:
+func _build_table_row(
+	place_text: String,
+	name_text: String,
+	rounds_text: String,
+	errors_text: String,
+	time_text: String,
+	attempt_text: String,
+	is_header: bool
+) -> Control:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -276,9 +289,13 @@ func _build_table_row(place_text: String, name_text: String, errors_text: String
 	row_box.add_child(_build_column_separator())
 	row_box.add_child(_build_table_cell(name_text, 0, HORIZONTAL_ALIGNMENT_LEFT, is_header, true))
 	row_box.add_child(_build_column_separator())
+	row_box.add_child(_build_table_cell(rounds_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_column_separator())
 	row_box.add_child(_build_table_cell(errors_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
 	row_box.add_child(_build_column_separator())
 	row_box.add_child(_build_table_cell(time_text, 110, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_column_separator())
+	row_box.add_child(_build_table_cell(attempt_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
 
 	return panel
 
@@ -423,9 +440,18 @@ func _reload_access_record_from_store() -> void:
 func _apply_refreshed_public_view(code: String, success: bool) -> void:
 	if not success:
 		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
-		_clear_leaderboard()
-		_show_empty_leaderboard(true)
-		_set_header_visible(false)
+		var cached_body := {}
+		if _refresh_manager != null and _refresh_manager.has_method("get_last_public_tournament_body"):
+			var cached_variant: Variant = _refresh_manager.call("get_last_public_tournament_body", code)
+			if cached_variant is Dictionary:
+				cached_body = cached_variant as Dictionary
+		if not cached_body.is_empty():
+			_apply_public_tournament_data(cached_body)
+			var cached_leaderboard: Array = _extract_leaderboard(cached_body)
+			if not cached_leaderboard.is_empty():
+				_render_leaderboard(cached_leaderboard)
+				_set_header_visible(true)
+				return
 		return
 
 	if _refresh_manager == null or not _refresh_manager.has_method("get_last_public_tournament_body"):
