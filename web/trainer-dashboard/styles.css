@@ -1533,6 +1533,55 @@ th {
   width: min(560px, 100%);
 }
 
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.settings-row-inline {
+  justify-content: space-between;
+}
+
+.settings-row-inline > label:first-child {
+  margin: 0;
+  min-width: 168px;
+  flex: 0 0 168px;
+}
+
+.settings-row-inline > input,
+.settings-row-inline > select,
+.settings-row-inline > .checkbox-inline {
+  flex: 1 1 0;
+  max-width: 260px;
+}
+
+.settings-row-checkbox {
+  margin-bottom: 10px;
+}
+
+.settings-row-checkbox > .checkbox-inline {
+  display: flex;
+  justify-content: flex-end;
+  max-width: 260px;
+}
+
+.settings-row-checkbox > .checkbox-inline input {
+  margin: 0;
+}
+
+.settings-section-compact {
+  margin: 14px 0 8px;
+}
+
+.settings-section-title {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 .add-participant-modal-card {
   width: min(760px, 100%);
 }
@@ -1566,6 +1615,11 @@ th {
   .live-feed {
     max-height: 420px;
   }
+
+  .settings-row-inline > label:first-child {
+    min-width: 150px;
+    flex-basis: 150px;
+  }
 }
 
 @media (max-width: 700px) {
@@ -1575,6 +1629,24 @@ th {
 
   .live-cards {
     flex-wrap: wrap;
+  }
+
+  .settings-row-inline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .settings-row-inline > label:first-child,
+  .settings-row-inline > input,
+  .settings-row-inline > select,
+  .settings-row-inline > .checkbox-inline {
+    min-width: 0;
+    max-width: none;
+    flex: 1 1 auto;
+  }
+
+  .settings-row-checkbox > .checkbox-inline {
+    justify-content: flex-start;
   }
 }
 

@@ -358,33 +358,42 @@
         <h3 id="create-tournament-title">Новый турнир</h3>
         <button type="button" id="btn-close-create-tournament-modal" class="ghost">Закрыть</button>
       </div>
-      <label for="new-tournament-title">Название турнира</label>
-      <input type="text" id="new-tournament-title" maxlength="255" placeholder="Можно оставить пустым" />
-      <p class="muted small">Если название не указано, сервер подставит его сам.</p>
+      <div class="settings-row settings-row-inline">
+        <label for="new-tournament-title">Название турнира</label>
+        <input type="text" id="new-tournament-title" maxlength="255" placeholder="Можно оставить пустым" />
+      </div>
       <section>
         <h4>Настройки турнира</h4>
 
-        <label for="new-tournament-limits-mode">Лимиты стола</label>
-        <select id="new-tournament-limits-mode">
-          <option value="classic">Стандартные лимиты</option>
-          <option value="alternative">Альтернативные лимиты</option>
-        </select>
+        <div class="settings-row settings-row-inline">
+          <label for="new-tournament-limits-mode">Лимиты стола</label>
+          <select id="new-tournament-limits-mode">
+            <option value="classic">Стандартные лимиты</option>
+            <option value="alternative">Альтернативные лимиты</option>
+          </select>
+        </div>
 
-        <p class="muted small">Гости за столом</p>
-        <div class="row wrap">
-          <label><input type="checkbox" id="new-tournament-guest-story-enabled" checked /> Сюжет с гостями</label>
+        <div class="settings-section-compact">
+          <p class="settings-section-title">Гости за столом</p>
+          <div class="settings-row settings-row-inline settings-row-checkbox">
+            <label for="new-tournament-guest-story-enabled">Сюжет с гостями</label>
+            <label class="checkbox-inline" for="new-tournament-guest-story-enabled">
+              <input type="checkbox" id="new-tournament-guest-story-enabled" checked />
+            </label>
+          </div>
         </div>
         <div id="new-tournament-story-guests-block">
-          <label for="new-tournament-story-guest-count">Количество гостей</label>
-          <select id="new-tournament-story-guest-count">
-            <option value="1">1</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-          </select>
-          <p class="muted small">В сюжетном режиме выбирается стартовое количество гостей, а не конкретные места.</p>
+          <div class="settings-row settings-row-inline">
+            <label for="new-tournament-story-guest-count">Количество гостей</label>
+            <select id="new-tournament-story-guest-count">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+            </select>
+          </div>
         </div>
         <div id="new-tournament-fixed-guests-block" class="row wrap" hidden>
           <label><input type="checkbox" id="new-tournament-guest-1" checked /> Гость 1</label>
