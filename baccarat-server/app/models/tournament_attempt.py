@@ -29,6 +29,7 @@ class TournamentAttempt(Base):
     )
     attempt_number: Mapped[int] = mapped_column(Integer, nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False)
+    finish_reason: Mapped[str | None] = mapped_column(String(64), nullable=True)
     rounds_completed: Mapped[int] = mapped_column(Integer, nullable=False)
     errors_total: Mapped[int] = mapped_column(Integer, nullable=False)
     time_spent_seconds: Mapped[int] = mapped_column(Integer, nullable=False)

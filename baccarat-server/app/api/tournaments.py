@@ -289,11 +289,94 @@ def is_successful_tournament_attempt(
     tournament: Tournament,
     rounds_completed: int,
     time_spent_seconds: int,
+    finish_reason: str = "",
 ) -> bool:
+    normalized_finish_reason = normalize_finish_reason(finish_reason)
+    active_finish_reasons = get_active_finish_reasons_for_tournament(tournament)
+    if active_finish_reasons is not None and normalized_finish_reason != "":
+        return normalized_finish_reason in active_finish_reasons
+    return is_successful_tournament_attempt_legacy_compatible(
+        tournament,
+        rounds_completed,
+        time_spent_seconds,
+    )
+
+
+def is_successful_tournament_attempt_legacy_compatible(
+    tournament: Tournament,
+    rounds_completed: int,
+    time_spent_seconds: int,
+) -> bool:
+    settings = tournament.tournament_settings if isinstance(tournament.tournament_settings, dict) else {}
+    has_new_finish_settings = "finish_preset" in settings
+    if has_new_finish_settings:
+        max_rounds = _settings_positive_int_or_none(settings.get("max_rounds"))
+        max_duration_minutes = _settings_positive_int_or_none(settings.get("max_duration_minutes"))
+        limit_checks: list[bool] = []
+        if max_rounds is not None:
+            limit_checks.append(int(rounds_completed) >= max_rounds)
+        if max_duration_minutes is not None:
+            limit_checks.append(int(time_spent_seconds) <= (max_duration_minutes * 60))
+        if limit_checks:
+            return all(limit_checks)
     return (
         int(rounds_completed) >= int(tournament.max_rounds)
         and int(time_spent_seconds) <= int(tournament.attempt_duration_seconds)
     )
+
+
+def normalize_finish_reason(value: str | None) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
+def _settings_positive_int_or_none(value: Any) -> int | None:
+    if value is None or isinstance(value, bool):
+        return None
+    if isinstance(value, int):
+        return value if value > 0 else None
+    if isinstance(value, float):
+        int_value = int(value)
+        return int_value if float(int_value) == value and int_value > 0 else None
+    if isinstance(value, str):
+        normalized = value.strip()
+        if not normalized or not normalized.isdigit():
+            return None
+        parsed = int(normalized)
+        return parsed if parsed > 0 else None
+    return None
+
+
+def get_active_finish_reasons_for_tournament(tournament: Tournament) -> set[str] | None:
+    settings = tournament.tournament_settings if isinstance(tournament.tournament_settings, dict) else {}
+    if "finish_preset" not in settings:
+        return None
+
+    finish_preset = str(settings.get("finish_preset", "")).strip()
+    if finish_preset not in ALLOWED_FINISH_PRESETS:
+        return set()
+
+    max_rounds = _settings_positive_int_or_none(settings.get("max_rounds"))
+    max_errors = _settings_positive_int_or_none(settings.get("max_errors"))
+    max_duration_minutes = _settings_positive_int_or_none(settings.get("max_duration_minutes"))
+
+    active_reasons: set[str] = set()
+    if finish_preset == FINISH_PRESET_ROUNDS_ERRORS:
+        if max_rounds is not None:
+            active_reasons.add("round_limit")
+        if max_errors is not None:
+            active_reasons.add("error_limit")
+    elif finish_preset == FINISH_PRESET_TIME_ERRORS:
+        if max_duration_minutes is not None:
+            active_reasons.add("time_limit")
+        if max_errors is not None:
+            active_reasons.add("error_limit")
+    elif finish_preset == FINISH_PRESET_ROUNDS_TIME:
+        if max_rounds is not None:
+            active_reasons.add("round_limit")
+        if max_duration_minutes is not None:
+            active_reasons.add("time_limit")
+
+    return active_reasons
 
 
 def is_attempt_better(candidate: TournamentAttempt, incumbent: TournamentAttempt) -> bool:
@@ -532,12 +615,14 @@ async def submit_tournament_attempt(
         db,
     )
     previous_best = await get_best_success_attempt_for_participant(participant.id, db)
+    normalized_finish_reason = normalize_finish_reason(body.finish_reason)
     attempt_status = (
         TournamentAttemptStatus.SUCCESS
         if is_successful_tournament_attempt(
             tournament,
             body.rounds_completed,
             body.time_spent_seconds,
+            normalized_finish_reason,
         )
         else TournamentAttemptStatus.FAILED
     )
@@ -551,6 +636,7 @@ async def submit_tournament_attempt(
             tournament_participant_id=participant.id,
             attempt_number=next_attempt_number,
             status=attempt_status,
+            finish_reason=normalized_finish_reason if normalized_finish_reason != "" else None,
             rounds_completed=int(body.rounds_completed),
             errors_total=int(body.errors_total),
             time_spent_seconds=int(body.time_spent_seconds),
@@ -600,6 +686,7 @@ async def submit_tournament_attempt(
         attempt_id=str(created_attempt.id),
         attempt_number=int(created_attempt.attempt_number),
         status=created_attempt.status,
+        finish_reason=created_attempt.finish_reason,
         rounds_completed=int(created_attempt.rounds_completed),
         errors_total=int(created_attempt.errors_total),
         time_spent_seconds=int(created_attempt.time_spent_seconds),

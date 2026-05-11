@@ -134,6 +134,7 @@ class TournamentActivateResponse(BaseModel):
 
 class TournamentAttemptSubmitRequest(BaseModel):
     participant_token: str
+    finish_reason: str | None = None
     rounds_completed: int = Field(ge=0)
     errors_total: int = Field(ge=0)
     time_spent_seconds: int = Field(ge=0, le=86400)
@@ -145,6 +146,14 @@ class TournamentAttemptSubmitRequest(BaseModel):
         if not normalized:
             raise ValueError("Participant token is required")
         return normalized
+
+    @field_validator("finish_reason")
+    @classmethod
+    def validate_finish_reason(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        return normalized if normalized else None
 
 
 class TournamentBestResultResponse(BaseModel):
@@ -165,6 +174,7 @@ class TournamentAttemptSubmitResponse(BaseModel):
     attempt_id: str
     attempt_number: int
     status: str
+    finish_reason: str | None = None
     rounds_completed: int
     errors_total: int
     time_spent_seconds: int

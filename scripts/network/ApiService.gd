@@ -135,13 +135,15 @@ func activate_tournament(code: String, display_name: String) -> Dictionary:
 func submit_tournament_attempt(
 	tournament_id: String,
 	participant_token: String,
-	rounds_completed: int,
-	errors_total: int,
-	time_spent_seconds: int
+	finish_reason: String = "",
+	rounds_completed: int = 0,
+	errors_total: int = 0,
+	time_spent_seconds: int = 0
 ) -> Dictionary:
 	_http_op = "submit_tournament_attempt"
 	api_client.post_public("/api/tournaments/%s/attempts" % tournament_id, {
 		"participant_token": participant_token,
+		"finish_reason": finish_reason,
 		"rounds_completed": rounds_completed,
 		"errors_total": errors_total,
 		"time_spent_seconds": time_spent_seconds

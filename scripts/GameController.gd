@@ -2356,6 +2356,7 @@ func _submit_tournament_attempt_async(force_retry: bool = false) -> void:
 	var response: Dictionary = await api_service.submit_tournament_attempt(
 		str(_dict_value(payload, "tournament_id", "")),
 		str(_dict_value(payload, "participant_token", "")),
+		str(_dict_value(payload, "finish_reason", "")),
 		int(_dict_value(payload, "rounds_completed", 0)),
 		int(_dict_value(payload, "errors_total", 0)),
 		int(_dict_value(payload, "time_spent_seconds", 0))
