@@ -336,6 +336,7 @@ func _ready():
 	_update_rounds_counter()
 	_refresh_top_bar_texts()
 	_update_tournament_info_panel()
+	_connect_tournament_runtime_signals()
 	if tournament_finish_overlay:
 		tournament_finish_overlay.visible = false
 	if tournament_finish_menu_btn and not tournament_finish_menu_btn.pressed.is_connected(_on_tournament_finish_menu_pressed):
@@ -427,6 +428,7 @@ func _exit_tree() -> void:
 	if camera_manager:
 		camera_manager.cleanup()
 		camera_manager = null
+	_disconnect_tournament_runtime_signals()
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ КОМПОНЕНТОВ
@@ -2029,13 +2031,16 @@ func _update_tournament_info_panel() -> void:
 	var code_text: String = str(sm.get("tournament_code")).strip_edges()
 	var participant_text: String = str(sm.get("tournament_participant_display_name")).strip_edges()
 	var rounds_completed: int = int(sm.get("tournament_rounds_completed"))
-	var max_rounds: int = int(sm.get("tournament_max_rounds"))
-	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
+	var finish_settings := _get_tournament_finish_settings(sm)
+	var max_rounds: int = _tournament_finish_limit_value(finish_settings, "max_rounds")
+	var attempt_duration_seconds: int = _tournament_finish_limit_value(finish_settings, "max_duration_seconds")
 	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
 	var elapsed_seconds: int = 0
 	if attempt_started_at > 0.0:
 		elapsed_seconds = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
-	var remaining_seconds: int = max(attempt_duration_seconds - elapsed_seconds, 0)
+	var has_time_limit: bool = _tournament_finish_has_limit(finish_settings, "time_limit")
+	var has_round_limit: bool = _tournament_finish_has_limit(finish_settings, "round_limit")
+	var remaining_seconds: int = max(attempt_duration_seconds - elapsed_seconds, 0) if has_time_limit else 0
 	_last_tournament_remaining_seconds = remaining_seconds
 
 	if title_text.is_empty():
@@ -2050,9 +2055,9 @@ func _update_tournament_info_panel() -> void:
 	if tournament_participant_label:
 		tournament_participant_label.text = "Игрок: %s" % participant_text
 	if tournament_rounds_label:
-		tournament_rounds_label.text = "Раздачи %d / %d" % [rounds_completed, max_rounds]
+		tournament_rounds_label.text = "Раздачи %d / %d" % [rounds_completed, max_rounds] if has_round_limit else "Раздачи %d" % rounds_completed
 	if tournament_time_label:
-		tournament_time_label.text = "Осталось %s" % _format_duration_mmss(remaining_seconds)
+		tournament_time_label.text = "Осталось %s" % _format_duration_mmss(remaining_seconds) if has_time_limit else "Время без лимита"
 
 
 func _format_duration_mmss(total_seconds: int) -> String:
@@ -2060,6 +2065,54 @@ func _format_duration_mmss(total_seconds: int) -> String:
 	var minutes: int = int(floor(float(clamped_seconds) / 60.0))
 	var seconds: int = clamped_seconds % 60
 	return "%02d:%02d" % [minutes, seconds]
+
+
+func _connect_tournament_runtime_signals() -> void:
+	var sm := get_node_or_null("/root/SessionManager")
+	if sm == null:
+		return
+	if sm.has_signal("tournament_error_count_changed") and not sm.tournament_error_count_changed.is_connected(_on_tournament_error_count_changed):
+		sm.tournament_error_count_changed.connect(_on_tournament_error_count_changed)
+
+
+func _disconnect_tournament_runtime_signals() -> void:
+	var sm := get_node_or_null("/root/SessionManager")
+	if sm == null:
+		return
+	if sm.has_signal("tournament_error_count_changed") and sm.tournament_error_count_changed.is_connected(_on_tournament_error_count_changed):
+		sm.tournament_error_count_changed.disconnect(_on_tournament_error_count_changed)
+
+
+func _get_tournament_finish_settings(sm: Variant = null) -> Dictionary:
+	var session_manager: Variant = sm
+	if session_manager == null:
+		if Engine.has_singleton("SessionManager"):
+			session_manager = Engine.get_singleton("SessionManager")
+		else:
+			session_manager = get_node_or_null("/root/SessionManager")
+	if session_manager == null:
+		return {}
+	if not session_manager.has_method("get_normalized_tournament_finish_settings"):
+		return {}
+	var settings_variant: Variant = session_manager.get_normalized_tournament_finish_settings()
+	return settings_variant if settings_variant is Dictionary else {}
+
+
+func _tournament_finish_has_limit(finish_settings: Dictionary, limit_name: String) -> bool:
+	var active_limits_variant: Variant = _dict_value(finish_settings, "active_limits", [])
+	if not (active_limits_variant is Array):
+		return false
+	for item in active_limits_variant:
+		if str(item) == limit_name:
+			return true
+	return false
+
+
+func _tournament_finish_limit_value(finish_settings: Dictionary, key: String) -> int:
+	var value: Variant = _dict_value(finish_settings, key, null)
+	if value is int:
+		return max(int(value), 0)
+	return 0
 
 
 func _update_tournament_countdown_if_needed() -> void:
@@ -2076,7 +2129,12 @@ func _update_tournament_countdown_if_needed() -> void:
 	if bool(sm.get("tournament_attempt_finished")):
 		return
 
-	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
+	var finish_settings := _get_tournament_finish_settings(sm)
+	if not _tournament_finish_has_limit(finish_settings, "time_limit"):
+		return
+	var attempt_duration_seconds: int = _tournament_finish_limit_value(finish_settings, "max_duration_seconds")
+	if attempt_duration_seconds <= 0:
+		return
 	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
 	if attempt_started_at <= 0.0:
 		return
@@ -2111,10 +2169,35 @@ func _on_tournament_round_completed() -> void:
 	sm.mark_tournament_round_completed()
 	_update_tournament_info_panel()
 
+	var finish_settings := _get_tournament_finish_settings(sm)
+	if not _tournament_finish_has_limit(finish_settings, "round_limit"):
+		return
 	var rounds_completed: int = int(sm.get("tournament_rounds_completed"))
-	var max_rounds: int = int(sm.get("tournament_max_rounds"))
+	var max_rounds: int = _tournament_finish_limit_value(finish_settings, "max_rounds")
 	if max_rounds > 0 and rounds_completed >= max_rounds:
 		_finish_tournament_attempt("round_limit")
+
+
+func _on_tournament_error_count_changed(total_errors: int) -> void:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+
+	if sm == null:
+		return
+	if sm.get("current_mode") != sm.Mode.TOURNAMENT:
+		return
+	if bool(sm.get("tournament_attempt_finished")):
+		return
+
+	var finish_settings := _get_tournament_finish_settings(sm)
+	if not _tournament_finish_has_limit(finish_settings, "error_limit"):
+		return
+	var max_errors: int = _tournament_finish_limit_value(finish_settings, "max_errors")
+	if max_errors > 0 and total_errors >= max_errors:
+		_finish_tournament_attempt("error_limit")
 
 
 func _finish_tournament_attempt(reason: String) -> void:
@@ -2161,11 +2244,7 @@ func _show_tournament_finish_overlay(reason: String) -> void:
 		sm = get_node_or_null("/root/SessionManager")
 
 	var reason_text: String = "Попытка завершена"
-	match reason:
-		"round_limit":
-			reason_text = "Лимит раздач достигнут"
-		"time_limit":
-			reason_text = "Время вышло"
+	reason_text = _format_tournament_finish_reason(reason)
 
 	var rounds_completed: int = 0
 	var max_rounds: int = 0
@@ -2245,12 +2324,11 @@ func _build_tournament_attempt_payload(finish_reason: String = "") -> Dictionary
 	if sm == null or sm.get("current_mode") != sm.Mode.TOURNAMENT:
 		return {}
 
+	var finish_settings := _get_tournament_finish_settings(sm)
 	var attempt_started_at: float = float(sm.get("tournament_attempt_started_at"))
-	var attempt_duration_seconds: int = int(sm.get("tournament_attempt_duration_seconds"))
 	var time_spent_seconds: int = 0
 	if attempt_started_at > 0.0:
 		time_spent_seconds = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
-	time_spent_seconds = clampi(time_spent_seconds, 0, max(attempt_duration_seconds, 0))
 
 	return {
 		"tournament_id": str(_node_prop(sm, "tournament_id", "")).strip_edges(),
@@ -2259,7 +2337,7 @@ func _build_tournament_attempt_payload(finish_reason: String = "") -> Dictionary
 		"errors_total": int(_node_prop(sm, "tournament_errors_total", 0)),
 		"time_spent_seconds": time_spent_seconds,
 		"finish_reason": finish_reason if not finish_reason.strip_edges().is_empty() else str(_node_prop(sm, "tournament_finish_reason", "")).strip_edges(),
-		"max_rounds": int(_node_prop(sm, "tournament_max_rounds", 0)),
+		"max_rounds": _tournament_finish_limit_value(finish_settings, "max_rounds"),
 	}
 
 
@@ -2429,6 +2507,8 @@ func _format_tournament_finish_reason(reason: String) -> String:
 			return "Лимит раздач достигнут"
 		"time_limit":
 			return "Время вышло"
+		"error_limit":
+			return "Лимит ошибок достигнут"
 		_:
 			return "Попытка завершена"
 

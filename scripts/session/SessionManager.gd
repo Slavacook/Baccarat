@@ -69,6 +69,7 @@ var _last_banker_cards: Array[String] = []
 
 signal session_started(mode: Mode)
 signal session_ended(stats: Dictionary)
+signal tournament_error_count_changed(total_errors: int)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -335,6 +336,7 @@ func mark_tournament_error() -> void:
 	if tournament_attempt_finished:
 		return
 	tournament_errors_total += 1
+	tournament_error_count_changed.emit(tournament_errors_total)
 
 
 func finish_tournament_attempt(reason: String) -> void:
