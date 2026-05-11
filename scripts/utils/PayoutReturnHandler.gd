@@ -273,6 +273,14 @@ func restore_automatic_mode_state(_survival_rounds_completed_ref: int) -> int:
 	"""
 	# Восстанавливаем состояние survival режима
 	var updated_rounds = GameDataManager.get_survival_rounds()
+	var session_manager: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		session_manager = Engine.get_singleton("SessionManager")
+	else:
+		var tree := get_tree_callback.call() if get_tree_callback.is_valid() else null
+		if tree is SceneTree:
+			session_manager = (tree as SceneTree).root.get_node_or_null("SessionManager")
+	var is_tournament_mode: bool = session_manager != null and session_manager.get("current_mode") == session_manager.Mode.TOURNAMENT
 	if update_rounds_counter_callback.is_valid():
 		update_rounds_counter_callback.call()
 	
@@ -294,7 +302,9 @@ func restore_automatic_mode_state(_survival_rounds_completed_ref: int) -> int:
 	# Обновляем визуальное отображение сердечек
 	var is_active = survival_state.is_active_mode() if survival_state else false
 	var lives = survival_state.get_lives() if survival_state else 7
-	if is_active:
+	if is_tournament_mode:
+		survival_state.hide()
+	elif is_active:
 		survival_state.show()
 	else:
 		survival_state.hide()

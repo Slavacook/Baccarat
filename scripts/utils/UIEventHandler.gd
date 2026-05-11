@@ -243,6 +243,12 @@ func hide_game_ui_elements() -> void:
 func show_game_ui_elements() -> void:
 	"""Показать UI элементы игры при закрытии настроек"""
 	DebugLogger.log("⚙️ Начинаем показ UI элементов...")
+	var session_manager: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		session_manager = Engine.get_singleton("SessionManager")
+	else:
+		session_manager = owner_node.get_node_or_null("/root/SessionManager")
+	var is_tournament_mode: bool = session_manager != null and session_manager.get("current_mode") == session_manager.Mode.TOURNAMENT
 	
 	# Кнопка действия (начать/подтвердить/завершить)
 	if ui_manager and ui_manager.button_ui:
@@ -293,7 +299,14 @@ func show_game_ui_elements() -> void:
 	
 	# Сердца (SurvivalModeUI) - находится в TopUI
 	var survival = owner_node.get_node_or_null("TopUI/SurvivalModeUI")
-	if survival:
+	if is_tournament_mode:
+		if survival:
+			survival.visible = false
+			DebugLogger.log("  ✅ SurvivalModeUI оставлена скрытой (tournament mode)")
+		elif survival_state:
+			survival_state.hide()
+			DebugLogger.log("  ✅ survival_ui оставлена скрытой через SurvivalStateProvider (tournament mode)")
+	elif survival:
 		survival.visible = true
 		DebugLogger.log("  ✅ SurvivalModeUI показана")
 	elif survival_state:
