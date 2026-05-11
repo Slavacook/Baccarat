@@ -358,203 +358,270 @@
         <h3 id="create-tournament-title">Новый турнир</h3>
         <button type="button" id="btn-close-create-tournament-modal" class="ghost">Закрыть</button>
       </div>
-      <div class="settings-row settings-row-inline">
-        <label for="new-tournament-title">Название турнира</label>
-        <input type="text" id="new-tournament-title" maxlength="255" placeholder="Можно оставить пустым" />
-      </div>
-      <section>
-        <h4>Настройки турнира</h4>
+      <section class="tournament-form-sections">
+        <details class="tournament-form-section" id="create-tournament-main-section" open>
+          <summary class="tournament-form-section-summary">
+            <span class="tournament-form-section-title">Основные настройки</span>
+          </summary>
+          <div class="tournament-form-section-body">
+            <div class="settings-row settings-row-inline">
+              <label for="new-tournament-title">Название турнира</label>
+              <input type="text" id="new-tournament-title" maxlength="255" placeholder="Можно оставить пустым" />
+            </div>
 
-        <div class="settings-row settings-row-inline">
-          <label for="new-tournament-limits-mode">Лимиты стола</label>
-          <select id="new-tournament-limits-mode">
-            <option value="classic">Стандартные лимиты</option>
-            <option value="alternative">Альтернативные лимиты</option>
-          </select>
-        </div>
+            <div class="settings-row settings-row-inline">
+              <label for="new-tournament-limits-mode">Лимиты стола</label>
+              <select id="new-tournament-limits-mode">
+                <option value="classic">Стандартные лимиты</option>
+                <option value="alternative">Альтернативные лимиты</option>
+              </select>
+            </div>
 
-        <div class="settings-section-compact">
-          <p class="settings-section-title">Гости за столом</p>
-          <div class="settings-row settings-row-inline settings-row-checkbox">
-            <label for="new-tournament-guest-story-enabled">Сюжет с гостями</label>
-            <label class="checkbox-inline" for="new-tournament-guest-story-enabled">
-              <input type="checkbox" id="new-tournament-guest-story-enabled" checked />
-            </label>
-          </div>
-        </div>
-        <div id="new-tournament-story-guests-block">
-          <div class="settings-row settings-row-inline">
-            <label for="new-tournament-story-guest-count">Количество гостей</label>
-            <select id="new-tournament-story-guest-count">
-              <option value="1">1</option>
-              <option value="2">2</option>
-              <option value="3">3</option>
-              <option value="4">4</option>
-              <option value="5">5</option>
-              <option value="6">6</option>
-            </select>
-          </div>
-        </div>
-        <div id="new-tournament-fixed-guests-block" class="row wrap" hidden>
-          <label><input type="checkbox" id="new-tournament-guest-1" checked /> Гость 1</label>
-          <label><input type="checkbox" id="new-tournament-guest-2" checked /> Гость 2</label>
-          <label><input type="checkbox" id="new-tournament-guest-3" checked /> Гость 3</label>
-          <label><input type="checkbox" id="new-tournament-guest-4" checked /> Гость 4</label>
-          <label><input type="checkbox" id="new-tournament-guest-5" checked /> Гость 5</label>
-          <label><input type="checkbox" id="new-tournament-guest-6" checked /> Гость 6</label>
-        </div>
+            <div class="settings-row settings-row-inline settings-row-checkbox">
+              <label for="new-tournament-guest-story-enabled">Сюжет с гостями</label>
+              <label class="binary-toggle" for="new-tournament-guest-story-enabled">
+                <input type="checkbox" id="new-tournament-guest-story-enabled" checked />
+                <span class="binary-toggle-ui">
+                  <span class="binary-toggle-option binary-toggle-option-on">Включено</span>
+                  <span class="binary-toggle-option binary-toggle-option-off">Отключено</span>
+                </span>
+              </label>
+            </div>
 
-        <p class="muted small">Доступные ставки</p>
-        <div class="row wrap">
-          <label><input type="checkbox" id="new-tournament-bet-banker" checked /> Banker</label>
-          <label><input type="checkbox" id="new-tournament-bet-player" checked /> Player</label>
-          <label><input type="checkbox" id="new-tournament-bet-tie" checked /> Tie</label>
-          <label><input type="checkbox" id="new-tournament-bet-pairs" checked /> Pairs</label>
-        </div>
-
-        <p class="muted small">Первые четыре карты</p>
-        <div class="row wrap">
-          <label for="new-tournament-banker-1-card">Банкир 1</label>
-          <select id="new-tournament-banker-1-card">
-            <option value="RANDOM">Случайная</option>
-            <option value="A">A</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="J">J</option>
-            <option value="Q">Q</option>
-            <option value="K">K</option>
-          </select>
-          <label for="new-tournament-banker-2-card">Банкир 2</label>
-          <select id="new-tournament-banker-2-card">
-            <option value="RANDOM">Случайная</option>
-            <option value="A">A</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="J">J</option>
-            <option value="Q">Q</option>
-            <option value="K">K</option>
-          </select>
-          <label for="new-tournament-player-1-card">Игрок 1</label>
-          <select id="new-tournament-player-1-card">
-            <option value="RANDOM">Случайная</option>
-            <option value="A">A</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="J">J</option>
-            <option value="Q">Q</option>
-            <option value="K">K</option>
-          </select>
-          <label for="new-tournament-player-2-card">Игрок 2</label>
-          <select id="new-tournament-player-2-card">
-            <option value="RANDOM">Случайная</option>
-            <option value="A">A</option>
-            <option value="2">2</option>
-            <option value="3">3</option>
-            <option value="4">4</option>
-            <option value="5">5</option>
-            <option value="6">6</option>
-            <option value="7">7</option>
-            <option value="8">8</option>
-            <option value="9">9</option>
-            <option value="J">J</option>
-            <option value="Q">Q</option>
-            <option value="K">K</option>
-          </select>
-        </div>
-
-        <div class="row wrap">
-          <label><input type="checkbox" id="new-tournament-chance-cards-enabled" /> Карты шансов</label>
-          <label><input type="checkbox" id="new-tournament-auto-mode-switch-enabled" checked /> Автопереключение режима фишек</label>
-          <label><input type="checkbox" id="new-tournament-training-hints-enabled" checked /> Режим обучения</label>
-        </div>
-
-        <section class="finish-rules-section">
-          <h4>Правила завершения турнира</h4>
-          <p class="muted small">Выберите один из трёх режимов. Вторая настройка в режиме может быть отключена.</p>
-
-          <div class="finish-preset-switcher" role="tablist" aria-label="Режим завершения турнира">
-            <button type="button" class="finish-preset-button active" data-finish-preset-tab="rounds_errors">Раздачи + лимит ошибок</button>
-            <button type="button" class="finish-preset-button" data-finish-preset-tab="time_errors">Время + лимит ошибок</button>
-            <button type="button" class="finish-preset-button" data-finish-preset-tab="rounds_time">Раздачи + время</button>
-          </div>
-
-          <div class="finish-preset-panel" data-finish-preset-panel="rounds_errors">
-            <div class="finish-limit-row">
-              <div class="finish-limit-main">
-                <label for="new-tournament-rounds-errors-max-rounds">Количество раздач</label>
-                <input type="number" id="new-tournament-rounds-errors-max-rounds" min="1" step="1" value="50" />
+            <div id="new-tournament-story-guests-block">
+              <div class="settings-row settings-row-inline">
+                <label for="new-tournament-story-guest-count">Гости за столом</label>
+                <select id="new-tournament-story-guest-count">
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                </select>
               </div>
             </div>
-            <div class="finish-limit-row finish-limit-row-optional" id="new-tournament-rounds-errors-max-errors-row">
-              <div class="finish-limit-main">
-                <label for="new-tournament-rounds-errors-max-errors">Лимит ошибок</label>
-                <input type="number" id="new-tournament-rounds-errors-max-errors" min="1" step="1" value="1" />
-              </div>
-              <button type="button" class="ghost finish-limit-toggle-button" id="new-tournament-rounds-errors-max-errors-toggle">Отключить</button>
+            <div id="new-tournament-fixed-guests-block" class="tag-toggle-group" hidden>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-guest-1" checked /><span>Гость 1</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-guest-2" checked /><span>Гость 2</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-guest-3" checked /><span>Гость 3</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-guest-4" checked /><span>Гость 4</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-guest-5" checked /><span>Гость 5</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-guest-6" checked /><span>Гость 6</span></label>
             </div>
           </div>
+        </details>
 
-          <div class="finish-preset-panel hidden" data-finish-preset-panel="time_errors">
-            <div class="finish-limit-row">
-              <div class="finish-limit-main">
-                <label for="new-tournament-time-errors-max-duration">Лимит времени (минуты)</label>
-                <input type="number" id="new-tournament-time-errors-max-duration" min="1" step="1" value="10" />
-              </div>
-            </div>
-            <div class="finish-limit-row finish-limit-row-optional" id="new-tournament-time-errors-max-errors-row">
-              <div class="finish-limit-main">
-                <label for="new-tournament-time-errors-max-errors">Лимит ошибок</label>
-                <input type="number" id="new-tournament-time-errors-max-errors" min="1" step="1" value="1" />
-              </div>
-              <button type="button" class="ghost finish-limit-toggle-button" id="new-tournament-time-errors-max-errors-toggle">Отключить</button>
+        <details class="tournament-form-section" id="create-tournament-bets-section">
+          <summary class="tournament-form-section-summary">
+            <span class="tournament-form-section-title">Доступные ставки</span>
+          </summary>
+          <div class="tournament-form-section-body">
+            <div class="tag-toggle-group">
+              <label class="check-tag"><input type="checkbox" id="new-tournament-bet-banker" checked /><span>Banker</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-bet-player" checked /><span>Player</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-bet-tie" checked /><span>Tie</span></label>
+              <label class="check-tag"><input type="checkbox" id="new-tournament-bet-pairs" checked /><span>Pairs</span></label>
             </div>
           </div>
+        </details>
 
-          <div class="finish-preset-panel hidden" data-finish-preset-panel="rounds_time">
-            <div class="finish-limit-row">
-              <div class="finish-limit-main">
-                <label for="new-tournament-rounds-time-max-rounds">Количество раздач</label>
-                <input type="number" id="new-tournament-rounds-time-max-rounds" min="1" step="1" value="50" />
+        <details class="tournament-form-section" id="new-tournament-first-cards-section">
+          <summary class="tournament-form-section-summary">
+            <span class="tournament-form-section-title">Первые карты</span>
+            <span class="tournament-form-section-meta" id="new-tournament-first-cards-summary">Случайные</span>
+          </summary>
+          <div class="tournament-form-section-body">
+            <div class="settings-grid-two">
+              <div class="settings-row settings-row-inline">
+                <label for="new-tournament-banker-1-card">Банкир 1</label>
+                <select id="new-tournament-banker-1-card">
+                  <option value="RANDOM">Случайная</option>
+                  <option value="A">A</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="J">J</option>
+                  <option value="Q">Q</option>
+                  <option value="K">K</option>
+                </select>
               </div>
-            </div>
-            <div class="finish-limit-row finish-limit-row-optional" id="new-tournament-rounds-time-max-duration-row">
-              <div class="finish-limit-main">
-                <label for="new-tournament-rounds-time-max-duration">Лимит времени (минуты)</label>
-                <input type="number" id="new-tournament-rounds-time-max-duration" min="1" step="1" value="10" />
+              <div class="settings-row settings-row-inline">
+                <label for="new-tournament-banker-2-card">Банкир 2</label>
+                <select id="new-tournament-banker-2-card">
+                  <option value="RANDOM">Случайная</option>
+                  <option value="A">A</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="J">J</option>
+                  <option value="Q">Q</option>
+                  <option value="K">K</option>
+                </select>
               </div>
-              <button type="button" class="ghost finish-limit-toggle-button" id="new-tournament-rounds-time-max-duration-toggle">Отключить</button>
+              <div class="settings-row settings-row-inline">
+                <label for="new-tournament-player-1-card">Игрок 1</label>
+                <select id="new-tournament-player-1-card">
+                  <option value="RANDOM">Случайная</option>
+                  <option value="A">A</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="J">J</option>
+                  <option value="Q">Q</option>
+                  <option value="K">K</option>
+                </select>
+              </div>
+              <div class="settings-row settings-row-inline">
+                <label for="new-tournament-player-2-card">Игрок 2</label>
+                <select id="new-tournament-player-2-card">
+                  <option value="RANDOM">Случайная</option>
+                  <option value="A">A</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="J">J</option>
+                  <option value="Q">Q</option>
+                  <option value="K">K</option>
+                </select>
+              </div>
             </div>
           </div>
-        </section>
+        </details>
 
-        <label for="new-tournament-tip-percentage">Чаевые</label>
-        <input
-          type="number"
-          id="new-tournament-tip-percentage"
-          min="0"
-          max="100"
-          step="0.1"
-          value="0.3"
-        />
-        <p class="muted small">Значение задаётся в процентах: 0.3 = 0.3%. Например, при выигрыше 50000 чаевые будут 150.</p>
+        <details class="tournament-form-section" id="create-tournament-finish-rules-section" open>
+          <summary class="tournament-form-section-summary">
+            <span class="tournament-form-section-title">Правила завершения</span>
+          </summary>
+          <div class="tournament-form-section-body">
+            <div class="settings-row settings-row-stack">
+              <label>Режим завершения</label>
+              <div class="finish-preset-switcher" role="tablist" aria-label="Режим завершения турнира">
+                <button type="button" class="finish-preset-button active" data-finish-preset-tab="rounds_errors">Раздачи + ошибки</button>
+                <button type="button" class="finish-preset-button" data-finish-preset-tab="time_errors">Время + ошибки</button>
+                <button type="button" class="finish-preset-button" data-finish-preset-tab="rounds_time">Раздачи + время</button>
+              </div>
+            </div>
+
+            <div class="finish-preset-panel" data-finish-preset-panel="rounds_errors">
+              <div class="finish-limit-row">
+                <div class="finish-limit-main settings-row settings-row-inline">
+                  <label for="new-tournament-rounds-errors-max-rounds">Количество раздач</label>
+                  <input type="number" id="new-tournament-rounds-errors-max-rounds" min="1" step="1" value="50" />
+                </div>
+              </div>
+              <div class="finish-limit-row finish-limit-row-optional" id="new-tournament-rounds-errors-max-errors-row">
+                <div class="finish-limit-main settings-row settings-row-inline">
+                  <label for="new-tournament-rounds-errors-max-errors">Лимит ошибок</label>
+                  <input type="number" id="new-tournament-rounds-errors-max-errors" min="1" step="1" value="1" />
+                </div>
+                <button type="button" class="ghost finish-limit-toggle-button" id="new-tournament-rounds-errors-max-errors-toggle">Отключить</button>
+              </div>
+            </div>
+
+            <div class="finish-preset-panel hidden" data-finish-preset-panel="time_errors">
+              <div class="finish-limit-row">
+                <div class="finish-limit-main settings-row settings-row-inline">
+                  <label for="new-tournament-time-errors-max-duration">Время, минут</label>
+                  <input type="number" id="new-tournament-time-errors-max-duration" min="1" step="1" value="10" />
+                </div>
+              </div>
+              <div class="finish-limit-row finish-limit-row-optional" id="new-tournament-time-errors-max-errors-row">
+                <div class="finish-limit-main settings-row settings-row-inline">
+                  <label for="new-tournament-time-errors-max-errors">Лимит ошибок</label>
+                  <input type="number" id="new-tournament-time-errors-max-errors" min="1" step="1" value="1" />
+                </div>
+                <button type="button" class="ghost finish-limit-toggle-button" id="new-tournament-time-errors-max-errors-toggle">Отключить</button>
+              </div>
+            </div>
+
+            <div class="finish-preset-panel hidden" data-finish-preset-panel="rounds_time">
+              <div class="finish-limit-row">
+                <div class="finish-limit-main settings-row settings-row-inline">
+                  <label for="new-tournament-rounds-time-max-rounds">Количество раздач</label>
+                  <input type="number" id="new-tournament-rounds-time-max-rounds" min="1" step="1" value="50" />
+                </div>
+              </div>
+              <div class="finish-limit-row finish-limit-row-optional" id="new-tournament-rounds-time-max-duration-row">
+                <div class="finish-limit-main settings-row settings-row-inline">
+                  <label for="new-tournament-rounds-time-max-duration">Время, минут</label>
+                  <input type="number" id="new-tournament-rounds-time-max-duration" min="1" step="1" value="10" />
+                </div>
+                <button type="button" class="ghost finish-limit-toggle-button" id="new-tournament-rounds-time-max-duration-toggle">Отключить</button>
+              </div>
+            </div>
+          </div>
+        </details>
+
+        <details class="tournament-form-section" id="create-tournament-advanced-section">
+          <summary class="tournament-form-section-summary">
+            <span class="tournament-form-section-title">Дополнительно</span>
+          </summary>
+          <div class="tournament-form-section-body">
+            <div class="settings-row settings-row-inline settings-row-checkbox">
+              <label for="new-tournament-chance-cards-enabled">Карты шансов</label>
+              <label class="binary-toggle" for="new-tournament-chance-cards-enabled">
+                <input type="checkbox" id="new-tournament-chance-cards-enabled" />
+                <span class="binary-toggle-ui">
+                  <span class="binary-toggle-option binary-toggle-option-on">Включено</span>
+                  <span class="binary-toggle-option binary-toggle-option-off">Отключено</span>
+                </span>
+              </label>
+            </div>
+            <div class="settings-row settings-row-inline settings-row-checkbox">
+              <label for="new-tournament-auto-mode-switch-enabled">Автопереключение режима фишек</label>
+              <label class="binary-toggle" for="new-tournament-auto-mode-switch-enabled">
+                <input type="checkbox" id="new-tournament-auto-mode-switch-enabled" checked />
+                <span class="binary-toggle-ui">
+                  <span class="binary-toggle-option binary-toggle-option-on">Включено</span>
+                  <span class="binary-toggle-option binary-toggle-option-off">Отключено</span>
+                </span>
+              </label>
+            </div>
+            <div class="settings-row settings-row-inline settings-row-checkbox">
+              <label for="new-tournament-training-hints-enabled">Режим обучения</label>
+              <label class="binary-toggle" for="new-tournament-training-hints-enabled">
+                <input type="checkbox" id="new-tournament-training-hints-enabled" checked />
+                <span class="binary-toggle-ui">
+                  <span class="binary-toggle-option binary-toggle-option-on">Включено</span>
+                  <span class="binary-toggle-option binary-toggle-option-off">Отключено</span>
+                </span>
+              </label>
+            </div>
+            <div class="settings-row settings-row-inline">
+              <label for="new-tournament-tip-percentage">Чаевые</label>
+              <input
+                type="number"
+                id="new-tournament-tip-percentage"
+                min="0"
+                max="100"
+                step="0.1"
+                value="0.3"
+              />
+            </div>
+            <p class="muted small compact-hint">0.3 = 0.3% от выигрыша.</p>
+          </div>
+        </details>
       </section>
       <p id="create-tournament-edit-warning" class="muted small" hidden>Изменения применятся для новых входов и новых попыток. Уже начатые игры не меняются.</p>
       <button type="button" id="btn-create-tournament" class="primary">Создать</button>

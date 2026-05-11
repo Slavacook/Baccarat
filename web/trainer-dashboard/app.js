@@ -2549,13 +2549,46 @@ function updateTournamentGuestsModeUI() {
   const guestStoryEnabled = Boolean(el("new-tournament-guest-story-enabled")?.checked);
   const storyBlock = el("new-tournament-story-guests-block");
   const fixedBlock = el("new-tournament-fixed-guests-block");
+  const storyGuestCount = el("new-tournament-story-guest-count");
 
   if (storyBlock) {
-    storyBlock.hidden = !guestStoryEnabled;
+    storyBlock.hidden = false;
   }
   if (fixedBlock) {
     fixedBlock.hidden = guestStoryEnabled;
   }
+  if (storyGuestCount) {
+    storyGuestCount.disabled = !guestStoryEnabled;
+  }
+}
+
+function resetTournamentEditorSectionState() {
+  const sectionStates = [
+    ["create-tournament-main-section", true],
+    ["create-tournament-bets-section", false],
+    ["new-tournament-first-cards-section", false],
+    ["create-tournament-finish-rules-section", true],
+    ["create-tournament-advanced-section", false],
+  ];
+  sectionStates.forEach(([id, isOpen]) => {
+    const section = el(id);
+    if (section && "open" in section) {
+      section.open = isOpen;
+    }
+  });
+}
+
+function updateTournamentFirstCardsSummary() {
+  const summary = el("new-tournament-first-cards-summary");
+  if (!summary) return;
+  const firstFourCardIds = [
+    "new-tournament-banker-1-card",
+    "new-tournament-banker-2-card",
+    "new-tournament-player-1-card",
+    "new-tournament-player-2-card",
+  ];
+  const allRandom = firstFourCardIds.every((id) => String(el(id)?.value || "RANDOM") === "RANDOM");
+  summary.textContent = allRandom ? "Случайные" : "Настроить";
 }
 
 function buildGuestsEnabledFromCount(count) {
@@ -2571,6 +2604,8 @@ function countEnabledGuests(flags) {
 }
 
 function resetCreateTournamentSettings() {
+  resetTournamentEditorSectionState();
+
   const titleInput = el("new-tournament-title");
   if (titleInput) titleInput.value = "";
 
@@ -2630,6 +2665,7 @@ function resetCreateTournamentSettings() {
   if (tipPercentage) tipPercentage.value = "0.3";
 
   updateTournamentGuestsModeUI();
+  updateTournamentFirstCardsSummary();
 }
 
 function setTournamentSelectValue(id, value) {
@@ -2728,6 +2764,7 @@ function prefillTournamentForm(tournament) {
   }
 
   updateTournamentGuestsModeUI();
+  updateTournamentFirstCardsSummary();
 }
 
 function openEditTournamentModal(tournament) {
@@ -4654,6 +4691,14 @@ function wire() {
   el("new-tournament-guest-story-enabled")?.addEventListener("change", () => {
     updateTournamentGuestsModeUI();
   });
+  [
+    "new-tournament-banker-1-card",
+    "new-tournament-banker-2-card",
+    "new-tournament-player-1-card",
+    "new-tournament-player-2-card",
+  ].forEach((id) => {
+    el(id)?.addEventListener("change", () => updateTournamentFirstCardsSummary());
+  });
   document.querySelectorAll("[data-finish-preset-tab]").forEach((button) => {
     button.addEventListener("click", () => {
       const preset = button.getAttribute("data-finish-preset-tab") || "rounds_time";
@@ -4745,6 +4790,9 @@ function wire() {
 
 function boot() {
   wire();
+  resetTournamentEditorSectionState();
+  updateTournamentGuestsModeUI();
+  updateTournamentFirstCardsSummary();
   setRoomScopedVisibility();
   renderRoomInvite(null);
   renderRoomParticipants([], []);
