@@ -28,6 +28,20 @@ func _init(p_heart_bar: HeartBar = null, p_survival_ui: Control = null):
 	heart_bar = p_heart_bar
 	survival_ui = p_survival_ui
 
+
+func _is_tournament_mode() -> bool:
+	"""Проверить, запущен ли турнирный режим"""
+	var session_manager: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		session_manager = Engine.get_singleton("SessionManager")
+	else:
+		var tree := Engine.get_main_loop()
+		if tree is SceneTree:
+			session_manager = tree.root.get_node_or_null("SessionManager")
+	if session_manager == null:
+		return false
+	return session_manager.get("current_mode") == session_manager.Mode.TOURNAMENT
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -57,6 +71,13 @@ func set_lives(lives: int) -> void:
 
 func activate() -> void:
 	"""Активировать режим выживания"""
+	if _is_tournament_mode():
+		if heart_bar:
+			heart_bar.activate()
+		if survival_ui:
+			survival_ui.hide()
+		return
+
 	# Приоритет: survival_ui.activate() (он активирует heart_bar внутри себя и показывает UI)
 	if survival_ui and survival_ui.has_method("activate"):
 		survival_ui.activate()
@@ -75,6 +96,16 @@ func deactivate() -> void:
 
 func reset() -> void:
 	"""Сбросить состояние (для новой игры)"""
+	if _is_tournament_mode():
+		if heart_bar:
+			heart_bar.set_lives(DEFAULT_LIVES)
+			heart_bar.activate()
+		elif survival_ui and survival_ui.has_method("set_lives"):
+			survival_ui.set_lives(DEFAULT_LIVES)
+		if survival_ui:
+			survival_ui.hide()
+		return
+
 	# Приоритет: survival_ui.reset() (он сбрасывает heart_bar внутри себя и показывает UI)
 	if survival_ui and survival_ui.has_method("reset"):
 		survival_ui.reset()
@@ -86,6 +117,10 @@ func reset() -> void:
 
 func show() -> void:
 	"""Показать UI режима выживания"""
+	if _is_tournament_mode():
+		if survival_ui:
+			survival_ui.hide()
+		return
 	if survival_ui:
 		survival_ui.show()
 
@@ -105,4 +140,3 @@ func has_heart_bar() -> bool:
 func has_survival_ui() -> bool:
 	"""Проверить, доступен ли SurvivalModeUI"""
 	return survival_ui != null
-
