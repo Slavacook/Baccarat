@@ -26,6 +26,9 @@ var heart_full: Texture2D
 var money_container: HBoxContainer
 var money_icon: TextureRect
 var money_label: Label
+var tournament_errors_badge: PanelContainer
+var tournament_errors_margin: MarginContainer
+var tournament_errors_label: Label
 
 # ═══════════════════════════════════════════════════════════════════════════
 # НОВАЯ СИСТЕМА: LabelHeartVisual
@@ -53,6 +56,7 @@ func _ready():
 
 	# Создаём одно сердце и Label с количеством жизней (справа)
 	_create_single_heart_display()
+	_create_tournament_errors_display()
 	
 	# Инициализируем LabelHeartVisual
 	if lives_count_label and single_heart:
@@ -71,6 +75,8 @@ func _ready():
 		money_container.visible = true
 	if lives_container:
 		lives_container.visible = true
+	if tournament_errors_label:
+		tournament_errors_label.visible = false
 
 # ═══════════════════════════════════════════════════════════════════════════
 # СОЗДАНИЕ ОТОБРАЖЕНИЯ ДЕНЕГ
@@ -111,6 +117,41 @@ func _create_single_heart_display():
 	lives_count_label.add_theme_font_size_override("font_size", 20)
 	lives_container.add_child(lives_count_label)
 
+
+func _create_tournament_errors_display():
+	"""Создать badge для индикатора турнирных ошибок"""
+	tournament_errors_badge = PanelContainer.new()
+	tournament_errors_badge.visible = false
+	tournament_errors_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+
+	var badge_style: StyleBoxFlat = StyleBoxFlat.new()
+	badge_style.bg_color = Color(0.08, 0.19, 0.15, 0.94)
+	badge_style.border_width_left = 1
+	badge_style.border_width_top = 1
+	badge_style.border_width_right = 1
+	badge_style.border_width_bottom = 1
+	badge_style.border_color = Color(0.79, 0.69, 0.45, 0.85)
+	badge_style.corner_radius_top_left = 8
+	badge_style.corner_radius_top_right = 8
+	badge_style.corner_radius_bottom_right = 8
+	badge_style.corner_radius_bottom_left = 8
+	tournament_errors_badge.add_theme_stylebox_override("panel", badge_style)
+
+	tournament_errors_margin = MarginContainer.new()
+	tournament_errors_margin.add_theme_constant_override("margin_left", 10)
+	tournament_errors_margin.add_theme_constant_override("margin_top", 5)
+	tournament_errors_margin.add_theme_constant_override("margin_right", 10)
+	tournament_errors_margin.add_theme_constant_override("margin_bottom", 5)
+	tournament_errors_badge.add_child(tournament_errors_margin)
+
+	tournament_errors_label = Label.new()
+	tournament_errors_label.visible = false
+	tournament_errors_label.text = ""
+	tournament_errors_label.add_theme_font_size_override("font_size", 20)
+	tournament_errors_label.add_theme_color_override("font_color", Color(0.96, 0.92, 0.8, 1.0))
+	tournament_errors_margin.add_child(tournament_errors_label)
+	add_child(tournament_errors_badge)
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ОБНОВЛЕНИЕ ОТОБРАЖЕНИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -124,8 +165,42 @@ func update_display(_is_survival_mode: bool, current_lives: int, money: int):
 		money: Текущее количество денег
 	"""
 	# Всегда показываем оба элемента
+	_show_survival_status()
 	_update_money(money)
 	_update_hearts(current_lives)
+
+
+func show_tournament_errors(errors_total: int, max_errors: int, money: int) -> void:
+	"""Показать турнирный индикатор ошибок вместо старого блока жизней"""
+	_update_money(money)
+	if lives_container:
+		lives_container.visible = false
+	if tournament_errors_badge:
+		tournament_errors_badge.visible = true
+	if tournament_errors_label:
+		tournament_errors_label.text = "Ошибки: %d / %d" % [max(0, errors_total), max(0, max_errors)]
+		tournament_errors_label.visible = true
+
+
+func hide_status_block(money: int) -> void:
+	"""Скрыть правый статусный блок, оставить только деньги"""
+	_update_money(money)
+	if lives_container:
+		lives_container.visible = false
+	if tournament_errors_badge:
+		tournament_errors_badge.visible = false
+	if tournament_errors_label:
+		tournament_errors_label.visible = false
+
+
+func _show_survival_status() -> void:
+	"""Показать обычный survival статус"""
+	if lives_container:
+		lives_container.visible = true
+	if tournament_errors_badge:
+		tournament_errors_badge.visible = false
+	if tournament_errors_label:
+		tournament_errors_label.visible = false
 
 func _update_money(money: int):
 	"""Обновить отображение денег

@@ -70,22 +70,82 @@ var hint_purchased: bool = false   # Флаг покупки подсказки 
 
 
 func _is_tournament_mode() -> bool:
-	var sm: Variant = null
-	if Engine.has_singleton("SessionManager"):
-		sm = Engine.get_singleton("SessionManager")
-	else:
-		sm = get_node_or_null("/root/SessionManager")
+	var sm: Variant = _get_session_manager()
 	if sm == null:
 		return false
 	return sm.get("current_mode") == sm.Mode.TOURNAMENT
 
 
+func _get_session_manager() -> Variant:
+	if Engine.has_singleton("SessionManager"):
+		return Engine.get_singleton("SessionManager")
+	return get_node_or_null("/root/SessionManager")
+
+
+func _apply_payout_status_mode(is_survival: bool, lives: int) -> void:
+	var session_manager: Variant = _get_session_manager()
+	var is_tournament: bool = false
+	if session_manager != null:
+		is_tournament = session_manager.get("current_mode") == session_manager.Mode.TOURNAMENT
+
+	if is_tournament:
+		var finish_settings: Dictionary = {}
+		if session_manager.has_method("get_normalized_tournament_finish_settings"):
+			var settings_variant: Variant = session_manager.get_normalized_tournament_finish_settings()
+			if settings_variant is Dictionary:
+				finish_settings = settings_variant
+		var active_limits_variant: Variant = finish_settings.get("active_limits", [])
+		var active_limits: Array = []
+		if active_limits_variant is Array:
+			active_limits = active_limits_variant
+		var error_limit_active: bool = active_limits.has("error_limit")
+		var max_errors: int = int(finish_settings.get("max_errors", 0))
+		var errors_total: int = int(session_manager.get("tournament_errors_total"))
+		state_manager.set_tournament_error_state(true, error_limit_active, errors_total, max_errors)
+		return
+
+	state_manager.set_survival_state(is_survival, lives)
+
+
 func _apply_tournament_hint_button_visibility() -> void:
 	if not hint_button:
 		return
-	var is_tournament := _is_tournament_mode()
+	var is_tournament: bool = _is_tournament_mode()
 	hint_button.visible = not is_tournament
 	hint_button.disabled = is_tournament
+
+
+func _refresh_tournament_error_status(total_errors: int) -> void:
+	if not visible:
+		return
+	if not _is_tournament_mode():
+		return
+
+	var session_manager: Variant = _get_session_manager()
+	if session_manager == null:
+		return
+
+	var finish_settings: Dictionary = {}
+	if session_manager.has_method("get_normalized_tournament_finish_settings"):
+		var settings_variant: Variant = session_manager.get_normalized_tournament_finish_settings()
+		if settings_variant is Dictionary:
+			finish_settings = settings_variant
+
+	var active_limits_variant: Variant = finish_settings.get("active_limits", [])
+	var active_limits: Array = []
+	if active_limits_variant is Array:
+		active_limits = active_limits_variant
+
+	var error_limit_active: bool = active_limits.has("error_limit")
+	var max_errors: int = int(finish_settings.get("max_errors", 0))
+	if error_limit_active:
+		state_manager.set_tournament_error_state(true, true, total_errors, max_errors)
+	else:
+		state_manager.set_tournament_error_state(true, false, total_errors, 0)
+
+
+func _on_tournament_error_count_changed(total_errors: int) -> void:
+	_refresh_tournament_error_status(total_errors)
 
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
@@ -184,6 +244,11 @@ func _connect_signals():
 	# Все обновления идут через EventBus.life_lost
 	EventBus.payout_wrong.connect(state_manager.handle_payout_wrong_event)
 	EventBus.life_lost.connect(state_manager.handle_life_lost)
+
+	var session_manager: Variant = _get_session_manager()
+	if session_manager != null and session_manager.has_signal("tournament_error_count_changed"):
+		if not session_manager.tournament_error_count_changed.is_connected(_on_tournament_error_count_changed):
+			session_manager.tournament_error_count_changed.connect(_on_tournament_error_count_changed)
 
 	# Сигналы кнопок
 	payout_button.pressed.connect(_on_payout_pressed)
@@ -459,7 +524,7 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	keyboard_navigator.chip_denominations = state_manager.chip_denominations
 	
 	# Сохраняем состояние игры (вместо get_parent())
-	state_manager.set_survival_state(is_survival, lives)
+	_apply_payout_status_mode(is_survival, lives)
 
 	setup_payout(winner, stake, payout)
 
@@ -548,5 +613,35 @@ func _return_to_game(is_correct: bool, collected: float, expected: float):
 	keyboard_navigator.clear_focus()
 
 	DebugLogger.log("💰 PayoutOverlay скрыт: bet_type=%s, correct=%s, collected=%.1f, expected=%.1f" % [current_winner, is_correct, collected, expected])
+
+
+func force_close_for_tournament_finish() -> void:
+	"""Тихо закрыть overlay без payout completion flow"""
+	var input_context_manager: Variant = null
+	if Engine.has_singleton("InputContextManager"):
+		input_context_manager = Engine.get_singleton("InputContextManager")
+	else:
+		input_context_manager = get_node_or_null("/root/InputContextManager")
+	if input_context_manager != null and input_context_manager.has_method("set_context"):
+		input_context_manager.set_context(InputContextManager.InputContext.GAME)
+
+	if get_viewport():
+		get_viewport().gui_release_focus()
+
+	if feedback_container:
+		feedback_container.visible = false
+	if color_rect:
+		color_rect.scale = Vector2.ONE
+		color_rect.modulate.a = 1.0
+		color_rect.pivot_offset = Vector2.ZERO
+	if success_image:
+		success_image.visible = false
+		success_image.modulate.a = 0.0
+	if error_image:
+		error_image.visible = false
+		error_image.modulate.a = 0.0
+
+	hide()
+	keyboard_navigator.clear_focus()
 
 # Клавиатурная навигация теперь управляется через keyboard_navigator

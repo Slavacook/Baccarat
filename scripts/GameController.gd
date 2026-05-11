@@ -2245,6 +2245,11 @@ func _finish_tournament_attempt(reason: String) -> void:
 		return
 
 	var payload: Dictionary = _build_tournament_attempt_payload(reason)
+	if payout_overlay and payout_overlay.visible:
+		if payout_overlay.has_method("force_close_for_tournament_finish"):
+			payout_overlay.force_close_for_tournament_finish()
+		else:
+			payout_overlay.hide()
 	sm.finish_tournament_attempt(reason)
 	if sm.has_method("save_tournament_attempt_payload"):
 		sm.save_tournament_attempt_payload(payload)

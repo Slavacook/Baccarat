@@ -19,6 +19,10 @@ var survival_info: PayoutSurvivalInfo  # Компонент отображени
 var chip_denominations: Array = []  # Номиналы фишек
 var is_survival_mode: bool = false  # Режим выживания
 var current_lives: int = 7  # Текущее количество жизней
+var is_tournament_mode: bool = false
+var tournament_error_limit_active: bool = false
+var tournament_errors_total: int = 0
+var tournament_max_errors: int = 0
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНСТРУКТОР (Dependency Injection)
@@ -54,6 +58,24 @@ func set_survival_state(is_survival: bool, lives: int) -> void:
 	"""
 	is_survival_mode = is_survival
 	current_lives = lives
+	is_tournament_mode = false
+	tournament_error_limit_active = false
+	tournament_errors_total = 0
+	tournament_max_errors = 0
+	update_score_display()
+
+
+func set_tournament_error_state(
+	tournament_mode: bool,
+	error_limit_active: bool,
+	errors_total: int,
+	max_errors: int
+) -> void:
+	"""Установить состояние турнирного индикатора в overlay"""
+	is_tournament_mode = tournament_mode
+	tournament_error_limit_active = error_limit_active
+	tournament_errors_total = max(0, errors_total)
+	tournament_max_errors = max(0, max_errors)
 	update_score_display()
 
 func update_lives(new_lives: int) -> void:
@@ -74,7 +96,18 @@ func update_score_display() -> void:
 	# Используем сохранённые переменные
 	var current_score: int = SaveManager.instance.score
 
-	# Обновляем компонент
+	if is_tournament_mode:
+		if tournament_error_limit_active:
+			survival_info.show_tournament_errors(
+				tournament_errors_total,
+				tournament_max_errors,
+				current_score
+			)
+		else:
+			survival_info.hide_status_block(current_score)
+		return
+
+	# Обновляем компонент в обычном режиме
 	survival_info.update_display(is_survival_mode, current_lives, current_score)
 
 # ═══════════════════════════════════════════════════════════════════════════
