@@ -2639,7 +2639,7 @@ func _on_tournament_finish_menu_pressed() -> void:
 				var saved_variant: Variant = navigation_store.call(
 					"save_pending_access",
 					access_record,
-					"res://scenes/Game.tscn"
+					"res://scenes/network/MyTournamentsScreen.tscn"
 				)
 				pending_saved = bool(saved_variant)
 

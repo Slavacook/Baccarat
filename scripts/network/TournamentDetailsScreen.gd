@@ -57,6 +57,7 @@ func _ready() -> void:
 	_set_status("")
 	_load_pending_payload()
 	_render_access_record()
+	_apply_cached_public_view_if_available()
 	_request_public_refresh()
 
 
@@ -118,6 +119,36 @@ func _request_public_refresh() -> void:
 	_set_status("Загружаем таблицу...")
 	if not bool(_refresh_manager.call("is_refresh_in_progress_for", code)):
 		_refresh_manager.call("refresh_tournament_if_needed", code)
+
+
+func _apply_cached_public_view_if_available() -> void:
+	if not _has_valid_access_record():
+		return
+	if _refresh_manager == null:
+		return
+	if not _refresh_manager.has_method("get_last_public_tournament_body"):
+		return
+
+	var tournament: Dictionary = _access_tournament()
+	var code: String = _dictionary_string(tournament, "code")
+	if code.is_empty():
+		return
+
+	var cached_variant: Variant = _refresh_manager.call("get_last_public_tournament_body", code)
+	if not (cached_variant is Dictionary):
+		return
+
+	var cached_body: Dictionary = cached_variant as Dictionary
+	if cached_body.is_empty():
+		return
+
+	_apply_public_tournament_data(cached_body)
+	var cached_leaderboard: Array = _extract_leaderboard(cached_body)
+	if cached_leaderboard.is_empty():
+		return
+
+	_render_leaderboard(cached_leaderboard)
+	_set_header_visible(true)
 
 
 func _apply_public_tournament_data(body: Dictionary) -> void:
