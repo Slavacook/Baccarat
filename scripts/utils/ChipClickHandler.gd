@@ -403,6 +403,19 @@ func _handle_validation_error(validation: Dictionary, bet_type: String, position
 		EventBus.show_toast_error.emit(error_msg)
 		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
 		return true  # Ошибка обработана, выходим
+
+	# Для ошибки "uncollected_losing" structured collection_error уже был отправлен validator'ом.
+	# Здесь сохраняем локальный UX ошибки, но НЕ эмитим action_error второй раз.
+	if validation.error_type == "uncollected_losing":
+		var error_msg: String = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message
+		EventBus.show_toast_error.emit(error_msg)
+		if survival_state and survival_state.heart_bar and survival_state.heart_bar.has_method("_on_action_error"):
+			await survival_state.heart_bar._on_action_error(validation.error_type, error_msg)
+		else:
+			DebugLogger.log_warning("  ⚠️ HeartBar недоступен для локальной penalty-обработки uncollected_losing, используем fallback с потерей сердца")
+			_lose_life_directly()
+		DebugLogger.log("  ❌ Ошибка: %s" % validation.error_message)
+		return true  # Ошибка обработана, выходим
 	
 	# Для остальных ошибок - показываем тост и отнимаем жизнь (штрафуем всех гостей через HeartBar)
 	var error_message = Localization.t(validation.error_message) if validation.error_message.begins_with("ERR_") else validation.error_message

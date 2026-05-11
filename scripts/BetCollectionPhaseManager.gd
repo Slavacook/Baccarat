@@ -578,11 +578,11 @@ func _validate_pay(bet, bet_type: String, position_index: int = 0) -> Dictionary
 		if prev_progress < prev_sequence.size():
 			# Предыдущая группа не закончена
 			DebugLogger.log("  ❌ Группа '%s' не закончена!" % prev_group)
-			var expected_bet = _get_expected_next_bet(prev_group, false)
+			var previous_group_expected_bet = _get_expected_next_bet(prev_group, false)
 			var payment_error_payload: Dictionary = {
 				"type": "payment_error",
 				"phase": "payment",
-				"expected": _bet_to_payload_dict(expected_bet) if expected_bet else {},
+				"expected": _bet_to_payload_dict(previous_group_expected_bet) if previous_group_expected_bet else {},
 				"actual": _bet_to_payload_dict(bet),
 				"result": "error",
 				"message": "",
