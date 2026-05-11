@@ -439,12 +439,17 @@ func _reload_access_record_from_store() -> void:
 
 func _apply_refreshed_public_view(code: String, success: bool) -> void:
 	if not success:
-		_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
-		var cached_body := {}
+		var cached_body: Dictionary = {}
 		if _refresh_manager != null and _refresh_manager.has_method("get_last_public_tournament_body"):
 			var cached_variant: Variant = _refresh_manager.call("get_last_public_tournament_body", code)
 			if cached_variant is Dictionary:
 				cached_body = cached_variant as Dictionary
+		if not cached_body.is_empty():
+			print("📋 TournamentDetailsScreen: refresh %s завершён неуспешно, используем cached fallback" % code)
+			_set_status("Не удалось обновить турнир, будет использована сохранённая версия")
+		else:
+			print("📋 TournamentDetailsScreen: refresh %s завершён неуспешно, cached fallback отсутствует" % code)
+			_set_status("Не удалось обновить турнир")
 		if not cached_body.is_empty():
 			_apply_public_tournament_data(cached_body)
 			var cached_leaderboard: Array = _extract_leaderboard(cached_body)

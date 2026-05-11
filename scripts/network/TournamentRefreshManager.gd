@@ -102,6 +102,7 @@ func _run_refresh_all() -> void:
 		refresh_all_completed.emit(success_count, failed_count)
 		return
 
+	_reload_access_store_from_disk()
 	var accesses_variant: Variant = _tournament_access_store.call("get_all_accesses")
 	if accesses_variant is Array:
 		for item in accesses_variant:
@@ -138,6 +139,7 @@ func _run_single_refresh(code: String) -> void:
 func _refresh_tournament_by_code(code: String) -> bool:
 	var access_record := _find_access_record_by_code(code)
 	if access_record.is_empty():
+		print("🏁 TournamentRefreshManager: access_record не найден для кода %s, refresh завершён без HTTP" % code)
 		_mark_code_refresh_finished(code, false)
 		tournament_refresh_completed.emit(code, false)
 		return false
@@ -146,6 +148,7 @@ func _refresh_tournament_by_code(code: String) -> bool:
 
 func _refresh_access_record(access_record: Dictionary, code: String) -> bool:
 	_mark_code_refresh_started(code)
+	print("🌐 TournamentRefreshManager: старт HTTP refresh для турнира %s" % code)
 
 	var result: Dictionary = await _get_public_tournament(code)
 	var status_code := int(result.get("code", 0))
@@ -249,6 +252,7 @@ func _find_access_record_by_code(code: String) -> Dictionary:
 	if _tournament_access_store == null:
 		return {}
 
+	_reload_access_store_from_disk()
 	var normalized_code := code.strip_edges()
 	if normalized_code.is_empty():
 		return {}
@@ -262,8 +266,10 @@ func _find_access_record_by_code(code: String) -> Dictionary:
 			continue
 		var access_record := item as Dictionary
 		if _extract_code_from_access_record(access_record) == normalized_code:
+			print("🏁 TournamentRefreshManager: найден access_record для кода %s" % normalized_code)
 			return access_record.duplicate(true)
 
+	print("🏁 TournamentRefreshManager: access_record для кода %s не найден после reload_from_disk()" % normalized_code)
 	return {}
 
 
@@ -277,6 +283,14 @@ func _setup_access_store() -> void:
 	_tournament_access_store = TournamentAccessStoreScript.new()
 	_tournament_access_store.name = "TournamentAccessStore_Internal"
 	add_child(_tournament_access_store)
+
+
+func _reload_access_store_from_disk() -> void:
+	if _tournament_access_store == null:
+		return
+	if _tournament_access_store.has_method("reload_from_disk"):
+		print("♻️ TournamentRefreshManager: reload TournamentAccessStore перед поиском/refresh")
+		_tournament_access_store.call("reload_from_disk")
 
 
 func _setup_api_client() -> void:

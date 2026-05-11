@@ -74,6 +74,12 @@ func get_access_by_tournament_id(tournament_id: String) -> Dictionary:
 	return _records[index].duplicate(true)
 
 
+func reload_from_disk() -> void:
+	_records.clear()
+	_loaded = false
+	_ensure_loaded()
+
+
 func remove_access(tournament_id: String) -> void:
 	_ensure_loaded()
 	var normalized_id := tournament_id.strip_edges()
