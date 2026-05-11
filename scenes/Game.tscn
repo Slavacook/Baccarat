@@ -1,4 +1,4 @@
-[gd_scene load_steps=46 format=3 uid="uid://bfjp1iwsis27p"]
+[gd_scene load_steps=56 format=3 uid="uid://bfjp1iwsis27p"]
 
 [ext_resource type="Script" uid="uid://cmdsv8cgwx0jw" path="res://scripts/GameController.gd" id="1_aug50"]
 [ext_resource type="PackedScene" uid="uid://s1qstasvpebr" path="res://scenes/HelpPopup.tscn" id="4_78awf"]
@@ -124,6 +124,160 @@ border_width_top = 2
 border_width_right = 2
 border_width_bottom = 2
 border_color = Color(0.937255, 0.854902, 0.627451, 0.38)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_panel"]
+bg_color = Color(0.0431373, 0.0666667, 0.0588235, 0.97)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.62)
+corner_radius_top_left = 24
+corner_radius_top_right = 24
+corner_radius_bottom_right = 24
+corner_radius_bottom_left = 24
+shadow_color = Color(0, 0, 0, 0.38)
+shadow_size = 14
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_metric_card"]
+bg_color = Color(0.0705882, 0.101961, 0.0901961, 0.96)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.937255, 0.854902, 0.627451, 0.28)
+corner_radius_top_left = 16
+corner_radius_top_right = 16
+corner_radius_bottom_right = 16
+corner_radius_bottom_left = 16
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_secondary_normal"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0823529, 0.113725, 0.105882, 0.96)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.42)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_secondary_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.105882, 0.141176, 0.129412, 0.98)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.68)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_secondary_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0627451, 0.0901961, 0.0823529, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.980392, 0.901961, 0.690196, 0.82)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_secondary_focus"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.0901961, 0.121569, 0.113725, 0.98)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.980392, 0.901961, 0.690196, 1)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_primary_normal"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.188235, 0.278431, 0.176471, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.937255, 0.854902, 0.627451, 0.72)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_primary_hover"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.227451, 0.333333, 0.207843, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.980392, 0.901961, 0.690196, 0.9)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_primary_pressed"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.156863, 0.239216, 0.14902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.937255, 0.760784, 0.95)
+corner_radius_top_left = 18
+corner_radius_top_right = 18
+corner_radius_bottom_right = 18
+corner_radius_bottom_left = 18
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tournament_finish_primary_focus"]
+content_margin_left = 18.0
+content_margin_top = 12.0
+content_margin_right = 18.0
+content_margin_bottom = 12.0
+bg_color = Color(0.207843, 0.301961, 0.188235, 1)
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(1, 0.937255, 0.760784, 1)
 corner_radius_top_left = 18
 corner_radius_top_right = 18
 corner_radius_bottom_right = 18
@@ -344,7 +498,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 mouse_filter = 1
-color = Color(0, 0, 0, 0.62)
+color = Color(0.0117647, 0.0196078, 0.0156863, 0.74)
 
 [node name="CenterContainer" type="CenterContainer" parent="TopUI/TournamentFinishOverlay"]
 layout_mode = 1
@@ -358,6 +512,7 @@ mouse_filter = 1
 [node name="TournamentFinishPanel" type="PanelContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer"]
 custom_minimum_size = Vector2(520, 0)
 layout_mode = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_tournament_finish_panel")
 
 [node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel"]
 layout_mode = 2
@@ -372,6 +527,7 @@ theme_override_constants/separation = 16
 
 [node name="TournamentFinishTitleLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.980392, 0.952941, 0.870588, 0.96)
 theme_override_font_sizes/font_size = 28
 text = "Турнир завершён"
 horizontal_alignment = 1
@@ -406,6 +562,8 @@ alignment = 1
 [node name="TournamentFinishRoundsCard" type="PanelContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics"]
 custom_minimum_size = Vector2(138, 0)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_tournament_finish_metric_card")
 
 [node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics/TournamentFinishRoundsCard"]
 layout_mode = 2
@@ -427,6 +585,7 @@ horizontal_alignment = 1
 
 [node name="TournamentFinishRoundsLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics/TournamentFinishRoundsCard/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.956863, 0.905882, 1)
 theme_override_font_sizes/font_size = 20
 text = "0 / 0"
 horizontal_alignment = 1
@@ -434,6 +593,8 @@ horizontal_alignment = 1
 [node name="TournamentFinishErrorsCard" type="PanelContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics"]
 custom_minimum_size = Vector2(138, 0)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_tournament_finish_metric_card")
 
 [node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics/TournamentFinishErrorsCard"]
 layout_mode = 2
@@ -455,6 +616,7 @@ horizontal_alignment = 1
 
 [node name="TournamentFinishErrorsLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics/TournamentFinishErrorsCard/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.956863, 0.905882, 1)
 theme_override_font_sizes/font_size = 20
 text = "0"
 horizontal_alignment = 1
@@ -462,6 +624,8 @@ horizontal_alignment = 1
 [node name="TournamentFinishTimeCard" type="PanelContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics"]
 custom_minimum_size = Vector2(138, 0)
 layout_mode = 2
+size_flags_horizontal = 3
+theme_override_styles/panel = SubResource("StyleBoxFlat_tournament_finish_metric_card")
 
 [node name="MarginContainer" type="MarginContainer" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics/TournamentFinishTimeCard"]
 layout_mode = 2
@@ -483,6 +647,7 @@ horizontal_alignment = 1
 
 [node name="TournamentFinishTimeLabel" type="Label" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishMetrics/TournamentFinishTimeCard/MarginContainer/VBoxContainer"]
 layout_mode = 2
+theme_override_colors/font_color = Color(0.972549, 0.956863, 0.905882, 1)
 theme_override_font_sizes/font_size = 20
 text = "00:00"
 horizontal_alignment = 1
@@ -495,13 +660,29 @@ alignment = 1
 [node name="TournamentFinishMenuBtn" type="Button" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishButtons"]
 custom_minimum_size = Vector2(190, 52)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.952941, 0.921569, 0.835294, 0.96)
+theme_override_colors/font_focus_color = Color(1, 0.956863, 0.827451, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.956863, 0.827451, 1)
+theme_override_colors/font_hover_color = Color(1, 0.94902, 0.823529, 1)
 theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxFlat_tournament_finish_secondary_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tournament_finish_secondary_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tournament_finish_secondary_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_tournament_finish_secondary_focus")
 text = "Выйти"
 
 [node name="TournamentFinishRetryBtn" type="Button" parent="TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishButtons"]
 custom_minimum_size = Vector2(190, 52)
 layout_mode = 2
+theme_override_colors/font_color = Color(0.992157, 0.968627, 0.909804, 1)
+theme_override_colors/font_focus_color = Color(1, 0.976471, 0.917647, 1)
+theme_override_colors/font_pressed_color = Color(1, 0.976471, 0.917647, 1)
+theme_override_colors/font_hover_color = Color(1, 0.976471, 0.917647, 1)
 theme_override_font_sizes/font_size = 20
+theme_override_styles/normal = SubResource("StyleBoxFlat_tournament_finish_primary_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_tournament_finish_primary_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_tournament_finish_primary_pressed")
+theme_override_styles/focus = SubResource("StyleBoxFlat_tournament_finish_primary_focus")
 text = "Ещё раз"
 
 [node name="Background5" type="TextureRect" parent="."]
