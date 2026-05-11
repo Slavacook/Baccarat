@@ -277,9 +277,13 @@ func restore_automatic_mode_state(_survival_rounds_completed_ref: int) -> int:
 	if Engine.has_singleton("SessionManager"):
 		session_manager = Engine.get_singleton("SessionManager")
 	else:
-		var tree := get_tree_callback.call() if get_tree_callback.is_valid() else null
-		if tree is SceneTree:
-			session_manager = (tree as SceneTree).root.get_node_or_null("SessionManager")
+		var tree: SceneTree = null
+		if get_tree_callback.is_valid():
+			var tree_value: Variant = get_tree_callback.call()
+			if tree_value is SceneTree:
+				tree = tree_value
+		if tree != null:
+			session_manager = tree.root.get_node_or_null("SessionManager")
 	var is_tournament_mode: bool = session_manager != null and session_manager.get("current_mode") == session_manager.Mode.TOURNAMENT
 	if update_rounds_counter_callback.is_valid():
 		update_rounds_counter_callback.call()
