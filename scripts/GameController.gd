@@ -13,6 +13,10 @@ extends Node2D
 const PayoutQueueHandlerScript = preload("res://scripts/payout/PayoutQueueHandler.gd")
 const RoundResultSenderScript = preload("res://scripts/session/RoundResultSender.gd")
 const OnlineLiveEventBridgeScript = preload("res://scripts/session/OnlineLiveEventBridge.gd")
+const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAccessStore.gd")
+const TournamentNavigationStoreScript = preload("res://scripts/network/TournamentNavigationStore.gd")
+const TOURNAMENT_DETAILS_SCENE_PATH := "res://scenes/network/TournamentDetailsScreen.tscn"
+const START_SCREEN_SCENE_PATH := "res://scenes/StartScreen.tscn"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНФИГУРАЦИЯ
@@ -2565,7 +2569,43 @@ func _on_tournament_finish_menu_pressed() -> void:
 		sm = Engine.get_singleton("SessionManager")
 	else:
 		sm = get_node_or_null("/root/SessionManager")
+
+	var is_tournament: bool = false
+	if sm != null and sm.get("current_mode") == sm.Mode.TOURNAMENT:
+		is_tournament = true
+
+	if is_tournament:
+		var tournament_id: String = str(_node_prop(sm, "tournament_id", "")).strip_edges()
+		var access_record: Dictionary = {}
+		if not tournament_id.is_empty():
+			var access_store: Variant = TournamentAccessStoreScript.new()
+			if access_store != null and access_store.has_method("get_access_by_tournament_id"):
+				var access_variant: Variant = access_store.call("get_access_by_tournament_id", tournament_id)
+				if access_variant is Dictionary:
+					access_record = (access_variant as Dictionary).duplicate(true)
+
+		if not access_record.is_empty():
+			var navigation_store: Variant = TournamentNavigationStoreScript.new()
+			var pending_saved: bool = false
+			if navigation_store != null and navigation_store.has_method("save_pending_access"):
+				var saved_variant: Variant = navigation_store.call(
+					"save_pending_access",
+					access_record,
+					"res://scenes/Game.tscn"
+				)
+				pending_saved = bool(saved_variant)
+
+			if pending_saved:
+				if sm != null and sm.has_method("end_session"):
+					sm.end_session()
+				get_tree().change_scene_to_file(TOURNAMENT_DETAILS_SCENE_PATH)
+				return
+
+			DebugLogger.log_warning("⚠️ TournamentFinishOverlay: не удалось сохранить pending access для перехода к турниру")
+		else:
+			DebugLogger.log_warning("⚠️ TournamentFinishOverlay: access_record не найден для tournament_id=%s" % tournament_id)
+
 	if sm != null and sm.has_method("end_session"):
 		sm.end_session()
 
-	get_tree().change_scene_to_file("res://scenes/StartScreen.tscn")
+	get_tree().change_scene_to_file(START_SCREEN_SCENE_PATH)
