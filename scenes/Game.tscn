@@ -318,6 +318,14 @@ theme_override_font_sizes/font_size = 22
 text = "Осталось 00:00"
 autowrap_mode = 2
 
+[node name="TournamentErrorsLabel" type="Label" parent="TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer"]
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.937255, 0.792157, 0.65098, 0.95)
+theme_override_font_sizes/font_size = 15
+text = "Ошибки: 0 / 0"
+autowrap_mode = 2
+
 [node name="TournamentFinishOverlay" type="Control" parent="TopUI"]
 visible = false
 layout_mode = 3

@@ -184,6 +184,7 @@ var game_state_controller: GameStateController
 @onready var tournament_participant_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentParticipantLabel
 @onready var tournament_rounds_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentRoundsLabel
 @onready var tournament_time_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentTimeLabel
+@onready var tournament_errors_label: Label = $TopUI/TournamentInfoPanel/MarginContainer/TournamentInfoContainer/TournamentErrorsLabel
 @onready var tournament_finish_overlay: Control = $TopUI/TournamentFinishOverlay
 @onready var tournament_finish_title_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishTitleLabel
 @onready var tournament_finish_reason_label: Label = $TopUI/TournamentFinishOverlay/CenterContainer/TournamentFinishPanel/MarginContainer/TournamentFinishContainer/TournamentFinishReasonLabel
@@ -1460,8 +1461,24 @@ func _load_survival_mode_setting():
 	"""Активировать режим выживания (всегда включён)"""
 	if survival_state:
 		survival_state.activate()
+	_apply_survival_ui_visibility_for_current_mode()
 	# StatsLabel показывает деньги (управляется в StatsManager)
 	DebugLogger.log("Режим выживания активирован (сердца + деньги)")
+
+
+func _apply_survival_ui_visibility_for_current_mode() -> void:
+	if not survival_ui:
+		return
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+	if sm != null and sm.get("current_mode") == sm.Mode.TOURNAMENT:
+		survival_ui.hide()
+		return
+	if survival_state:
+		survival_ui.visible = survival_state.is_active_mode()
 
 # Метод _on_game_state_changed перенесён в SettingsEventHandler.handle_game_state_changed
 
@@ -2040,6 +2057,9 @@ func _update_tournament_info_panel() -> void:
 		elapsed_seconds = int(max((Time.get_ticks_msec() / 1000.0) - attempt_started_at, 0.0))
 	var has_time_limit: bool = _tournament_finish_has_limit(finish_settings, "time_limit")
 	var has_round_limit: bool = _tournament_finish_has_limit(finish_settings, "round_limit")
+	var has_error_limit: bool = _tournament_finish_has_limit(finish_settings, "error_limit")
+	var max_errors: int = _tournament_finish_limit_value(finish_settings, "max_errors")
+	var errors_total: int = int(sm.get("tournament_errors_total"))
 	var remaining_seconds: int = max(attempt_duration_seconds - elapsed_seconds, 0) if has_time_limit else 0
 	_last_tournament_remaining_seconds = remaining_seconds
 
@@ -2058,6 +2078,12 @@ func _update_tournament_info_panel() -> void:
 		tournament_rounds_label.text = "Раздачи %d / %d" % [rounds_completed, max_rounds] if has_round_limit else "Раздачи %d" % rounds_completed
 	if tournament_time_label:
 		tournament_time_label.text = "Осталось %s" % _format_duration_mmss(remaining_seconds) if has_time_limit else "Время без лимита"
+	if tournament_errors_label:
+		if has_error_limit and max_errors > 0:
+			tournament_errors_label.visible = true
+			tournament_errors_label.text = "Ошибки: %d / %d" % [errors_total, max_errors]
+		else:
+			tournament_errors_label.visible = false
 
 
 func _format_duration_mmss(total_seconds: int) -> String:
@@ -2194,8 +2220,10 @@ func _on_tournament_error_count_changed(total_errors: int) -> void:
 
 	var finish_settings := _get_tournament_finish_settings(sm)
 	if not _tournament_finish_has_limit(finish_settings, "error_limit"):
+		_update_tournament_info_panel()
 		return
 	var max_errors: int = _tournament_finish_limit_value(finish_settings, "max_errors")
+	_update_tournament_info_panel()
 	if max_errors > 0 and total_errors >= max_errors:
 		_finish_tournament_attempt("error_limit")
 

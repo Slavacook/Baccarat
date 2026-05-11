@@ -68,6 +68,25 @@ var is_button_blocked: bool = false # Блокировка кнопки при �
 var hint_purchased: bool = false   # Флаг покупки подсказки (для текущего окна выплат)
 # Состояние игры (is_survival_mode, current_lives) управляется через state_manager
 
+
+func _is_tournament_mode() -> bool:
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+	if sm == null:
+		return false
+	return sm.get("current_mode") == sm.Mode.TOURNAMENT
+
+
+func _apply_tournament_hint_button_visibility() -> void:
+	if not hint_button:
+		return
+	var is_tournament := _is_tournament_mode()
+	hint_button.visible = not is_tournament
+	hint_button.disabled = is_tournament
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ИНИЦИАЛИЗАЦИЯ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -447,6 +466,7 @@ func show_payout(winner: String, stake: float, payout: float, is_survival: bool,
 	# Сбрасываем состояние подсказки для нового окна выплат
 	hint_purchased = false
 	hint_handler.update_button_style(false)  # Красная кнопка (не куплена)
+	_apply_tournament_hint_button_visibility()
 	
 	# ВАЖНО: Сбрасываем блокировку кнопки для нового окна
 	is_button_blocked = false

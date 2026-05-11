@@ -92,6 +92,18 @@ func connect_mouse_handlers() -> void:
 	if hint_button and not hint_button.gui_input.is_connected(_on_hint_button_mouse_input):
 		hint_button.gui_input.connect(_on_hint_button_mouse_input)
 
+
+func _is_hint_button_available() -> bool:
+	if hint_button == null:
+		return false
+	if not is_instance_valid(hint_button):
+		return false
+	if hint_button.disabled:
+		return false
+	if not hint_button.visible:
+		return false
+	return hint_button.is_visible_in_tree()
+
 # ═══════════════════════════════════════════════════════════════════════════
 # ПУБЛИЧНЫЕ МЕТОДЫ - УПРАВЛЕНИЕ НАВИГАЦИЕЙ
 # ═══════════════════════════════════════════════════════════════════════════
@@ -154,7 +166,7 @@ func handle_focus_action() -> void:
 					on_payout_pressed_callback.call()
 	elif focus_level == FocusLevel.TOP:
 		# Нажимаем кнопку "Подсказка"
-		if on_hint_pressed_callback.is_valid():
+		if _is_hint_button_available() and on_hint_pressed_callback.is_valid():
 			on_hint_pressed_callback.call()
 
 func clear_focus() -> void:
@@ -251,6 +263,8 @@ func navigate_right() -> void:
 func navigate_up() -> void:
 	"""Навигация вверх (переключение на верхний уровень)"""
 	if focus_level == FocusLevel.BOTTOM:
+		if not _is_hint_button_available():
+			return
 		# Переходим на верхний уровень (кнопка подсказки)
 		focus_level = FocusLevel.TOP
 		focus_index = 0  # На верхнем уровне только один элемент
@@ -361,7 +375,13 @@ func _update_focus_frame() -> void:
 			target_node = payout_button
 	elif focus_level == FocusLevel.TOP:
 		# Фокус на кнопке "Подсказка"
-		target_node = hint_button
+		if _is_hint_button_available():
+			target_node = hint_button
+		else:
+			focus_level = FocusLevel.BOTTOM
+			if focus_index < 0 or focus_index > chip_denominations.size():
+				focus_index = chip_denominations.size()
+			target_node = payout_button
 	
 	if target_node:
 		focus_frame.show_on_node(target_node)
