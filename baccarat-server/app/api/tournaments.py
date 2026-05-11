@@ -1,6 +1,7 @@
 """Trainer API for tournament foundation."""
 
 from datetime import datetime, timezone
+from typing import Any
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -15,6 +16,7 @@ from app.models.tournament import (
     Tournament,
     TournamentStatus,
     clone_tournament_settings,
+    default_tournament_settings,
 )
 from app.models.tournament_participant import TournamentParticipant
 from app.models.tournament_participant_token import (
@@ -50,6 +52,18 @@ DEFAULT_TOURNAMENT_MAX_ROUNDS = 50
 DEFAULT_TOURNAMENT_ATTEMPT_DURATION_SECONDS = 600
 DEFAULT_TOURNAMENT_TITLE_PREFIX = "Турнир"
 MAX_TOURNAMENT_ATTEMPT_RETRIES = 2
+FINISH_PRESET_ROUNDS_ERRORS = "rounds_errors"
+FINISH_PRESET_TIME_ERRORS = "time_errors"
+FINISH_PRESET_ROUNDS_TIME = "rounds_time"
+ALLOWED_FINISH_PRESETS = {
+    FINISH_PRESET_ROUNDS_ERRORS,
+    FINISH_PRESET_TIME_ERRORS,
+    FINISH_PRESET_ROUNDS_TIME,
+}
+FINISH_RULES_VALIDATION_ERROR = (
+    "Нельзя одновременно использовать раздачи, время и лимит ошибок. "
+    "Выберите один из трёх режимов завершения турнира."
+)
 
 
 def normalize_tournament_code_for_lookup(code: str) -> str:
@@ -60,6 +74,115 @@ def normalize_tournament_code_for_lookup(code: str) -> str:
             detail="Tournament code must contain 8 characters",
         )
     return f"{compact[:4]}-{compact[4:]}"
+
+
+def _normalize_positive_limit(value: Any, field_name: str) -> int | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} must be a positive integer or null",
+        )
+    if isinstance(value, str):
+        normalized = value.strip()
+        if normalized == "":
+            return None
+        if not normalized.isdigit():
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"{field_name} must be a positive integer or null",
+            )
+        parsed = int(normalized)
+    elif isinstance(value, int):
+        parsed = int(value)
+    elif isinstance(value, float) and value.is_integer():
+        parsed = int(value)
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} must be a positive integer or null",
+        )
+
+    if parsed <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"{field_name} must be a positive integer",
+        )
+    return parsed
+
+
+def normalize_tournament_settings_payload(
+    raw_settings: dict[str, Any] | None,
+) -> tuple[dict[str, Any], int, int]:
+    settings = clone_tournament_settings(raw_settings)
+    finish_rule_keys = {"finish_preset", "max_rounds", "max_errors", "max_duration_minutes"}
+    if not any(key in settings for key in finish_rule_keys):
+        default_finish_settings = default_tournament_settings()
+        for key in finish_rule_keys:
+            settings[key] = default_finish_settings.get(key)
+
+    finish_preset = str(settings.get("finish_preset", FINISH_PRESET_ROUNDS_TIME)).strip()
+    if finish_preset not in ALLOWED_FINISH_PRESETS:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="finish_preset must be one of: rounds_errors, time_errors, rounds_time",
+        )
+
+    max_rounds = _normalize_positive_limit(settings.get("max_rounds"), "max_rounds")
+    max_errors = _normalize_positive_limit(settings.get("max_errors"), "max_errors")
+    max_duration_minutes = _normalize_positive_limit(
+        settings.get("max_duration_minutes"),
+        "max_duration_minutes",
+    )
+
+    active_limits = {
+        field_name
+        for field_name, field_value in {
+            "max_rounds": max_rounds,
+            "max_errors": max_errors,
+            "max_duration_minutes": max_duration_minutes,
+        }.items()
+        if field_value is not None
+    }
+
+    if len(active_limits) == 0 or len(active_limits) > 2:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=FINISH_RULES_VALIDATION_ERROR,
+        )
+
+    allowed_active_limits_by_preset = {
+        FINISH_PRESET_ROUNDS_ERRORS: [
+            {"max_rounds"},
+            {"max_rounds", "max_errors"},
+        ],
+        FINISH_PRESET_TIME_ERRORS: [
+            {"max_duration_minutes"},
+            {"max_duration_minutes", "max_errors"},
+        ],
+        FINISH_PRESET_ROUNDS_TIME: [
+            {"max_rounds"},
+            {"max_rounds", "max_duration_minutes"},
+        ],
+    }
+    if active_limits not in allowed_active_limits_by_preset[finish_preset]:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=FINISH_RULES_VALIDATION_ERROR,
+        )
+
+    normalized_settings = clone_tournament_settings(settings)
+    normalized_settings["finish_preset"] = finish_preset
+    normalized_settings["max_rounds"] = max_rounds
+    normalized_settings["max_errors"] = max_errors
+    normalized_settings["max_duration_minutes"] = max_duration_minutes
+
+    max_rounds_mirror = max_rounds if max_rounds is not None else 0
+    attempt_duration_seconds_mirror = (
+        max_duration_minutes * 60 if max_duration_minutes is not None else 0
+    )
+    return normalized_settings, max_rounds_mirror, attempt_duration_seconds_mirror
 
 
 async def get_owned_tournament_or_404(
@@ -303,15 +426,18 @@ async def create_tournament(
 ):
     code = await generate_unique_tournament_code(db)
     title = body.title or f"{DEFAULT_TOURNAMENT_TITLE_PREFIX} {code}"
+    tournament_settings, max_rounds_mirror, attempt_duration_seconds_mirror = (
+        normalize_tournament_settings_payload(body.tournament_settings)
+    )
 
     tournament = Tournament(
         trainer_id=trainer.id,
         title=title,
         code=code,
         status=TournamentStatus.ACTIVE,
-        max_rounds=DEFAULT_TOURNAMENT_MAX_ROUNDS,
-        attempt_duration_seconds=DEFAULT_TOURNAMENT_ATTEMPT_DURATION_SECONDS,
-        tournament_settings=clone_tournament_settings(body.tournament_settings),
+        max_rounds=max_rounds_mirror,
+        attempt_duration_seconds=attempt_duration_seconds_mirror,
+        tournament_settings=tournament_settings,
     )
     db.add(tournament)
     await db.commit()
@@ -544,14 +670,20 @@ async def update_tournament(
     db: AsyncSession = Depends(get_db),
 ):
     tournament = await get_owned_tournament_or_404(tournament_id, trainer, db)
+    settings_changed = False
 
     if body.title is not None:
         tournament.title = body.title
 
     if body.tournament_settings is not None:
-        tournament.tournament_settings = clone_tournament_settings(body.tournament_settings)
+        (
+            tournament.tournament_settings,
+            tournament.max_rounds,
+            tournament.attempt_duration_seconds,
+        ) = normalize_tournament_settings_payload(body.tournament_settings)
+        settings_changed = True
 
-    if body.title is not None or body.tournament_settings is not None:
+    if body.title is not None or settings_changed:
         await db.commit()
         await db.refresh(tournament)
 

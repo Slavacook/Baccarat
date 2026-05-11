@@ -18,6 +18,10 @@ depends_on = None
 
 TOURNAMENT_SETTINGS_DEFAULT_JSON = """
 {
+  "finish_preset": "rounds_time",
+  "max_rounds": 50,
+  "max_errors": null,
+  "max_duration_minutes": 10,
   "limits_mode": "classic",
   "guests_enabled": [true, true, true, true, true, true],
   "bets": {

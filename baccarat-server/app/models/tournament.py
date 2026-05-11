@@ -18,6 +18,10 @@ class TournamentStatus(str, enum.Enum):
 
 def default_tournament_settings() -> dict[str, Any]:
     return {
+        "finish_preset": "rounds_time",
+        "max_rounds": 50,
+        "max_errors": None,
+        "max_duration_minutes": 10,
         "limits_mode": "classic",
         "guests_enabled": [True, True, True, True, True, True],
         "bets": {

@@ -519,6 +519,71 @@ button:disabled {
   margin-top: 8px;
 }
 
+.finish-rules-section {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: rgba(11, 18, 32, 0.55);
+}
+
+.finish-rules-section h4 {
+  margin: 0 0 8px;
+}
+
+.finish-preset-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.finish-preset-button {
+  margin-top: 0;
+  background: #0f172a;
+  color: var(--muted);
+}
+
+.finish-preset-button.active {
+  background: #1e293b;
+  color: var(--text);
+  border-color: rgba(56, 189, 248, 0.45);
+}
+
+.finish-preset-panel {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.finish-limit-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.finish-limit-row.is-disabled {
+  opacity: 0.5;
+}
+
+.finish-limit-main {
+  flex: 1 1 320px;
+  min-width: 0;
+}
+
+.finish-limit-row .finish-limit-toggle-button {
+  margin-top: 0;
+  flex: 0 0 auto;
+}
+
+.finish-limit-row input:disabled {
+  opacity: 0.7;
+}
+
 .hidden {
   display: none !important;
 }
