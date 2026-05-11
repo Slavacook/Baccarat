@@ -5,6 +5,9 @@ extends Node
 
 const ONLINE_WATCHDOG_INTERVAL_SEC: float = 4.0
 const FORCE_EXIT_SCENE_PATH: String = "res://scenes/network/MyTrainingsScreen.tscn"
+const FINISH_PRESET_ROUNDS_ERRORS := "rounds_errors"
+const FINISH_PRESET_TIME_ERRORS := "time_errors"
+const FINISH_PRESET_ROUNDS_TIME := "rounds_time"
 
 # ═══════════════════════════════════════════════════════════════
 # РЕЖИМЫ
@@ -143,6 +146,18 @@ func start_tournament_session(access_record: Dictionary) -> void:
 	tournament_attempt_duration_seconds = int(_dict_value(tournament, "attempt_duration_seconds", 0))
 	tournament_attempt_started_at = Time.get_ticks_msec() / 1000.0
 	display_name = tournament_participant_display_name
+	var finish_settings := get_normalized_tournament_finish_settings()
+	print(
+		"🏁 TOURNAMENT SETTINGS TRACE finish_rules preset=%s rounds=%s errors=%s duration_sec=%s active=%s source=%s"
+		% [
+			str(finish_settings.get("finish_preset", "")),
+			str(finish_settings.get("max_rounds", null)),
+			str(finish_settings.get("max_errors", null)),
+			str(finish_settings.get("max_duration_seconds", null)),
+			str(finish_settings.get("active_limits", [])),
+			str(finish_settings.get("source", "")),
+		]
+	)
 
 	_reset_stats()
 	session_started.emit(current_mode)
@@ -222,6 +237,7 @@ func get_session_stats() -> Dictionary:
 		"tournament_title": tournament_title,
 		"tournament_status": tournament_status,
 		"tournament_settings": tournament_settings.duplicate(true),
+		"tournament_finish_settings": get_normalized_tournament_finish_settings(),
 		"tournament_participant_token": tournament_participant_token,
 		"tournament_participant_id": tournament_participant_id,
 		"tournament_participant_display_name": tournament_participant_display_name,
@@ -243,6 +259,16 @@ func get_session_stats() -> Dictionary:
 		"total_errors": total_errors,
 		"accuracy": _calc_accuracy()
 	}
+
+
+func get_normalized_tournament_finish_settings() -> Dictionary:
+	var settings := _dictionary_or_empty(tournament_settings)
+	var has_new_settings := _has_new_tournament_finish_settings(settings)
+	if has_new_settings:
+		var normalized_new := _normalize_finish_settings_from_new_fields(settings)
+		if not normalized_new.is_empty():
+			return normalized_new
+	return _normalize_finish_settings_from_legacy()
 
 
 func get_round_context_snapshot() -> Dictionary:
@@ -434,6 +460,117 @@ func _cards_to_strings(cards: Array) -> Array[String]:
 		if c and c.has_method("card_to_string"):
 			out.append(str(c.card_to_string()))
 	return out
+
+
+func _has_new_tournament_finish_settings(settings: Dictionary) -> bool:
+	for key in ["finish_preset", "max_rounds", "max_errors", "max_duration_minutes"]:
+		if settings.has(key):
+			return true
+	return false
+
+
+func _normalize_finish_settings_from_new_fields(settings: Dictionary) -> Dictionary:
+	var finish_preset := _normalize_finish_preset(str(_dict_value(settings, "finish_preset", "")))
+	if finish_preset.is_empty():
+		return {}
+
+	var max_rounds_variant: Variant = _normalize_positive_int_or_null(_dict_value(settings, "max_rounds", null))
+	var max_errors_variant: Variant = _normalize_positive_int_or_null(_dict_value(settings, "max_errors", null))
+	var max_duration_minutes_variant: Variant = _normalize_positive_int_or_null(_dict_value(settings, "max_duration_minutes", null))
+	var max_duration_seconds_variant: Variant = null
+	if max_duration_minutes_variant is int:
+		max_duration_seconds_variant = int(max_duration_minutes_variant) * 60
+
+	var active_limits: Array[String] = []
+	if max_rounds_variant is int:
+		active_limits.append("round_limit")
+	if max_errors_variant is int:
+		active_limits.append("error_limit")
+	if max_duration_seconds_variant is int:
+		active_limits.append("time_limit")
+
+	if not _active_limits_match_preset(finish_preset, active_limits):
+		return {}
+
+	return {
+		"finish_preset": finish_preset,
+		"max_rounds": max_rounds_variant,
+		"max_errors": max_errors_variant,
+		"max_duration_seconds": max_duration_seconds_variant,
+		"active_limits": active_limits,
+		"source": "tournament_settings",
+	}
+
+
+func _normalize_finish_settings_from_legacy() -> Dictionary:
+	var max_rounds_variant: Variant = _normalize_positive_int_or_null(tournament_max_rounds)
+	var max_duration_seconds_variant: Variant = _normalize_positive_int_or_null(tournament_attempt_duration_seconds)
+	var active_limits: Array[String] = []
+	var finish_preset := FINISH_PRESET_ROUNDS_TIME
+
+	if max_rounds_variant is int:
+		active_limits.append("round_limit")
+	if max_duration_seconds_variant is int:
+		active_limits.append("time_limit")
+
+	if active_limits == ["round_limit"]:
+		finish_preset = FINISH_PRESET_ROUNDS_ERRORS
+	elif active_limits == ["time_limit"]:
+		finish_preset = FINISH_PRESET_TIME_ERRORS
+	else:
+		finish_preset = FINISH_PRESET_ROUNDS_TIME
+
+	return {
+		"finish_preset": finish_preset,
+		"max_rounds": max_rounds_variant,
+		"max_errors": null,
+		"max_duration_seconds": max_duration_seconds_variant,
+		"active_limits": active_limits,
+		"source": "legacy_top_level",
+	}
+
+
+func _normalize_finish_preset(value: String) -> String:
+	var normalized := value.strip_edges()
+	match normalized:
+		FINISH_PRESET_ROUNDS_ERRORS, FINISH_PRESET_TIME_ERRORS, FINISH_PRESET_ROUNDS_TIME:
+			return normalized
+		_:
+			return ""
+
+
+func _normalize_positive_int_or_null(value: Variant) -> Variant:
+	if value == null:
+		return null
+	if value is bool:
+		return null
+	if value is int:
+		return value if int(value) > 0 else null
+	if value is float:
+		var float_value := float(value)
+		var int_value := int(float_value)
+		return int_value if float(int_value) == float_value and int_value > 0 else null
+	if value is String:
+		var normalized := str(value).strip_edges()
+		if normalized.is_empty():
+			return null
+		if not normalized.is_valid_int():
+			return null
+		var parsed := int(normalized)
+		return parsed if parsed > 0 else null
+	return null
+
+
+func _active_limits_match_preset(finish_preset: String, active_limits: Array[String]) -> bool:
+	match finish_preset:
+		FINISH_PRESET_ROUNDS_ERRORS:
+			return active_limits == ["round_limit"] or active_limits == ["round_limit", "error_limit"]
+		FINISH_PRESET_TIME_ERRORS:
+			return active_limits == ["time_limit"] or active_limits == ["error_limit", "time_limit"]
+		FINISH_PRESET_ROUNDS_TIME:
+			return active_limits == ["round_limit"] or active_limits == ["round_limit", "time_limit"]
+		_:
+			return false
 
 
 func _ensure_online_watchdog_timer() -> void:
