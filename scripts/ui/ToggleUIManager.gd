@@ -124,7 +124,9 @@ func update_banker_third_card_ui(state: String, card: Card = null):
 
 func reset_toggles():
 	"""Сброс toggles к начальному состоянию (видимые, с текстурой ?)"""
-	player_third_toggle.visible = true
-	banker_third_toggle.visible = true
+	if is_instance_valid(player_third_toggle):
+		player_third_toggle.visible = true
+	if is_instance_valid(banker_third_toggle):
+		banker_third_toggle.visible = true
 	update_player_third_card_ui("?")
 	update_banker_third_card_ui("?")
