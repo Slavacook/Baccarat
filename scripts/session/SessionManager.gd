@@ -575,9 +575,9 @@ func _active_limits_match_preset(finish_preset: String, active_limits: Array[Str
 		FINISH_PRESET_ROUNDS_ERRORS:
 			return active_limits == ["round_limit"] or active_limits == ["round_limit", "error_limit"]
 		FINISH_PRESET_TIME_ERRORS:
-			return active_limits == ["time_limit"] or active_limits == ["error_limit", "time_limit"]
+			return active_limits == ["error_limit"] or active_limits == ["error_limit", "time_limit"]
 		FINISH_PRESET_ROUNDS_TIME:
-			return active_limits == ["round_limit"] or active_limits == ["round_limit", "time_limit"]
+			return active_limits == ["time_limit"] or active_limits == ["round_limit", "time_limit"]
 		_:
 			return false
 

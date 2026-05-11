@@ -158,11 +158,11 @@ def normalize_tournament_settings_payload(
             {"max_rounds", "max_errors"},
         ],
         FINISH_PRESET_TIME_ERRORS: [
-            {"max_duration_minutes"},
-            {"max_duration_minutes", "max_errors"},
+            {"max_errors"},
+            {"max_errors", "max_duration_minutes"},
         ],
         FINISH_PRESET_ROUNDS_TIME: [
-            {"max_rounds"},
+            {"max_duration_minutes"},
             {"max_rounds", "max_duration_minutes"},
         ],
     }

@@ -93,9 +93,9 @@ const EVENT_ERROR_LABELS = {
   payout_wrong: "Ошибка оплаты ставки",
 };
 const FINISH_PRESET_LABELS = {
-  rounds_errors: "Раздачи + лимит ошибок",
-  time_errors: "Время + лимит ошибок",
-  rounds_time: "Раздачи + время",
+  time_errors: "Ошибки + время",
+  rounds_time: "Время + раздачи",
+  rounds_errors: "Раздачи + ошибки",
 };
 const FINISH_SETTINGS_VALIDATION_ERROR =
   "Нельзя одновременно использовать раздачи, время и лимит ошибок. Выберите один из трёх режимов завершения турнира.";
@@ -1978,39 +1978,77 @@ function deriveTournamentFinishRules(tournament) {
   let maxErrors = Number.isFinite(settingsMaxErrors) ? settingsMaxErrors : null;
   let maxDurationMinutes = Number.isFinite(settingsMaxDurationMinutes) ? settingsMaxDurationMinutes : null;
 
-  if (!FINISH_PRESET_LABELS[finishPreset]) {
-    if (Number.isFinite(topLevelMaxRounds) && topLevelMaxRounds > 0 && Number.isFinite(topLevelDurationMinutes) && topLevelDurationMinutes > 0) {
+  const derivePresetFromActiveLimits = () => {
+    if (maxErrors != null && maxDurationMinutes != null && maxRounds == null) {
+      return "time_errors";
+    }
+    if (maxErrors != null && maxDurationMinutes == null && maxRounds == null) {
+      return "time_errors";
+    }
+    if (maxDurationMinutes != null && maxRounds != null && maxErrors == null) {
+      return "rounds_time";
+    }
+    if (maxDurationMinutes != null && maxRounds == null && maxErrors == null) {
+      return "rounds_time";
+    }
+    if (maxRounds != null && maxErrors != null && maxDurationMinutes == null) {
+      return "rounds_errors";
+    }
+    if (maxRounds != null && maxErrors == null && maxDurationMinutes == null) {
+      return "rounds_errors";
+    }
+    return "";
+  };
+
+  let derivedPresetFromActiveLimits = derivePresetFromActiveLimits();
+
+  if (!FINISH_PRESET_LABELS[finishPreset] || (derivedPresetFromActiveLimits && derivedPresetFromActiveLimits !== finishPreset)) {
+    if (derivedPresetFromActiveLimits) {
+      finishPreset = derivedPresetFromActiveLimits;
+    } else if (Number.isFinite(topLevelMaxRounds) && topLevelMaxRounds > 0 && Number.isFinite(topLevelDurationMinutes) && topLevelDurationMinutes > 0) {
       finishPreset = "rounds_time";
       maxRounds = topLevelMaxRounds;
       maxDurationMinutes = topLevelDurationMinutes;
       maxErrors = null;
+    } else if (Number.isFinite(topLevelDurationMinutes) && topLevelDurationMinutes > 0) {
+      finishPreset = "rounds_time";
+      maxRounds = null;
+      maxErrors = null;
+      maxDurationMinutes = topLevelDurationMinutes;
     } else if (Number.isFinite(topLevelMaxRounds) && topLevelMaxRounds > 0) {
       finishPreset = "rounds_errors";
       maxRounds = topLevelMaxRounds;
       maxErrors = null;
       maxDurationMinutes = null;
-    } else if (Number.isFinite(topLevelDurationMinutes) && topLevelDurationMinutes > 0) {
+    } else if (Number.isFinite(settingsMaxErrors) && settingsMaxErrors > 0) {
       finishPreset = "time_errors";
       maxRounds = null;
-      maxErrors = null;
-      maxDurationMinutes = topLevelDurationMinutes;
+      maxErrors = settingsMaxErrors;
+      maxDurationMinutes = Number.isFinite(settingsMaxDurationMinutes) ? settingsMaxDurationMinutes : null;
     } else {
       finishPreset = "rounds_time";
       maxRounds = FINISH_PRESET_DEFAULTS.rounds_time.max_rounds;
       maxErrors = null;
       maxDurationMinutes = FINISH_PRESET_DEFAULTS.rounds_time.max_duration_minutes;
     }
+    derivedPresetFromActiveLimits = derivePresetFromActiveLimits();
   }
 
-  if (finishPreset === "rounds_errors" && maxRounds == null) {
-    maxRounds = FINISH_PRESET_DEFAULTS.rounds_errors.max_rounds;
+  if (finishPreset === "rounds_errors") {
+    if (maxRounds == null) maxRounds = FINISH_PRESET_DEFAULTS.rounds_errors.max_rounds;
+    if (maxErrors != null && !Number.isFinite(maxErrors)) maxErrors = FINISH_PRESET_DEFAULTS.rounds_errors.max_errors;
   }
-  if (finishPreset === "time_errors" && maxDurationMinutes == null) {
-    maxDurationMinutes = FINISH_PRESET_DEFAULTS.time_errors.max_duration_minutes;
+  if (finishPreset === "time_errors") {
+    if (maxErrors == null) maxErrors = FINISH_PRESET_DEFAULTS.time_errors.max_errors;
+    if (maxDurationMinutes != null && !Number.isFinite(maxDurationMinutes)) {
+      maxDurationMinutes = FINISH_PRESET_DEFAULTS.time_errors.max_duration_minutes;
+    }
   }
   if (finishPreset === "rounds_time") {
-    if (maxRounds == null) maxRounds = FINISH_PRESET_DEFAULTS.rounds_time.max_rounds;
     if (maxDurationMinutes == null) maxDurationMinutes = FINISH_PRESET_DEFAULTS.rounds_time.max_duration_minutes;
+    if (maxRounds != null && !Number.isFinite(maxRounds)) {
+      maxRounds = FINISH_PRESET_DEFAULTS.rounds_time.max_rounds;
+    }
   }
 
   return {
@@ -2022,7 +2060,7 @@ function deriveTournamentFinishRules(tournament) {
 }
 
 function setActiveFinishPreset(preset) {
-  const normalizedPreset = FINISH_PRESET_LABELS[preset] ? preset : "rounds_time";
+  const normalizedPreset = FINISH_PRESET_LABELS[preset] ? preset : "time_errors";
   document.querySelectorAll("[data-finish-preset-tab]").forEach((button) => {
     const isActive = button.getAttribute("data-finish-preset-tab") === normalizedPreset;
     button.classList.toggle("active", isActive);
@@ -2059,6 +2097,28 @@ function isOptionalFinishLimitEnabled(rowId) {
 function applyTournamentFinishRulesToForm(config) {
   setActiveFinishPreset(config.finish_preset);
 
+  const timeErrorsMaxErrors = el("new-tournament-time-errors-max-errors");
+  if (timeErrorsMaxErrors) {
+    timeErrorsMaxErrors.value = String(config.max_errors != null ? config.max_errors : FINISH_PRESET_DEFAULTS.time_errors.max_errors);
+  }
+  const timeErrorsMaxDuration = el("new-tournament-time-errors-max-duration");
+  if (timeErrorsMaxDuration) {
+    timeErrorsMaxDuration.value = String(
+      config.max_duration_minutes != null ? config.max_duration_minutes : FINISH_PRESET_DEFAULTS.time_errors.max_duration_minutes,
+    );
+  }
+
+  const roundsTimeMaxDuration = el("new-tournament-rounds-time-max-duration");
+  if (roundsTimeMaxDuration) {
+    roundsTimeMaxDuration.value = String(config.max_duration_minutes != null ? config.max_duration_minutes : FINISH_PRESET_DEFAULTS.rounds_time.max_duration_minutes);
+  }
+  const roundsTimeMaxRounds = el("new-tournament-rounds-time-max-rounds");
+  if (roundsTimeMaxRounds) {
+    roundsTimeMaxRounds.value = String(
+      config.max_rounds != null ? config.max_rounds : FINISH_PRESET_DEFAULTS.rounds_time.max_rounds,
+    );
+  }
+
   const roundsErrorsMaxRounds = el("new-tournament-rounds-errors-max-rounds");
   if (roundsErrorsMaxRounds && config.max_rounds != null) roundsErrorsMaxRounds.value = String(config.max_rounds);
   const roundsErrorsMaxErrors = el("new-tournament-rounds-errors-max-errors");
@@ -2066,61 +2126,47 @@ function applyTournamentFinishRulesToForm(config) {
     roundsErrorsMaxErrors.value = String(config.max_errors != null ? config.max_errors : FINISH_PRESET_DEFAULTS.rounds_errors.max_errors);
   }
 
-  const timeErrorsMaxDuration = el("new-tournament-time-errors-max-duration");
-  if (timeErrorsMaxDuration && config.max_duration_minutes != null) timeErrorsMaxDuration.value = String(config.max_duration_minutes);
-  const timeErrorsMaxErrors = el("new-tournament-time-errors-max-errors");
-  if (timeErrorsMaxErrors) {
-    timeErrorsMaxErrors.value = String(config.max_errors != null ? config.max_errors : FINISH_PRESET_DEFAULTS.time_errors.max_errors);
-  }
-
-  const roundsTimeMaxRounds = el("new-tournament-rounds-time-max-rounds");
-  if (roundsTimeMaxRounds && config.max_rounds != null) roundsTimeMaxRounds.value = String(config.max_rounds);
-  const roundsTimeMaxDuration = el("new-tournament-rounds-time-max-duration");
-  if (roundsTimeMaxDuration) {
-    roundsTimeMaxDuration.value = String(config.max_duration_minutes != null ? config.max_duration_minutes : FINISH_PRESET_DEFAULTS.rounds_time.max_duration_minutes);
-  }
-
+  setOptionalFinishLimitState(
+    "new-tournament-time-errors-max-duration-row",
+    "new-tournament-time-errors-max-duration",
+    "new-tournament-time-errors-max-duration-toggle",
+    config.finish_preset === "time_errors" && config.max_duration_minutes != null,
+  );
+  setOptionalFinishLimitState(
+    "new-tournament-rounds-time-max-rounds-row",
+    "new-tournament-rounds-time-max-rounds",
+    "new-tournament-rounds-time-max-rounds-toggle",
+    config.finish_preset === "rounds_time" && config.max_rounds != null,
+  );
   setOptionalFinishLimitState(
     "new-tournament-rounds-errors-max-errors-row",
     "new-tournament-rounds-errors-max-errors",
     "new-tournament-rounds-errors-max-errors-toggle",
     config.finish_preset === "rounds_errors" && config.max_errors != null,
   );
-  setOptionalFinishLimitState(
-    "new-tournament-time-errors-max-errors-row",
-    "new-tournament-time-errors-max-errors",
-    "new-tournament-time-errors-max-errors-toggle",
-    config.finish_preset === "time_errors" && config.max_errors != null,
-  );
-  setOptionalFinishLimitState(
-    "new-tournament-rounds-time-max-duration-row",
-    "new-tournament-rounds-time-max-duration",
-    "new-tournament-rounds-time-max-duration-toggle",
-    config.finish_preset === "rounds_time" && config.max_duration_minutes != null,
-  );
 }
 
 function collectTournamentFinishRules() {
   const activeTab = document.querySelector("[data-finish-preset-tab].active");
-  const finishPreset = activeTab ? activeTab.getAttribute("data-finish-preset-tab") : "rounds_time";
+  const finishPreset = activeTab ? activeTab.getAttribute("data-finish-preset-tab") : "time_errors";
   let maxRounds = null;
   let maxErrors = null;
   let maxDurationMinutes = null;
 
-  if (finishPreset === "rounds_errors") {
+  if (finishPreset === "time_errors") {
+    maxErrors = normalizePositiveIntegerOrNull(el("new-tournament-time-errors-max-errors")?.value);
+    maxDurationMinutes = isOptionalFinishLimitEnabled("new-tournament-time-errors-max-duration-row")
+      ? normalizePositiveIntegerOrNull(el("new-tournament-time-errors-max-duration")?.value)
+      : null;
+  } else if (finishPreset === "rounds_time") {
+    maxDurationMinutes = normalizePositiveIntegerOrNull(el("new-tournament-rounds-time-max-duration")?.value);
+    maxRounds = isOptionalFinishLimitEnabled("new-tournament-rounds-time-max-rounds-row")
+      ? normalizePositiveIntegerOrNull(el("new-tournament-rounds-time-max-rounds")?.value)
+      : null;
+  } else {
     maxRounds = normalizePositiveIntegerOrNull(el("new-tournament-rounds-errors-max-rounds")?.value);
     maxErrors = isOptionalFinishLimitEnabled("new-tournament-rounds-errors-max-errors-row")
       ? normalizePositiveIntegerOrNull(el("new-tournament-rounds-errors-max-errors")?.value)
-      : null;
-  } else if (finishPreset === "time_errors") {
-    maxDurationMinutes = normalizePositiveIntegerOrNull(el("new-tournament-time-errors-max-duration")?.value);
-    maxErrors = isOptionalFinishLimitEnabled("new-tournament-time-errors-max-errors-row")
-      ? normalizePositiveIntegerOrNull(el("new-tournament-time-errors-max-errors")?.value)
-      : null;
-  } else {
-    maxRounds = normalizePositiveIntegerOrNull(el("new-tournament-rounds-time-max-rounds")?.value);
-    maxDurationMinutes = isOptionalFinishLimitEnabled("new-tournament-rounds-time-max-duration-row")
-      ? normalizePositiveIntegerOrNull(el("new-tournament-rounds-time-max-duration")?.value)
       : null;
   }
 
@@ -2144,12 +2190,21 @@ function collectTournamentFinishRules() {
 
   const allowedByPreset = {
     rounds_errors: ["max_rounds", "max_errors"],
-    time_errors: ["max_duration_minutes", "max_errors"],
-    rounds_time: ["max_rounds", "max_duration_minutes"],
+    time_errors: ["max_errors", "max_duration_minutes"],
+    rounds_time: ["max_duration_minutes", "max_rounds"],
   };
   const allowedLimits = allowedByPreset[finishPreset] || [];
   const invalidPreset = activeLimits.some((limitKey) => !allowedLimits.includes(limitKey));
   if (invalidPreset) {
+    return { ok: false, message: FINISH_SETTINGS_VALIDATION_ERROR };
+  }
+  if (finishPreset === "time_errors" && maxErrors == null) {
+    return { ok: false, message: FINISH_SETTINGS_VALIDATION_ERROR };
+  }
+  if (finishPreset === "rounds_time" && maxDurationMinutes == null) {
+    return { ok: false, message: FINISH_SETTINGS_VALIDATION_ERROR };
+  }
+  if (finishPreset === "rounds_errors" && maxRounds == null) {
     return { ok: false, message: FINISH_SETTINGS_VALIDATION_ERROR };
   }
 
@@ -2655,10 +2710,10 @@ function resetCreateTournamentSettings() {
   if (trainingHintsEnabled) trainingHintsEnabled.checked = true;
 
   applyTournamentFinishRulesToForm({
-    finish_preset: "rounds_time",
-    max_rounds: FINISH_PRESET_DEFAULTS.rounds_time.max_rounds,
-    max_errors: null,
-    max_duration_minutes: FINISH_PRESET_DEFAULTS.rounds_time.max_duration_minutes,
+    finish_preset: "time_errors",
+    max_rounds: null,
+    max_errors: FINISH_PRESET_DEFAULTS.time_errors.max_errors,
+    max_duration_minutes: FINISH_PRESET_DEFAULTS.time_errors.max_duration_minutes,
   });
 
   const tipPercentage = el("new-tournament-tip-percentage");
@@ -4701,7 +4756,7 @@ function wire() {
   });
   document.querySelectorAll("[data-finish-preset-tab]").forEach((button) => {
     button.addEventListener("click", () => {
-      const preset = button.getAttribute("data-finish-preset-tab") || "rounds_time";
+      const preset = button.getAttribute("data-finish-preset-tab") || "time_errors";
       setActiveFinishPreset(preset);
     });
   });
@@ -4713,20 +4768,20 @@ function wire() {
       !isOptionalFinishLimitEnabled("new-tournament-rounds-errors-max-errors-row"),
     );
   });
-  el("new-tournament-time-errors-max-errors-toggle")?.addEventListener("click", () => {
+  el("new-tournament-time-errors-max-duration-toggle")?.addEventListener("click", () => {
     setOptionalFinishLimitState(
-      "new-tournament-time-errors-max-errors-row",
-      "new-tournament-time-errors-max-errors",
-      "new-tournament-time-errors-max-errors-toggle",
-      !isOptionalFinishLimitEnabled("new-tournament-time-errors-max-errors-row"),
+      "new-tournament-time-errors-max-duration-row",
+      "new-tournament-time-errors-max-duration",
+      "new-tournament-time-errors-max-duration-toggle",
+      !isOptionalFinishLimitEnabled("new-tournament-time-errors-max-duration-row"),
     );
   });
-  el("new-tournament-rounds-time-max-duration-toggle")?.addEventListener("click", () => {
+  el("new-tournament-rounds-time-max-rounds-toggle")?.addEventListener("click", () => {
     setOptionalFinishLimitState(
-      "new-tournament-rounds-time-max-duration-row",
-      "new-tournament-rounds-time-max-duration",
-      "new-tournament-rounds-time-max-duration-toggle",
-      !isOptionalFinishLimitEnabled("new-tournament-rounds-time-max-duration-row"),
+      "new-tournament-rounds-time-max-rounds-row",
+      "new-tournament-rounds-time-max-rounds",
+      "new-tournament-rounds-time-max-rounds-toggle",
+      !isOptionalFinishLimitEnabled("new-tournament-rounds-time-max-rounds-row"),
     );
   });
   el("btn-create-tournament")?.addEventListener("click", () => {
