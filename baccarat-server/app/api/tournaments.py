@@ -380,19 +380,27 @@ def get_active_finish_reasons_for_tournament(tournament: Tournament) -> set[str]
 
 
 def is_attempt_better(candidate: TournamentAttempt, incumbent: TournamentAttempt) -> bool:
-    candidate_key = (
-        int(candidate.errors_total),
-        int(candidate.time_spent_seconds),
-        candidate.submitted_at or datetime.max.replace(tzinfo=timezone.utc),
-        str(candidate.id),
-    )
-    incumbent_key = (
-        int(incumbent.errors_total),
-        int(incumbent.time_spent_seconds),
-        incumbent.submitted_at or datetime.max.replace(tzinfo=timezone.utc),
-        str(incumbent.id),
-    )
+    candidate_key = build_attempt_sort_key(candidate)
+    incumbent_key = build_attempt_sort_key(incumbent)
     return candidate_key < incumbent_key
+
+
+def build_attempt_score_key(attempt: TournamentAttempt) -> tuple[int, int, int]:
+    return (
+        int(attempt.rounds_completed),
+        int(attempt.errors_total),
+        int(attempt.time_spent_seconds),
+    )
+
+
+def build_attempt_sort_key(attempt: TournamentAttempt) -> tuple[int, int, int, datetime, str]:
+    return (
+        -int(attempt.rounds_completed),
+        int(attempt.errors_total),
+        int(attempt.time_spent_seconds),
+        attempt.submitted_at or datetime.max.replace(tzinfo=timezone.utc),
+        str(attempt.id),
+    )
 
 
 async def get_best_success_attempt_for_participant(
@@ -406,6 +414,7 @@ async def get_best_success_attempt_for_participant(
             TournamentAttempt.status == TournamentAttemptStatus.SUCCESS,
         )
         .order_by(
+            TournamentAttempt.rounds_completed.desc(),
             TournamentAttempt.errors_total.asc(),
             TournamentAttempt.time_spent_seconds.asc(),
             TournamentAttempt.submitted_at.asc(),
@@ -446,6 +455,7 @@ async def get_tournament_leaderboard_rows(
         )
         .order_by(
             TournamentParticipant.id.asc(),
+            TournamentAttempt.rounds_completed.desc(),
             TournamentAttempt.errors_total.asc(),
             TournamentAttempt.time_spent_seconds.asc(),
             TournamentAttempt.submitted_at.asc(),
@@ -460,12 +470,7 @@ async def get_tournament_leaderboard_rows(
 
     rows = list(best_by_participant.values())
     rows.sort(
-        key=lambda item: (
-            int(item[1].errors_total),
-            int(item[1].time_spent_seconds),
-            item[1].submitted_at or datetime.max.replace(tzinfo=timezone.utc),
-            str(item[1].id),
-        )
+        key=lambda item: build_attempt_sort_key(item[1])
     )
     return rows
 
@@ -474,14 +479,21 @@ def build_tournament_leaderboard_entries(
     rows: list[tuple[TournamentParticipant, TournamentAttempt]],
 ) -> list[TournamentLeaderboardEntryResponse]:
     entries: list[TournamentLeaderboardEntryResponse] = []
+    previous_score_key: tuple[int, int, int] | None = None
+    current_rank: int = 0
     for index, (participant, attempt) in enumerate(rows, start=1):
+        score_key = build_attempt_score_key(attempt)
+        if previous_score_key != score_key:
+            current_rank = index
+            previous_score_key = score_key
         entries.append(
             TournamentLeaderboardEntryResponse(
-                rank=index,
+                rank=current_rank,
                 participant_id=str(participant.id),
                 display_name=participant.display_name,
                 attempt_id=str(attempt.id),
                 attempt_number=int(attempt.attempt_number),
+                rounds_completed=int(attempt.rounds_completed),
                 errors_total=int(attempt.errors_total),
                 time_spent_seconds=int(attempt.time_spent_seconds),
                 submitted_at=attempt.submitted_at,
@@ -677,9 +689,10 @@ async def submit_tournament_attempt(
     rank: int | None = None
     if best_result is not None:
         leaderboard_rows = await get_tournament_leaderboard_rows(tournament.id, db)
-        for index, (row_participant, row_attempt) in enumerate(leaderboard_rows, start=1):
-            if row_participant.id == participant.id and row_attempt.id == best_result.id:
-                rank = index
+        leaderboard_entries = build_tournament_leaderboard_entries(leaderboard_rows)
+        for entry in leaderboard_entries:
+            if entry.participant_id == str(participant.id) and entry.attempt_id == str(best_result.id):
+                rank = int(entry.rank)
                 break
 
     return TournamentAttemptSubmitResponse(

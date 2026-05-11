@@ -158,6 +158,7 @@ class TournamentAttemptSubmitRequest(BaseModel):
 
 class TournamentBestResultResponse(BaseModel):
     attempt_number: int
+    rounds_completed: int
     errors_total: int
     time_spent_seconds: int
 
@@ -165,6 +166,7 @@ class TournamentBestResultResponse(BaseModel):
     def from_model(cls, attempt) -> "TournamentBestResultResponse":
         return cls(
             attempt_number=int(attempt.attempt_number),
+            rounds_completed=int(attempt.rounds_completed),
             errors_total=int(attempt.errors_total),
             time_spent_seconds=int(attempt.time_spent_seconds),
         )
@@ -190,6 +192,7 @@ class TournamentLeaderboardEntryResponse(BaseModel):
     display_name: str
     attempt_id: str
     attempt_number: int
+    rounds_completed: int
     errors_total: int
     time_spent_seconds: int
     submitted_at: datetime | None = None
