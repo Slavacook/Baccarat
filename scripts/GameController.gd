@@ -17,6 +17,7 @@ const TournamentAccessStoreScript = preload("res://scripts/network/TournamentAcc
 const TournamentNavigationStoreScript = preload("res://scripts/network/TournamentNavigationStore.gd")
 const TOURNAMENT_DETAILS_SCENE_PATH := "res://scenes/network/TournamentDetailsScreen.tscn"
 const START_SCREEN_SCENE_PATH := "res://scenes/StartScreen.tscn"
+const GAME_SCENE_PATH := "res://scenes/Game.tscn"
 
 # ═══════════════════════════════════════════════════════════════════════════
 # КОНФИГУРАЦИЯ
@@ -2413,7 +2414,7 @@ func _submit_tournament_attempt_async(force_retry: bool = false) -> void:
 			"rounds_value": "%d / %d" % [int(_node_prop(sm, "tournament_rounds_completed", 0)), int(_node_prop(sm, "tournament_max_rounds", 0))],
 			"menu_enabled": true,
 			"menu_text": "Выйти",
-			"retry_enabled": true,
+			"retry_enabled": false,
 			"retry_text": "Ещё раз",
 		})
 		return
@@ -2434,7 +2435,7 @@ func _submit_tournament_attempt_async(force_retry: bool = false) -> void:
 			"rounds_value": "%d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
 			"menu_enabled": true,
 			"menu_text": "Выйти",
-			"retry_enabled": true,
+			"retry_enabled": false,
 			"retry_text": "Ещё раз",
 		})
 		return
@@ -2483,7 +2484,7 @@ func _submit_tournament_attempt_async(force_retry: bool = false) -> void:
 			"rounds_value": "%d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
 			"menu_enabled": true,
 			"menu_text": "Выйти",
-			"retry_enabled": false,
+			"retry_enabled": true,
 			"retry_text": "Ещё раз",
 		})
 	else:
@@ -2509,7 +2510,7 @@ func _submit_tournament_attempt_async(force_retry: bool = false) -> void:
 			"rounds_value": "%d / %d" % [int(_dict_value(payload, "rounds_completed", 0)), int(_dict_value(payload, "max_rounds", 0))],
 			"menu_enabled": true,
 			"menu_text": "Выйти",
-			"retry_enabled": true,
+			"retry_enabled": false,
 			"retry_text": "Ещё раз",
 		})
 
@@ -2527,7 +2528,42 @@ func _format_tournament_finish_reason(reason: String) -> String:
 
 
 func _on_tournament_retry_submit_pressed() -> void:
-	_submit_tournament_attempt_async.call_deferred(true)
+	var input_context_manager: Variant = null
+	if Engine.has_singleton("InputContextManager"):
+		input_context_manager = Engine.get_singleton("InputContextManager")
+	else:
+		input_context_manager = get_node_or_null("/root/InputContextManager")
+	if input_context_manager != null and input_context_manager.has_method("set_global_block"):
+		input_context_manager.set_global_block(false)
+
+	var sm: Variant = null
+	if Engine.has_singleton("SessionManager"):
+		sm = Engine.get_singleton("SessionManager")
+	else:
+		sm = get_node_or_null("/root/SessionManager")
+	if sm == null:
+		DebugLogger.log_warning("⚠️ TournamentFinishOverlay: SessionManager не найден для старта новой попытки")
+		return
+
+	var is_tournament: bool = false
+	if sm.get("current_mode") == sm.Mode.TOURNAMENT:
+		is_tournament = true
+	if not is_tournament:
+		DebugLogger.log_warning("⚠️ TournamentFinishOverlay: кнопка 'Ещё раз' вызвана вне tournament mode")
+		return
+
+	var access_record: Dictionary = _get_current_tournament_access_record(sm)
+	if access_record.is_empty():
+		var tournament_id: String = str(_node_prop(sm, "tournament_id", "")).strip_edges()
+		DebugLogger.log_warning("⚠️ TournamentFinishOverlay: access_record не найден для tournament_id=%s" % tournament_id)
+		return
+	if not sm.has_method("start_tournament_session"):
+		DebugLogger.log_warning("⚠️ TournamentFinishOverlay: start_tournament_session недоступен")
+		return
+
+	sm.call("start_tournament_session", access_record)
+	if get_tree():
+		get_tree().change_scene_to_file(GAME_SCENE_PATH)
 
 
 func _compose_tournament_submit_failure_reason(base_reason: String, error_text: String) -> String:
@@ -2555,6 +2591,24 @@ func _node_prop(node: Variant, key: String, fallback: Variant) -> Variant:
 	return value
 
 
+func _get_current_tournament_access_record(sm: Variant) -> Dictionary:
+	if sm == null:
+		return {}
+
+	var tournament_id: String = str(_node_prop(sm, "tournament_id", "")).strip_edges()
+	if tournament_id.is_empty():
+		return {}
+
+	var access_store: Variant = TournamentAccessStoreScript.new()
+	if access_store == null or not access_store.has_method("get_access_by_tournament_id"):
+		return {}
+
+	var access_variant: Variant = access_store.call("get_access_by_tournament_id", tournament_id)
+	if access_variant is Dictionary:
+		return (access_variant as Dictionary).duplicate(true)
+	return {}
+
+
 func _on_tournament_finish_menu_pressed() -> void:
 	var input_context_manager: Variant = null
 	if Engine.has_singleton("InputContextManager"):
@@ -2576,13 +2630,7 @@ func _on_tournament_finish_menu_pressed() -> void:
 
 	if is_tournament:
 		var tournament_id: String = str(_node_prop(sm, "tournament_id", "")).strip_edges()
-		var access_record: Dictionary = {}
-		if not tournament_id.is_empty():
-			var access_store: Variant = TournamentAccessStoreScript.new()
-			if access_store != null and access_store.has_method("get_access_by_tournament_id"):
-				var access_variant: Variant = access_store.call("get_access_by_tournament_id", tournament_id)
-				if access_variant is Dictionary:
-					access_record = (access_variant as Dictionary).duplicate(true)
+		var access_record: Dictionary = _get_current_tournament_access_record(sm)
 
 		if not access_record.is_empty():
 			var navigation_store: Variant = TournamentNavigationStoreScript.new()
