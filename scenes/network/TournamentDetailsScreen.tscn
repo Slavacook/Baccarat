@@ -112,21 +112,21 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 12
 
-[node name="ContentScroll" type="VBoxContainer" parent="Margin/Center/Container"]
+[node name="ContentScroll" type="ScrollContainer" parent="Margin/Center/Container"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
-theme_override_constants/separation = 12
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 3
 
 [node name="Content" type="VBoxContainer" parent="Margin/Center/Container/ContentScroll"]
 custom_minimum_size = Vector2(980, 0)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_constants/separation = 12
 
 [node name="TopSpacer" type="Control" parent="Margin/Center/Container/ContentScroll/Content"]
-custom_minimum_size = Vector2(0, 12)
+custom_minimum_size = Vector2(0, 22)
 layout_mode = 2
 
 [node name="Title" type="Label" parent="Margin/Center/Container/ContentScroll/Content"]
@@ -189,7 +189,6 @@ autowrap_mode = 2
 custom_minimum_size = Vector2(980, 390)
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_vertical = 3
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 
 [node name="LeaderboardPadding" type="MarginContainer" parent="Margin/Center/Container/ContentScroll/Content/LeaderboardPanel"]
@@ -248,13 +247,19 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme_override_constants/separation = 6
 
-[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container"]
+[node name="BottomActionsWrapper" type="MarginContainer" parent="Margin/Center/Container"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_bottom = 40
+
+[node name="ActionsRow" type="HBoxContainer" parent="Margin/Center/Container/BottomActionsWrapper"]
 layout_mode = 2
 size_flags_horizontal = 3
 size_flags_vertical = 8
 theme_override_constants/separation = 12
 
-[node name="BackBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+[node name="BackBtn" type="Button" parent="Margin/Center/Container/BottomActionsWrapper/ActionsRow"]
 custom_minimum_size = Vector2(140, 56)
 layout_mode = 2
 size_flags_horizontal = 1
@@ -263,7 +268,7 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
 
-[node name="StartAttemptBtn" type="Button" parent="Margin/Center/Container/ActionsRow"]
+[node name="StartAttemptBtn" type="Button" parent="Margin/Center/Container/BottomActionsWrapper/ActionsRow"]
 custom_minimum_size = Vector2(0, 56)
 layout_mode = 2
 size_flags_horizontal = 3
@@ -271,7 +276,3 @@ text = "Начать попытку"
 theme_override_styles/normal = SubResource("StyleBoxFlat_button_normal")
 theme_override_styles/hover = SubResource("StyleBoxFlat_button_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_button_pressed")
-
-[node name="BottomSpacer" type="Control" parent="Margin/Center/Container"]
-custom_minimum_size = Vector2(0, 12)
-layout_mode = 2
