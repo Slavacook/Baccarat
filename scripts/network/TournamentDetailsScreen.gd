@@ -249,6 +249,7 @@ func _render_leaderboard(rows: Array) -> void:
 
 
 func _build_leaderboard_row(row: Dictionary) -> Control:
+	var is_current_player: bool = _is_current_player_row(row)
 	var rank: String = _first_rank_string(row, ["rank", "place", "position"])
 	var participant_name: String = _first_non_empty_string(row, ["display_name", "participant_name", "name"])
 	var rounds_text: String = _first_numeric_string(row, ["rounds_completed", "rounds"])
@@ -269,7 +270,7 @@ func _build_leaderboard_row(row: Dictionary) -> Control:
 	if attempt_text.is_empty():
 		attempt_text = "0"
 
-	return _build_table_row(rank, participant_name, rounds_text, errors, time_text, attempt_text, false)
+	return _build_table_row(rank, participant_name, rounds_text, errors, time_text, attempt_text, false, is_current_player)
 
 
 func _render_leaderboard_header() -> void:
@@ -277,7 +278,7 @@ func _render_leaderboard_header() -> void:
 		return
 	for child in leaderboard_header_host.get_children():
 		child.queue_free()
-	leaderboard_header_host.add_child(_build_table_row("Место", "Участник", "Раздачи", "Ошибки", "Время", "Попытка", true))
+	leaderboard_header_host.add_child(_build_table_row("Место", "Участник", "Раздачи", "Ошибки", "Время", "Попытка", true, false))
 
 func _build_table_row(
 	place_text: String,
@@ -286,16 +287,34 @@ func _build_table_row(
 	errors_text: String,
 	time_text: String,
 	attempt_text: String,
-	is_header: bool
+	is_header: bool,
+	is_current_player: bool
 ) -> Control:
 	var panel := PanelContainer.new()
 	panel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
 
-	var style := StyleBoxFlat.new()
-	style.bg_color = Color(1, 1, 1, 0.08) if is_header else Color(0.02, 0.03, 0.05, 0.34)
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	if is_header:
+		style.bg_color = Color(1, 1, 1, 0.08)
+	elif is_current_player:
+		style.bg_color = Color(0.10, 0.18, 0.12, 0.72)
+	else:
+		style.bg_color = Color(0.02, 0.03, 0.05, 0.34)
 	style.border_width_bottom = 1
-	style.border_color = Color(1, 1, 1, 0.12) if is_header else Color(1, 1, 1, 0.08)
+	if is_header:
+		style.border_color = Color(1, 1, 1, 0.12)
+	elif is_current_player:
+		style.border_width_left = 1
+		style.border_width_top = 1
+		style.border_width_right = 1
+		style.border_width_bottom = 1
+		style.border_color = Color(0.86, 0.72, 0.38, 0.68)
+		style.shadow_color = Color(0.86, 0.72, 0.38, 0.18)
+		style.shadow_size = 5
+		style.shadow_offset = Vector2(0, 0)
+	else:
+		style.border_color = Color(1, 1, 1, 0.08)
 	style.corner_radius_top_left = 8
 	style.corner_radius_top_right = 8
 	style.corner_radius_bottom_left = 8
@@ -316,23 +335,30 @@ func _build_table_row(
 	row_box.add_theme_constant_override("separation", 12)
 	padding.add_child(row_box)
 
-	row_box.add_child(_build_table_cell(place_text, 80, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_table_cell(place_text, 80, HORIZONTAL_ALIGNMENT_CENTER, is_header, false, is_current_player))
 	row_box.add_child(_build_column_separator())
-	row_box.add_child(_build_table_cell(name_text, 0, HORIZONTAL_ALIGNMENT_LEFT, is_header, true))
+	row_box.add_child(_build_name_cell(name_text, is_header, is_current_player))
 	row_box.add_child(_build_column_separator())
-	row_box.add_child(_build_table_cell(rounds_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_table_cell(rounds_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false, is_current_player))
 	row_box.add_child(_build_column_separator())
-	row_box.add_child(_build_table_cell(errors_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_table_cell(errors_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false, is_current_player))
 	row_box.add_child(_build_column_separator())
-	row_box.add_child(_build_table_cell(time_text, 110, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_table_cell(time_text, 110, HORIZONTAL_ALIGNMENT_CENTER, is_header, false, is_current_player))
 	row_box.add_child(_build_column_separator())
-	row_box.add_child(_build_table_cell(attempt_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false))
+	row_box.add_child(_build_table_cell(attempt_text, 96, HORIZONTAL_ALIGNMENT_CENTER, is_header, false, is_current_player))
 
 	return panel
 
 
-func _build_table_cell(text: String, min_width: int, alignment: HorizontalAlignment, is_header: bool, expand: bool) -> Control:
-	var label := Label.new()
+func _build_table_cell(
+	text: String,
+	min_width: int,
+	alignment: HorizontalAlignment,
+	is_header: bool,
+	expand: bool,
+	is_current_player: bool
+) -> Control:
+	var label: Label = Label.new()
 	label.text = text
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	label.horizontal_alignment = alignment
@@ -340,6 +366,8 @@ func _build_table_cell(text: String, min_width: int, alignment: HorizontalAlignm
 	label.autowrap_mode = TextServer.AUTOWRAP_OFF if is_header else TextServer.AUTOWRAP_WORD_SMART
 	if is_header:
 		label.add_theme_color_override("font_color", Color(1, 1, 1, 0.94))
+	elif is_current_player:
+		label.add_theme_color_override("font_color", Color(1.0, 0.98, 0.92, 0.98))
 	else:
 		label.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
 	if min_width > 0:
@@ -349,8 +377,73 @@ func _build_table_cell(text: String, min_width: int, alignment: HorizontalAlignm
 	return label
 
 
+func _build_name_cell(text: String, is_header: bool, is_current_player: bool) -> Control:
+	if is_header:
+		return _build_table_cell(text, 0, HORIZONTAL_ALIGNMENT_LEFT, true, true, false)
+
+	var container: HBoxContainer = HBoxContainer.new()
+	container.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	container.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	container.alignment = BoxContainer.ALIGNMENT_BEGIN
+	container.add_theme_constant_override("separation", 8)
+
+	var name_label: Label = Label.new()
+	name_label.text = text
+	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
+	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	name_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	if is_current_player:
+		name_label.add_theme_color_override("font_color", Color(1.0, 0.98, 0.92, 0.98))
+	else:
+		name_label.add_theme_color_override("font_color", Color(1, 1, 1, 0.9))
+	container.add_child(name_label)
+
+	if is_current_player:
+		container.add_child(_build_current_player_badge())
+
+	return container
+
+
+func _build_current_player_badge() -> Control:
+	var badge_panel: PanelContainer = PanelContainer.new()
+	badge_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+
+	var badge_style: StyleBoxFlat = StyleBoxFlat.new()
+	badge_style.bg_color = Color(0.82, 0.69, 0.32, 0.22)
+	badge_style.border_width_left = 1
+	badge_style.border_width_top = 1
+	badge_style.border_width_right = 1
+	badge_style.border_width_bottom = 1
+	badge_style.border_color = Color(0.90, 0.76, 0.40, 0.54)
+	badge_style.corner_radius_top_left = 7
+	badge_style.corner_radius_top_right = 7
+	badge_style.corner_radius_bottom_left = 7
+	badge_style.corner_radius_bottom_right = 7
+	badge_panel.add_theme_stylebox_override("panel", badge_style)
+
+	var padding: MarginContainer = MarginContainer.new()
+	padding.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	padding.add_theme_constant_override("margin_left", 8)
+	padding.add_theme_constant_override("margin_top", 3)
+	padding.add_theme_constant_override("margin_right", 8)
+	padding.add_theme_constant_override("margin_bottom", 3)
+	badge_panel.add_child(padding)
+
+	var badge_label: Label = Label.new()
+	badge_label.text = "Вы"
+	badge_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	badge_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	badge_label.add_theme_color_override("font_color", Color(1.0, 0.97, 0.90, 0.98))
+	padding.add_child(badge_label)
+
+	return badge_panel
+
+
 func _build_column_separator() -> Control:
-	var separator := ColorRect.new()
+	var separator: ColorRect = ColorRect.new()
 	separator.custom_minimum_size = Vector2(1, 24)
 	separator.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	separator.color = Color(1, 1, 1, 0.12)
@@ -527,6 +620,38 @@ func _access_tournament() -> Dictionary:
 	if _access_record.has("tournament") and _access_record["tournament"] is Dictionary:
 		return (_access_record["tournament"] as Dictionary).duplicate(true)
 	return {}
+
+
+func _current_participant_id() -> String:
+	if not _access_record.has("participant") or not (_access_record["participant"] is Dictionary):
+		return ""
+	var participant: Dictionary = _access_record["participant"] as Dictionary
+	return _dictionary_string(participant, "id")
+
+
+func _current_participant_display_name() -> String:
+	if not _access_record.has("participant") or not (_access_record["participant"] is Dictionary):
+		return ""
+	var participant: Dictionary = _access_record["participant"] as Dictionary
+	return _dictionary_string(participant, "display_name")
+
+
+func _is_current_player_row(row: Dictionary) -> bool:
+	var current_participant_id: String = _current_participant_id()
+	if not current_participant_id.is_empty():
+		var row_participant_id: String = _dictionary_string(row, "participant_id")
+		if not row_participant_id.is_empty():
+			return row_participant_id == current_participant_id
+
+	var current_name: String = _current_participant_display_name()
+	if current_name.is_empty():
+		return false
+
+	var row_name: String = _first_non_empty_string(row, ["display_name", "participant_name", "name"])
+	if row_name.is_empty():
+		return false
+
+	return row_name == current_name
 
 
 func _has_valid_access_record() -> bool:
